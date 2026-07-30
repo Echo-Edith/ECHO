@@ -1,3 +1,4 @@
+import os
 import random
 import re
 import uuid
@@ -5,15 +6,14 @@ import asyncio
 import datetime
 from typing import Optional
 
+import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-try:
-    import yt_dlp
-    YTDLP_AVAILABLE = True
-except ImportError:
-    YTDLP_AVAILABLE = False
+YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
+YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
+YOUTUBE_VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
 
 
 # ------------------------------------------------------------------
@@ -31,6 +31,23 @@ def parse_duration(text: str) -> Optional[int]:
         return None
     amount, unit = match.groups()
     return int(amount) * UNIT_SECONDS[unit.lower()]
+
+
+ISO8601_DURATION_RE = re.compile(
+    r"P(?:\d+D)?T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?"
+)
+
+
+def parse_iso8601_duration(duration: str) -> int:
+    """Converts YouTube API's ISO 8601 duration (e.g. 'PT1H32M4S') into total seconds."""
+    match = ISO8601_DURATION_RE.match(duration or "")
+    if not match:
+        return 0
+    parts = match.groupdict()
+    hours = int(parts["hours"] or 0)
+    minutes = int(parts["minutes"] or 0)
+    seconds = int(parts["seconds"] or 0)
+    return hours * 3600 + minutes * 60 + seconds
 
 
 def make_bar(votes: int, total: int, length: int = 12) -> str:
@@ -255,10 +272,10 @@ class LobbyTools(commands.Cog):
         if seconds > 7 * 86400:
             return await ctx.send("❌ **Error:** Max poll duration is 7 days.")
 
-        if poll_type == "movie" and auto_action and not YTDLP_AVAILABLE:
+        if poll_type == "movie" and auto_action and not YOUTUBE_API_KEY:
             return await ctx.send(
-                "❌ **Error:** `yt-dlp` isn't installed on the bot, so I can't auto-search YouTube.\n"
-                "Run `pip install yt-dlp` on your Render service, or rerun this with `auto_action:false`."
+                "❌ **Error:** No `YOUTUBE_API_KEY` is set on the bot, so I can't search YouTube.\n"
+                "Add it as an environment variable on Render, or rerun this with `auto_action:false`."
             )
 
         end_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=seconds)
@@ -342,59 +359,70 @@ class LobbyTools(commands.Cog):
         self.active_polls.pop(poll.id, None)
 
     async def handle_movie_winner(self, channel: discord.abc.Messageable, poll_question: str, title: str):
-        if not YTDLP_AVAILABLE:
+        if not YOUTUBE_API_KEY:
             await channel.send(
-                f"🎬 **{title}** won **{poll_question}**, but `yt-dlp` isn't installed so I can't search YouTube for it."
+                f"🎬 **{title}** won **{poll_question}**, but no `YOUTUBE_API_KEY` is configured on the bot."
             )
             return
 
-        loop = asyncio.get_event_loop()
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "default_search": "ytsearch1",
-            "noplaylist": True,
-            "skip_download": True,
-        }
+        async with aiohttp.ClientSession() as session:
+            video_id, quota_error = await self._youtube_search(session, title)
 
-        def _search():
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(title, download=False)
+            if quota_error:
+                embed = discord.Embed(
+                    title="⚠️ YouTube Search Unavailable",
+                    description=(
+                        f"**{title}** won **{poll_question}**, but the YouTube API quota "
+                        f"appears to be exceeded or the request was rejected.\n\n{quota_error}"
+                    ),
+                    color=discord.Color.orange(),
+                )
+                return await channel.send(embed=embed)
 
-        try:
-            info = await loop.run_in_executor(None, _search)
-        except Exception:
-            info = None
+            if not video_id:
+                embed = discord.Embed(
+                    title="⚠️ Couldn't Find This on YouTube",
+                    description=(
+                        f"**{title}** won the poll for **{poll_question}**, but no matching video "
+                        f"was found. It may not exist on YouTube under this title, or the listing "
+                        f"was taken down.\n\nTry searching manually or use another streaming source."
+                    ),
+                    color=discord.Color.orange(),
+                )
+                return await channel.send(embed=embed)
 
-        entry = None
-        if info:
-            entries = info.get("entries") if "entries" in info else [info]
-            entry = entries[0] if entries else None
+            details, quota_error = await self._youtube_video_details(session, video_id)
 
-        if not entry:
+        if quota_error or not details:
             embed = discord.Embed(
-                title="⚠️ Couldn't find this on YouTube",
+                title="⚠️ Couldn't Verify This Video",
                 description=(
-                    f"**{title}** won the poll for **{poll_question}**, but I couldn't find an available "
-                    f"result — it may be region-blocked, taken down, or under copyright restriction.\n\n"
-                    f"Try searching manually or use another streaming source."
+                    f"**{title}** won **{poll_question}**, but I couldn't confirm whether it's "
+                    f"playable.\n\n[Check it here](https://www.youtube.com/watch?v={video_id})"
                 ),
                 color=discord.Color.orange(),
             )
             return await channel.send(embed=embed)
 
-        # Basic availability / copyright flags yt-dlp can surface
-        is_unavailable = entry.get("availability") in ("needs_auth", "premium_only", "subscriber_only", "private")
-        is_blocked = bool(entry.get("age_limit")) and entry.get("age_limit", 0) >= 18
+        snippet = details.get("snippet", {})
+        status = details.get("status", {})
+        content_details = details.get("contentDetails", {})
 
-        video_url = entry.get("webpage_url") or f"https://www.youtube.com/watch?v={entry.get('id')}"
+        video_url = f"https://www.youtube.com/watch?v={video_id}"
+        privacy_status = status.get("privacyStatus")
+        embeddable = status.get("embeddable", True)
+        region_restriction = content_details.get("regionRestriction", {})
+        is_blocked_somewhere = bool(region_restriction.get("blocked"))
+        is_allowlisted_only = bool(region_restriction.get("allowed"))
 
-        if is_unavailable:
+        # Hard failure: private/unlisted or explicitly non-embeddable content
+        if privacy_status not in (None, "public") or not embeddable:
             embed = discord.Embed(
-                title="⚠️ Video May Not Be Playable",
+                title="⚠️ Video Isn't Publicly Playable",
                 description=(
-                    f"**{title}** won **{poll_question}**, but the top match "
-                    f"appears to be region-locked, age-restricted, or otherwise unavailable.\n\n"
+                    f"**{title}** won **{poll_question}**, but the top match is "
+                    f"{'restricted from embedding' if not embeddable else f'marked as {privacy_status}'} "
+                    f"— likely a copyright or licensing restriction.\n\n"
                     f"[Check it here]({video_url}) — you may need another source."
                 ),
                 color=discord.Color.orange(),
@@ -402,29 +430,75 @@ class LobbyTools(commands.Cog):
             return await channel.send(embed=embed)
 
         embed = discord.Embed(
-            title=f"🎬 Now Showing: {entry.get('title', title)}",
+            title=f"🎬 Now Showing: {snippet.get('title', title)}",
             description=f"Winner of the poll: **{poll_question}**",
             url=video_url,
             color=discord.Color.green(),
         )
-        if entry.get("thumbnail"):
-            embed.set_thumbnail(url=entry["thumbnail"])
-        if entry.get("uploader"):
-            embed.add_field(name="Channel", value=entry["uploader"], inline=True)
-        if entry.get("duration"):
-            mins, secs = divmod(int(entry["duration"]), 60)
+        thumbnails = snippet.get("thumbnails", {})
+        thumb_url = (thumbnails.get("high") or thumbnails.get("default") or {}).get("url")
+        if thumb_url:
+            embed.set_thumbnail(url=thumb_url)
+        if snippet.get("channelTitle"):
+            embed.add_field(name="Channel", value=snippet["channelTitle"], inline=True)
+
+        duration_seconds = parse_iso8601_duration(content_details.get("duration", ""))
+        if duration_seconds:
+            mins, secs = divmod(duration_seconds, 60)
             embed.add_field(name="Length", value=f"{mins}m {secs}s", inline=True)
 
         embed.set_footer(text="LobbyBot • Hop in a VC and screen-share to watch together 🍿")
 
-        if is_blocked:
+        if is_blocked_somewhere or is_allowlisted_only:
             embed.add_field(
-                name="⚠️ Heads up",
-                value="This result is age-restricted — some members may need to be signed into YouTube to view it.",
+                name="⚠️ Heads Up",
+                value="This video has regional restrictions — it may not play for everyone in the server.",
                 inline=False,
             )
 
         await channel.send(embed=embed)
+
+    async def _youtube_search(self, session: aiohttp.ClientSession, query: str):
+        """Returns (video_id, error_message)."""
+        params = {
+            "part": "snippet",
+            "q": query,
+            "type": "video",
+            "maxResults": 1,
+            "key": YOUTUBE_API_KEY,
+        }
+        try:
+            async with session.get(YOUTUBE_SEARCH_URL, params=params, timeout=10) as resp:
+                data = await resp.json()
+                if resp.status != 200:
+                    reason = data.get("error", {}).get("message", f"HTTP {resp.status}")
+                    return None, reason
+                items = data.get("items", [])
+                if not items:
+                    return None, None
+                return items[0]["id"]["videoId"], None
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            return None, str(e)
+
+    async def _youtube_video_details(self, session: aiohttp.ClientSession, video_id: str):
+        """Returns (details_dict, error_message)."""
+        params = {
+            "part": "snippet,status,contentDetails",
+            "id": video_id,
+            "key": YOUTUBE_API_KEY,
+        }
+        try:
+            async with session.get(YOUTUBE_VIDEOS_URL, params=params, timeout=10) as resp:
+                data = await resp.json()
+                if resp.status != 200:
+                    reason = data.get("error", {}).get("message", f"HTTP {resp.status}")
+                    return None, reason
+                items = data.get("items", [])
+                if not items:
+                    return None, None
+                return items[0], None
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            return None, str(e)
 
 
 async def setup(bot: commands.Bot):
