@@ -6,17 +6,15 @@ from keep_alive import keep_alive
 # Initialize Bot Instance with required Gateway Intents
 intents = discord.Intents.default()
 intents.message_content = True
-intents.voice_states = True
 intents.guilds = True
-intents.members = True       # CRITICAL: Required to fetch player lists for DM broadcasts!
 
-class LobbyBotClient(commands.Bot):
+class EchoClient(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
-        # Dynamically load the updated cogs matching your cogs folder directory
-        extensions = ['cogs.lobbybot', 'cogs.lobbytools']
+        # Dynamically load the cogs matching your cogs folder directory
+        extensions = ['cogs.echo']
         for ext in extensions:
             try:
                 await self.load_extension(ext)
@@ -29,17 +27,9 @@ class LobbyBotClient(commands.Bot):
         print("🔁 Application command trees synced successfully.")
 
     async def on_ready(self):
-        print(f"👑 LobbyBot is online! Logged in as: {self.user} (ID: {self.user.id})")
-        
-        # Pre-resolve and cache application owner ID for unconditional DM bypass overrides
-        try:
-            app_info = await self.application_info()
-            self.owner_id = app_info.owner.id
-            print(f"👑 Bot Owner resolved and cached: {app_info.owner} ({self.owner_id})")
-        except Exception as e:
-            print(f"⚠️ Failed to cache application owner details on ready: {e}")
+        print(f"👑 ECHO is online! Logged in as: {self.user} (ID: {self.user.id})")
 
-bot = LobbyBotClient()
+bot = EchoClient()
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
