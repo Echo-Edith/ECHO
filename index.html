@@ -90,7 +90,7 @@
       <span class="flex items-center gap-1.5">
         <span class="w-2 h-2 rounded-full bg-discord-green animate-pulse" id="live-dot"></span> Live Sync
       </span>
-      <span>v3.5</span>
+      <span>v3.6</span>
     </div>
   </aside>
 
@@ -846,16 +846,12 @@
       const enabled = document.getElementById("maintenance-toggle").checked;
       showToast(enabled ? "Enabling Maintenance Mode..." : "Disabling Maintenance Mode...");
       try {
-        const res = await fetch('/api/maintenance', {
+        await fetch('/api/maintenance', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ maintenance: enabled })
         });
-        if (res.ok) {
-          showToast(enabled ? "Maintenance Mode Enabled!" : "Maintenance Mode Disabled!");
-        } else {
-          showToast("Failed to update maintenance mode.", true);
-        }
+        showToast(enabled ? "Maintenance Mode Enabled!" : "Maintenance Mode Disabled!");
       } catch (e) {
         showToast("Backend connection error.", true);
       }
@@ -866,19 +862,21 @@
       const val = parseInt(document.getElementById("global-discount-input").value) || 0;
       const hours = parseInt(document.getElementById("global-discount-hours").value) || 0;
 
-      showToast("Applying storewide discount...");
+      // INSTANT OPTIMISTIC UI UPDATE
+      globalDiscount = val;
+      const discountBadge = document.getElementById('active-discount-badge');
+      if (globalDiscount > 0) discountBadge.classList.remove('hidden');
+      else discountBadge.classList.add('hidden');
+
+      renderShopItems();
+      showToast(`Storewide discount updated to ${val}%!`);
+
       try {
-        const res = await fetch('/api/global-discount', {
+        await fetch('/api/global-discount', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ discount: val, hours: hours })
         });
-        if (res.ok) {
-          showToast(`Storewide discount set to ${val}%!`);
-          loadAllData();
-        } else {
-          showToast("Failed to apply discount.", true);
-        }
       } catch (e) {
         showToast("Backend connection error.", true);
       } finally {
@@ -888,19 +886,21 @@
 
     async function removeGlobalDiscount(btn = null) {
       const stopLoading = startBtnLoading(btn, "Removing...");
-      showToast("Removing discount...");
+      
+      // INSTANT OPTIMISTIC UI UPDATE
+      globalDiscount = 0;
+      document.getElementById("global-discount-input").value = "0";
+      document.getElementById("global-discount-hours").value = "";
+      document.getElementById('active-discount-badge').classList.add('hidden');
+      renderShopItems();
+      showToast("Storewide discount removed!");
+
       try {
-        const res = await fetch('/api/global-discount', {
+        await fetch('/api/global-discount', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ discount: 0, hours: 0 })
         });
-        if (res.ok) {
-          document.getElementById("global-discount-input").value = "0";
-          document.getElementById("global-discount-hours").value = "";
-          showToast("Storewide discount removed!");
-          loadAllData();
-        }
       } catch (e) {
         showToast("Backend connection error.", true);
       } finally {
@@ -1054,7 +1054,7 @@
         if (res.ok) {
           showToast("New package added to shop!");
           closeAddItemModal();
-          loadAllData();
+          await loadAllData();
         } else {
           showToast("Failed to add package.", true);
         }
@@ -1077,27 +1077,30 @@
     function closeEditItemModal() { document.getElementById("edit-modal").classList.add("hidden"); }
 
     async function saveEditShopItem(btn = null) {
-      const id = document.getElementById("edit-item-id").value;
+      const id = parseInt(document.getElementById("edit-item-id").value);
       const name = document.getElementById("edit-name-input").value;
       const desc = document.getElementById("edit-desc-input").value;
       const price = document.getElementById("edit-price-input").value;
       const available = document.getElementById("edit-available-input").checked;
 
       const stopLoading = startBtnLoading(btn, "Updating...");
-      showToast("Saving changes...");
+      
+      // INSTANT OPTIMISTIC UI UPDATE
+      const itemIndex = shopItems.findIndex(i => i.id === id);
+      if (itemIndex !== -1) {
+        shopItems[itemIndex] = { id, name, desc, price, available };
+        renderShopItems();
+      }
+
+      showToast("Package updated successfully!");
+      closeEditItemModal();
+
       try {
-        const res = await fetch(`/api/shop-items/${id}`, {
+        await fetch(`/api/shop-items/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, description: desc, price, available })
         });
-        if (res.ok) {
-          showToast("Package updated successfully!");
-          closeEditItemModal();
-          loadAllData();
-        } else {
-          showToast("Failed to edit item.", true);
-        }
       } catch (e) {
         showToast("Error updating item.", true);
       } finally {
@@ -1107,15 +1110,14 @@
 
     async function removeItem(id, btn = null) {
       const stopLoading = startBtnLoading(btn, "");
-      showToast("Deleting package...");
+      
+      // INSTANT OPTIMISTIC UI UPDATE
+      shopItems = shopItems.filter(i => i.id !== id);
+      renderShopItems();
+      showToast("Package deleted!");
+
       try {
-        const res = await fetch(`/api/shop-items/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-          showToast("Package deleted!");
-          loadAllData();
-        } else {
-          showToast("Failed to delete item.", true);
-        }
+        await fetch(`/api/shop-items/${id}`, { method: 'DELETE' });
       } catch (e) {
         showToast("Error deleting item.", true);
       } finally {
@@ -1135,20 +1137,19 @@
       }
 
       const stopLoading = startBtnLoading(btn, "Creating...");
-      showToast("Creating promo code...");
+      
+      // INSTANT OPTIMISTIC UI UPDATE
+      promoCodes.push({ code, discount, user_limit, expires_at: hours > 0 ? (Math.floor(Date.now() / 1000) + hours * 3600) : null });
+      renderPromoCodes();
+      showToast("Promo code created successfully!");
+      closeAddCodeModal();
+
       try {
-        const res = await fetch('/api/promo-codes', {
+        await fetch('/api/promo-codes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, discount, user_limit, expire_hours: hours })
         });
-        if (res.ok) {
-          showToast("Promo code created successfully!");
-          closeAddCodeModal();
-          loadAllData();
-        } else {
-          showToast("Failed to create code.", true);
-        }
       } catch (e) {
         showToast("Connection error.", true);
       } finally {
@@ -1158,13 +1159,14 @@
 
     async function removePromoCode(code, btn = null) {
       const stopLoading = startBtnLoading(btn, "");
-      showToast("Deleting code...");
+
+      // INSTANT OPTIMISTIC UI UPDATE
+      promoCodes = promoCodes.filter(c => c.code !== code);
+      renderPromoCodes();
+      showToast("Promo code deleted!");
+
       try {
-        const res = await fetch(`/api/promo-codes/${encodeURIComponent(code)}`, { method: 'DELETE' });
-        if (res.ok) {
-          showToast("Promo code deleted!");
-          loadAllData();
-        }
+        await fetch(`/api/promo-codes/${encodeURIComponent(code)}`, { method: 'DELETE' });
       } catch (e) {
         showToast("Error deleting code.", true);
       } finally {
@@ -1180,7 +1182,13 @@
         return;
       }
       const stopLoading = startBtnLoading(btn, "Saving...");
-      showToast("Blacklisting user...");
+
+      // INSTANT OPTIMISTIC UI UPDATE
+      blacklist.push({ user_id: userId, username: "Fetching Username...", reason });
+      renderBlacklist();
+      showToast("User blacklisted!");
+      closeAddBlacklistModal();
+
       try {
         const res = await fetch('/api/blacklist', {
           method: 'POST',
@@ -1188,11 +1196,7 @@
           body: JSON.stringify({ user_id: userId, reason })
         });
         if (res.ok) {
-          showToast("User successfully blacklisted!");
-          closeAddBlacklistModal();
-          loadAllData();
-        } else {
-          showToast("Failed to blacklist user.", true);
+          await loadAllData();
         }
       } catch (e) {
         showToast("Connection error.", true);
@@ -1203,15 +1207,14 @@
 
     async function removeBlacklistUser(userId, btn = null) {
       const stopLoading = startBtnLoading(btn, "");
-      showToast("Unblacklisting user...");
+
+      // INSTANT OPTIMISTIC UI UPDATE
+      blacklist = blacklist.filter(b => b.user_id !== userId);
+      renderBlacklist();
+      showToast("User unblacklisted successfully!");
+
       try {
-        const res = await fetch(`/api/blacklist/${userId}`, { method: 'DELETE' });
-        if (res.ok) {
-          showToast("User unblacklisted successfully!");
-          loadAllData();
-        } else {
-          showToast("Failed to unblacklist user.", true);
-        }
+        await fetch(`/api/blacklist/${userId}`, { method: 'DELETE' });
       } catch (e) {
         showToast("Error removing user.", true);
       } finally {
