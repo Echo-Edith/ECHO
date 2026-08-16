@@ -1,7 +1,7 @@
 import io
+import os
 import re
 import time
-import sqlite3
 import asyncio
 import datetime
 from typing import Optional
@@ -10,7 +10,11 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-DB_FILE = "echo_data.db"
+try:
+    import pymongo
+except ImportError:
+    pymongo = None
+
 EMBED_COLOR = discord.Color.blurple()
 ERROR_COLOR = discord.Color.red()
 
@@ -51,194 +55,217 @@ def is_owner(interaction: discord.Interaction) -> bool:
 
 
 # ----------------------------------------------------------------------
-# Storage
+# Storage (MongoDB Cloud - Deployment Proof)
 # ----------------------------------------------------------------------
+def get_db():
+    mongo_uri = os.getenv("MONGO_URI")
+    if mongo_uri and pymongo:
+        try:
+            client = pymongo.MongoClient(mongo_uri)
+            return client["echo_bot"]
+        except Exception as e:
+            print(f"❌ MongoDB Connection Error: {e}")
+            return None
+    return None
+
+
 def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS guild_config (
-            guild_id INTEGER PRIMARY KEY,
-            log_channel_id INTEGER,
-            staff_role_id INTEGER,
-            category_id INTEGER,
-            welcome_message TEXT,
-            ticket_counter INTEGER DEFAULT 0
-        )
-    ''')
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS shop_settings (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            title TEXT,
-            description TEXT,
-            color TEXT,
-            footer TEXT,
-            thumbnail_url TEXT,
-            banner_url TEXT
-        )
-    ''')
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS shop_items (
-            item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            description TEXT,
-            price TEXT,
-            position INTEGER
-        )
-    ''')
-    c.execute('''
-        INSERT OR IGNORE INTO shop_settings (id, title, description, color, footer, thumbnail_url, banner_url)
-        VALUES (1, ?, ?, ?, ?, NULL, NULL)
-    ''', (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER))
-    conn.commit()
-    conn.close()
+    db = get_db()
+    if db is None:
+        return
+    # Ensure shop_settings document exists
+    if not db["shop_settings"].find_one({"id": 1}):
+        db["shop_settings"].insert_one({
+            "id": 1,
+            "title": DEFAULT_SHOP_TITLE,
+            "description": DEFAULT_SHOP_DESCRIPTION,
+            "color": DEFAULT_SHOP_COLOR,
+            "footer": DEFAULT_SHOP_FOOTER,
+            "thumbnail_url": None,
+            "banner_url": None
+        })
 
 
 def save_guild_config(guild_id, log_channel_id, staff_role_id, category_id, welcome_message):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''
-        INSERT INTO guild_config (guild_id, log_channel_id, staff_role_id, category_id, welcome_message, ticket_counter)
-        VALUES (?, ?, ?, ?, ?, COALESCE((SELECT ticket_counter FROM guild_config WHERE guild_id = ?), 0))
-        ON CONFLICT(guild_id) DO UPDATE SET
-            log_channel_id=excluded.log_channel_id,
-            staff_role_id=excluded.staff_role_id,
-            category_id=excluded.category_id,
-            welcome_message=excluded.welcome_message
-    ''', (guild_id, log_channel_id, staff_role_id, category_id, welcome_message, guild_id))
-    conn.commit()
-    conn.close()
+    db = get_db()
+    if db is None:
+        return
+    existing = db["guild_config"].find_one({"guild_id": guild_id})
+    counter = existing.get("ticket_counter", 0) if existing else 0
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {
+            "$set": {
+                "guild_id": guild_id,
+                "log_channel_id": log_channel_id,
+                "staff_role_id": staff_role_id,
+                "category_id": category_id,
+                "welcome_message": welcome_message,
+                "ticket_counter": counter
+            }
+        },
+        upsert=True
+    )
 
 
 def get_guild_config(guild_id):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('SELECT log_channel_id, staff_role_id, category_id, welcome_message, ticket_counter FROM guild_config WHERE guild_id = ?', (guild_id,))
-    row = c.fetchone()
-    conn.close()
-    return row
+    db = get_db()
+    if db is None:
+        return None
+    doc = db["guild_config"].find_one({"guild_id": guild_id})
+    if not doc:
+        return None
+    return (
+        doc.get("log_channel_id"),
+        doc.get("staff_role_id"),
+        doc.get("category_id"),
+        doc.get("welcome_message"),
+        doc.get("ticket_counter", 0)
+    )
 
 
 def increment_ticket_counter(guild_id, new_value):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('UPDATE guild_config SET ticket_counter = ? WHERE guild_id = ?', (new_value, guild_id))
-    conn.commit()
-    conn.close()
+    db = get_db()
+    if db is None:
+        return
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"ticket_counter": new_value}}
+    )
 
 
 # --- shop settings ---
 def get_shop_settings():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('SELECT title, description, color, footer, thumbnail_url, banner_url FROM shop_settings WHERE id = 1')
-    row = c.fetchone()
-    conn.close()
-    return row
+    db = get_db()
+    if db is None:
+        return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
+    doc = db["shop_settings"].find_one({"id": 1})
+    if not doc:
+        return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
+    return (
+        doc.get("title", DEFAULT_SHOP_TITLE),
+        doc.get("description", DEFAULT_SHOP_DESCRIPTION),
+        doc.get("color", DEFAULT_SHOP_COLOR),
+        doc.get("footer", DEFAULT_SHOP_FOOTER),
+        doc.get("thumbnail_url"),
+        doc.get("banner_url")
+    )
 
 
 def update_shop_settings(**fields):
-    current = dict(zip(
-        ["title", "description", "color", "footer", "thumbnail_url", "banner_url"],
-        get_shop_settings(),
-    ))
+    db = get_db()
+    if db is None:
+        return
+    current_vals = get_shop_settings()
+    current = {
+        "title": current_vals[0],
+        "description": current_vals[1],
+        "color": current_vals[2],
+        "footer": current_vals[3],
+        "thumbnail_url": current_vals[4],
+        "banner_url": current_vals[5],
+    }
     current.update({k: v for k, v in fields.items() if v is not None})
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''
-        UPDATE shop_settings SET title=?, description=?, color=?, footer=?, thumbnail_url=?, banner_url=? WHERE id=1
-    ''', (current["title"], current["description"], current["color"], current["footer"],
-          current["thumbnail_url"], current["banner_url"]))
-    conn.commit()
-    conn.close()
+    db["shop_settings"].update_one(
+        {"id": 1},
+        {"$set": current},
+        upsert=True
+    )
 
 
 def reset_shop_settings():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''
-        UPDATE shop_settings SET title=?, description=?, color=?, footer=?, thumbnail_url=NULL, banner_url=NULL WHERE id=1
-    ''', (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER))
-    c.execute('DELETE FROM shop_items')
-    conn.commit()
-    conn.close()
+    db = get_db()
+    if db is None:
+        return
+    db["shop_settings"].update_one(
+        {"id": 1},
+        {
+            "$set": {
+                "title": DEFAULT_SHOP_TITLE,
+                "description": DEFAULT_SHOP_DESCRIPTION,
+                "color": DEFAULT_SHOP_COLOR,
+                "footer": DEFAULT_SHOP_FOOTER,
+                "thumbnail_url": None,
+                "banner_url": None
+            }
+        },
+        upsert=True
+    )
+    db["shop_items"].delete_many({})
 
 
 # --- shop items ---
 def add_shop_item(name, description, price):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('SELECT COALESCE(MAX(position), 0) + 1 FROM shop_items')
-    next_pos = c.fetchone()[0]
-    c.execute('INSERT INTO shop_items (name, description, price, position) VALUES (?, ?, ?, ?)',
-               (name, description, price, next_pos))
-    item_id = c.lastrowid
-    conn.commit()
-    conn.close()
-    return item_id
+    db = get_db()
+    if db is None:
+        return 1
+    last_item = db["shop_items"].find_one(sort=[("item_id", -1)])
+    next_id = (last_item["item_id"] + 1) if last_item and "item_id" in last_item else 1
+
+    last_pos = db["shop_items"].find_one(sort=[("position", -1)])
+    next_pos = (last_pos["position"] + 1) if last_pos and "position" in last_pos else 1
+
+    db["shop_items"].insert_one({
+        "item_id": next_id,
+        "name": name,
+        "description": description,
+        "price": price,
+        "position": next_pos
+    })
+    return next_id
 
 
 def remove_shop_item(item_id) -> bool:
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('SELECT item_id FROM shop_items WHERE item_id = ?', (item_id,))
-    exists = c.fetchone() is not None
-    if exists:
-        c.execute('DELETE FROM shop_items WHERE item_id = ?', (item_id,))
-        conn.commit()
-    conn.close()
-    return exists
+    db = get_db()
+    if db is None:
+        return False
+    res = db["shop_items"].delete_one({"item_id": item_id})
+    return res.deleted_count > 0
 
 
 def edit_shop_item(item_id, name=None, description=None, price=None) -> bool:
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('SELECT name, description, price FROM shop_items WHERE item_id = ?', (item_id,))
-    row = c.fetchone()
-    if row is None:
-        conn.close()
+    db = get_db()
+    if db is None:
         return False
-    new_name = name if name is not None else row[0]
-    new_desc = description if description is not None else row[1]
-    new_price = price if price is not None else row[2]
-    c.execute('UPDATE shop_items SET name=?, description=?, price=? WHERE item_id=?',
-               (new_name, new_desc, new_price, item_id))
-    conn.commit()
-    conn.close()
+    row = db["shop_items"].find_one({"item_id": item_id})
+    if row is None:
+        return False
+    new_name = name if name is not None else row.get("name")
+    new_desc = description if description is not None else row.get("description")
+    new_price = price if price is not None else row.get("price")
+    db["shop_items"].update_one(
+        {"item_id": item_id},
+        {"$set": {"name": new_name, "description": new_desc, "price": new_price}}
+    )
     return True
 
 
 def get_shop_items():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('SELECT item_id, name, description, price FROM shop_items ORDER BY position ASC')
-    rows = c.fetchall()
-    conn.close()
-    return rows
+    db = get_db()
+    if db is None:
+        return []
+    cursor = db["shop_items"].find().sort("position", 1)
+    return [(doc["item_id"], doc["name"], doc["description"], doc["price"]) for doc in cursor]
 
 
 def move_shop_item(item_id, direction: str) -> bool:
     """direction: 'up' or 'down'. Swaps position with the neighboring item."""
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('SELECT item_id, position FROM shop_items ORDER BY position ASC')
-    rows = c.fetchall()
-    ids = [r[0] for r in rows]
+    db = get_db()
+    if db is None:
+        return False
+    rows = list(db["shop_items"].find().sort("position", 1))
+    ids = [r["item_id"] for r in rows]
     if item_id not in ids:
-        conn.close()
         return False
     idx = ids.index(item_id)
     swap_idx = idx - 1 if direction == "up" else idx + 1
     if swap_idx < 0 or swap_idx >= len(rows):
-        conn.close()
         return False
-    pos_a = rows[idx][1]
-    pos_b = rows[swap_idx][1]
-    id_b = rows[swap_idx][0]
-    c.execute('UPDATE shop_items SET position=? WHERE item_id=?', (pos_b, item_id))
-    c.execute('UPDATE shop_items SET position=? WHERE item_id=?', (pos_a, id_b))
-    conn.commit()
-    conn.close()
+    pos_a = rows[idx]["position"]
+    pos_b = rows[swap_idx]["position"]
+    id_b = rows[swap_idx]["item_id"]
+    db["shop_items"].update_one({"item_id": item_id}, {"$set": {"position": pos_b}})
+    db["shop_items"].update_one({"item_id": id_b}, {"$set": {"position": pos_a}})
     return True
 
 
@@ -485,8 +512,8 @@ class Echo(commands.Cog):
                 allowed_mentions=discord.AllowedMentions(roles=True),
             )
         except Exception as e:
-            return await interaction.followup.send(embed=error_embed(f"Couldn't post the poll.\n```{str(e)[:300]}```"), ephemeral=True)
-
+            return await interaction.followup.send(embed=error_embed(f"Couldn't post the poll.\n
+            
         await interaction.followup.send(embed=info_embed("✅ Poll posted."), ephemeral=True)
 
     # ====================================================================
@@ -681,24 +708,28 @@ class Echo(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
 
-        for ch in list(guild.text_channels):
-            if ch.name == LOG_CHANNEL_NAME:
-                try:
-                    await ch.delete(reason="Replaced by /setup")
-                except discord.Forbidden:
-                    pass
+        # Scan for existing log channel instead of deleting it
+        log_channel = discord.utils.get(guild.text_channels, name=LOG_CHANNEL_NAME)
 
-        # Denying @everyone here is sufficient: members with the Administrator
-        # permission bypass channel overwrites in Discord, so they can still
-        # see this channel while nobody else can.
         log_overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True),
         }
-        try:
-            log_channel = await guild.create_text_channel(name=LOG_CHANNEL_NAME, overwrites=log_overwrites, reason="Auto-created by /setup")
-        except discord.Forbidden:
-            return await interaction.followup.send(embed=error_embed("I don't have permission to create channels."), ephemeral=True)
+        if staff_role:
+            log_overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+
+        if log_channel is None:
+            try:
+                log_channel = await guild.create_text_channel(name=LOG_CHANNEL_NAME, overwrites=log_overwrites, reason="Auto-created by /setup")
+            except discord.Forbidden:
+                return await interaction.followup.send(embed=error_embed("I don't have permission to create channels."), ephemeral=True)
+        else:
+            # Re-apply correct permissions if log channel already exists
+            try:
+                for target, overwrite in log_overwrites.items():
+                    await log_channel.set_permissions(target, overwrite=overwrite)
+            except discord.Forbidden:
+                pass
 
         if category is None:
             category = discord.utils.get(guild.categories, name=TICKET_CATEGORY_NAME)
@@ -778,7 +809,7 @@ class Echo(commands.Cog):
 
         await interaction.response.send_message(embed=info_embed(f"✅ Ticket created: {ticket_channel.mention}"), ephemeral=True)
 
-        log_channel = guild.get_channel(log_channel_id)
+        log_channel = guild.get_channel(log_channel_id) if log_channel_id else None
         if log_channel:
             log_embed = discord.Embed(title="🎫 Ticket Opened", color=discord.Color.green())
             log_embed.add_field(name="User", value=f"{interaction.user.mention} (`{interaction.user.id}`)", inline=False)
@@ -808,7 +839,7 @@ class Echo(commands.Cog):
         transcript_text = "\n".join(lines) or "(no messages)"
         transcript_file = discord.File(io.BytesIO(transcript_text.encode("utf-8")), filename=f"{channel.name}-transcript.txt")
 
-        log_channel = guild.get_channel(log_channel_id)
+        log_channel = guild.get_channel(log_channel_id) if log_channel_id else None
         if log_channel:
             log_embed = discord.Embed(title="🔒 Ticket Closed", color=discord.Color.red())
             log_embed.add_field(name="Channel", value=f"`#{channel.name}`", inline=True)
@@ -828,3 +859,6 @@ class Echo(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Echo(bot))
+
+
+
