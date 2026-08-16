@@ -1,4 +1,5 @@
 import os
+import time
 import asyncio
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
@@ -26,7 +27,6 @@ def get_db():
         return None
 
 
-# Root Route: Serves Dashboard UI or Cron Job Ping
 @app.route('/')
 def home():
     if os.path.exists(INDEX_PATH):
@@ -35,8 +35,7 @@ def home():
                 return render_template_string(f.read())
         except Exception as e:
             return f"Error loading dashboard: {e}", 500
-
-    return "<h1>ECHO Dashboard Active!</h1><p>Warning: index.html missing in root folder.</p>", 200
+    return "<h1>ECHO Dashboard Active!</h1>", 200
 
 
 @app.route('/ping')
@@ -44,7 +43,6 @@ def ping():
     return "pong", 200
 
 
-# Fetch Channels, Roles & Bot Avatar dynamically
 @app.route('/api/guild-data', methods=['GET'])
 def get_guild_data():
     if _bot_ref is None or not _bot_ref.is_ready():
@@ -54,7 +52,9 @@ def get_guild_data():
             "categories": [],
             "latency": 0,
             "bot_avatar": "https://cdn.discordapp.com/embed/avatars/0.png",
-            "bot_name": "ECHO"
+            "bot_name": "ECHO",
+            "maintenance": False,
+            "global_discount": 0
         })
 
     channels = []
@@ -73,6 +73,10 @@ def get_guild_data():
                 roles.append({"id": str(r.id), "name": r.name})
         break
 
+    db = get_db()
+    guild_id = _bot_ref.guilds[0].id if _bot_ref.guilds else 0
+    config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
+
     avatar_url = _bot_ref.user.display_avatar.url if _bot_ref.user else "https://cdn.discordapp.com/embed/avatars/0.png"
 
     return jsonify({
@@ -81,29 +85,63 @@ def get_guild_data():
         "categories": categories,
         "latency": round(_bot_ref.latency * 1000),
         "bot_avatar": avatar_url,
-        "bot_name": _bot_ref.user.name if _bot_ref.user else "ECHO"
+        "bot_name": _bot_ref.user.name if _bot_ref.user else "ECHO",
+        "maintenance": config.get("maintenance", False),
+        "global_discount": config.get("global_discount", 0)
     })
 
 
-# Fetch Total Ticket Count
 @app.route('/api/ticket-stats', methods=['GET'])
 def get_ticket_stats():
     db = get_db()
     if db is None:
-        return jsonify({"total_tickets": 0})
+        return jsonify({"total_tickets": 0, "saved_config": {}})
 
     total = 0
+    saved_config = {}
     try:
-        cursor = db["guild_config"].find({}, {"ticket_counter": 1})
-        for doc in cursor:
-            total += doc.get("ticket_counter", 0)
+        guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+        doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+        total = doc.get("ticket_counter", 0)
+        saved_config = doc
     except Exception:
         pass
 
-    return jsonify({"total_tickets": total})
+    return jsonify({"total_tickets": total, "saved_config": saved_config})
 
 
-# API Endpoint: Shop Item Management (GET, POST, PUT, DELETE)
+@app.route('/api/maintenance', methods=['POST'])
+def handle_maintenance():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "No database"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"maintenance": bool(data.get("maintenance"))}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
+@app.route('/api/global-discount', methods=['POST'])
+def handle_global_discount():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "No database"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"global_discount": int(data.get("discount", 0))}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
 @app.route('/api/shop-items', methods=['GET', 'POST'])
 def handle_shop_items():
     db = get_db()
@@ -120,13 +158,19 @@ def handle_shop_items():
             "name": data.get("name"),
             "description": data.get("description"),
             "price": data.get("price"),
+            "available": data.get("available", True),
             "position": next_id
         })
         return jsonify({"success": True})
 
-    # GET
     cursor = db["shop_items"].find().sort("position", 1)
-    items = [{"id": d["item_id"], "name": d["name"], "desc": d.get("description"), "price": d.get("price")} for d in cursor]
+    items = [{
+        "id": d["item_id"],
+        "name": d["name"],
+        "desc": d.get("description"),
+        "price": d.get("price"),
+        "available": d.get("available", True)
+    } for d in cursor]
     return jsonify(items)
 
 
@@ -148,14 +192,86 @@ def edit_or_delete_shop_item(item_id):
                 "$set": {
                     "name": data.get("name"),
                     "description": data.get("description"),
-                    "price": data.get("price")
+                    "price": data.get("price"),
+                    "available": data.get("available", True)
                 }
             }
         )
         return jsonify({"success": True})
 
 
-# Save Ticket Config
+@app.route('/api/promo-codes', methods=['GET', 'POST'])
+def handle_promo_codes():
+    db = get_db()
+    if db is None:
+        return jsonify([])
+
+    if request.method == 'POST':
+        data = request.json or {}
+        code = str(data.get("code", "")).strip().upper()
+        discount = int(data.get("discount", 0))
+        user_limit = int(data.get("user_limit", 0))
+        expire_hours = int(data.get("expire_hours", 0))
+
+        expires_at = (int(time.time()) + (expire_hours * 3600)) if expire_hours > 0 else None
+
+        if code and discount > 0:
+            db["promo_codes"].update_one(
+                {"code": code},
+                {"$set": {
+                    "code": code,
+                    "discount": discount,
+                    "user_limit": user_limit,
+                    "expires_at": expires_at
+                }},
+                upsert=True
+            )
+        return jsonify({"success": True})
+
+    cursor = db["promo_codes"].find()
+    codes = [{
+        "code": doc["code"],
+        "discount": doc["discount"],
+        "user_limit": doc.get("user_limit", 0),
+        "expires_at": doc.get("expires_at")
+    } for doc in cursor]
+    return jsonify(codes)
+
+
+@app.route('/api/promo-codes/<string:code>', methods=['DELETE'])
+def delete_promo_code(code):
+    db = get_db()
+    if db:
+        db["promo_codes"].delete_one({"code": code.upper()})
+    return jsonify({"success": True})
+
+
+@app.route('/api/blacklist', methods=['GET', 'POST'])
+def handle_blacklist():
+    db = get_db()
+    if db is None:
+        return jsonify([])
+
+    if request.method == 'POST':
+        data = request.json or {}
+        user_id = str(data.get("user_id")).strip()
+        reason = str(data.get("reason", "No reason provided"))
+        if user_id:
+            db["blacklist"].update_one({"user_id": user_id}, {"$set": {"user_id": user_id, "reason": reason}}, upsert=True)
+        return jsonify({"success": True})
+
+    cursor = db["blacklist"].find()
+    return jsonify([{"user_id": doc["user_id"], "reason": doc.get("reason", "")} for doc in cursor])
+
+
+@app.route('/api/blacklist/<string:user_id>', methods=['DELETE'])
+def delete_blacklist(user_id):
+    db = get_db()
+    if db:
+        db["blacklist"].delete_one({"user_id": str(user_id)})
+    return jsonify({"success": True})
+
+
 @app.route('/api/save-ticket-config', methods=['POST'])
 def save_ticket_config():
     db = get_db()
@@ -184,7 +300,6 @@ def save_ticket_config():
     return jsonify({"success": True})
 
 
-# Deploy Ticket Panel directly into Discord
 @app.route('/api/deploy-ticket-panel', methods=['POST'])
 def deploy_ticket_panel():
     if _bot_ref is None or not _bot_ref.is_ready():
@@ -192,12 +307,9 @@ def deploy_ticket_panel():
 
     data = request.json or {}
     channel_id = data.get("channel_id")
-    if not channel_id:
-        return jsonify({"error": "Missing channel_id"}), 400
-
     cog = _bot_ref.get_cog("Echo")
-    if cog is None:
-        return jsonify({"error": "Cog not loaded"}), 500
+    if not cog or not channel_id:
+        return jsonify({"error": "Invalid request"}), 400
 
     future = asyncio.run_coroutine_threadsafe(cog.deploy_ticket_panel_from_web(int(channel_id)), _bot_ref.loop)
     try:
@@ -207,7 +319,23 @@ def deploy_ticket_panel():
         return jsonify({"error": str(e)}), 500
 
 
-# Deploy Shop Embed directly into Discord
+@app.route('/api/update-ticket-panel', methods=['POST'])
+def update_ticket_panel():
+    if _bot_ref is None or not _bot_ref.is_ready():
+        return jsonify({"error": "Bot not ready"}), 500
+
+    cog = _bot_ref.get_cog("Echo")
+    if not cog:
+        return jsonify({"error": "Cog not loaded"}), 500
+
+    future = asyncio.run_coroutine_threadsafe(cog.update_ticket_panel_from_web(), _bot_ref.loop)
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/deploy-shop-panel', methods=['POST'])
 def deploy_shop_panel():
     if _bot_ref is None or not _bot_ref.is_ready():
@@ -215,14 +343,28 @@ def deploy_shop_panel():
 
     data = request.json or {}
     channel_id = data.get("channel_id")
-    if not channel_id:
-        return jsonify({"error": "Missing channel_id"}), 400
-
     cog = _bot_ref.get_cog("Echo")
-    if cog is None:
-        return jsonify({"error": "Cog not loaded"}), 500
+    if not cog or not channel_id:
+        return jsonify({"error": "Invalid request"}), 400
 
     future = asyncio.run_coroutine_threadsafe(cog.deploy_shop_panel_from_web(int(channel_id)), _bot_ref.loop)
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/update-shop-panel', methods=['POST'])
+def update_shop_panel():
+    if _bot_ref is None or not _bot_ref.is_ready():
+        return jsonify({"error": "Bot not ready"}), 500
+
+    cog = _bot_ref.get_cog("Echo")
+    if not cog:
+        return jsonify({"error": "Cog not loaded"}), 500
+
+    future = asyncio.run_coroutine_threadsafe(cog.update_shop_panel_from_web(), _bot_ref.loop)
     try:
         future.result(timeout=10)
         return jsonify({"success": True})
