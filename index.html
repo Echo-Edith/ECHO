@@ -104,7 +104,7 @@
             <span class="text-discord-muted/70" id="last-updated-label"></span>
           </p>
         </div>
-        <button onclick="loadAllData(true)" class="bg-discord-card hover:bg-gray-800 text-white text-xs px-3.5 py-2 rounded-md flex items-center gap-2 border border-gray-700 transition active:scale-95">
+        <button onclick="loadAllData(true, this)" class="bg-discord-card hover:bg-gray-800 text-white text-xs px-3.5 py-2 rounded-md flex items-center gap-2 border border-gray-700 transition active:scale-95">
           <i class="fa-solid fa-rotate-right" id="refresh-icon"></i> Sync Data
         </button>
       </div>
@@ -216,13 +216,13 @@
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
-            <button onclick="saveTicketSettings()" class="bg-discord-sidebar hover:bg-gray-700 text-white font-medium py-2.5 rounded text-sm border border-gray-700 transition active:scale-95">
-              Save Settings
+            <button onclick="saveTicketSettings(this)" class="bg-discord-sidebar hover:bg-gray-700 text-white font-medium py-2.5 rounded text-sm border border-gray-700 transition active:scale-95 flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-floppy-disk"></i> Save Settings
             </button>
-            <button onclick="deployTicketPanel()" class="bg-discord-green hover:bg-emerald-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-1.5">
+            <button onclick="deployTicketPanel(this)" class="bg-discord-green hover:bg-emerald-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-1.5">
               <i class="fa-solid fa-paper-plane"></i> Deploy
             </button>
-            <button onclick="updateExistingTicketPanel()" class="bg-discord-accent hover:bg-indigo-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-1.5">
+            <button onclick="updateExistingTicketPanel(this)" class="bg-discord-accent hover:bg-indigo-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-1.5">
               <i class="fa-solid fa-rotate"></i> Update Embed
             </button>
           </div>
@@ -270,7 +270,7 @@
         </div>
         <div class="flex items-center gap-2 w-full sm:w-auto">
           <input type="number" id="global-discount-input" min="0" max="100" placeholder="0" class="w-24 bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm text-center focus:outline-none focus:border-discord-accent">
-          <button onclick="saveGlobalDiscount()" class="bg-discord-sidebar hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-medium border border-gray-700 transition">Apply</button>
+          <button onclick="saveGlobalDiscount(this)" class="bg-discord-sidebar hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-medium border border-gray-700 transition flex items-center gap-1.5">Apply</button>
         </div>
       </div>
 
@@ -282,10 +282,10 @@
               <select id="shop-channel-select" class="sm:col-span-1 bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
                 <option value="">Loading Channels...</option>
               </select>
-              <button onclick="deployShopPanel()" class="bg-discord-green hover:bg-emerald-600 text-white px-3 py-2 rounded text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1.5">
+              <button onclick="deployShopPanel(this)" class="bg-discord-green hover:bg-emerald-600 text-white px-3 py-2 rounded text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1.5">
                 <i class="fa-solid fa-paper-plane"></i> Deploy
               </button>
-              <button onclick="updateExistingShopPanel()" class="bg-discord-accent hover:bg-indigo-600 text-white px-3 py-2 rounded text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1.5">
+              <button onclick="updateExistingShopPanel(this)" class="bg-discord-accent hover:bg-indigo-600 text-white px-3 py-2 rounded text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1.5">
                 <i class="fa-solid fa-rotate"></i> Update Embed
               </button>
             </div>
@@ -361,7 +361,7 @@
       </div>
       <div class="flex justify-end gap-3 pt-2">
         <button onclick="closeAddItemModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
-        <button onclick="addShopItem()" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95">Add Package</button>
+        <button onclick="addShopItem(this)" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95 flex items-center gap-1.5">Add Package</button>
       </div>
     </div>
   </div>
@@ -389,7 +389,7 @@
       </div>
       <div class="flex justify-end gap-3 pt-2">
         <button onclick="closeEditItemModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
-        <button onclick="saveEditShopItem()" class="px-4 py-2 text-sm bg-discord-accent hover:bg-indigo-600 text-white rounded font-medium transition active:scale-95">Update Package</button>
+        <button onclick="saveEditShopItem(this)" class="px-4 py-2 text-sm bg-discord-accent hover:bg-indigo-600 text-white rounded font-medium transition active:scale-95 flex items-center gap-1.5">Update Package</button>
       </div>
     </div>
   </div>
@@ -418,7 +418,7 @@
       </div>
       <div class="flex justify-end gap-3 pt-2">
         <button onclick="closeAddCodeModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
-        <button onclick="addPromoCode()" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95">Create Code</button>
+        <button onclick="addPromoCode(this)" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95 flex items-center gap-1.5">Create Code</button>
       </div>
     </div>
   </div>
@@ -437,7 +437,7 @@
       </div>
       <div class="flex justify-end gap-3 pt-2">
         <button onclick="closeAddBlacklistModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
-        <button onclick="addBlacklistUser()" class="px-4 py-2 text-sm bg-discord-red hover:bg-red-600 text-white rounded font-medium transition active:scale-95">Blacklist User</button>
+        <button onclick="addBlacklistUser(this)" class="px-4 py-2 text-sm bg-discord-red hover:bg-red-600 text-white rounded font-medium transition active:scale-95 flex items-center gap-1.5">Blacklist User</button>
       </div>
     </div>
   </div>
@@ -457,7 +457,22 @@
     let blacklist = [];
     let statsIntervalId = null;
 
-    async function loadAllData(manualSync = false) {
+    // Button Spinner Helper
+    function startBtnLoading(btn, loadingText = "Processing...") {
+      if (!btn) return () => {};
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.classList.add('opacity-75', 'cursor-not-allowed');
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>${loadingText}</span>`;
+      return () => {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        btn.innerHTML = originalHtml;
+      };
+    }
+
+    async function loadAllData(manualSync = false, btn = null) {
+      const stopLoading = manualSync ? startBtnLoading(btn, "Syncing...") : () => {};
       if (manualSync) {
         document.getElementById('refresh-icon').classList.add('fa-spin');
         showToast("Syncing with bot backend...");
@@ -528,6 +543,7 @@
       } catch (e) {
         if (manualSync) showToast("Error syncing with bot backend", true);
       } finally {
+        stopLoading();
         if (manualSync) {
           setTimeout(() => document.getElementById('refresh-icon').classList.remove('fa-spin'), 600);
         }
@@ -650,7 +666,7 @@
               <button onclick="openEditItemModal(${item.id}, '${escapeHtml(item.name)}', '${escapeHtml(item.desc || '')}', '${escapeHtml(item.price || '')}', ${isAvail})" class="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded transition text-xs flex items-center gap-1.5" title="Edit Package">
                 <i class="fa-solid fa-pen-to-square"></i> Edit
               </button>
-              <button onclick="removeItem(${item.id})" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm" title="Delete Package">
+              <button onclick="removeItem(${item.id}, this)" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm" title="Delete Package">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
@@ -694,7 +710,7 @@
                 <span>• ${expireStr}</span>
               </div>
             </div>
-            <button onclick="removePromoCode('${code.code}')" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm">
+            <button onclick="removePromoCode('${code.code}', this)" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -716,7 +732,7 @@
               <p class="font-mono text-white text-sm font-bold">User ID: ${b.user_id}</p>
               <p class="text-xs text-discord-muted mt-0.5">Reason: ${b.reason || 'No reason provided'}</p>
             </div>
-            <button onclick="removeBlacklistUser('${b.user_id}')" class="text-discord-green hover:bg-green-500/10 p-2 rounded transition text-xs flex items-center gap-1 font-medium">
+            <button onclick="removeBlacklistUser('${b.user_id}', this)" class="text-discord-green hover:bg-green-500/10 p-2 rounded transition text-xs flex items-center gap-1 font-medium">
               <i class="fa-solid fa-check"></i> Unban
             </button>
           </div>
@@ -752,7 +768,8 @@
       }
     }
 
-    async function saveGlobalDiscount() {
+    async function saveGlobalDiscount(btn = null) {
+      const stopLoading = startBtnLoading(btn, "Applying...");
       const val = parseInt(document.getElementById("global-discount-input").value) || 0;
       showToast("Applying storewide discount...");
       try {
@@ -769,10 +786,13 @@
         }
       } catch (e) {
         showToast("Backend connection error.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function saveTicketSettings() {
+    async function saveTicketSettings(btn = null) {
+      const stopLoading = startBtnLoading(btn, "Saving...");
       const payload = {
         title: document.getElementById("ticket-panel-title").value,
         description: document.getElementById("ticket-panel-desc").value,
@@ -797,15 +817,18 @@
         }
       } catch (e) {
         showToast("Backend connection error.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function deployTicketPanel() {
+    async function deployTicketPanel(btn = null) {
       const channelId = document.getElementById("ticket-panel-channel").value;
       if (!channelId) {
         showToast("Please select a Panel Channel first!", true);
         return;
       }
+      const stopLoading = startBtnLoading(btn, "Deploying...");
       await saveTicketSettings();
       showToast("Deploying ticket panel to Discord...");
       try {
@@ -821,10 +844,13 @@
         }
       } catch (e) {
         showToast("Failed to deploy panel.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function updateExistingTicketPanel() {
+    async function updateExistingTicketPanel(btn = null) {
+      const stopLoading = startBtnLoading(btn, "Updating...");
       await saveTicketSettings();
       showToast("Updating existing ticket embed in Discord...");
       try {
@@ -839,15 +865,18 @@
         }
       } catch (e) {
         showToast("Failed to update embed.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function deployShopPanel() {
+    async function deployShopPanel(btn = null) {
       const channelId = document.getElementById("shop-channel-select").value;
       if (!channelId) {
         showToast("Please select a Shop Output Channel first!", true);
         return;
       }
+      const stopLoading = startBtnLoading(btn, "Deploying...");
       showToast("Posting shop embed to Discord...");
       try {
         const res = await fetch('/api/deploy-shop-panel', {
@@ -862,10 +891,13 @@
         }
       } catch (e) {
         showToast("Failed to post shop embed.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function updateExistingShopPanel() {
+    async function updateExistingShopPanel(btn = null) {
+      const stopLoading = startBtnLoading(btn, "Updating...");
       showToast("Updating existing shop embed in Discord...");
       try {
         const res = await fetch('/api/update-shop-panel', {
@@ -879,10 +911,12 @@
         }
       } catch (e) {
         showToast("Failed to update embed.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function addShopItem() {
+    async function addShopItem(btn = null) {
       const name = document.getElementById("item-name-input").value;
       const desc = document.getElementById("item-desc-input").value;
       const price = document.getElementById("item-price-input").value;
@@ -893,6 +927,7 @@
         return;
       }
 
+      const stopLoading = startBtnLoading(btn, "Adding...");
       showToast("Adding package...");
       try {
         const res = await fetch('/api/shop-items', {
@@ -909,6 +944,8 @@
         }
       } catch (e) {
         showToast("Error adding shop package.", true);
+      } finally {
+        stopLoading();
       }
     }
 
@@ -923,13 +960,14 @@
 
     function closeEditItemModal() { document.getElementById("edit-modal").classList.add("hidden"); }
 
-    async function saveEditShopItem() {
+    async function saveEditShopItem(btn = null) {
       const id = document.getElementById("edit-item-id").value;
       const name = document.getElementById("edit-name-input").value;
       const desc = document.getElementById("edit-desc-input").value;
       const price = document.getElementById("edit-price-input").value;
       const available = document.getElementById("edit-available-input").checked;
 
+      const stopLoading = startBtnLoading(btn, "Updating...");
       showToast("Saving changes...");
       try {
         const res = await fetch(`/api/shop-items/${id}`, {
@@ -946,10 +984,13 @@
         }
       } catch (e) {
         showToast("Error updating item.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function removeItem(id) {
+    async function removeItem(id, btn = null) {
+      const stopLoading = startBtnLoading(btn, "");
       showToast("Deleting package...");
       try {
         const res = await fetch(`/api/shop-items/${id}`, { method: 'DELETE' });
@@ -961,10 +1002,12 @@
         }
       } catch (e) {
         showToast("Error deleting item.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function addPromoCode() {
+    async function addPromoCode(btn = null) {
       const code = document.getElementById("code-name-input").value.trim().toUpperCase();
       const discount = parseInt(document.getElementById("code-discount-input").value) || 0;
       const user_limit = parseInt(document.getElementById("code-limit-input").value) || 0;
@@ -975,6 +1018,7 @@
         return;
       }
 
+      const stopLoading = startBtnLoading(btn, "Creating...");
       showToast("Creating promo code...");
       try {
         const res = await fetch('/api/promo-codes', {
@@ -991,10 +1035,13 @@
         }
       } catch (e) {
         showToast("Connection error.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function removePromoCode(code) {
+    async function removePromoCode(code, btn = null) {
+      const stopLoading = startBtnLoading(btn, "");
       showToast("Deleting code...");
       try {
         const res = await fetch(`/api/promo-codes/${encodeURIComponent(code)}`, { method: 'DELETE' });
@@ -1004,16 +1051,19 @@
         }
       } catch (e) {
         showToast("Error deleting code.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function addBlacklistUser() {
+    async function addBlacklistUser(btn = null) {
       const userId = document.getElementById("blacklist-userid-input").value.trim();
       const reason = document.getElementById("blacklist-reason-input").value.trim();
       if (!userId) {
         showToast("User ID is required.", true);
         return;
       }
+      const stopLoading = startBtnLoading(btn, "Saving...");
       showToast("Blacklisting user...");
       try {
         const res = await fetch('/api/blacklist', {
@@ -1028,10 +1078,13 @@
         }
       } catch (e) {
         showToast("Connection error.", true);
+      } finally {
+        stopLoading();
       }
     }
 
-    async function removeBlacklistUser(userId) {
+    async function removeBlacklistUser(userId, btn = null) {
+      const stopLoading = startBtnLoading(btn, "");
       showToast("Removing user from blacklist...");
       try {
         const res = await fetch(`/api/blacklist/${userId}`, { method: 'DELETE' });
@@ -1041,6 +1094,8 @@
         }
       } catch (e) {
         showToast("Error removing user.", true);
+      } finally {
+        stopLoading();
       }
     }
 
