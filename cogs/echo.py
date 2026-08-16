@@ -148,11 +148,15 @@ class Echo(commands.Cog):
         rgb = parse_hex_strict(color) or parse_hex_strict(DEFAULT_SHOP_COLOR)
         embed = discord.Embed(title=title, description=description, color=discord.Color.from_rgb(*rgb))
 
-        for item_id, name, item_desc, price in get_shop_items():
-            field_value = item_desc or "\u200b"
-            if price:
-                field_value += f"\n**Price:** `{price}`"
-            embed.add_field(name=f"{name} — `#{item_id}`", value=field_value, inline=False)
+        items = get_shop_items()
+        if not items:
+            embed.add_field(name="No items available", value="Check back later for new packages!", inline=False)
+        else:
+            for item_id, name, item_desc, price in items:
+                field_value = item_desc or "\u200b"
+                if price:
+                    field_value += f"\n**Price:** `{price}`"
+                embed.add_field(name=f"{name} — `#{item_id}`", value=field_value, inline=False)
 
         if thumbnail_url:
             embed.set_thumbnail(url=thumbnail_url)
@@ -163,7 +167,7 @@ class Echo(commands.Cog):
         return embed
 
     # ====================================================================
-    # /shop — Private view of bots and services (User ephemeral only)
+    # 1. /shop — Private view of bots and services (User ephemeral only)
     # ====================================================================
     @app_commands.command(name="shop", description="View available bots and services privately.")
     async def shop(self, interaction: discord.Interaction):
@@ -171,7 +175,7 @@ class Echo(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ====================================================================
-    # /system-stats — Uptime, Ping, Active Servers & Total Tickets
+    # 2. /system-stats — Uptime, Ping, Active Servers & Total Tickets
     # ====================================================================
     @app_commands.command(name="system-stats", description="Shows bot ping, uptime, active servers, and total tickets opened.")
     async def system_stats(self, interaction: discord.Interaction):
@@ -192,6 +196,27 @@ class Echo(commands.Cog):
         embed.add_field(name="🌐 Servers", value=f"`{guild_count}`", inline=True)
         embed.add_field(name="🎫 Total Tickets Opened", value=f"`{total_tickets}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
+
+    # ====================================================================
+    # 3. /dashboard — Access Web Dashboard Link (Admins Only)
+    # ====================================================================
+    @app_commands.command(name="dashboard", description="Get the link to access the ECHO Web Control Dashboard.")
+    async def dashboard(self, interaction: discord.Interaction):
+        if not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(embed=error_embed("Only server admins can access the dashboard link."), ephemeral=True)
+
+        dashboard_url = os.getenv("DASHBOARD_URL", "https://your-bot.onrender.com")
+
+        embed = discord.Embed(
+            title="🌐 ECHO Web Dashboard",
+            description="Manage your shop packages, customize ticket panels, and adjust embed settings directly from the web interface.",
+            color=EMBED_COLOR
+        )
+
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="Open Web Control Panel", url=dashboard_url, style=discord.ButtonStyle.link, emoji="🎛️"))
+
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     # ====================================================================
     # Ticket open/close handlers
