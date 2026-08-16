@@ -71,6 +71,9 @@
         <button onclick="switchTab('tickets')" id="nav-tickets" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
           <i class="fa-solid fa-ticket w-5"></i> Ticket System
         </button>
+        <button onclick="switchTab('ticketlogs')" id="nav-ticketlogs" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
+          <i class="fa-solid fa-folder-open w-5"></i> Ticket Logs
+        </button>
         <button onclick="switchTab('shop')" id="nav-shop" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
           <i class="fa-solid fa-store w-5"></i> Shop Manager
         </button>
@@ -87,7 +90,7 @@
       <span class="flex items-center gap-1.5">
         <span class="w-2 h-2 rounded-full bg-discord-green animate-pulse" id="live-dot"></span> Live Sync
       </span>
-      <span>v3.3</span>
+      <span>v3.5</span>
     </div>
   </aside>
 
@@ -126,7 +129,7 @@
         </label>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center gap-4 shadow-sm">
           <div class="w-12 h-12 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl">
             <i class="fa-solid fa-signal"></i>
@@ -134,16 +137,6 @@
           <div>
             <p class="text-xs font-semibold text-discord-muted uppercase">Bot Latency</p>
             <p class="text-2xl font-bold text-white" id="stat-ping">-- ms</p>
-          </div>
-        </div>
-
-        <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center gap-4 shadow-sm">
-          <div class="w-12 h-12 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl">
-            <i class="fa-solid fa-ticket"></i>
-          </div>
-          <div>
-            <p class="text-xs font-semibold text-discord-muted uppercase">Total Tickets</p>
-            <p class="text-2xl font-bold text-white" id="stat-tickets">0</p>
           </div>
         </div>
 
@@ -194,13 +187,6 @@
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Log Channel (Optional)</label>
-            <select id="ticket-log-channel" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
-              <option value="">Loading Channels...</option>
-            </select>
-          </div>
-
-          <div>
             <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Panel Embed Title</label>
             <input type="text" id="ticket-panel-title" oninput="updateTicketPreview()" value="💳 MARKETPLACE REGISTER" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
           </div>
@@ -243,6 +229,23 @@
       </div>
     </section>
 
+    <!-- TICKET LOGS TAB -->
+    <section id="tab-ticketlogs" class="space-y-6 hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white">Ticket Logs & Activity</h2>
+          <p class="text-sm text-discord-muted">View all opened and closed ticket records directly in your dashboard.</p>
+        </div>
+        <button onclick="loadTicketLogs(this)" class="bg-discord-card hover:bg-gray-800 text-white text-xs px-3.5 py-2 rounded-md flex items-center gap-2 border border-gray-700 transition active:scale-95">
+          <i class="fa-solid fa-rotate-right"></i> Refresh Logs
+        </button>
+      </div>
+
+      <div class="space-y-3" id="ticket-logs-container">
+        <div class="p-6 text-center text-discord-muted bg-discord-card rounded-lg border border-gray-800">Loading ticket logs...</div>
+      </div>
+    </section>
+
     <!-- SHOP MANAGER TAB -->
     <section id="tab-shop" class="space-y-6 hidden">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -257,20 +260,42 @@
         </div>
       </div>
 
-      <!-- Global Discount Banner -->
-      <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-discord-yellow flex items-center justify-center text-lg">
-            <i class="fa-solid fa-percent"></i>
+      <!-- Storewide Discount Config Box -->
+      <div class="bg-discord-card p-5 rounded-lg border border-gray-800 space-y-4 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-discord-yellow flex items-center justify-center text-lg">
+              <i class="fa-solid fa-percent"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">Storewide Discount Config</h3>
+              <p class="text-xs text-discord-muted">Discount prices automatically across all active shop items with an optional timer.</p>
+            </div>
           </div>
-          <div>
-            <h3 class="text-sm font-bold text-white">Storewide Discount (%)</h3>
-            <p class="text-xs text-discord-muted">Automatically slashes prices across all active shop items.</p>
+          <div id="active-discount-badge" class="hidden">
+            <span class="bg-discord-yellow/10 text-discord-yellow text-xs px-2.5 py-1 rounded-full font-bold border border-discord-yellow/20 flex items-center gap-1.5">
+              <i class="fa-solid fa-fire"></i> Active Discount
+            </span>
           </div>
         </div>
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <input type="number" id="global-discount-input" min="0" max="100" placeholder="0" class="w-24 bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm text-center focus:outline-none focus:border-discord-accent">
-          <button onclick="saveGlobalDiscount(this)" class="bg-discord-sidebar hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-medium border border-gray-700 transition flex items-center gap-1.5">Apply</button>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Discount (%)</label>
+            <input type="number" id="global-discount-input" min="0" max="100" placeholder="e.g. 20" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Time Limit (Hours)</label>
+            <input type="number" id="global-discount-hours" min="0" placeholder="0 = Permanent until removed" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+          </div>
+          <div class="flex items-end gap-2">
+            <button onclick="saveGlobalDiscount(this)" class="flex-1 bg-discord-accent hover:bg-indigo-600 text-white font-medium py-2 rounded text-xs transition active:scale-95 flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-check"></i> Apply Discount
+            </button>
+            <button onclick="removeGlobalDiscount(this)" class="bg-discord-red hover:bg-red-600 text-white font-medium px-3 py-2 rounded text-xs transition active:scale-95 flex items-center gap-1" title="Remove Discount">
+              <i class="fa-solid fa-trash"></i> Remove
+            </button>
+          </div>
         </div>
       </div>
 
@@ -300,7 +325,7 @@
           </h3>
           <div class="bg-[#2b2d31] p-4 rounded border-l-4 border-discord-accent space-y-3">
             <p class="font-bold text-white text-base">🛒 ECHO Bot Shop</p>
-            <p class="text-xs text-discord-text">Custom Discord bots built for your server. Reach out to get started!</p>
+            <p class="text-xs text-discord-text" id="preview-shop-desc">Custom Discord bots built for your server. Reach out to get started!</p>
             <div id="preview-shop-items" class="space-y-2 pt-2 border-t border-gray-700/50"></div>
           </div>
         </div>
@@ -455,9 +480,10 @@
     let categories = [];
     let promoCodes = [];
     let blacklist = [];
+    let ticketLogs = [];
+    let globalDiscount = 0;
     let statsIntervalId = null;
 
-    // Button Spinner Helper
     function startBtnLoading(btn, loadingText = "Processing...") {
       if (!btn) return () => {};
       const originalHtml = btn.innerHTML;
@@ -497,8 +523,14 @@
             document.getElementById('maintenance-toggle').checked = gData.maintenance;
           }
 
-          if (gData.global_discount !== undefined) {
-            document.getElementById('global-discount-input').value = gData.global_discount;
+          globalDiscount = gData.global_discount || 0;
+          document.getElementById('global-discount-input').value = globalDiscount;
+
+          const discountBadge = document.getElementById('active-discount-badge');
+          if (globalDiscount > 0) {
+            discountBadge.classList.remove('hidden');
+          } else {
+            discountBadge.classList.add('hidden');
           }
 
           populateDropdowns();
@@ -507,7 +539,6 @@
         const ticketRes = await fetch('/api/ticket-stats');
         if (ticketRes.ok) {
           const tData = await ticketRes.json();
-          updateStatValue('stat-tickets', tData.total_tickets || 0);
           if (tData.saved_config) {
             if (tData.saved_config.title) document.getElementById("ticket-panel-title").value = tData.saved_config.title;
             if (tData.saved_config.description) document.getElementById("ticket-panel-desc").value = tData.saved_config.description;
@@ -515,7 +546,6 @@
             if (tData.saved_config.panel_channel_id) document.getElementById("ticket-panel-channel").value = tData.saved_config.panel_channel_id;
             if (tData.saved_config.staff_role_id) document.getElementById("ticket-staff-role").value = tData.saved_config.staff_role_id;
             if (tData.saved_config.category_id) document.getElementById("ticket-category").value = tData.saved_config.category_id;
-            if (tData.saved_config.log_channel_id) document.getElementById("ticket-log-channel").value = tData.saved_config.log_channel_id;
             updateTicketPreview();
           }
         }
@@ -538,6 +568,8 @@
           renderBlacklist();
         }
 
+        loadTicketLogs();
+
         touchLastUpdated();
         if (manualSync) showToast("All statistics updated!");
       } catch (e) {
@@ -550,17 +582,53 @@
       }
     }
 
+    async function loadTicketLogs(btn = null) {
+      const stopLoading = startBtnLoading(btn, "Loading...");
+      try {
+        const res = await fetch('/api/ticket-logs');
+        if (res.ok) {
+          ticketLogs = await res.json();
+          renderTicketLogs();
+        }
+      } catch (e) {}
+      finally { stopLoading(); }
+    }
+
+    function renderTicketLogs() {
+      const container = document.getElementById("ticket-logs-container");
+      container.innerHTML = "";
+      if (ticketLogs.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-discord-muted bg-discord-card rounded-lg border border-gray-800">No ticket logs recorded yet.</div>`;
+        return;
+      }
+
+      ticketLogs.forEach(log => {
+        const actionBadge = log.action === 'CLOSED'
+          ? `<span class="bg-discord-red/10 text-discord-red text-[10px] px-2 py-0.5 rounded font-bold uppercase">Closed</span>`
+          : `<span class="bg-discord-green/10 text-discord-green text-[10px] px-2 py-0.5 rounded font-bold uppercase">Opened</span>`;
+
+        container.innerHTML += `
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 space-y-2 shadow-sm fade-in">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-white text-sm">Ticket #${log.ticket_number}</span>
+                ${actionBadge}
+              </div>
+              <span class="text-xs text-discord-muted">${log.timestamp || ''}</span>
+            </div>
+            <p class="text-xs text-discord-text">User: <span class="font-semibold text-white">${log.username}</span> <code class="text-discord-muted bg-discord-sidebar px-1 py-0.5 rounded">ID: ${log.user_id}</code></p>
+            ${log.transcript ? `<details class="mt-2 text-xs"><summary class="cursor-pointer text-discord-accent hover:underline font-medium">View Transcript Log</summary><pre class="mt-2 p-3 bg-discord-sidebar rounded text-discord-text font-mono text-[11px] overflow-x-auto max-h-40 whitespace-pre-wrap">${escapeHtml(log.transcript)}</pre></details>` : ''}
+          </div>
+        `;
+      });
+    }
+
     async function refreshStatsOnly() {
       try {
         const guildRes = await fetch('/api/guild-data');
         if (guildRes.ok) {
           const gData = await guildRes.json();
           updateStatValue('stat-ping', `${gData.latency || 0} ms`);
-        }
-        const ticketRes = await fetch('/api/ticket-stats');
-        if (ticketRes.ok) {
-          const tData = await ticketRes.json();
-          updateStatValue('stat-tickets', tData.total_tickets || 0);
         }
         touchLastUpdated();
       } catch (e) {}
@@ -613,7 +681,6 @@
       };
 
       fillSelect('ticket-panel-channel', textChannels, '-- Select Panel Channel --');
-      fillSelect('ticket-log-channel', textChannels, '-- Select Log Channel --');
       fillSelect('shop-channel-select', textChannels, '-- Select Shop Channel --');
 
       const roleSelect = document.getElementById('ticket-staff-role');
@@ -631,6 +698,15 @@
         const selected = curCat === String(c.id) ? 'selected' : '';
         catSelect.innerHTML += `<option value="${c.id}" ${selected}>📁 ${c.name}</option>`;
       });
+    }
+
+    function calculateDiscountPrice(priceStr, percent) {
+      if (!priceStr || percent <= 0) return priceStr;
+      const numMatch = priceStr.match(/\d+/);
+      if (!numMatch) return priceStr;
+      const originalNum = parseInt(numMatch[0]);
+      const discountedNum = Math.max(1, Math.round(originalNum * (1 - percent / 100)));
+      return priceStr.replace(originalNum, `${discountedNum} (~~${originalNum}~~ ${percent}% OFF)`);
     }
 
     function renderShopItems() {
@@ -652,6 +728,10 @@
           ? `<span class="bg-green-500/10 text-green-400 text-[10px] px-2 py-0.5 rounded font-semibold">Available</span>`
           : `<span class="bg-red-500/10 text-red-400 text-[10px] px-2 py-0.5 rounded font-semibold">Paused</span>`;
 
+        const displayPrice = globalDiscount > 0 
+          ? calculateDiscountPrice(item.price || 'Free', globalDiscount) 
+          : (item.price || 'Free');
+
         container.innerHTML += `
           <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm hover:border-gray-700 transition fade-in">
             <div>
@@ -660,7 +740,7 @@
                 ${availBadge}
               </div>
               <p class="text-xs text-discord-muted mt-0.5">${item.desc || ''}</p>
-              <p class="text-xs font-mono text-discord-accent mt-1">Price: ${item.price || 'Free'}</p>
+              <p class="text-xs font-mono text-discord-accent mt-1">Price: ${displayPrice}</p>
             </div>
             <div class="flex items-center gap-2">
               <button onclick="openEditItemModal(${item.id}, '${escapeHtml(item.name)}', '${escapeHtml(item.desc || '')}', '${escapeHtml(item.price || '')}', ${isAvail})" class="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded transition text-xs flex items-center gap-1.5" title="Edit Package">
@@ -678,11 +758,18 @@
             <div class="text-xs">
               <p class="font-semibold text-white">${item.name} — <span class="font-mono text-discord-muted">#${item.id}</span></p>
               <p class="text-[11px] text-discord-muted">${item.desc || ''}</p>
-              <p class="text-[11px] text-discord-text mt-0.5">Price: <code class="bg-discord-sidebar px-1 py-0.5 rounded text-discord-accent">${item.price || 'Free'}</code></p>
+              <p class="text-[11px] text-discord-text mt-0.5">Price: <code class="bg-discord-sidebar px-1 py-0.5 rounded text-discord-accent">${displayPrice}</code></p>
             </div>
           `;
         }
       });
+
+      const previewDesc = document.getElementById('preview-shop-desc');
+      if (globalDiscount > 0) {
+        previewDesc.innerHTML = `Custom Discord bots built for your server.<br><span class="text-discord-yellow font-bold">🔥 STOREWIDE SALE: ${globalDiscount}% OFF ALL ITEMS!</span>`;
+      } else {
+        previewDesc.innerText = "Custom Discord bots built for your server. Reach out to get started!";
+      }
     }
 
     function renderPromoCodes() {
@@ -726,14 +813,20 @@
         return;
       }
       blacklist.forEach(b => {
+        const usernameDisplay = b.username ? `@${b.username}` : 'Unknown User';
+
         container.innerHTML += `
-          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm">
-            <div>
-              <p class="font-mono text-white text-sm font-bold">User ID: ${b.user_id}</p>
-              <p class="text-xs text-discord-muted mt-0.5">Reason: ${b.reason || 'No reason provided'}</p>
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm hover:border-gray-700 transition fade-in">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <p class="font-bold text-white text-sm">${usernameDisplay}</p>
+                <span class="bg-discord-red/10 text-discord-red text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Blacklisted</span>
+              </div>
+              <p class="text-xs font-mono text-discord-muted">ID: ${b.user_id}</p>
+              <p class="text-xs text-discord-text">Reason: <span class="text-discord-muted">${b.reason || 'No reason provided'}</span></p>
             </div>
-            <button onclick="removeBlacklistUser('${b.user_id}', this)" class="text-discord-green hover:bg-green-500/10 p-2 rounded transition text-xs flex items-center gap-1 font-medium">
-              <i class="fa-solid fa-check"></i> Unban
+            <button onclick="removeBlacklistUser('${b.user_id}', this)" class="text-discord-red hover:bg-red-500/10 p-2.5 rounded transition text-sm flex items-center gap-1.5 font-medium" title="Unblacklist User">
+              <i class="fa-solid fa-trash"></i>
             </button>
           </div>
         `;
@@ -771,18 +864,42 @@
     async function saveGlobalDiscount(btn = null) {
       const stopLoading = startBtnLoading(btn, "Applying...");
       const val = parseInt(document.getElementById("global-discount-input").value) || 0;
+      const hours = parseInt(document.getElementById("global-discount-hours").value) || 0;
+
       showToast("Applying storewide discount...");
       try {
         const res = await fetch('/api/global-discount', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ discount: val })
+          body: JSON.stringify({ discount: val, hours: hours })
         });
         if (res.ok) {
           showToast(`Storewide discount set to ${val}%!`);
           loadAllData();
         } else {
           showToast("Failed to apply discount.", true);
+        }
+      } catch (e) {
+        showToast("Backend connection error.", true);
+      } finally {
+        stopLoading();
+      }
+    }
+
+    async function removeGlobalDiscount(btn = null) {
+      const stopLoading = startBtnLoading(btn, "Removing...");
+      showToast("Removing discount...");
+      try {
+        const res = await fetch('/api/global-discount', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ discount: 0, hours: 0 })
+        });
+        if (res.ok) {
+          document.getElementById("global-discount-input").value = "0";
+          document.getElementById("global-discount-hours").value = "";
+          showToast("Storewide discount removed!");
+          loadAllData();
         }
       } catch (e) {
         showToast("Backend connection error.", true);
@@ -799,8 +916,7 @@
         welcome_message: document.getElementById("ticket-welcome-msg").value,
         channel_id: document.getElementById("ticket-panel-channel").value,
         staff_role_id: document.getElementById("ticket-staff-role").value,
-        category_id: document.getElementById("ticket-category").value,
-        log_channel_id: document.getElementById("ticket-log-channel").value
+        category_id: document.getElementById("ticket-category").value
       };
 
       showToast("Saving ticket settings...");
@@ -1075,6 +1191,8 @@
           showToast("User successfully blacklisted!");
           closeAddBlacklistModal();
           loadAllData();
+        } else {
+          showToast("Failed to blacklist user.", true);
         }
       } catch (e) {
         showToast("Connection error.", true);
@@ -1085,12 +1203,14 @@
 
     async function removeBlacklistUser(userId, btn = null) {
       const stopLoading = startBtnLoading(btn, "");
-      showToast("Removing user from blacklist...");
+      showToast("Unblacklisting user...");
       try {
         const res = await fetch(`/api/blacklist/${userId}`, { method: 'DELETE' });
         if (res.ok) {
-          showToast("User unbanned from blacklist!");
+          showToast("User unblacklisted successfully!");
           loadAllData();
+        } else {
+          showToast("Failed to unblacklist user.", true);
         }
       } catch (e) {
         showToast("Error removing user.", true);
@@ -1100,7 +1220,7 @@
     }
 
     function switchTab(tab) {
-      ['overview', 'tickets', 'shop', 'codes', 'blacklist'].forEach(t => {
+      ['overview', 'tickets', 'ticketlogs', 'shop', 'codes', 'blacklist'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
         document.getElementById(`nav-${t}`).className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all';
       });
