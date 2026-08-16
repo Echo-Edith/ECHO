@@ -55,19 +55,24 @@ def is_owner(interaction: discord.Interaction) -> bool:
 
 
 # ----------------------------------------------------------------------
-# Storage (MongoDB Cloud - Safe & Non-Blocking)
+# Storage - Lazy MongoDB Cloud Connection
 # ----------------------------------------------------------------------
+_mongo_client = None
+
 def get_db():
+    global _mongo_client
     mongo_uri = os.getenv("MONGO_URI")
-    if mongo_uri and pymongo:
+    if not mongo_uri or not pymongo:
+        return None
+    if _mongo_client is None:
         try:
-            # 5 second timeout prevents startup hanging if connection is delayed
-            client = pymongo.MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
-            return client["echo_bot"]
-        except Exception as e:
-            print(f"⚠️ MongoDB Connection Error: {e}")
+            _mongo_client = pymongo.MongoClient(mongo_uri, serverSelectionTimeoutMS=2000)
+        except Exception:
             return None
-    return None
+    try:
+        return _mongo_client["echo_bot"]
+    except Exception:
+        return None
 
 
 def init_db():
@@ -75,7 +80,6 @@ def init_db():
         db = get_db()
         if db is None:
             return
-        # Ensure shop_settings document exists
         if not db["shop_settings"].find_one({"id": 1}):
             db["shop_settings"].insert_one({
                 "id": 1,
@@ -86,8 +90,8 @@ def init_db():
                 "thumbnail_url": None,
                 "banner_url": None
             })
-    except Exception as e:
-        print(f"⚠️ init_db warning: {e}")
+    except Exception:
+        pass
 
 
 def save_guild_config(guild_id, log_channel_id, staff_role_id, category_id, welcome_message):
@@ -111,8 +115,8 @@ def save_guild_config(guild_id, log_channel_id, staff_role_id, category_id, welc
             },
             upsert=True
         )
-    except Exception as e:
-        print(f"⚠️ save_guild_config warning: {e}")
+    except Exception:
+        pass
 
 
 def get_guild_config(guild_id):
@@ -130,8 +134,7 @@ def get_guild_config(guild_id):
             doc.get("welcome_message"),
             doc.get("ticket_counter", 0)
         )
-    except Exception as e:
-        print(f"⚠️ get_guild_config warning: {e}")
+    except Exception:
         return None
 
 
@@ -144,8 +147,8 @@ def increment_ticket_counter(guild_id, new_value):
             {"guild_id": guild_id},
             {"$set": {"ticket_counter": new_value}}
         )
-    except Exception as e:
-        print(f"⚠️ increment_ticket_counter warning: {e}")
+    except Exception:
+        pass
 
 
 # --- shop settings ---
@@ -165,8 +168,7 @@ def get_shop_settings():
             doc.get("thumbnail_url"),
             doc.get("banner_url")
         )
-    except Exception as e:
-        print(f"⚠️ get_shop_settings warning: {e}")
+    except Exception:
         return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
 
 
@@ -190,8 +192,8 @@ def update_shop_settings(**fields):
             {"$set": current},
             upsert=True
         )
-    except Exception as e:
-        print(f"⚠️ update_shop_settings warning: {e}")
+    except Exception:
+        pass
 
 
 def reset_shop_settings():
@@ -214,8 +216,8 @@ def reset_shop_settings():
             upsert=True
         )
         db["shop_items"].delete_many({})
-    except Exception as e:
-        print(f"⚠️ reset_shop_settings warning: {e}")
+    except Exception:
+        pass
 
 
 # --- shop items ---
@@ -238,8 +240,7 @@ def add_shop_item(name, description, price):
             "position": next_pos
         })
         return next_id
-    except Exception as e:
-        print(f"⚠️ add_shop_item warning: {e}")
+    except Exception:
         return 1
 
 
@@ -250,8 +251,7 @@ def remove_shop_item(item_id) -> bool:
             return False
         res = db["shop_items"].delete_one({"item_id": item_id})
         return res.deleted_count > 0
-    except Exception as e:
-        print(f"⚠️ remove_shop_item warning: {e}")
+    except Exception:
         return False
 
 
@@ -271,8 +271,7 @@ def edit_shop_item(item_id, name=None, description=None, price=None) -> bool:
             {"$set": {"name": new_name, "description": new_desc, "price": new_price}}
         )
         return True
-    except Exception as e:
-        print(f"⚠️ edit_shop_item warning: {e}")
+    except Exception:
         return False
 
 
@@ -283,13 +282,11 @@ def get_shop_items():
             return []
         cursor = db["shop_items"].find().sort("position", 1)
         return [(doc["item_id"], doc["name"], doc["description"], doc["price"]) for doc in cursor]
-    except Exception as e:
-        print(f"⚠️ get_shop_items warning: {e}")
+    except Exception:
         return []
 
 
 def move_shop_item(item_id, direction: str) -> bool:
-    """direction: 'up' or 'down'. Swaps position with the neighboring item."""
     try:
         db = get_db()
         if db is None:
@@ -308,8 +305,7 @@ def move_shop_item(item_id, direction: str) -> bool:
         db["shop_items"].update_one({"item_id": item_id}, {"$set": {"position": pos_b}})
         db["shop_items"].update_one({"item_id": id_b}, {"$set": {"position": pos_a}})
         return True
-    except Exception as e:
-        print(f"⚠️ move_shop_item warning: {e}")
+    except Exception:
         return False
 
 
@@ -347,9 +343,13 @@ class Echo(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.start_time = time.time()
-        init_db()
+
+    async def cog_load(self):
+        # Register persistent views asynchronously when cog is registered
         self.bot.add_view(TicketPanelView())
         self.bot.add_view(TicketCloseView())
+        # Run DB initialization off the main thread
+        await asyncio.to_thread(init_db)
 
     def build_shop_embed(self) -> discord.Embed:
         title, description, color, footer, thumbnail_url, banner_url = get_shop_settings()
