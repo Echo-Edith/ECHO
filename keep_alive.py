@@ -54,7 +54,8 @@ def get_guild_data():
             "bot_avatar": "https://cdn.discordapp.com/embed/avatars/0.png",
             "bot_name": "ECHO",
             "maintenance": False,
-            "global_discount": 0
+            "global_discount": 0,
+            "discount_expires_at": None
         })
 
     channels = []
@@ -77,6 +78,15 @@ def get_guild_data():
     guild_id = _bot_ref.guilds[0].id if _bot_ref.guilds else 0
     config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
 
+    # Check for discount expiration
+    discount_val = config.get("global_discount", 0)
+    discount_expires = config.get("discount_expires_at")
+    if discount_expires and int(time.time()) > discount_expires:
+        discount_val = 0
+        discount_expires = None
+        if db is not None:
+            db["guild_config"].update_one({"guild_id": guild_id}, {"$set": {"global_discount": 0, "discount_expires_at": None}})
+
     avatar_url = _bot_ref.user.display_avatar.url if _bot_ref.user else "https://cdn.discordapp.com/embed/avatars/0.png"
 
     return jsonify({
@@ -87,7 +97,8 @@ def get_guild_data():
         "bot_avatar": avatar_url,
         "bot_name": _bot_ref.user.name if _bot_ref.user else "ECHO",
         "maintenance": config.get("maintenance", False),
-        "global_discount": config.get("global_discount", 0)
+        "global_discount": discount_val,
+        "discount_expires_at": discount_expires
     })
 
 
@@ -95,19 +106,36 @@ def get_guild_data():
 def get_ticket_stats():
     db = get_db()
     if db is None:
-        return jsonify({"total_tickets": 0, "saved_config": {}})
+        return jsonify({"saved_config": {}})
 
-    total = 0
     saved_config = {}
     try:
         guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
         doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-        total = doc.get("ticket_counter", 0)
         saved_config = doc
     except Exception:
         pass
 
-    return jsonify({"total_tickets": total, "saved_config": saved_config})
+    return jsonify({"saved_config": saved_config})
+
+
+@app.route('/api/ticket-logs', methods=['GET'])
+def get_ticket_logs():
+    db = get_db()
+    if db is None:
+        return jsonify([])
+
+    cursor = db["ticket_logs"].find().sort("_id", -1).limit(100)
+    logs = [{
+        "ticket_number": doc.get("ticket_number"),
+        "username": doc.get("username"),
+        "user_id": doc.get("user_id"),
+        "action": doc.get("action"),
+        "timestamp": doc.get("timestamp"),
+        "transcript": doc.get("transcript", "")
+    } for doc in cursor]
+
+    return jsonify(logs)
 
 
 @app.route('/api/maintenance', methods=['POST'])
@@ -134,9 +162,17 @@ def handle_global_discount():
 
     data = request.json or {}
     guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+    discount_val = int(data.get("discount", 0))
+    hours = int(data.get("hours", 0))
+
+    expires_at = (int(time.time()) + (hours * 3600)) if (discount_val > 0 and hours > 0) else None
+
     db["guild_config"].update_one(
         {"guild_id": guild_id},
-        {"$set": {"global_discount": int(data.get("discount", 0))}},
+        {"$set": {
+            "global_discount": discount_val,
+            "discount_expires_at": expires_at
+        }},
         upsert=True
     )
     return jsonify({"success": True})
@@ -256,12 +292,30 @@ def handle_blacklist():
         data = request.json or {}
         user_id = str(data.get("user_id")).strip()
         reason = str(data.get("reason", "No reason provided"))
+
+        username = "Unknown User"
+        if _bot_ref and _bot_ref.is_ready():
+            try:
+                user_obj = _bot_ref.get_user(int(user_id))
+                if user_obj:
+                    username = str(user_obj)
+            except Exception:
+                pass
+
         if user_id:
-            db["blacklist"].update_one({"user_id": user_id}, {"$set": {"user_id": user_id, "reason": reason}}, upsert=True)
+            db["blacklist"].update_one(
+                {"user_id": user_id},
+                {"$set": {"user_id": user_id, "username": username, "reason": reason}},
+                upsert=True
+            )
         return jsonify({"success": True})
 
     cursor = db["blacklist"].find()
-    return jsonify([{"user_id": doc["user_id"], "reason": doc.get("reason", "")} for doc in cursor])
+    return jsonify([{
+        "user_id": doc["user_id"],
+        "username": doc.get("username", "Unknown User"),
+        "reason": doc.get("reason", "No reason provided")
+    } for doc in cursor])
 
 
 @app.route('/api/blacklist/<string:user_id>', methods=['DELETE'])
@@ -291,8 +345,7 @@ def save_ticket_config():
                 "welcome_message": data.get("welcome_message"),
                 "panel_channel_id": int(data["channel_id"]) if data.get("channel_id") else None,
                 "staff_role_id": int(data["staff_role_id"]) if data.get("staff_role_id") else None,
-                "category_id": int(data["category_id"]) if data.get("category_id") else None,
-                "log_channel_id": int(data["log_channel_id"]) if data.get("log_channel_id") else None,
+                "category_id": int(data["category_id"]) if data.get("category_id") else None
             }
         },
         upsert=True
