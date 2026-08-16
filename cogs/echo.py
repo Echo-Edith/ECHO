@@ -20,7 +20,6 @@ ERROR_COLOR = discord.Color.red()
 DEFAULT_SHOP_TITLE = "🛒 ECHO Bot Shop"
 DEFAULT_SHOP_DESCRIPTION = "Custom Discord bots built for your server. Reach out to get started!"
 DEFAULT_SHOP_FOOTER = "ECHO • Bot Development Services"
-DEFAULT_SHOP_COLOR = "#5865F2"
 
 _mongo_client = None
 
@@ -47,16 +46,6 @@ def error_embed(message: str) -> discord.Embed:
 
 def info_embed(title: str, description: str = None) -> discord.Embed:
     return discord.Embed(title=title, description=description, color=EMBED_COLOR)
-
-
-def parse_hex_strict(hex_str: str):
-    try:
-        h = hex_str.lstrip("#")
-        if len(h) != 6:
-            return None
-        return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
-    except Exception:
-        return None
 
 
 def get_shop_items():
@@ -148,9 +137,9 @@ class Echo(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ====================================================================
-    # 2. /system-stats — Uptime, Ping, Active Servers & Total Tickets
+    # 2. /system-stats — Ping, Uptime, Total Tickets Opened
     # ====================================================================
-    @app_commands.command(name="system-stats", description="Shows bot ping, uptime, active servers, and total tickets opened.")
+    @app_commands.command(name="system-stats", description="Shows bot ping, uptime, and total tickets opened.")
     async def system_stats(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
 
@@ -160,13 +149,11 @@ class Echo(commands.Cog):
         minutes, seconds = divmod(remainder, 60)
         uptime_str = f"{hours}h {minutes}m {seconds}s"
 
-        guild_count = len(self.bot.guilds)
         total_tickets = await asyncio.to_thread(get_total_tickets_count)
 
         embed = discord.Embed(title="⚙️ ECHO System Stats", color=EMBED_COLOR)
         embed.add_field(name="📶 Ping", value=f"`{latency_ms}ms`", inline=True)
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
-        embed.add_field(name="🌐 Servers", value=f"`{guild_count}`", inline=True)
         embed.add_field(name="🎫 Total Tickets Opened", value=f"`{total_tickets}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
