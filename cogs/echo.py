@@ -59,26 +59,6 @@ def parse_hex_strict(hex_str: str):
         return None
 
 
-def get_shop_settings():
-    try:
-        db = get_db()
-        if db is None:
-            return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
-        doc = db["shop_settings"].find_one({"id": 1})
-        if not doc:
-            return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
-        return (
-            doc.get("title", DEFAULT_SHOP_TITLE),
-            doc.get("description", DEFAULT_SHOP_DESCRIPTION),
-            doc.get("color", DEFAULT_SHOP_COLOR),
-            doc.get("footer", DEFAULT_SHOP_FOOTER),
-            doc.get("thumbnail_url"),
-            doc.get("banner_url")
-        )
-    except Exception:
-        return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
-
-
 def get_shop_items():
     try:
         db = get_db()
@@ -144,9 +124,7 @@ class Echo(commands.Cog):
         self.bot.add_view(TicketCloseView())
 
     def build_shop_embed(self) -> discord.Embed:
-        title, description, color, footer, thumbnail_url, banner_url = get_shop_settings()
-        rgb = parse_hex_strict(color) or parse_hex_strict(DEFAULT_SHOP_COLOR)
-        embed = discord.Embed(title=title, description=description, color=discord.Color.from_rgb(*rgb))
+        embed = discord.Embed(title=DEFAULT_SHOP_TITLE, description=DEFAULT_SHOP_DESCRIPTION, color=EMBED_COLOR)
 
         items = get_shop_items()
         if not items:
@@ -158,16 +136,11 @@ class Echo(commands.Cog):
                     field_value += f"\n**Price:** `{price}`"
                 embed.add_field(name=f"{name} — `#{item_id}`", value=field_value, inline=False)
 
-        if thumbnail_url:
-            embed.set_thumbnail(url=thumbnail_url)
-        if banner_url:
-            embed.set_image(url=banner_url)
-        if footer:
-            embed.set_footer(text=footer)
+        embed.set_footer(text=DEFAULT_SHOP_FOOTER)
         return embed
 
     # ====================================================================
-    # 1. /shop — Private view of bots and services (User ephemeral only)
+    # 1. /shop — Private view of bots and services
     # ====================================================================
     @app_commands.command(name="shop", description="View available bots and services privately.")
     async def shop(self, interaction: discord.Interaction):
@@ -217,6 +190,31 @@ class Echo(commands.Cog):
         view.add_item(discord.ui.Button(label="Open Web Control Panel", url=dashboard_url, style=discord.ButtonStyle.link, emoji="🎛️"))
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    # ====================================================================
+    # Web Dashboard Deploy Commands
+    # ====================================================================
+    async def deploy_ticket_panel_from_web(self, channel_id: int):
+        channel = self.bot.get_channel(channel_id)
+        if channel is None:
+            raise Exception(f"Channel ID {channel_id} not found.")
+
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": channel.guild.id}) if db is not None else {}
+
+        title = config.get("title") or "💳 MARKETPLACE REGISTER"
+        desc = config.get("description") or "Click the button below to open a private ticket channel."
+
+        embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
+        await channel.send(embed=embed, view=TicketPanelView())
+
+    async def deploy_shop_panel_from_web(self, channel_id: int):
+        channel = self.bot.get_channel(channel_id)
+        if channel is None:
+            raise Exception(f"Channel ID {channel_id} not found.")
+
+        embed = self.build_shop_embed()
+        await channel.send(embed=embed)
 
     # ====================================================================
     # Ticket open/close handlers
