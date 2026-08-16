@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECHO Bot Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            discord: {
+              bg: '#313338',
+              sidebar: '#2b2d31',
+              card: '#1e1f22',
+              accent: '#5865F2',
+              green: '#23a55a',
+              red: '#f23f43',
+              yellow: '#f0b232',
+              text: '#dbdee1',
+              muted: '#949ba4'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-discord-bg text-discord-text font-sans min-h-screen flex flex-col md:flex-row">
+
+  <!-- Sidebar -->
+  <aside class="w-full md:w-64 bg-discord-sidebar p-4 flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-800">
+    <div>
+      <div class="flex items-center gap-3 p-2 mb-6">
+        <div class="relative">
+          <div class="w-12 h-12 rounded-full bg-discord-accent flex items-center justify-center font-bold text-white text-xl shadow">
+            ECHO
+          </div>
+          <span class="w-3.5 h-3.5 bg-discord-green border-2 border-discord-sidebar rounded-full absolute bottom-0 right-0"></span>
+        </div>
+        <div>
+          <h1 class="font-bold text-white text-lg leading-tight flex items-center gap-1.5">
+            ECHO
+            <span class="bg-discord-accent text-[10px] px-1.5 py-0.5 rounded text-white font-semibold">APP</span>
+          </h1>
+          <p class="text-xs text-discord-muted">Cloud Dashboard</p>
+        </div>
+      </div>
+
+      <nav class="space-y-1">
+        <button onclick="switchTab('overview')" id="nav-overview" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-white bg-discord-accent">
+          <i class="fa-solid fa-chart-line w-5"></i> Overview
+        </button>
+        <button onclick="switchTab('ticket-control')" id="nav-ticket-control" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition">
+          <i class="fa-solid fa-ticket w-5"></i> Ticket Control
+        </button>
+        <button onclick="switchTab('shop')" id="nav-shop" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition">
+          <i class="fa-solid fa-store w-5"></i> Shop Manager
+        </button>
+        <button onclick="switchTab('settings')" id="nav-settings" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition">
+          <i class="fa-solid fa-gear w-5"></i> Settings
+        </button>
+      </nav>
+    </div>
+
+    <div class="mt-8 pt-4 border-t border-gray-800 text-xs text-discord-muted flex items-center justify-between">
+      <span>Status: <strong class="text-discord-green">Online</strong></span>
+      <span>v2.5.0</span>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-4 md:p-8 overflow-y-auto">
+
+    <!-- OVERVIEW TAB -->
+    <section id="tab-overview" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white">System Dashboard</h2>
+          <p class="text-sm text-discord-muted">Manage ECHO's configuration and ticket interface live.</p>
+        </div>
+        <button onclick="loadAllData()" class="bg-discord-card hover:bg-gray-800 text-white text-xs px-3 py-2 rounded-md flex items-center gap-2 border border-gray-700 transition">
+          <i class="fa-solid fa-rotate-right"></i> Refresh Database
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-server"></i>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-discord-muted uppercase">Bot System</p>
+            <p class="text-xl font-bold text-white">Active (Render)</p>
+          </div>
+        </div>
+
+        <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-ticket"></i>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-discord-muted uppercase">Ticket System</p>
+            <p class="text-xl font-bold text-discord-green">Ready</p>
+          </div>
+        </div>
+
+        <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-amber-500/10 text-discord-yellow flex items-center justify-center text-xl">
+            <i class="fa-solid fa-database"></i>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-discord-muted uppercase">Cloud Storage</p>
+            <p class="text-xl font-bold text-white">MongoDB</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TICKET CONTROL TAB -->
+    <section id="tab-ticket-control" class="space-y-6 hidden">
+      <div>
+        <h2 class="text-2xl font-bold text-white">Ticket Panel Control</h2>
+        <p class="text-sm text-discord-muted">Customize and deploy the Ticket Panel embed directly to Discord.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Settings Form -->
+        <div class="bg-discord-card p-6 rounded-lg border border-gray-800 space-y-4">
+          <h3 class="text-lg font-bold text-white mb-2">Panel Configuration</h3>
+
+          <div>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Panel Title</label>
+            <input type="text" id="ticket-panel-title" oninput="updateTicketPreview()" value="💳 MARKETPLACE REGISTER" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Panel Description</label>
+            <textarea id="ticket-panel-desc" oninput="updateTicketPreview()" rows="3" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">Open a ticket below to buy anything you are interested in.</textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Welcome Message Inside Ticket</label>
+            <textarea id="ticket-welcome-msg" rows="2" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">Welcome! Please state what item you want to purchase or what issue you have.</textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Target Panel Channel ID</label>
+            <input type="text" id="ticket-channel-id" placeholder="e.g. 123456789012345678" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Staff Role ID (Optional)</label>
+            <input type="text" id="ticket-staff-role" placeholder="e.g. 987654321098765432" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
+          </div>
+
+          <button onclick="saveTicketConfig()" class="w-full bg-discord-accent hover:bg-indigo-600 text-white font-medium py-2.5 rounded text-sm transition">
+            Save & Deploy Ticket Panel to Discord
+          </button>
+        </div>
+
+        <!-- Live Embed Preview -->
+        <div class="bg-discord-card p-6 rounded-lg border border-gray-800 space-y-4 h-fit">
+          <h3 class="text-xs font-bold uppercase text-discord-muted tracking-wider">Live Embed Preview</h3>
+          <div class="bg-[#2b2d31] p-4 rounded border-l-4 border-discord-accent space-y-3">
+            <p class="font-bold text-white text-base" id="preview-ticket-title">💳 MARKETPLACE REGISTER</p>
+            <p class="text-xs text-discord-text" id="preview-ticket-desc">Open a ticket below to buy anything you are interested in.</p>
+            <button class="bg-discord-accent text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 opacity-90 cursor-default">
+              <span>💳</span> Open Ticket
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHOP MANAGER TAB -->
+    <section id="tab-shop" class="space-y-6 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-white">Shop Manager</h2>
+          <p class="text-sm text-discord-muted">Manage packages displayed in `/shop`.</p>
+        </div>
+        <button onclick="openAddItemModal()" class="bg-discord-green hover:bg-emerald-600 text-white text-sm px-4 py-2 rounded-md font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> New Item
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-3" id="shop-items-container"></div>
+
+        <div class="bg-discord-card p-5 rounded-lg border border-gray-800 space-y-4">
+          <h3 class="text-xs font-bold uppercase text-discord-muted tracking-wider">Live Shop Embed Preview</h3>
+          <div class="bg-[#2b2d31] p-4 rounded border-l-4 border-discord-accent space-y-3">
+            <p class="font-bold text-white text-base" id="preview-shop-title">🛒 ECHO Bot Shop</p>
+            <p class="text-xs text-discord-text" id="preview-shop-desc">Custom Discord bots built for your server.</p>
+            <div id="preview-shop-items" class="space-y-2 pt-2 border-t border-gray-700/50"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS TAB -->
+    <section id="tab-settings" class="space-y-6 hidden">
+      <div>
+        <h2 class="text-2xl font-bold text-white">Shop Settings</h2>
+        <p class="text-sm text-discord-muted">Update global embed defaults.</p>
+      </div>
+
+      <div class="bg-discord-card p-6 rounded-lg border border-gray-800 space-y-4 max-w-2xl">
+        <div>
+          <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Shop Title</label>
+          <input type="text" id="setting-title" value="🛒 ECHO Bot Shop" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Shop Description</label>
+          <textarea id="setting-desc" rows="3" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">Custom Discord bots built for your server. Reach out to get started!</textarea>
+        </div>
+
+        <button onclick="saveShopSettings()" class="bg-discord-accent hover:bg-indigo-600 text-white font-medium px-5 py-2.5 rounded text-sm transition">
+          Save Shop Embed Settings
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Add Item Modal -->
+  <div id="add-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4">
+      <h3 class="text-lg font-bold text-white">Add Shop Package</h3>
+      
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Package Name</label>
+        <input type="text" id="item-name-input" placeholder="e.g. Utility Bot" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Description</label>
+        <input type="text" id="item-desc-input" placeholder="e.g. For utility usage." class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Price</label>
+        <input type="text" id="item-price-input" placeholder="e.g. 20 RBX" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm">
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeAddItemModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white">Cancel</button>
+        <button onclick="addShopItem()" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium">Add Item</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 bg-discord-accent text-white px-4 py-2.5 rounded-md shadow-lg text-sm font-medium transition opacity-0 pointer-events-none transform translate-y-2">
+    Action saved!
+  </div>
+
+  <script>
+    let shopItems = [];
+
+    async function loadAllData() {
+      try {
+        const res = await fetch('/api/shop-items');
+        if (res.ok) {
+          shopItems = await res.json();
+          renderShopItems();
+        }
+      } catch (e) {
+        console.error("Failed to fetch shop items", e);
+      }
+    }
+
+    function renderShopItems() {
+      const container = document.getElementById("shop-items-container");
+      const previewContainer = document.getElementById("preview-shop-items");
+      
+      container.innerHTML = "";
+      previewContainer.innerHTML = "";
+
+      shopItems.forEach((item) => {
+        container.innerHTML += `
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between">
+            <div>
+              <p class="font-bold text-white text-sm">#${item.id} — ${item.name}</p>
+              <p class="text-xs text-discord-muted">${item.desc}</p>
+              <p class="text-xs font-mono text-discord-accent mt-1">Price: ${item.price}</p>
+            </div>
+            <button onclick="removeItem(${item.id})" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        `;
+
+        previewContainer.innerHTML += `
+          <div class="text-xs">
+            <p class="font-semibold text-white">${item.name} — <span class="font-mono text-discord-muted">#${item.id}</span></p>
+            <p class="text-[11px] text-discord-muted">${item.desc}</p>
+            <p class="text-[11px] text-discord-text">Price: <code class="bg-discord-sidebar px-1 py-0.5 rounded text-discord-accent">${item.price}</code></p>
+          </div>
+        `;
+      });
+    }
+
+    function updateTicketPreview() {
+      document.getElementById("preview-ticket-title").innerText = document.getElementById("ticket-panel-title").value || "💳 MARKETPLACE REGISTER";
+      document.getElementById("preview-ticket-desc").innerText = document.getElementById("ticket-panel-desc").value || "Open a ticket below to buy anything you are interested in.";
+    }
+
+    async function saveTicketConfig() {
+      const payload = {
+        title: document.getElementById("ticket-panel-title").value,
+        description: document.getElementById("ticket-panel-desc").value,
+        welcome_message: document.getElementById("ticket-welcome-msg").value,
+        channel_id: document.getElementById("ticket-channel-id").value,
+        staff_role_id: document.getElementById("ticket-staff-role").value
+      };
+
+      try {
+        const res = await fetch('/api/save-ticket-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          showToast("Ticket panel settings deployed & saved!");
+        } else {
+          showToast("Error saving ticket panel.");
+        }
+      } catch (e) {
+        showToast("Failed to connect to bot backend.");
+      }
+    }
+
+    async function addShopItem() {
+      const name = document.getElementById("item-name-input").value;
+      const desc = document.getElementById("item-desc-input").value;
+      const price = document.getElementById("item-price-input").value;
+
+      if (!name) return;
+
+      try {
+        const res = await fetch('/api/shop-items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, description: desc, price })
+        });
+
+        if (res.ok) {
+          showToast("New package added!");
+          closeAddItemModal();
+          loadAllData();
+        }
+      } catch (e) {
+        showToast("Error adding item.");
+      }
+    }
+
+    async function removeItem(id) {
+      try {
+        const res = await fetch(`/api/shop-items/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast("Item removed.");
+          loadAllData();
+        }
+      } catch (e) {
+        showToast("Error removing item.");
+      }
+    }
+
+    function switchTab(tab) {
+      ['overview', 'ticket-control', 'shop', 'settings'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`nav-${t}`).className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition';
+      });
+
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      document.getElementById(`nav-${tab}`).className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-white bg-discord-accent';
+    }
+
+    function openAddItemModal() { document.getElementById("add-modal").classList.remove("hidden"); }
+    function closeAddItemModal() { document.getElementById("add-modal").classList.add("hidden"); }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.classList.remove("opacity-0", "translate-y-2", "pointer-events-none");
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-2", "pointer-events-none");
+      }, 2500);
+    }
+
+    loadAllData();
+  </script>
+</body>
+</html>
+
