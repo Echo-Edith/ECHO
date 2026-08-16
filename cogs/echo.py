@@ -55,218 +55,262 @@ def is_owner(interaction: discord.Interaction) -> bool:
 
 
 # ----------------------------------------------------------------------
-# Storage (MongoDB Cloud - Deployment Proof)
+# Storage (MongoDB Cloud - Safe & Non-Blocking)
 # ----------------------------------------------------------------------
 def get_db():
     mongo_uri = os.getenv("MONGO_URI")
     if mongo_uri and pymongo:
         try:
-            client = pymongo.MongoClient(mongo_uri)
+            # 5 second timeout prevents startup hanging if connection is delayed
+            client = pymongo.MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
             return client["echo_bot"]
         except Exception as e:
-            print(f"❌ MongoDB Connection Error: {e}")
+            print(f"⚠️ MongoDB Connection Error: {e}")
             return None
     return None
 
 
 def init_db():
-    db = get_db()
-    if db is None:
-        return
-    # Ensure shop_settings document exists
-    if not db["shop_settings"].find_one({"id": 1}):
-        db["shop_settings"].insert_one({
-            "id": 1,
-            "title": DEFAULT_SHOP_TITLE,
-            "description": DEFAULT_SHOP_DESCRIPTION,
-            "color": DEFAULT_SHOP_COLOR,
-            "footer": DEFAULT_SHOP_FOOTER,
-            "thumbnail_url": None,
-            "banner_url": None
-        })
-
-
-def save_guild_config(guild_id, log_channel_id, staff_role_id, category_id, welcome_message):
-    db = get_db()
-    if db is None:
-        return
-    existing = db["guild_config"].find_one({"guild_id": guild_id})
-    counter = existing.get("ticket_counter", 0) if existing else 0
-    db["guild_config"].update_one(
-        {"guild_id": guild_id},
-        {
-            "$set": {
-                "guild_id": guild_id,
-                "log_channel_id": log_channel_id,
-                "staff_role_id": staff_role_id,
-                "category_id": category_id,
-                "welcome_message": welcome_message,
-                "ticket_counter": counter
-            }
-        },
-        upsert=True
-    )
-
-
-def get_guild_config(guild_id):
-    db = get_db()
-    if db is None:
-        return None
-    doc = db["guild_config"].find_one({"guild_id": guild_id})
-    if not doc:
-        return None
-    return (
-        doc.get("log_channel_id"),
-        doc.get("staff_role_id"),
-        doc.get("category_id"),
-        doc.get("welcome_message"),
-        doc.get("ticket_counter", 0)
-    )
-
-
-def increment_ticket_counter(guild_id, new_value):
-    db = get_db()
-    if db is None:
-        return
-    db["guild_config"].update_one(
-        {"guild_id": guild_id},
-        {"$set": {"ticket_counter": new_value}}
-    )
-
-
-# --- shop settings ---
-def get_shop_settings():
-    db = get_db()
-    if db is None:
-        return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
-    doc = db["shop_settings"].find_one({"id": 1})
-    if not doc:
-        return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
-    return (
-        doc.get("title", DEFAULT_SHOP_TITLE),
-        doc.get("description", DEFAULT_SHOP_DESCRIPTION),
-        doc.get("color", DEFAULT_SHOP_COLOR),
-        doc.get("footer", DEFAULT_SHOP_FOOTER),
-        doc.get("thumbnail_url"),
-        doc.get("banner_url")
-    )
-
-
-def update_shop_settings(**fields):
-    db = get_db()
-    if db is None:
-        return
-    current_vals = get_shop_settings()
-    current = {
-        "title": current_vals[0],
-        "description": current_vals[1],
-        "color": current_vals[2],
-        "footer": current_vals[3],
-        "thumbnail_url": current_vals[4],
-        "banner_url": current_vals[5],
-    }
-    current.update({k: v for k, v in fields.items() if v is not None})
-    db["shop_settings"].update_one(
-        {"id": 1},
-        {"$set": current},
-        upsert=True
-    )
-
-
-def reset_shop_settings():
-    db = get_db()
-    if db is None:
-        return
-    db["shop_settings"].update_one(
-        {"id": 1},
-        {
-            "$set": {
+    try:
+        db = get_db()
+        if db is None:
+            return
+        # Ensure shop_settings document exists
+        if not db["shop_settings"].find_one({"id": 1}):
+            db["shop_settings"].insert_one({
+                "id": 1,
                 "title": DEFAULT_SHOP_TITLE,
                 "description": DEFAULT_SHOP_DESCRIPTION,
                 "color": DEFAULT_SHOP_COLOR,
                 "footer": DEFAULT_SHOP_FOOTER,
                 "thumbnail_url": None,
                 "banner_url": None
-            }
-        },
-        upsert=True
-    )
-    db["shop_items"].delete_many({})
+            })
+    except Exception as e:
+        print(f"⚠️ init_db warning: {e}")
+
+
+def save_guild_config(guild_id, log_channel_id, staff_role_id, category_id, welcome_message):
+    try:
+        db = get_db()
+        if db is None:
+            return
+        existing = db["guild_config"].find_one({"guild_id": guild_id})
+        counter = existing.get("ticket_counter", 0) if existing else 0
+        db["guild_config"].update_one(
+            {"guild_id": guild_id},
+            {
+                "$set": {
+                    "guild_id": guild_id,
+                    "log_channel_id": log_channel_id,
+                    "staff_role_id": staff_role_id,
+                    "category_id": category_id,
+                    "welcome_message": welcome_message,
+                    "ticket_counter": counter
+                }
+            },
+            upsert=True
+        )
+    except Exception as e:
+        print(f"⚠️ save_guild_config warning: {e}")
+
+
+def get_guild_config(guild_id):
+    try:
+        db = get_db()
+        if db is None:
+            return None
+        doc = db["guild_config"].find_one({"guild_id": guild_id})
+        if not doc:
+            return None
+        return (
+            doc.get("log_channel_id"),
+            doc.get("staff_role_id"),
+            doc.get("category_id"),
+            doc.get("welcome_message"),
+            doc.get("ticket_counter", 0)
+        )
+    except Exception as e:
+        print(f"⚠️ get_guild_config warning: {e}")
+        return None
+
+
+def increment_ticket_counter(guild_id, new_value):
+    try:
+        db = get_db()
+        if db is None:
+            return
+        db["guild_config"].update_one(
+            {"guild_id": guild_id},
+            {"$set": {"ticket_counter": new_value}}
+        )
+    except Exception as e:
+        print(f"⚠️ increment_ticket_counter warning: {e}")
+
+
+# --- shop settings ---
+def get_shop_settings():
+    try:
+        db = get_db()
+        if db is None:
+            return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
+        doc = db["shop_settings"].find_one({"id": 1})
+        if not doc:
+            return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
+        return (
+            doc.get("title", DEFAULT_SHOP_TITLE),
+            doc.get("description", DEFAULT_SHOP_DESCRIPTION),
+            doc.get("color", DEFAULT_SHOP_COLOR),
+            doc.get("footer", DEFAULT_SHOP_FOOTER),
+            doc.get("thumbnail_url"),
+            doc.get("banner_url")
+        )
+    except Exception as e:
+        print(f"⚠️ get_shop_settings warning: {e}")
+        return (DEFAULT_SHOP_TITLE, DEFAULT_SHOP_DESCRIPTION, DEFAULT_SHOP_COLOR, DEFAULT_SHOP_FOOTER, None, None)
+
+
+def update_shop_settings(**fields):
+    try:
+        db = get_db()
+        if db is None:
+            return
+        current_vals = get_shop_settings()
+        current = {
+            "title": current_vals[0],
+            "description": current_vals[1],
+            "color": current_vals[2],
+            "footer": current_vals[3],
+            "thumbnail_url": current_vals[4],
+            "banner_url": current_vals[5],
+        }
+        current.update({k: v for k, v in fields.items() if v is not None})
+        db["shop_settings"].update_one(
+            {"id": 1},
+            {"$set": current},
+            upsert=True
+        )
+    except Exception as e:
+        print(f"⚠️ update_shop_settings warning: {e}")
+
+
+def reset_shop_settings():
+    try:
+        db = get_db()
+        if db is None:
+            return
+        db["shop_settings"].update_one(
+            {"id": 1},
+            {
+                "$set": {
+                    "title": DEFAULT_SHOP_TITLE,
+                    "description": DEFAULT_SHOP_DESCRIPTION,
+                    "color": DEFAULT_SHOP_COLOR,
+                    "footer": DEFAULT_SHOP_FOOTER,
+                    "thumbnail_url": None,
+                    "banner_url": None
+                }
+            },
+            upsert=True
+        )
+        db["shop_items"].delete_many({})
+    except Exception as e:
+        print(f"⚠️ reset_shop_settings warning: {e}")
 
 
 # --- shop items ---
 def add_shop_item(name, description, price):
-    db = get_db()
-    if db is None:
+    try:
+        db = get_db()
+        if db is None:
+            return 1
+        last_item = db["shop_items"].find_one(sort=[("item_id", -1)])
+        next_id = (last_item["item_id"] + 1) if last_item and "item_id" in last_item else 1
+
+        last_pos = db["shop_items"].find_one(sort=[("position", -1)])
+        next_pos = (last_pos["position"] + 1) if last_pos and "position" in last_pos else 1
+
+        db["shop_items"].insert_one({
+            "item_id": next_id,
+            "name": name,
+            "description": description,
+            "price": price,
+            "position": next_pos
+        })
+        return next_id
+    except Exception as e:
+        print(f"⚠️ add_shop_item warning: {e}")
         return 1
-    last_item = db["shop_items"].find_one(sort=[("item_id", -1)])
-    next_id = (last_item["item_id"] + 1) if last_item and "item_id" in last_item else 1
-
-    last_pos = db["shop_items"].find_one(sort=[("position", -1)])
-    next_pos = (last_pos["position"] + 1) if last_pos and "position" in last_pos else 1
-
-    db["shop_items"].insert_one({
-        "item_id": next_id,
-        "name": name,
-        "description": description,
-        "price": price,
-        "position": next_pos
-    })
-    return next_id
 
 
 def remove_shop_item(item_id) -> bool:
-    db = get_db()
-    if db is None:
+    try:
+        db = get_db()
+        if db is None:
+            return False
+        res = db["shop_items"].delete_one({"item_id": item_id})
+        return res.deleted_count > 0
+    except Exception as e:
+        print(f"⚠️ remove_shop_item warning: {e}")
         return False
-    res = db["shop_items"].delete_one({"item_id": item_id})
-    return res.deleted_count > 0
 
 
 def edit_shop_item(item_id, name=None, description=None, price=None) -> bool:
-    db = get_db()
-    if db is None:
+    try:
+        db = get_db()
+        if db is None:
+            return False
+        row = db["shop_items"].find_one({"item_id": item_id})
+        if row is None:
+            return False
+        new_name = name if name is not None else row.get("name")
+        new_desc = description if description is not None else row.get("description")
+        new_price = price if price is not None else row.get("price")
+        db["shop_items"].update_one(
+            {"item_id": item_id},
+            {"$set": {"name": new_name, "description": new_desc, "price": new_price}}
+        )
+        return True
+    except Exception as e:
+        print(f"⚠️ edit_shop_item warning: {e}")
         return False
-    row = db["shop_items"].find_one({"item_id": item_id})
-    if row is None:
-        return False
-    new_name = name if name is not None else row.get("name")
-    new_desc = description if description is not None else row.get("description")
-    new_price = price if price is not None else row.get("price")
-    db["shop_items"].update_one(
-        {"item_id": item_id},
-        {"$set": {"name": new_name, "description": new_desc, "price": new_price}}
-    )
-    return True
 
 
 def get_shop_items():
-    db = get_db()
-    if db is None:
+    try:
+        db = get_db()
+        if db is None:
+            return []
+        cursor = db["shop_items"].find().sort("position", 1)
+        return [(doc["item_id"], doc["name"], doc["description"], doc["price"]) for doc in cursor]
+    except Exception as e:
+        print(f"⚠️ get_shop_items warning: {e}")
         return []
-    cursor = db["shop_items"].find().sort("position", 1)
-    return [(doc["item_id"], doc["name"], doc["description"], doc["price"]) for doc in cursor]
 
 
 def move_shop_item(item_id, direction: str) -> bool:
     """direction: 'up' or 'down'. Swaps position with the neighboring item."""
-    db = get_db()
-    if db is None:
+    try:
+        db = get_db()
+        if db is None:
+            return False
+        rows = list(db["shop_items"].find().sort("position", 1))
+        ids = [r["item_id"] for r in rows]
+        if item_id not in ids:
+            return False
+        idx = ids.index(item_id)
+        swap_idx = idx - 1 if direction == "up" else idx + 1
+        if swap_idx < 0 or swap_idx >= len(rows):
+            return False
+        pos_a = rows[idx]["position"]
+        pos_b = rows[swap_idx]["position"]
+        id_b = rows[swap_idx]["item_id"]
+        db["shop_items"].update_one({"item_id": item_id}, {"$set": {"position": pos_b}})
+        db["shop_items"].update_one({"item_id": id_b}, {"$set": {"position": pos_a}})
+        return True
+    except Exception as e:
+        print(f"⚠️ move_shop_item warning: {e}")
         return False
-    rows = list(db["shop_items"].find().sort("position", 1))
-    ids = [r["item_id"] for r in rows]
-    if item_id not in ids:
-        return False
-    idx = ids.index(item_id)
-    swap_idx = idx - 1 if direction == "up" else idx + 1
-    if swap_idx < 0 or swap_idx >= len(rows):
-        return False
-    pos_a = rows[idx]["position"]
-    pos_b = rows[swap_idx]["position"]
-    id_b = rows[swap_idx]["item_id"]
-    db["shop_items"].update_one({"item_id": item_id}, {"$set": {"position": pos_b}})
-    db["shop_items"].update_one({"item_id": id_b}, {"$set": {"position": pos_a}})
-    return True
 
 
 # ----------------------------------------------------------------------
@@ -513,7 +557,6 @@ class Echo(commands.Cog):
             )
         except Exception as e:
             return await interaction.followup.send(embed=error_embed(f"Couldn't post the poll.\n
-            
         await interaction.followup.send(embed=info_embed("✅ Poll posted."), ephemeral=True)
 
     # ====================================================================
