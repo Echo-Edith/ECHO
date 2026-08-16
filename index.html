@@ -40,8 +40,6 @@
     }
     .flash { animation: flashHighlight 0.6s ease; }
 
-    /* Smooths every interactive element in the dashboard, not just the ones
-       that already had a `transition` utility class. */
     button, select, input, textarea {
       transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
     }
@@ -76,6 +74,12 @@
         <button onclick="switchTab('shop')" id="nav-shop" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
           <i class="fa-solid fa-store w-5"></i> Shop Manager
         </button>
+        <button onclick="switchTab('codes')" id="nav-codes" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
+          <i class="fa-solid fa-ticket-simple w-5"></i> Promo Codes
+        </button>
+        <button onclick="switchTab('blacklist')" id="nav-blacklist" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
+          <i class="fa-solid fa-ban w-5"></i> Blacklist
+        </button>
       </nav>
     </div>
 
@@ -83,7 +87,7 @@
       <span class="flex items-center gap-1.5">
         <span class="w-2 h-2 rounded-full bg-discord-green animate-pulse" id="live-dot"></span> Live Sync
       </span>
-      <span>v3.1</span>
+      <span>v3.3</span>
     </div>
   </aside>
 
@@ -103,6 +107,23 @@
         <button onclick="loadAllData(true)" class="bg-discord-card hover:bg-gray-800 text-white text-xs px-3.5 py-2 rounded-md flex items-center gap-2 border border-gray-700 transition active:scale-95">
           <i class="fa-solid fa-rotate-right" id="refresh-icon"></i> Sync Data
         </button>
+      </div>
+
+      <!-- Maintenance Mode Banner -->
+      <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-red-500/10 text-discord-red flex items-center justify-center text-xl">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-discord-muted uppercase">Maintenance Mode</p>
+            <p class="text-sm text-white font-medium">Instantly turns off tickets and commands for non-admins.</p>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="maintenance-toggle" onchange="toggleMaintenanceMode()" class="sr-only peer">
+          <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-red"></div>
+        </label>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -142,11 +163,10 @@
     <section id="tab-tickets" class="space-y-6 hidden">
       <div>
         <h2 class="text-2xl font-bold text-white">Ticket System Management</h2>
-        <p class="text-sm text-discord-muted">Configure roles, channels, and deploy ticket open buttons to Discord.</p>
+        <p class="text-sm text-discord-muted">Configure roles, channels, and deploy/update ticket buttons in Discord.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Configuration Form -->
         <div class="bg-discord-card p-6 rounded-lg border border-gray-800 space-y-4 shadow-sm">
           <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
             <i class="fa-solid fa-sliders text-discord-accent"></i> Ticket Controls
@@ -154,58 +174,60 @@
 
           <div>
             <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Target Panel Channel</label>
-            <select id="ticket-panel-channel" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent transition">
+            <select id="ticket-panel-channel" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
               <option value="">Loading Channels...</option>
             </select>
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Staff Role</label>
-            <select id="ticket-staff-role" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent transition">
+            <select id="ticket-staff-role" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
               <option value="">Loading Roles...</option>
             </select>
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Ticket Category (Optional)</label>
-            <select id="ticket-category" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent transition">
+            <select id="ticket-category" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
               <option value="">Loading Categories...</option>
             </select>
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Log Channel (Optional)</label>
-            <select id="ticket-log-channel" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent transition">
+            <select id="ticket-log-channel" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
               <option value="">Loading Channels...</option>
             </select>
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Panel Embed Title</label>
-            <input type="text" id="ticket-panel-title" oninput="updateTicketPreview()" value="💳 MARKETPLACE REGISTER" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent transition">
+            <input type="text" id="ticket-panel-title" oninput="updateTicketPreview()" value="💳 MARKETPLACE REGISTER" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Panel Embed Description</label>
-            <textarea id="ticket-panel-desc" oninput="updateTicketPreview()" rows="2" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent transition">Click the button below to open a private ticket channel.</textarea>
+            <textarea id="ticket-panel-desc" oninput="updateTicketPreview()" rows="2" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">Click the button below to open a private ticket channel.</textarea>
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Welcome Message Inside Ticket</label>
-            <textarea id="ticket-welcome-msg" rows="2" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent transition">Welcome! Please state what item you want to purchase or what issue you have.</textarea>
+            <textarea id="ticket-welcome-msg" rows="2" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">Welcome! Please state what item you want to purchase or what issue you have.</textarea>
           </div>
 
-          <div class="flex flex-col sm:flex-row gap-3 pt-2">
-            <button onclick="saveTicketSettings()" class="flex-1 bg-discord-sidebar hover:bg-gray-700 text-white font-medium py-2.5 rounded text-sm border border-gray-700 transition active:scale-95 flex items-center justify-center gap-2">
-              <i class="fa-solid fa-floppy-disk"></i> Save Settings
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+            <button onclick="saveTicketSettings()" class="bg-discord-sidebar hover:bg-gray-700 text-white font-medium py-2.5 rounded text-sm border border-gray-700 transition active:scale-95">
+              Save Settings
             </button>
-            <button onclick="deployTicketPanel()" class="flex-1 bg-discord-green hover:bg-emerald-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-2">
-              <i class="fa-solid fa-paper-plane"></i> Deploy Panel
+            <button onclick="deployTicketPanel()" class="bg-discord-green hover:bg-emerald-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-paper-plane"></i> Deploy
+            </button>
+            <button onclick="updateExistingTicketPanel()" class="bg-discord-accent hover:bg-indigo-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-rotate"></i> Update Embed
             </button>
           </div>
         </div>
 
-        <!-- Live Embed Preview -->
         <div class="bg-discord-card p-6 rounded-lg border border-gray-800 space-y-4 h-fit shadow-sm">
           <h3 class="text-xs font-bold uppercase text-discord-muted tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-eye"></i> Ticket Panel Live Preview
@@ -226,7 +248,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-2xl font-bold text-white">Shop Manager</h2>
-          <p class="text-sm text-discord-muted">Manage packages and deploy shop embeds to Discord.</p>
+          <p class="text-sm text-discord-muted">Manage packages, active discounts, and update embeds in Discord.</p>
         </div>
         <div class="flex items-center gap-2">
           <button onclick="openAddItemModal()" class="bg-discord-green hover:bg-emerald-600 text-white text-xs px-3.5 py-2 rounded-md font-medium transition active:scale-95 flex items-center gap-2">
@@ -235,17 +257,36 @@
         </div>
       </div>
 
+      <!-- Global Discount Banner -->
+      <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-discord-yellow flex items-center justify-center text-lg">
+            <i class="fa-solid fa-percent"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Storewide Discount (%)</h3>
+            <p class="text-xs text-discord-muted">Automatically slashes prices across all active shop items.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <input type="number" id="global-discount-input" min="0" max="100" placeholder="0" class="w-24 bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm text-center focus:outline-none focus:border-discord-accent">
+          <button onclick="saveGlobalDiscount()" class="bg-discord-sidebar hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-medium border border-gray-700 transition">Apply</button>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Shop Packages Column -->
         <div class="lg:col-span-2 space-y-4">
           <div class="bg-discord-card p-4 rounded-lg border border-gray-800 space-y-3">
             <h3 class="text-sm font-bold text-white">Shop Output Channel</h3>
-            <div class="flex gap-3">
-              <select id="shop-channel-select" class="flex-1 bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <select id="shop-channel-select" class="sm:col-span-1 bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
                 <option value="">Loading Channels...</option>
               </select>
-              <button onclick="deployShopPanel()" class="bg-discord-accent hover:bg-indigo-600 text-white px-4 py-2 rounded text-xs font-medium transition active:scale-95 flex items-center gap-2 shrink-0">
-                <i class="fa-solid fa-paper-plane"></i> Deploy Shop Embed
+              <button onclick="deployShopPanel()" class="bg-discord-green hover:bg-emerald-600 text-white px-3 py-2 rounded text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-paper-plane"></i> Deploy
+              </button>
+              <button onclick="updateExistingShopPanel()" class="bg-discord-accent hover:bg-indigo-600 text-white px-3 py-2 rounded text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-rotate"></i> Update Embed
               </button>
             </div>
           </div>
@@ -253,7 +294,6 @@
           <div class="space-y-3" id="shop-items-container"></div>
         </div>
 
-        <!-- Live Shop Embed Preview -->
         <div class="bg-discord-card p-5 rounded-lg border border-gray-800 space-y-4 shadow-sm h-fit">
           <h3 class="text-xs font-bold uppercase text-discord-muted tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-eye"></i> Shop Embed Preview
@@ -267,28 +307,58 @@
       </div>
     </section>
 
+    <!-- PROMO CODES TAB -->
+    <section id="tab-codes" class="space-y-6 hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white">Promo Codes</h2>
+          <p class="text-sm text-discord-muted">Create discount codes with user redemption limits and expiration times for <code class="bg-discord-card px-1.5 py-0.5 rounded text-discord-accent">/redeem</code>.</p>
+        </div>
+        <button onclick="openAddCodeModal()" class="bg-discord-green hover:bg-emerald-600 text-white text-xs px-3.5 py-2 rounded-md font-medium transition active:scale-95 flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> New Promo Code
+        </button>
+      </div>
+
+      <div class="space-y-3" id="promo-codes-container"></div>
+    </section>
+
+    <!-- BLACKLIST TAB -->
+    <section id="tab-blacklist" class="space-y-6 hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white">Blacklisted Users</h2>
+          <p class="text-sm text-discord-muted">Banned users restricted from opening tickets or making purchases.</p>
+        </div>
+        <button onclick="openAddBlacklistModal()" class="bg-discord-red hover:bg-red-600 text-white text-xs px-3.5 py-2 rounded-md font-medium transition active:scale-95 flex items-center gap-2">
+          <i class="fa-solid fa-user-slash"></i> Blacklist User ID
+        </button>
+      </div>
+
+      <div class="space-y-3" id="blacklist-container"></div>
+    </section>
+
   </main>
 
   <!-- Modal: Add Item -->
   <div id="add-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
       <h3 class="text-lg font-bold text-white">Add Shop Package</h3>
-
       <div>
         <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Package Name</label>
         <input type="text" id="item-name-input" placeholder="e.g. Utility Bot" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
-
       <div>
         <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Description</label>
         <input type="text" id="item-desc-input" placeholder="e.g. Custom commands and search feature." class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
-
       <div>
         <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Price</label>
         <input type="text" id="item-price-input" placeholder="e.g. 20 RBX or $10" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
-
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="item-available-input" checked class="w-4 h-4 rounded bg-discord-sidebar border-gray-700 text-discord-accent focus:ring-0">
+        <label for="item-available-input" class="text-xs text-white font-medium">Available for Purchase</label>
+      </div>
       <div class="flex justify-end gap-3 pt-2">
         <button onclick="closeAddItemModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
         <button onclick="addShopItem()" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95">Add Package</button>
@@ -301,25 +371,73 @@
     <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
       <h3 class="text-lg font-bold text-white">Edit Shop Package</h3>
       <input type="hidden" id="edit-item-id">
-
       <div>
         <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Package Name</label>
         <input type="text" id="edit-name-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
-
       <div>
         <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Description</label>
         <input type="text" id="edit-desc-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
-
       <div>
         <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Price</label>
         <input type="text" id="edit-price-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
-
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="edit-available-input" class="w-4 h-4 rounded bg-discord-sidebar border-gray-700 text-discord-accent focus:ring-0">
+        <label for="edit-available-input" class="text-xs text-white font-medium">Available for Purchase</label>
+      </div>
       <div class="flex justify-end gap-3 pt-2">
         <button onclick="closeEditItemModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
         <button onclick="saveEditShopItem()" class="px-4 py-2 text-sm bg-discord-accent hover:bg-indigo-600 text-white rounded font-medium transition active:scale-95">Update Package</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Promo Code -->
+  <div id="code-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
+      <h3 class="text-lg font-bold text-white">Create Promo Code</h3>
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Code Word (Case-Insensitive)</label>
+        <input type="text" id="code-name-input" placeholder="e.g. WELCOME10" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm uppercase focus:outline-none focus:border-discord-accent">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Discount Percentage (%)</label>
+        <input type="number" id="code-discount-input" min="1" max="100" placeholder="15" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Per User Limit</label>
+          <input type="number" id="code-limit-input" min="0" placeholder="1 (0 = Unlimited)" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Expires In (Hours)</label>
+          <input type="number" id="code-expire-input" min="0" placeholder="24 (0 = No Expiry)" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeAddCodeModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
+        <button onclick="addPromoCode()" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95">Create Code</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Blacklist -->
+  <div id="blacklist-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
+      <h3 class="text-lg font-bold text-white">Blacklist User</h3>
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Discord User ID</label>
+        <input type="text" id="blacklist-userid-input" placeholder="123456789012345678" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm font-mono focus:outline-none focus:border-discord-accent">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Reason</label>
+        <input type="text" id="blacklist-reason-input" placeholder="e.g. Spamming tickets / scamming" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeAddBlacklistModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
+        <button onclick="addBlacklistUser()" class="px-4 py-2 text-sm bg-discord-red hover:bg-red-600 text-white rounded font-medium transition active:scale-95">Blacklist User</button>
       </div>
     </div>
   </div>
@@ -335,6 +453,8 @@
     let channels = [];
     let roles = [];
     let categories = [];
+    let promoCodes = [];
+    let blacklist = [];
     let statsIntervalId = null;
 
     async function loadAllData(manualSync = false) {
@@ -344,7 +464,6 @@
       }
 
       try {
-        // Fetch Guild Channels, Roles, and Bot Avatar Info
         const guildRes = await fetch('/api/guild-data');
         if (guildRes.ok) {
           const gData = await guildRes.json();
@@ -354,28 +473,54 @@
 
           updateStatValue('stat-ping', `${gData.latency || 0} ms`);
 
-          if (gData.bot_avatar) {
-            document.getElementById('bot-avatar-img').src = gData.bot_avatar;
-          }
+          if (gData.bot_avatar) document.getElementById('bot-avatar-img').src = gData.bot_avatar;
           if (gData.bot_name) {
             document.getElementById('bot-name-display').innerHTML = `${gData.bot_name} <span class="bg-discord-accent text-[10px] px-1.5 py-0.5 rounded text-white font-semibold">ADMIN</span>`;
+          }
+
+          if (gData.maintenance !== undefined) {
+            document.getElementById('maintenance-toggle').checked = gData.maintenance;
+          }
+
+          if (gData.global_discount !== undefined) {
+            document.getElementById('global-discount-input').value = gData.global_discount;
           }
 
           populateDropdowns();
         }
 
-        // Fetch Ticket Stats
         const ticketRes = await fetch('/api/ticket-stats');
         if (ticketRes.ok) {
           const tData = await ticketRes.json();
           updateStatValue('stat-tickets', tData.total_tickets || 0);
+          if (tData.saved_config) {
+            if (tData.saved_config.title) document.getElementById("ticket-panel-title").value = tData.saved_config.title;
+            if (tData.saved_config.description) document.getElementById("ticket-panel-desc").value = tData.saved_config.description;
+            if (tData.saved_config.welcome_message) document.getElementById("ticket-welcome-msg").value = tData.saved_config.welcome_message;
+            if (tData.saved_config.panel_channel_id) document.getElementById("ticket-panel-channel").value = tData.saved_config.panel_channel_id;
+            if (tData.saved_config.staff_role_id) document.getElementById("ticket-staff-role").value = tData.saved_config.staff_role_id;
+            if (tData.saved_config.category_id) document.getElementById("ticket-category").value = tData.saved_config.category_id;
+            if (tData.saved_config.log_channel_id) document.getElementById("ticket-log-channel").value = tData.saved_config.log_channel_id;
+            updateTicketPreview();
+          }
         }
 
-        // Fetch Shop Items
         const shopRes = await fetch('/api/shop-items');
         if (shopRes.ok) {
           shopItems = await shopRes.json();
           renderShopItems();
+        }
+
+        const codesRes = await fetch('/api/promo-codes');
+        if (codesRes.ok) {
+          promoCodes = await codesRes.json();
+          renderPromoCodes();
+        }
+
+        const blRes = await fetch('/api/blacklist');
+        if (blRes.ok) {
+          blacklist = await blRes.json();
+          renderBlacklist();
         }
 
         touchLastUpdated();
@@ -389,11 +534,6 @@
       }
     }
 
-    // Lightweight poll used for the every-second auto-refresh. Deliberately
-    // only touches the two live stat numbers — NOT the dropdowns/shop list —
-    // so it never resets whatever you're mid-edit on the Tickets/Shop tabs.
-    // Runs quietly: no toast per tick, since a toast every second would be
-    // more annoying than useful. Errors are logged to console instead.
     async function refreshStatsOnly() {
       try {
         const guildRes = await fetch('/api/guild-data');
@@ -407,9 +547,7 @@
           updateStatValue('stat-tickets', tData.total_tickets || 0);
         }
         touchLastUpdated();
-      } catch (e) {
-        console.warn('Stats auto-refresh failed:', e);
-      }
+      } catch (e) {}
     }
 
     function updateStatValue(elemId, newValue) {
@@ -419,7 +557,7 @@
       if (el.innerText !== newText) {
         el.innerText = newText;
         el.classList.remove('flash');
-        void el.offsetWidth; // restart the animation
+        void el.offsetWidth;
         el.classList.add('flash');
       }
     }
@@ -441,20 +579,13 @@
       }
     }
 
-    // Pause polling when the tab isn't visible — no point hammering the API
-    // once a second for a dashboard nobody's looking at.
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        stopStatsPolling();
-      } else {
-        startStatsPolling();
-        refreshStatsOnly();
-      }
+      if (document.hidden) stopStatsPolling();
+      else { startStatsPolling(); refreshStatsOnly(); }
     });
 
     function populateDropdowns() {
       const textChannels = channels.filter(c => c.type === 'text');
-
       const fillSelect = (elemId, list, defaultLabel) => {
         const elem = document.getElementById(elemId);
         const currentVal = elem.value;
@@ -469,7 +600,6 @@
       fillSelect('ticket-log-channel', textChannels, '-- Select Log Channel --');
       fillSelect('shop-channel-select', textChannels, '-- Select Shop Channel --');
 
-      // Roles
       const roleSelect = document.getElementById('ticket-staff-role');
       const curRole = roleSelect.value;
       roleSelect.innerHTML = `<option value="">-- Select Staff Role --</option>`;
@@ -478,7 +608,6 @@
         roleSelect.innerHTML += `<option value="${r.id}" ${selected}>@ ${r.name}</option>`;
       });
 
-      // Categories
       const catSelect = document.getElementById('ticket-category');
       const curCat = catSelect.value;
       catSelect.innerHTML = `<option value="">-- Select Category --</option>`;
@@ -502,15 +631,23 @@
       }
 
       shopItems.forEach((item) => {
+        const isAvail = item.available !== false;
+        const availBadge = isAvail 
+          ? `<span class="bg-green-500/10 text-green-400 text-[10px] px-2 py-0.5 rounded font-semibold">Available</span>`
+          : `<span class="bg-red-500/10 text-red-400 text-[10px] px-2 py-0.5 rounded font-semibold">Paused</span>`;
+
         container.innerHTML += `
           <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm hover:border-gray-700 transition fade-in">
             <div>
-              <p class="font-bold text-white text-sm">#${item.id} — ${item.name}</p>
+              <div class="flex items-center gap-2">
+                <p class="font-bold text-white text-sm">#${item.id} — ${item.name}</p>
+                ${availBadge}
+              </div>
               <p class="text-xs text-discord-muted mt-0.5">${item.desc || ''}</p>
               <p class="text-xs font-mono text-discord-accent mt-1">Price: ${item.price || 'Free'}</p>
             </div>
             <div class="flex items-center gap-2">
-              <button onclick="openEditItemModal(${item.id}, '${escapeHtml(item.name)}', '${escapeHtml(item.desc || '')}', '${escapeHtml(item.price || '')}')" class="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded transition text-xs flex items-center gap-1.5" title="Edit Package">
+              <button onclick="openEditItemModal(${item.id}, '${escapeHtml(item.name)}', '${escapeHtml(item.desc || '')}', '${escapeHtml(item.price || '')}', ${isAvail})" class="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded transition text-xs flex items-center gap-1.5" title="Edit Package">
                 <i class="fa-solid fa-pen-to-square"></i> Edit
               </button>
               <button onclick="removeItem(${item.id})" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm" title="Delete Package">
@@ -520,11 +657,68 @@
           </div>
         `;
 
-        previewContainer.innerHTML += `
-          <div class="text-xs">
-            <p class="font-semibold text-white">${item.name} — <span class="font-mono text-discord-muted">#${item.id}</span></p>
-            <p class="text-[11px] text-discord-muted">${item.desc || ''}</p>
-            <p class="text-[11px] text-discord-text mt-0.5">Price: <code class="bg-discord-sidebar px-1 py-0.5 rounded text-discord-accent">${item.price || 'Free'}</code></p>
+        if (isAvail) {
+          previewContainer.innerHTML += `
+            <div class="text-xs">
+              <p class="font-semibold text-white">${item.name} — <span class="font-mono text-discord-muted">#${item.id}</span></p>
+              <p class="text-[11px] text-discord-muted">${item.desc || ''}</p>
+              <p class="text-[11px] text-discord-text mt-0.5">Price: <code class="bg-discord-sidebar px-1 py-0.5 rounded text-discord-accent">${item.price || 'Free'}</code></p>
+            </div>
+          `;
+        }
+      });
+    }
+
+    function renderPromoCodes() {
+      const container = document.getElementById("promo-codes-container");
+      container.innerHTML = "";
+      if (promoCodes.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-discord-muted bg-discord-card rounded-lg border border-gray-800">No active promo codes. Click "+ New Promo Code" to add one!</div>`;
+        return;
+      }
+      promoCodes.forEach(code => {
+        const limitStr = code.user_limit > 0 ? `${code.user_limit} per user` : 'Unlimited uses';
+        let expireStr = 'Never expires';
+        if (code.expires_at) {
+          const expDate = new Date(code.expires_at * 1000);
+          expireStr = expDate < new Date() ? `<span class="text-discord-red font-bold">Expired</span>` : `Expires: ${expDate.toLocaleString()}`;
+        }
+
+        container.innerHTML += `
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm">
+            <div>
+              <p class="font-mono font-bold text-white text-sm bg-discord-sidebar px-2 py-1 rounded inline-block border border-gray-700">${code.code}</p>
+              <div class="flex items-center gap-3 text-xs text-discord-muted mt-1.5">
+                <span class="text-discord-green font-bold">${code.discount}% OFF</span>
+                <span>• ${limitStr}</span>
+                <span>• ${expireStr}</span>
+              </div>
+            </div>
+            <button onclick="removePromoCode('${code.code}')" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        `;
+      });
+    }
+
+    function renderBlacklist() {
+      const container = document.getElementById("blacklist-container");
+      container.innerHTML = "";
+      if (blacklist.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-discord-muted bg-discord-card rounded-lg border border-gray-800">No blacklisted users.</div>`;
+        return;
+      }
+      blacklist.forEach(b => {
+        container.innerHTML += `
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm">
+            <div>
+              <p class="font-mono text-white text-sm font-bold">User ID: ${b.user_id}</p>
+              <p class="text-xs text-discord-muted mt-0.5">Reason: ${b.reason || 'No reason provided'}</p>
+            </div>
+            <button onclick="removeBlacklistUser('${b.user_id}')" class="text-discord-green hover:bg-green-500/10 p-2 rounded transition text-xs flex items-center gap-1 font-medium">
+              <i class="fa-solid fa-check"></i> Unban
+            </button>
           </div>
         `;
       });
@@ -537,6 +731,45 @@
     function updateTicketPreview() {
       document.getElementById("preview-ticket-title").innerText = document.getElementById("ticket-panel-title").value || "💳 MARKETPLACE REGISTER";
       document.getElementById("preview-ticket-desc").innerText = document.getElementById("ticket-panel-desc").value || "Click the button below to open a ticket channel.";
+    }
+
+    async function toggleMaintenanceMode() {
+      const enabled = document.getElementById("maintenance-toggle").checked;
+      showToast(enabled ? "Enabling Maintenance Mode..." : "Disabling Maintenance Mode...");
+      try {
+        const res = await fetch('/api/maintenance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ maintenance: enabled })
+        });
+        if (res.ok) {
+          showToast(enabled ? "Maintenance Mode Enabled!" : "Maintenance Mode Disabled!");
+        } else {
+          showToast("Failed to update maintenance mode.", true);
+        }
+      } catch (e) {
+        showToast("Backend connection error.", true);
+      }
+    }
+
+    async function saveGlobalDiscount() {
+      const val = parseInt(document.getElementById("global-discount-input").value) || 0;
+      showToast("Applying storewide discount...");
+      try {
+        const res = await fetch('/api/global-discount', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ discount: val })
+        });
+        if (res.ok) {
+          showToast(`Storewide discount set to ${val}%!`);
+          loadAllData();
+        } else {
+          showToast("Failed to apply discount.", true);
+        }
+      } catch (e) {
+        showToast("Backend connection error.", true);
+      }
     }
 
     async function saveTicketSettings() {
@@ -557,7 +790,6 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-
         if (res.ok) {
           showToast("Ticket panel configurations saved!");
         } else {
@@ -574,24 +806,39 @@
         showToast("Please select a Panel Channel first!", true);
         return;
       }
-
       await saveTicketSettings();
       showToast("Deploying ticket panel to Discord...");
-
       try {
         const res = await fetch('/api/deploy-ticket-panel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channel_id: channelId })
         });
-
         if (res.ok) {
-          showToast("Ticket panel successfully deployed to Discord!");
+          showToast("Ticket panel successfully deployed!");
         } else {
-          showToast("Error deploying panel to Discord.", true);
+          showToast("Error deploying panel.", true);
         }
       } catch (e) {
         showToast("Failed to deploy panel.", true);
+      }
+    }
+
+    async function updateExistingTicketPanel() {
+      await saveTicketSettings();
+      showToast("Updating existing ticket embed in Discord...");
+      try {
+        const res = await fetch('/api/update-ticket-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (res.ok) {
+          showToast("Existing ticket embed successfully updated!");
+        } else {
+          showToast("No active panel message found to update. Deploy one first!", true);
+        }
+      } catch (e) {
+        showToast("Failed to update embed.", true);
       }
     }
 
@@ -601,7 +848,6 @@
         showToast("Please select a Shop Output Channel first!", true);
         return;
       }
-
       showToast("Posting shop embed to Discord...");
       try {
         const res = await fetch('/api/deploy-shop-panel', {
@@ -609,9 +855,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channel_id: channelId })
         });
-
         if (res.ok) {
-          showToast("Shop embed successfully posted to Discord!");
+          showToast("Shop embed successfully posted!");
         } else {
           showToast("Error deploying shop embed.", true);
         }
@@ -620,10 +865,28 @@
       }
     }
 
+    async function updateExistingShopPanel() {
+      showToast("Updating existing shop embed in Discord...");
+      try {
+        const res = await fetch('/api/update-shop-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (res.ok) {
+          showToast("Existing shop embed successfully updated!");
+        } else {
+          showToast("No active shop message found to update. Deploy one first!", true);
+        }
+      } catch (e) {
+        showToast("Failed to update embed.", true);
+      }
+    }
+
     async function addShopItem() {
       const name = document.getElementById("item-name-input").value;
       const desc = document.getElementById("item-desc-input").value;
       const price = document.getElementById("item-price-input").value;
+      const available = document.getElementById("item-available-input").checked;
 
       if (!name) {
         showToast("Package name is required.", true);
@@ -635,9 +898,8 @@
         const res = await fetch('/api/shop-items', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description: desc, price })
+          body: JSON.stringify({ name, description: desc, price, available })
         });
-
         if (res.ok) {
           showToast("New package added to shop!");
           closeAddItemModal();
@@ -650,33 +912,31 @@
       }
     }
 
-    function openEditItemModal(id, name, desc, price) {
+    function openEditItemModal(id, name, desc, price, available) {
       document.getElementById("edit-item-id").value = id;
       document.getElementById("edit-name-input").value = name;
       document.getElementById("edit-desc-input").value = desc;
       document.getElementById("edit-price-input").value = price;
+      document.getElementById("edit-available-input").checked = available;
       document.getElementById("edit-modal").classList.remove("hidden");
-      showToast(`Editing "${name}"...`);
     }
 
-    function closeEditItemModal() {
-      document.getElementById("edit-modal").classList.add("hidden");
-    }
+    function closeEditItemModal() { document.getElementById("edit-modal").classList.add("hidden"); }
 
     async function saveEditShopItem() {
       const id = document.getElementById("edit-item-id").value;
       const name = document.getElementById("edit-name-input").value;
       const desc = document.getElementById("edit-desc-input").value;
       const price = document.getElementById("edit-price-input").value;
+      const available = document.getElementById("edit-available-input").checked;
 
       showToast("Saving changes...");
       try {
         const res = await fetch(`/api/shop-items/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description: desc, price })
+          body: JSON.stringify({ name, description: desc, price, available })
         });
-
         if (res.ok) {
           showToast("Package updated successfully!");
           closeEditItemModal();
@@ -704,8 +964,88 @@
       }
     }
 
+    async function addPromoCode() {
+      const code = document.getElementById("code-name-input").value.trim().toUpperCase();
+      const discount = parseInt(document.getElementById("code-discount-input").value) || 0;
+      const user_limit = parseInt(document.getElementById("code-limit-input").value) || 0;
+      const hours = parseInt(document.getElementById("code-expire-input").value) || 0;
+
+      if (!code || discount <= 0) {
+        showToast("Enter a valid code and discount percentage.", true);
+        return;
+      }
+
+      showToast("Creating promo code...");
+      try {
+        const res = await fetch('/api/promo-codes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, discount, user_limit, expire_hours: hours })
+        });
+        if (res.ok) {
+          showToast("Promo code created successfully!");
+          closeAddCodeModal();
+          loadAllData();
+        } else {
+          showToast("Failed to create code.", true);
+        }
+      } catch (e) {
+        showToast("Connection error.", true);
+      }
+    }
+
+    async function removePromoCode(code) {
+      showToast("Deleting code...");
+      try {
+        const res = await fetch(`/api/promo-codes/${encodeURIComponent(code)}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast("Promo code deleted!");
+          loadAllData();
+        }
+      } catch (e) {
+        showToast("Error deleting code.", true);
+      }
+    }
+
+    async function addBlacklistUser() {
+      const userId = document.getElementById("blacklist-userid-input").value.trim();
+      const reason = document.getElementById("blacklist-reason-input").value.trim();
+      if (!userId) {
+        showToast("User ID is required.", true);
+        return;
+      }
+      showToast("Blacklisting user...");
+      try {
+        const res = await fetch('/api/blacklist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, reason })
+        });
+        if (res.ok) {
+          showToast("User successfully blacklisted!");
+          closeAddBlacklistModal();
+          loadAllData();
+        }
+      } catch (e) {
+        showToast("Connection error.", true);
+      }
+    }
+
+    async function removeBlacklistUser(userId) {
+      showToast("Removing user from blacklist...");
+      try {
+        const res = await fetch(`/api/blacklist/${userId}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast("User unbanned from blacklist!");
+          loadAllData();
+        }
+      } catch (e) {
+        showToast("Error removing user.", true);
+      }
+    }
+
     function switchTab(tab) {
-      ['overview', 'tickets', 'shop'].forEach(t => {
+      ['overview', 'tickets', 'shop', 'codes', 'blacklist'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
         document.getElementById(`nav-${t}`).className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all';
       });
@@ -713,17 +1053,18 @@
       const target = document.getElementById(`tab-${tab}`);
       target.classList.remove('hidden');
       target.classList.remove('fade-in');
-      void target.offsetWidth; // restart the fade-in animation on every switch
+      void target.offsetWidth;
       target.classList.add('fade-in');
 
       document.getElementById(`nav-${tab}`).className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-white bg-discord-accent transition-all';
     }
 
-    function openAddItemModal() {
-      document.getElementById("add-modal").classList.remove("hidden");
-      showToast("Opening new package form...");
-    }
+    function openAddItemModal() { document.getElementById("add-modal").classList.remove("hidden"); }
     function closeAddItemModal() { document.getElementById("add-modal").classList.add("hidden"); }
+    function openAddCodeModal() { document.getElementById("code-modal").classList.remove("hidden"); }
+    function closeAddCodeModal() { document.getElementById("code-modal").classList.add("hidden"); }
+    function openAddBlacklistModal() { document.getElementById("blacklist-modal").classList.remove("hidden"); }
+    function closeAddBlacklistModal() { document.getElementById("blacklist-modal").classList.add("hidden"); }
 
     function showToast(msg, isError = false) {
       const toast = document.getElementById("toast");
@@ -750,3 +1091,4 @@
   </script>
 </body>
 </html>
+
