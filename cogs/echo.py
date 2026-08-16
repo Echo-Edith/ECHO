@@ -64,6 +64,17 @@ def is_maintenance(guild_id: int) -> bool:
     return config.get("maintenance", False)
 
 
+def calculate_discount_price(price_str: str, percent: int) -> str:
+    if not price_str or percent <= 0:
+        return price_str
+    num_match = re.search(r'\d+', price_str)
+    if not num_match:
+        return price_str
+    original_num = int(num_match.group(0))
+    discounted_num = max(1, round(original_num * (1 - percent / 100)))
+    return price_str.replace(str(original_num), f"{discounted_num} (~~{original_num}~~ `{percent}% OFF`)")
+
+
 def get_shop_items():
     try:
         db = get_db()
@@ -73,20 +84,6 @@ def get_shop_items():
         return [(doc["item_id"], doc["name"], doc.get("description"), doc.get("price")) for doc in cursor]
     except Exception:
         return []
-
-
-def get_total_tickets_count():
-    try:
-        db = get_db()
-        if db is None:
-            return 0
-        total = 0
-        cursor = db["guild_config"].find({}, {"ticket_counter": 1})
-        for doc in cursor:
-            total += doc.get("ticket_counter", 0)
-        return total
-    except Exception:
-        return 0
 
 
 # ----------------------------------------------------------------------
@@ -148,17 +145,25 @@ class Echo(commands.Cog):
         config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
         global_discount = config.get("global_discount", 0)
 
+        # Check for discount expiration
+        discount_expires = config.get("discount_expires_at")
+        if discount_expires and int(time.time()) > discount_expires:
+            global_discount = 0
+            if db is not None:
+                db["guild_config"].update_one({"guild_id": guild_id}, {"$set": {"global_discount": 0, "discount_expires_at": None}})
+
         items = get_shop_items()
         if not items:
             embed.add_field(name="No items available", value="Check back later for new packages!", inline=False)
         else:
             if global_discount > 0:
-                embed.description += f"\n\n🔥 **STOREWIDE DISCOUNT ACTIVE: {global_discount}% OFF!**"
+                embed.description += f"\n\n🔥 **STOREWIDE SALE ACTIVE: {global_discount}% OFF ALL PACKAGES!**"
 
             for item_id, name, item_desc, price in items:
                 field_value = item_desc or "\u200b"
                 if price:
-                    field_value += f"\n**Price:** `{price}`"
+                    display_price = calculate_discount_price(price, global_discount) if global_discount > 0 else price
+                    field_value += f"\n**Price:** {display_price}"
                 embed.add_field(name=f"{name} — `#{item_id}`", value=field_value, inline=False)
 
         embed.set_footer(text=DEFAULT_SHOP_FOOTER)
@@ -181,7 +186,7 @@ class Echo(commands.Cog):
     # ====================================================================
     # 2. /system-stats
     # ====================================================================
-    @app_commands.command(name="system-stats", description="Shows bot ping, uptime, and total tickets opened.")
+    @app_commands.command(name="system-stats", description="Shows bot ping and uptime.")
     async def system_stats(self, interaction: discord.Interaction):
         if is_blacklisted(interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("You are blacklisted."), ephemeral=True)
@@ -194,12 +199,9 @@ class Echo(commands.Cog):
         minutes, seconds = divmod(remainder, 60)
         uptime_str = f"{hours}h {minutes}m {seconds}s"
 
-        total_tickets = await asyncio.to_thread(get_total_tickets_count)
-
         embed = discord.Embed(title="⚙️ ECHO System Stats", color=EMBED_COLOR)
         embed.add_field(name="📶 Ping", value=f"`{latency_ms}ms`", inline=True)
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
-        embed.add_field(name="🎫 Total Tickets Opened", value=f"`{total_tickets}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     # ====================================================================
@@ -214,20 +216,87 @@ class Echo(commands.Cog):
         if db is None:
             return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
 
-        promo = db["promo_codes"].find_one({"code": code.strip().upper()})
+        clean_code = code.strip().upper()
+        promo = db["promo_codes"].find_one({"code": clean_code})
         if not promo:
-            return await interaction.response.send_message(embed=error_embed("Invalid or expired promo code!"), ephemeral=True)
+            return await interaction.response.send_message(embed=error_embed("Invalid promo code!"), ephemeral=True)
+
+        # Check Expiration Limit
+        expires_at = promo.get("expires_at")
+        if expires_at and int(time.time()) > expires_at:
+            return await interaction.response.send_message(embed=error_embed("This promo code has expired!"), ephemeral=True)
+
+        # Check Per-User Limit
+        user_limit = promo.get("user_limit", 0)
+        user_id_str = str(interaction.user.id)
+        
+        redemption_doc = db["promo_redemptions"].find_one({"code": clean_code, "user_id": user_id_str})
+        times_used = redemption_doc.get("count", 0) if redemption_doc else 0
+
+        if user_limit > 0 and times_used >= user_limit:
+            return await interaction.response.send_message(embed=error_embed(f"You have reached the limit of {user_limit} redemption(s) for this code!"), ephemeral=True)
+
+        # Increment User Redemption Count
+        db["promo_redemptions"].update_one(
+            {"code": clean_code, "user_id": user_id_str},
+            {"$inc": {"count": 1}},
+            upsert=True
+        )
 
         discount = promo.get("discount", 0)
         embed = discord.Embed(
             title="🎉 Promo Code Redeemed!",
-            description=f"Code **{code.upper()}** is valid for **{discount}% OFF** your next purchase!\n\nMention this code inside your purchase ticket to claim your discount.",
+            description=f"Code **{clean_code}** is valid for **{discount}% OFF** your next purchase!\n\nMention this code inside your purchase ticket to claim your discount.",
             color=discord.Color.green()
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ====================================================================
-    # 4. /blacklist
+    # 4. /check-promo (Owner Only)
+    # ====================================================================
+    @app_commands.command(name="check-promo", description="Check promo codes redeemed or won by a user (Owner Only).")
+    async def check_promo(self, interaction: discord.Interaction, user: discord.User):
+        is_bot_owner = await self.bot.is_owner(interaction.user)
+        is_guild_owner = interaction.guild and (interaction.user.id == interaction.guild.owner_id)
+        if not (is_bot_owner or is_guild_owner or interaction.user.guild_permissions.administrator):
+            return await interaction.response.send_message(embed=error_embed("Only the server or bot owner can use this command."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        user_id_str = str(user.id)
+        redemptions = list(db["promo_redemptions"].find({"user_id": user_id_str}))
+
+        embed = discord.Embed(
+            title=f"🎟️ Promo Code History for {user.name}",
+            color=EMBED_COLOR
+        )
+        embed.set_thumbnail(url=user.display_avatar.url)
+
+        if not redemptions:
+            embed.description = f"User {user.mention} (`{user.id}`) has not redeemed or used any promo codes yet."
+        else:
+            embed.description = f"Showing promo code activity for {user.mention} (`{user.id}`):"
+            for doc in redemptions:
+                code_name = doc.get("code", "UNKNOWN")
+                count = doc.get("count", 0)
+                promo = db["promo_codes"].find_one({"code": code_name})
+
+                if promo:
+                    discount = promo.get("discount", 0)
+                    expires_at = promo.get("expires_at")
+                    status = "Expired" if (expires_at and int(time.time()) > expires_at) else "Active"
+                    value_str = f"**Discount:** `{discount}% OFF` | **Times Redeemed:** `{count}` | **Status:** `{status}`"
+                else:
+                    value_str = f"**Times Redeemed:** `{count}` | **Status:** `Code Deleted`"
+
+                embed.add_field(name=f"🏷️ Code: `{code_name}`", value=value_str, inline=False)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ====================================================================
+    # 5. /blacklist
     # ====================================================================
     @app_commands.command(name="blacklist", description="Add or remove a user from the bot blacklist (Admins Only).")
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
@@ -243,11 +312,11 @@ class Echo(commands.Cog):
             db["blacklist"].delete_one({"user_id": str(user.id)})
             await interaction.response.send_message(embed=info_embed(f"✅ Removed {user.mention} (`{user.id}`) from the blacklist."), ephemeral=True)
         else:
-            db["blacklist"].insert_one({"user_id": str(user.id), "reason": reason})
+            db["blacklist"].insert_one({"user_id": str(user.id), "username": str(user), "reason": reason})
             await interaction.response.send_message(embed=info_embed(f"⛔ Blacklisted {user.mention} (`{user.id}`). Reason: {reason}"), ephemeral=True)
 
     # ====================================================================
-    # 5. /dashboard
+    # 6. /dashboard
     # ====================================================================
     @app_commands.command(name="dashboard", description="Get the link to access the ECHO Web Control Dashboard.")
     async def dashboard(self, interaction: discord.Interaction):
@@ -341,7 +410,7 @@ class Echo(commands.Cog):
         await msg.edit(embed=embed)
 
     # ====================================================================
-    # Ticket open/close & Receipt Handlers
+    # Ticket open/close & Web Logging Handlers
     # ====================================================================
     async def handle_ticket_open(self, interaction: discord.Interaction):
         guild = interaction.guild
@@ -353,7 +422,6 @@ class Echo(commands.Cog):
                 embed=error_embed("The ticket system isn't configured for this server yet."), ephemeral=True
             )
 
-        log_channel_id = config.get("log_channel_id")
         staff_role_id = config.get("staff_role_id")
         category_id = config.get("category_id")
         welcome_message = config.get("welcome_message", "Thanks for opening a ticket!")
@@ -392,6 +460,16 @@ class Echo(commands.Cog):
 
         await interaction.response.send_message(embed=info_embed(f"✅ Ticket created: {ticket_channel.mention}"), ephemeral=True)
 
+        # Log Ticket Creation to Web MongoDB
+        if db is not None:
+            db["ticket_logs"].insert_one({
+                "ticket_number": counter,
+                "username": str(interaction.user),
+                "user_id": str(interaction.user.id),
+                "action": "OPENED",
+                "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+            })
+
         # Send Automatic Receipt DM to User
         try:
             receipt_embed = discord.Embed(title="🧾 ECHO Purchase Ticket Receipt", color=discord.Color.green())
@@ -403,25 +481,12 @@ class Echo(commands.Cog):
         except discord.Forbidden:
             pass
 
-        log_channel = guild.get_channel(log_channel_id) if log_channel_id else None
-        if log_channel:
-            log_embed = discord.Embed(title="🎫 Ticket Opened", color=discord.Color.green())
-            log_embed.add_field(name="User", value=f"{interaction.user.mention} (`{interaction.user.id}`)", inline=False)
-            log_embed.add_field(name="Channel", value=ticket_channel.mention, inline=False)
-            log_embed.add_field(name="Ticket #", value=f"`{counter}`", inline=False)
-            log_embed.timestamp = discord.utils.utcnow()
-            try:
-                await log_channel.send(embed=log_embed)
-            except discord.Forbidden:
-                pass
-
     async def handle_ticket_close(self, interaction: discord.Interaction):
         channel = interaction.channel
         guild = interaction.guild
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else None
 
-        log_channel_id = config.get("log_channel_id") if config else None
         await interaction.response.send_message(embed=info_embed("🔒 Closing ticket, generating transcript..."), ephemeral=True)
 
         lines = []
@@ -430,18 +495,21 @@ class Echo(commands.Cog):
             content = msg.content or "*(no text content — attachment/embed)*"
             lines.append(f"[{ts}] {msg.author} ({msg.author.id}): {content}")
         transcript_text = "\n".join(lines) or "(no messages)"
-        transcript_file = discord.File(io.BytesIO(transcript_text.encode("utf-8")), filename=f"{channel.name}-transcript.txt")
 
-        log_channel = guild.get_channel(log_channel_id) if log_channel_id else None
-        if log_channel:
-            log_embed = discord.Embed(title="🔒 Ticket Closed", color=discord.Color.red())
-            log_embed.add_field(name="Channel", value=f"`#{channel.name}`", inline=True)
-            log_embed.add_field(name="Closed by", value=interaction.user.mention, inline=True)
-            log_embed.timestamp = discord.utils.utcnow()
-            try:
-                await log_channel.send(embed=log_embed, file=transcript_file)
-            except discord.Forbidden:
-                pass
+        # Extract ticket number from channel name
+        match = re.search(r'\d+', channel.name)
+        ticket_num = match.group(0) if match else "N/A"
+
+        # Log Ticket Closure and Transcript to Web Dashboard Database
+        if db is not None:
+            db["ticket_logs"].insert_one({
+                "ticket_number": ticket_num,
+                "username": str(interaction.user),
+                "user_id": str(interaction.user.id),
+                "action": "CLOSED",
+                "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+                "transcript": transcript_text
+            })
 
         await asyncio.sleep(2)
         try:
