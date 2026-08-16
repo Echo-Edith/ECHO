@@ -44,7 +44,7 @@ def ping():
     return "pong", 200
 
 
-# Fetch Channels & Roles dynamically from active Discord Guilds
+# Fetch Channels, Roles & Bot Avatar dynamically
 @app.route('/api/guild-data', methods=['GET'])
 def get_guild_data():
     if _bot_ref is None or not _bot_ref.is_ready():
@@ -53,14 +53,14 @@ def get_guild_data():
             "roles": [],
             "categories": [],
             "latency": 0,
-            "guild_count": 0
+            "bot_avatar": "https://cdn.discordapp.com/embed/avatars/0.png",
+            "bot_name": "ECHO"
         })
 
     channels = []
     roles = []
     categories = []
 
-    # Get primary guild
     for guild in _bot_ref.guilds:
         for ch in guild.channels:
             if str(ch.type) == "text":
@@ -73,12 +73,15 @@ def get_guild_data():
                 roles.append({"id": str(r.id), "name": r.name})
         break
 
+    avatar_url = _bot_ref.user.display_avatar.url if _bot_ref.user else "https://cdn.discordapp.com/embed/avatars/0.png"
+
     return jsonify({
         "channels": channels,
         "roles": roles,
         "categories": categories,
         "latency": round(_bot_ref.latency * 1000),
-        "guild_count": len(_bot_ref.guilds)
+        "bot_avatar": avatar_url,
+        "bot_name": _bot_ref.user.name if _bot_ref.user else "ECHO"
     })
 
 
@@ -100,7 +103,7 @@ def get_ticket_stats():
     return jsonify({"total_tickets": total})
 
 
-# API Endpoint: Shop Item Management
+# API Endpoint: Shop Item Management (GET, POST, PUT, DELETE)
 @app.route('/api/shop-items', methods=['GET', 'POST'])
 def handle_shop_items():
     db = get_db()
@@ -127,12 +130,29 @@ def handle_shop_items():
     return jsonify(items)
 
 
-@app.route('/api/shop-items/<int:item_id>', methods=['DELETE'])
-def delete_shop_item(item_id):
+@app.route('/api/shop-items/<int:item_id>', methods=['PUT', 'DELETE'])
+def edit_or_delete_shop_item(item_id):
     db = get_db()
-    if db:
+    if db is None:
+        return jsonify({"error": "No database"}), 500
+
+    if request.method == 'DELETE':
         db["shop_items"].delete_one({"item_id": item_id})
-    return jsonify({"success": True})
+        return jsonify({"success": True})
+
+    if request.method == 'PUT':
+        data = request.json or {}
+        db["shop_items"].update_one(
+            {"item_id": item_id},
+            {
+                "$set": {
+                    "name": data.get("name"),
+                    "description": data.get("description"),
+                    "price": data.get("price")
+                }
+            }
+        )
+        return jsonify({"success": True})
 
 
 # Save Ticket Config
@@ -143,8 +163,6 @@ def save_ticket_config():
         return jsonify({"error": "No database"}), 500
 
     data = request.json or {}
-
-    # Save globally for first available guild
     guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
 
     db["guild_config"].update_one(
