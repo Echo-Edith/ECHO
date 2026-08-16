@@ -35,13 +35,11 @@
     <div>
       <div class="flex items-center gap-3 p-2 mb-6">
         <div class="relative">
-          <div class="w-12 h-12 rounded-full bg-discord-accent flex items-center justify-center font-bold text-white text-xl shadow-lg">
-            ECHO
-          </div>
+          <img id="bot-avatar-img" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar" class="w-12 h-12 rounded-full border-2 border-discord-accent shadow-lg object-cover">
           <span class="w-3.5 h-3.5 bg-discord-green border-2 border-discord-sidebar rounded-full absolute bottom-0 right-0"></span>
         </div>
         <div>
-          <h1 class="font-bold text-white text-lg leading-tight flex items-center gap-1.5">
+          <h1 class="font-bold text-white text-lg leading-tight flex items-center gap-1.5" id="bot-name-display">
             ECHO
             <span class="bg-discord-accent text-[10px] px-1.5 py-0.5 rounded text-white font-semibold">ADMIN</span>
           </h1>
@@ -66,7 +64,7 @@
       <span class="flex items-center gap-1.5">
         <span class="w-2 h-2 rounded-full bg-discord-green"></span> Live Sync
       </span>
-      <span>v3.0</span>
+      <span>v3.1</span>
     </div>
   </aside>
 
@@ -85,7 +83,7 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center gap-4 shadow-sm">
           <div class="w-12 h-12 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl">
             <i class="fa-solid fa-signal"></i>
@@ -93,16 +91,6 @@
           <div>
             <p class="text-xs font-semibold text-discord-muted uppercase">Bot Latency</p>
             <p class="text-2xl font-bold text-white" id="stat-ping">-- ms</p>
-          </div>
-        </div>
-
-        <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center gap-4 shadow-sm">
-          <div class="w-12 h-12 rounded-lg bg-green-500/10 text-discord-green flex items-center justify-center text-xl">
-            <i class="fa-solid fa-server"></i>
-          </div>
-          <div>
-            <p class="text-xs font-semibold text-discord-muted uppercase">Active Guilds</p>
-            <p class="text-2xl font-bold text-white" id="stat-guilds">--</p>
           </div>
         </div>
 
@@ -186,8 +174,8 @@
           </div>
 
           <div class="flex flex-col sm:flex-row gap-3 pt-2">
-            <button onclick="saveTicketSettings()" class="flex-1 bg-discord-sidebar hover:bg-gray-700 text-white font-medium py-2.5 rounded text-sm border border-gray-700 transition active:scale-95">
-              Save Settings
+            <button onclick="saveTicketSettings()" class="flex-1 bg-discord-sidebar hover:bg-gray-700 text-white font-medium py-2.5 rounded text-sm border border-gray-700 transition active:scale-95 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Save Settings
             </button>
             <button onclick="deployTicketPanel()" class="flex-1 bg-discord-green hover:bg-emerald-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-2">
               <i class="fa-solid fa-paper-plane"></i> Deploy Panel
@@ -259,7 +247,7 @@
 
   </main>
 
-  <!-- Add Item Modal -->
+  <!-- Modal: Add Item -->
   <div id="add-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl">
       <h3 class="text-lg font-bold text-white">Add Shop Package</h3>
@@ -281,7 +269,35 @@
 
       <div class="flex justify-end gap-3 pt-2">
         <button onclick="closeAddItemModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
-        <button onclick="addShopItem()" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95">Add Item</button>
+        <button onclick="addShopItem()" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95">Add Package</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Item -->
+  <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl">
+      <h3 class="text-lg font-bold text-white">Edit Shop Package</h3>
+      <input type="hidden" id="edit-item-id">
+      
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Package Name</label>
+        <input type="text" id="edit-name-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Description</label>
+        <input type="text" id="edit-desc-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Price</label>
+        <input type="text" id="edit-price-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeEditItemModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
+        <button onclick="saveEditShopItem()" class="px-4 py-2 text-sm bg-discord-accent hover:bg-indigo-600 text-white rounded font-medium transition active:scale-95">Update Package</button>
       </div>
     </div>
   </div>
@@ -304,7 +320,7 @@
       }
 
       try {
-        // Fetch Guild Channels & Roles
+        // Fetch Guild Channels, Roles, and Bot Avatar Info
         const guildRes = await fetch('/api/guild-data');
         if (guildRes.ok) {
           const gData = await guildRes.json();
@@ -313,7 +329,13 @@
           categories = gData.categories || [];
 
           document.getElementById('stat-ping').innerText = `${gData.latency || 0} ms`;
-          document.getElementById('stat-guilds').innerText = `${gData.guild_count || 1} Servers`;
+
+          if (gData.bot_avatar) {
+            document.getElementById('bot-avatar-img').src = gData.bot_avatar;
+          }
+          if (gData.bot_name) {
+            document.getElementById('bot-name-display').innerHTML = `${gData.bot_name} <span class="bg-discord-accent text-[10px] px-1.5 py-0.5 rounded text-white font-semibold">ADMIN</span>`;
+          }
 
           populateDropdowns();
         }
@@ -332,9 +354,9 @@
           renderShopItems();
         }
 
-        if (manualSync) showToast("All database statistics synced!");
+        if (manualSync) showToast("All statistics updated!");
       } catch (e) {
-        if (manualSync) showToast("Error syncing data with bot", true);
+        if (manualSync) showToast("Error syncing with bot backend", true);
       } finally {
         if (manualSync) {
           setTimeout(() => document.getElementById('refresh-icon').classList.remove('fa-spin'), 600);
@@ -396,23 +418,32 @@
           <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm hover:border-gray-700 transition">
             <div>
               <p class="font-bold text-white text-sm">#${item.id} — ${item.name}</p>
-              <p class="text-xs text-discord-muted mt-0.5">${item.desc}</p>
-              <p class="text-xs font-mono text-discord-accent mt-1">Price: ${item.price}</p>
+              <p class="text-xs text-discord-muted mt-0.5">${item.desc || ''}</p>
+              <p class="text-xs font-mono text-discord-accent mt-1">Price: ${item.price || 'Free'}</p>
             </div>
-            <button onclick="removeItem(${item.id})" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm" title="Delete Package">
-              <i class="fa-solid fa-trash"></i>
-            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="openEditItemModal(${item.id}, '${escapeHtml(item.name)}', '${escapeHtml(item.desc || '')}', '${escapeHtml(item.price || '')}')" class="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded transition text-xs flex items-center gap-1.5" title="Edit Package">
+                <i class="fa-solid fa-pen-to-square"></i> Edit
+              </button>
+              <button onclick="removeItem(${item.id})" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm" title="Delete Package">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
           </div>
         `;
 
         previewContainer.innerHTML += `
           <div class="text-xs">
             <p class="font-semibold text-white">${item.name} — <span class="font-mono text-discord-muted">#${item.id}</span></p>
-            <p class="text-[11px] text-discord-muted">${item.desc}</p>
-            <p class="text-[11px] text-discord-text mt-0.5">Price: <code class="bg-discord-sidebar px-1 py-0.5 rounded text-discord-accent">${item.price}</code></p>
+            <p class="text-[11px] text-discord-muted">${item.desc || ''}</p>
+            <p class="text-[11px] text-discord-text mt-0.5">Price: <code class="bg-discord-sidebar px-1 py-0.5 rounded text-discord-accent">${item.price || 'Free'}</code></p>
           </div>
         `;
       });
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
 
     function updateTicketPreview() {
@@ -522,12 +553,51 @@
       }
     }
 
+    function openEditItemModal(id, name, desc, price) {
+      document.getElementById("edit-item-id").value = id;
+      document.getElementById("edit-name-input").value = name;
+      document.getElementById("edit-desc-input").value = desc;
+      document.getElementById("edit-price-input").value = price;
+      document.getElementById("edit-modal").classList.remove("hidden");
+    }
+
+    function closeEditItemModal() {
+      document.getElementById("edit-modal").classList.add("hidden");
+    }
+
+    async function saveEditShopItem() {
+      const id = document.getElementById("edit-item-id").value;
+      const name = document.getElementById("edit-name-input").value;
+      const desc = document.getElementById("edit-desc-input").value;
+      const price = document.getElementById("edit-price-input").value;
+
+      try {
+        const res = await fetch(`/api/shop-items/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, description: desc, price })
+        });
+
+        if (res.ok) {
+          showToast("Package updated successfully!");
+          closeEditItemModal();
+          loadAllData();
+        } else {
+          showToast("Failed to edit item.", true);
+        }
+      } catch (e) {
+        showToast("Error updating item.", true);
+      }
+    }
+
     async function removeItem(id) {
       try {
         const res = await fetch(`/api/shop-items/${id}`, { method: 'DELETE' });
         if (res.ok) {
-          showToast("Package deleted.");
+          showToast("Package deleted!");
           loadAllData();
+        } else {
+          showToast("Failed to delete item.", true);
         }
       } catch (e) {
         showToast("Error deleting item.", true);
