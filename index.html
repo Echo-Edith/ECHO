@@ -27,6 +27,25 @@
       }
     }
   </script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.25s ease; }
+
+    @keyframes flashHighlight {
+      0% { color: #5865F2; }
+      100% { color: inherit; }
+    }
+    .flash { animation: flashHighlight 0.6s ease; }
+
+    /* Smooths every interactive element in the dashboard, not just the ones
+       that already had a `transition` utility class. */
+    button, select, input, textarea {
+      transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+    }
+  </style>
 </head>
 <body class="bg-discord-bg text-discord-text font-sans min-h-screen flex flex-col md:flex-row antialiased">
 
@@ -62,7 +81,7 @@
 
     <div class="mt-8 pt-4 border-t border-gray-800 text-xs text-discord-muted flex items-center justify-between">
       <span class="flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full bg-discord-green"></span> Live Sync
+        <span class="w-2 h-2 rounded-full bg-discord-green animate-pulse" id="live-dot"></span> Live Sync
       </span>
       <span>v3.1</span>
     </div>
@@ -76,7 +95,10 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-2xl font-bold text-white">System Status</h2>
-          <p class="text-sm text-discord-muted">Real-time statistics synced with MongoDB and Discord.</p>
+          <p class="text-sm text-discord-muted">
+            Real-time statistics synced with MongoDB and Discord.
+            <span class="text-discord-muted/70" id="last-updated-label"></span>
+          </p>
         </div>
         <button onclick="loadAllData(true)" class="bg-discord-card hover:bg-gray-800 text-white text-xs px-3.5 py-2 rounded-md flex items-center gap-2 border border-gray-700 transition active:scale-95">
           <i class="fa-solid fa-rotate-right" id="refresh-icon"></i> Sync Data
@@ -249,9 +271,9 @@
 
   <!-- Modal: Add Item -->
   <div id="add-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
-    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
       <h3 class="text-lg font-bold text-white">Add Shop Package</h3>
-      
+
       <div>
         <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Package Name</label>
         <input type="text" id="item-name-input" placeholder="e.g. Utility Bot" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
@@ -276,10 +298,10 @@
 
   <!-- Modal: Edit Item -->
   <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
-    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
       <h3 class="text-lg font-bold text-white">Edit Shop Package</h3>
       <input type="hidden" id="edit-item-id">
-      
+
       <div>
         <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Package Name</label>
         <input type="text" id="edit-name-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
@@ -313,10 +335,12 @@
     let channels = [];
     let roles = [];
     let categories = [];
+    let statsIntervalId = null;
 
     async function loadAllData(manualSync = false) {
       if (manualSync) {
         document.getElementById('refresh-icon').classList.add('fa-spin');
+        showToast("Syncing with bot backend...");
       }
 
       try {
@@ -328,7 +352,7 @@
           roles = gData.roles || [];
           categories = gData.categories || [];
 
-          document.getElementById('stat-ping').innerText = `${gData.latency || 0} ms`;
+          updateStatValue('stat-ping', `${gData.latency || 0} ms`);
 
           if (gData.bot_avatar) {
             document.getElementById('bot-avatar-img').src = gData.bot_avatar;
@@ -344,7 +368,7 @@
         const ticketRes = await fetch('/api/ticket-stats');
         if (ticketRes.ok) {
           const tData = await ticketRes.json();
-          document.getElementById('stat-tickets').innerText = tData.total_tickets || 0;
+          updateStatValue('stat-tickets', tData.total_tickets || 0);
         }
 
         // Fetch Shop Items
@@ -354,6 +378,7 @@
           renderShopItems();
         }
 
+        touchLastUpdated();
         if (manualSync) showToast("All statistics updated!");
       } catch (e) {
         if (manualSync) showToast("Error syncing with bot backend", true);
@@ -364,9 +389,72 @@
       }
     }
 
+    // Lightweight poll used for the every-second auto-refresh. Deliberately
+    // only touches the two live stat numbers — NOT the dropdowns/shop list —
+    // so it never resets whatever you're mid-edit on the Tickets/Shop tabs.
+    // Runs quietly: no toast per tick, since a toast every second would be
+    // more annoying than useful. Errors are logged to console instead.
+    async function refreshStatsOnly() {
+      try {
+        const guildRes = await fetch('/api/guild-data');
+        if (guildRes.ok) {
+          const gData = await guildRes.json();
+          updateStatValue('stat-ping', `${gData.latency || 0} ms`);
+        }
+        const ticketRes = await fetch('/api/ticket-stats');
+        if (ticketRes.ok) {
+          const tData = await ticketRes.json();
+          updateStatValue('stat-tickets', tData.total_tickets || 0);
+        }
+        touchLastUpdated();
+      } catch (e) {
+        console.warn('Stats auto-refresh failed:', e);
+      }
+    }
+
+    function updateStatValue(elemId, newValue) {
+      const el = document.getElementById(elemId);
+      if (!el) return;
+      const newText = String(newValue);
+      if (el.innerText !== newText) {
+        el.innerText = newText;
+        el.classList.remove('flash');
+        void el.offsetWidth; // restart the animation
+        el.classList.add('flash');
+      }
+    }
+
+    function touchLastUpdated() {
+      const label = document.getElementById('last-updated-label');
+      if (label) label.innerText = `• updated ${new Date().toLocaleTimeString()}`;
+    }
+
+    function startStatsPolling() {
+      if (statsIntervalId) return;
+      statsIntervalId = setInterval(refreshStatsOnly, 1000);
+    }
+
+    function stopStatsPolling() {
+      if (statsIntervalId) {
+        clearInterval(statsIntervalId);
+        statsIntervalId = null;
+      }
+    }
+
+    // Pause polling when the tab isn't visible — no point hammering the API
+    // once a second for a dashboard nobody's looking at.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopStatsPolling();
+      } else {
+        startStatsPolling();
+        refreshStatsOnly();
+      }
+    });
+
     function populateDropdowns() {
       const textChannels = channels.filter(c => c.type === 'text');
-      
+
       const fillSelect = (elemId, list, defaultLabel) => {
         const elem = document.getElementById(elemId);
         const currentVal = elem.value;
@@ -403,7 +491,7 @@
     function renderShopItems() {
       const container = document.getElementById("shop-items-container");
       const previewContainer = document.getElementById("preview-shop-items");
-      
+
       container.innerHTML = "";
       previewContainer.innerHTML = "";
 
@@ -415,7 +503,7 @@
 
       shopItems.forEach((item) => {
         container.innerHTML += `
-          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm hover:border-gray-700 transition">
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm hover:border-gray-700 transition fade-in">
             <div>
               <p class="font-bold text-white text-sm">#${item.id} — ${item.name}</p>
               <p class="text-xs text-discord-muted mt-0.5">${item.desc || ''}</p>
@@ -462,6 +550,7 @@
         log_channel_id: document.getElementById("ticket-log-channel").value
       };
 
+      showToast("Saving ticket settings...");
       try {
         const res = await fetch('/api/save-ticket-config', {
           method: 'POST',
@@ -487,6 +576,7 @@
       }
 
       await saveTicketSettings();
+      showToast("Deploying ticket panel to Discord...");
 
       try {
         const res = await fetch('/api/deploy-ticket-panel', {
@@ -512,6 +602,7 @@
         return;
       }
 
+      showToast("Posting shop embed to Discord...");
       try {
         const res = await fetch('/api/deploy-shop-panel', {
           method: 'POST',
@@ -534,8 +625,12 @@
       const desc = document.getElementById("item-desc-input").value;
       const price = document.getElementById("item-price-input").value;
 
-      if (!name) return;
+      if (!name) {
+        showToast("Package name is required.", true);
+        return;
+      }
 
+      showToast("Adding package...");
       try {
         const res = await fetch('/api/shop-items', {
           method: 'POST',
@@ -547,6 +642,8 @@
           showToast("New package added to shop!");
           closeAddItemModal();
           loadAllData();
+        } else {
+          showToast("Failed to add package.", true);
         }
       } catch (e) {
         showToast("Error adding shop package.", true);
@@ -559,6 +656,7 @@
       document.getElementById("edit-desc-input").value = desc;
       document.getElementById("edit-price-input").value = price;
       document.getElementById("edit-modal").classList.remove("hidden");
+      showToast(`Editing "${name}"...`);
     }
 
     function closeEditItemModal() {
@@ -571,6 +669,7 @@
       const desc = document.getElementById("edit-desc-input").value;
       const price = document.getElementById("edit-price-input").value;
 
+      showToast("Saving changes...");
       try {
         const res = await fetch(`/api/shop-items/${id}`, {
           method: 'PUT',
@@ -591,6 +690,7 @@
     }
 
     async function removeItem(id) {
+      showToast("Deleting package...");
       try {
         const res = await fetch(`/api/shop-items/${id}`, { method: 'DELETE' });
         if (res.ok) {
@@ -610,11 +710,19 @@
         document.getElementById(`nav-${t}`).className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all';
       });
 
-      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      const target = document.getElementById(`tab-${tab}`);
+      target.classList.remove('hidden');
+      target.classList.remove('fade-in');
+      void target.offsetWidth; // restart the fade-in animation on every switch
+      target.classList.add('fade-in');
+
       document.getElementById(`nav-${tab}`).className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm text-white bg-discord-accent transition-all';
     }
 
-    function openAddItemModal() { document.getElementById("add-modal").classList.remove("hidden"); }
+    function openAddItemModal() {
+      document.getElementById("add-modal").classList.remove("hidden");
+      showToast("Opening new package form...");
+    }
     function closeAddItemModal() { document.getElementById("add-modal").classList.add("hidden"); }
 
     function showToast(msg, isError = false) {
@@ -638,7 +746,7 @@
     }
 
     loadAllData();
+    startStatsPolling();
   </script>
 </body>
 </html>
-
