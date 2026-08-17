@@ -98,7 +98,6 @@ class DynamicCustomModal(discord.ui.Modal):
             answers_data.append({"label": label, "value": val})
             embed.add_field(name=label[:256], value=val[:1024], inline=False)
 
-        # Store to DB
         if db is not None:
             db["form_submissions"].insert_one({
                 "username": str(interaction.user),
@@ -107,7 +106,6 @@ class DynamicCustomModal(discord.ui.Modal):
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             })
 
-        # Ping Role Notification
         ping_content = ""
         if self.ping_role_id and interaction.guild:
             role = interaction.guild.get_role(self.ping_role_id)
@@ -139,7 +137,6 @@ class FormPanelView(discord.ui.View):
         questions = config.get("questions", [])
 
         if not questions:
-            # Fallback default questions if none are configured in dashboard
             questions = [
                 {"label": "What type of bot do you need?", "placeholder": "e.g. Moderation, Music, Economy", "style": "short", "required": True},
                 {"label": "List required features and details", "placeholder": "Describe what the bot should do...", "style": "paragraph", "required": True},
@@ -191,7 +188,7 @@ class Echo(commands.Cog):
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="blacklist", description="Add or remove a user from the bot blacklist (Admins Only).")
+    @app_commands.command(name="blacklist", description="Add a user to the bot blacklist (Admins Only).")
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
         if not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
@@ -200,13 +197,27 @@ class Echo(commands.Cog):
         if db is None:
             return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
 
-        existing = db["blacklist"].find_one({"user_id": str(user.id)})
-        if existing:
-            db["blacklist"].delete_one({"user_id": str(user.id)})
-            await interaction.response.send_message(embed=info_embed(f"✅ Removed {user.mention} from blacklist."), ephemeral=True)
+        db["blacklist"].update_one(
+            {"user_id": str(user.id)},
+            {"$set": {"user_id": str(user.id), "username": str(user), "reason": reason}},
+            upsert=True
+        )
+        await interaction.response.send_message(embed=info_embed(f"⛔ Blacklisted {user.mention}. Reason: {reason}"), ephemeral=True)
+
+    @app_commands.command(name="unblacklist", description="Remove a user from the bot blacklist (Admins Only).")
+    async def unblacklist_cmd(self, interaction: discord.Interaction, user: discord.User):
+        if not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        result = db["blacklist"].delete_one({"user_id": str(user.id)})
+        if result.deleted_count > 0:
+            await interaction.response.send_message(embed=info_embed(f"✅ Successfully unblacklisted {user.mention} (`{user.id}`)."), ephemeral=True)
         else:
-            db["blacklist"].insert_one({"user_id": str(user.id), "username": str(user), "reason": reason})
-            await interaction.response.send_message(embed=info_embed(f"⛔ Blacklisted {user.mention}. Reason: {reason}"), ephemeral=True)
+            await interaction.response.send_message(embed=error_embed(f"User {user.mention} was not found on the blacklist."), ephemeral=True)
 
     @app_commands.command(name="dashboard", description="Get the link to access the ECHO Web Control Dashboard.")
     async def dashboard(self, interaction: discord.Interaction):
