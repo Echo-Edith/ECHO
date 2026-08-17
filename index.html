@@ -83,7 +83,6 @@
     .glow-green { box-shadow: 0 0 20px rgba(35, 165, 90, 0.25); }
     .glow-red { box-shadow: 0 0 20px rgba(242, 63, 67, 0.25); }
 
-    /* Clean Switch CSS */
     .switch-track {
       width: 48px;
       height: 26px;
@@ -139,7 +138,7 @@
     </button>
   </header>
 
-  <!-- Mobile Expandable Menu Overlay -->
+  <!-- Mobile Menu Overlay -->
   <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[69px] z-30 glass-panel border-b border-echo-border p-4 space-y-2 animate-fade-in shadow-2xl">
     <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-white bg-echo-accent shadow-md">
       <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview
@@ -230,7 +229,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-echo-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v9.2</span>
+      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v10.0</span>
     </div>
   </aside>
 
@@ -239,7 +238,6 @@
 
     <!-- OVERVIEW TAB -->
     <section id="tab-overview" class="space-y-4 md:space-y-6 animate-fade-in">
-      
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">System Command & Telemetry</h2>
@@ -250,7 +248,6 @@
         </button>
       </div>
 
-      <!-- Compact Maintenance Switch Bar -->
       <div class="glass-card px-5 py-4 rounded-2xl flex items-center justify-between shadow-xl border border-white/5">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 rounded-xl bg-echo-danger/10 text-echo-danger flex items-center justify-center text-sm shrink-0 border border-echo-danger/20">
@@ -322,7 +319,6 @@
           <canvas id="uptimeChart"></canvas>
         </div>
       </div>
-
     </section>
 
     <!-- FORM PANEL UI TAB -->
@@ -340,18 +336,25 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Target Output Channel</label>
+              <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Form Button Channel</label>
               <select id="form-channel-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
                 <option value="">Loading Channels...</option>
               </select>
             </div>
 
             <div>
-              <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Role to Ping on Submission</label>
-              <select id="form-role-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
-                <option value="">Loading Roles...</option>
+              <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Submission Log Channel</label>
+              <select id="log-channel-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
+                <option value="">Loading Channels...</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Role to Ping on Submission</label>
+            <select id="form-role-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
+              <option value="">Loading Roles...</option>
+            </select>
           </div>
 
           <div>
@@ -416,7 +419,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Form Question Builder</h2>
-          <p class="text-xs text-echo-muted mt-1">Customize up to 5 native Discord modal questions shown when users click the form button.</p>
+          <p class="text-xs text-echo-muted mt-1">Add unlimited questions! Discord modals will automatically chain multi-part forms if you exceed 5 questions.</p>
         </div>
         <button onclick="openAddQuestionModal()" class="bg-echo-success hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green w-full sm:w-auto">
           <i class="fa-solid fa-plus"></i> Add Question Field
@@ -696,6 +699,7 @@
           if (fConfig.description) document.getElementById("form-panel-desc").value = fConfig.description;
           if (fConfig.button_label) document.getElementById("form-button-label").value = fConfig.button_label;
           if (fConfig.channel_id) document.getElementById("form-channel-select").value = fConfig.channel_id;
+          if (fConfig.log_channel_id) document.getElementById("log-channel-select").value = fConfig.log_channel_id;
           if (fConfig.ping_role_id) document.getElementById("form-role-select").value = fConfig.ping_role_id;
           updateFormPreview();
         }
@@ -788,7 +792,8 @@
         });
       };
 
-      fillSelect('form-channel-select', textChannels, '-- Select Output Channel --');
+      fillSelect('form-channel-select', textChannels, '-- Select Button Channel --');
+      fillSelect('log-channel-select', textChannels, '-- Select Submission Log Channel --');
 
       const roleSelect = document.getElementById('form-role-select');
       if (roleSelect) {
@@ -897,6 +902,7 @@
         description: document.getElementById("form-panel-desc").value,
         button_label: document.getElementById("form-button-label").value,
         channel_id: document.getElementById("form-channel-select").value,
+        log_channel_id: document.getElementById("log-channel-select").value,
         ping_role_id: document.getElementById("form-role-select").value
       };
 
@@ -917,7 +923,7 @@
     async function deployFormPanel(btn = null) {
       const channelId = document.getElementById("form-channel-select").value;
       if (!channelId) {
-        showToast("Select a Target Channel first!", true);
+        showToast("Select a Button Channel first!", true);
         return;
       }
       const stopLoading = startBtnLoading(btn, "Deploying...");
@@ -958,11 +964,6 @@
 
       if (!label) {
         showToast("Question label required.", true);
-        return;
-      }
-
-      if (formQuestions.length >= 5) {
-        showToast("Discord modals support a max of 5 fields.", true);
         return;
       }
 
