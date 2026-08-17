@@ -59,16 +59,22 @@ def is_maintenance(guild_id: int) -> bool:
 
 
 # ----------------------------------------------------------------------
-# Dynamic Discord Modal Popup Form
+# Dynamic Multi-Part Chained Modals
 # ----------------------------------------------------------------------
-class DynamicCustomModal(discord.ui.Modal):
-    def __init__(self, title: str, questions: List[dict], ping_role_id: Optional[int]):
-        super().__init__(title=title[:45])
-        self.questions = questions
+class ChainedCustomModal(discord.ui.Modal):
+    def __init__(self, title: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict], ping_role_id: Optional[int], log_channel_id: Optional[int]):
+        modal_title = f"{title} (Part {current_index // 5 + 1})" if len(all_questions) > 5 else title
+        super().__init__(title=modal_title[:45])
+        
+        self.main_title = title
+        self.all_questions = all_questions
+        self.current_index = current_index
+        self.previous_answers = previous_answers
         self.ping_role_id = ping_role_id
+        self.log_channel_id = log_channel_id
         self.inputs = []
 
-        for q in questions[:5]:
+        for q in questions_chunk:
             is_paragraph = q.get("style") == "paragraph"
             input_style = discord.TextStyle.paragraph if is_paragraph else discord.TextStyle.short
             field_input = discord.ui.TextInput(
@@ -82,29 +88,58 @@ class DynamicCustomModal(discord.ui.Modal):
             self.add_item(field_input)
 
     async def on_submit(self, interaction: discord.Interaction):
+        # Accumulate current answers
+        current_answers = list(self.previous_answers)
+        for label, inp in self.inputs:
+            val = inp.value.strip() or "*(No Answer)*"
+            current_answers.append({"label": label, "value": val})
+
+        next_index = self.current_index + len(self.inputs)
+
+        # Check if more questions remain
+        if next_index < len(self.all_questions):
+            next_chunk = self.all_questions[next_index:next_index + 5]
+            next_modal = ChainedCustomModal(
+                title=self.main_title,
+                questions_chunk=next_chunk,
+                all_questions=self.all_questions,
+                current_index=next_index,
+                previous_answers=current_answers,
+                ping_role_id=self.ping_role_id,
+                log_channel_id=self.log_channel_id
+            )
+            await interaction.response.send_modal(next_modal)
+            return
+
         await interaction.response.defer(ephemeral=True)
         db = get_db()
 
-        answers_data = []
+        # Build final submission embed
         embed = discord.Embed(
-            title=f"📥 New Form Submission: {self.title}",
+            title=f"📥 New Form Submission: {self.main_title}",
             color=discord.Color.green(),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
 
-        for label, inp in self.inputs:
-            val = inp.value.strip() or "*(No Answer)*"
-            answers_data.append({"label": label, "value": val})
-            embed.add_field(name=label[:256], value=val[:1024], inline=False)
+        for ans in current_answers:
+            embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
 
+        # Store in MongoDB
         if db is not None:
             db["form_submissions"].insert_one({
                 "username": str(interaction.user),
                 "user_id": str(interaction.user.id),
-                "answers": answers_data,
+                "answers": current_answers,
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             })
+
+        # Output target: Selected Log Channel or Current Interaction Channel
+        target_channel = interaction.channel
+        if self.log_channel_id and interaction.guild:
+            ch = interaction.guild.get_channel(self.log_channel_id)
+            if ch:
+                target_channel = ch
 
         ping_content = ""
         if self.ping_role_id and interaction.guild:
@@ -112,7 +147,7 @@ class DynamicCustomModal(discord.ui.Modal):
             if role:
                 ping_content = role.mention
 
-        await interaction.channel.send(content=ping_content, embed=embed)
+        await target_channel.send(content=ping_content, embed=embed)
         await interaction.followup.send(embed=info_embed("✅ Submission Received!", "Thank you for filling out the form. Our team has received your submission and will review it shortly!"), ephemeral=True)
 
 
@@ -145,8 +180,18 @@ class FormPanelView(discord.ui.View):
 
         title = config.get("title") or "Custom Form"
         ping_role_id = config.get("ping_role_id")
+        log_channel_id = config.get("log_channel_id")
 
-        modal = DynamicCustomModal(title=title, questions=questions, ping_role_id=ping_role_id)
+        first_chunk = questions[:5]
+        modal = ChainedCustomModal(
+            title=title,
+            questions_chunk=first_chunk,
+            all_questions=questions,
+            current_index=0,
+            previous_answers=[],
+            ping_role_id=ping_role_id,
+            log_channel_id=log_channel_id
+        )
         await interaction.response.send_modal(modal)
 
 
