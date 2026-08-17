@@ -62,7 +62,7 @@ def is_maintenance(guild_id: int) -> bool:
 # Dynamic Multi-Part Chained Modals
 # ----------------------------------------------------------------------
 class ChainedCustomModal(discord.ui.Modal):
-    def __init__(self, title: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict], log_channel_id: Optional[int]):
+    def __init__(self, title: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict]):
         modal_title = f"{title} (Part {current_index // 5 + 1})" if len(all_questions) > 5 else title
         super().__init__(title=modal_title[:45])
         
@@ -70,7 +70,6 @@ class ChainedCustomModal(discord.ui.Modal):
         self.all_questions = all_questions
         self.current_index = current_index
         self.previous_answers = previous_answers
-        self.log_channel_id = log_channel_id
         self.inputs = []
 
         for q in questions_chunk:
@@ -101,8 +100,7 @@ class ChainedCustomModal(discord.ui.Modal):
                 questions_chunk=next_chunk,
                 all_questions=self.all_questions,
                 current_index=next_index,
-                previous_answers=current_answers,
-                log_channel_id=self.log_channel_id
+                previous_answers=current_answers
             )
             await interaction.response.send_modal(next_modal)
             return
@@ -110,16 +108,7 @@ class ChainedCustomModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
         db = get_db()
 
-        embed = discord.Embed(
-            title=f"📥 New Form Submission: {self.main_title}",
-            color=discord.Color.green(),
-            timestamp=discord.utils.utcnow()
-        )
-        embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
-
-        for ans in current_answers:
-            embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
-
+        # Save submission directly and exclusively to MongoDB
         if db is not None:
             db["form_submissions"].insert_one({
                 "username": str(interaction.user),
@@ -128,14 +117,10 @@ class ChainedCustomModal(discord.ui.Modal):
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             })
 
-        target_channel = interaction.channel
-        if self.log_channel_id and interaction.guild:
-            ch = interaction.guild.get_channel(self.log_channel_id)
-            if ch:
-                target_channel = ch
-
-        await target_channel.send(embed=embed)
-        await interaction.followup.send(embed=info_embed("✅ Submission Received!", "Thank you for filling out the form. Our team has received your submission and will review it shortly!"), ephemeral=True)
+        await interaction.followup.send(
+            embed=info_embed("✅ Submission Received!", "Thank you for filling out the form. Our team has received your submission and will review it shortly!"),
+            ephemeral=True
+        )
 
 
 # ----------------------------------------------------------------------
@@ -166,7 +151,6 @@ class FormPanelView(discord.ui.View):
             ]
 
         title = config.get("title") or "Custom Form"
-        log_channel_id = config.get("log_channel_id")
 
         first_chunk = questions[:5]
         modal = ChainedCustomModal(
@@ -174,8 +158,7 @@ class FormPanelView(discord.ui.View):
             questions_chunk=first_chunk,
             all_questions=questions,
             current_index=0,
-            previous_answers=[],
-            log_channel_id=log_channel_id
+            previous_answers=[]
         )
         await interaction.response.send_modal(modal)
 
