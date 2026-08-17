@@ -1,10 +1,8 @@
-import io
 import os
-import re
 import time
 import asyncio
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 import discord
 from discord import app_commands
@@ -17,10 +15,6 @@ except ImportError:
 
 EMBED_COLOR = discord.Color.blurple()
 ERROR_COLOR = discord.Color.red()
-
-DEFAULT_SHOP_TITLE = "🛒 ECHO Bot Shop"
-DEFAULT_SHOP_DESCRIPTION = "Custom Discord bots built for your server. Reach out to get started!"
-DEFAULT_SHOP_FOOTER = "ECHO • Bot Development Services"
 
 _mongo_client = None
 
@@ -64,59 +58,99 @@ def is_maintenance(guild_id: int) -> bool:
     return config.get("maintenance", False)
 
 
-def calculate_discount_price(price_str: str, percent: int) -> str:
-    if not price_str or percent <= 0:
-        return price_str
-    num_match = re.search(r'\d+', price_str)
-    if not num_match:
-        return price_str
-    original_num = int(num_match.group(0))
-    discounted_num = max(1, round(original_num * (1 - percent / 100)))
-    return price_str.replace(str(original_num), f"{discounted_num} (~~{original_num}~~ `{percent}% OFF`)")
+# ----------------------------------------------------------------------
+# Dynamic Discord Modal Popup Form
+# ----------------------------------------------------------------------
+class DynamicCustomModal(discord.ui.Modal):
+    def __init__(self, title: str, questions: List[dict], ping_role_id: Optional[int]):
+        super().__init__(title=title[:45])
+        self.questions = questions
+        self.ping_role_id = ping_role_id
+        self.inputs = []
 
+        for q in questions[:5]:
+            is_paragraph = q.get("style") == "paragraph"
+            input_style = discord.TextStyle.paragraph if is_paragraph else discord.TextStyle.short
+            field_input = discord.ui.TextInput(
+                label=q.get("label", "Question")[:45],
+                style=input_style,
+                placeholder=q.get("placeholder", "")[:100],
+                required=q.get("required", True),
+                max_length=1000 if is_paragraph else 100
+            )
+            self.inputs.append((q.get("label"), field_input))
+            self.add_item(field_input)
 
-def get_shop_items():
-    try:
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         db = get_db()
-        if db is None:
-            return []
-        cursor = db["shop_items"].find({"available": {"$ne": False}}).sort("position", 1)
-        return [(doc["item_id"], doc["name"], doc.get("description"), doc.get("price")) for doc in cursor]
-    except Exception:
-        return []
+
+        answers_data = []
+        embed = discord.Embed(
+            title=f"📥 New Form Submission: {self.title}",
+            color=discord.Color.green(),
+            timestamp=discord.utils.utcnow()
+        )
+        embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
+
+        for label, inp in self.inputs:
+            val = inp.value.strip() or "*(No Answer)*"
+            answers_data.append({"label": label, "value": val})
+            embed.add_field(name=label[:256], value=val[:1024], inline=False)
+
+        # Store to DB
+        if db is not None:
+            db["form_submissions"].insert_one({
+                "username": str(interaction.user),
+                "user_id": str(interaction.user.id),
+                "answers": answers_data,
+                "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+            })
+
+        # Ping Role Notification
+        ping_content = ""
+        if self.ping_role_id and interaction.guild:
+            role = interaction.guild.get_role(self.ping_role_id)
+            if role:
+                ping_content = role.mention
+
+        await interaction.channel.send(content=ping_content, embed=embed)
+        await interaction.followup.send(embed=info_embed("✅ Submission Received!", "Thank you for filling out the form. Our team has received your submission and will review it shortly!"), ephemeral=True)
 
 
 # ----------------------------------------------------------------------
-# Persistent ticket views
+# Persistent Button View attached to Embed Panel
 # ----------------------------------------------------------------------
-class TicketPanelView(discord.ui.View):
-    def __init__(self):
+class FormPanelView(discord.ui.View):
+    def __init__(self, button_label: str = "📝 Fill Out Form"):
         super().__init__(timeout=None)
+        self.open_form_button.label = button_label[:80]
 
-    @discord.ui.button(label="🎫 Open Ticket", style=discord.ButtonStyle.blurple, custom_id="echo_ticket_open")
-    async def open_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="📝 Fill Out Form", style=discord.ButtonStyle.blurple, custom_id="echo_open_custom_modal")
+    async def open_form_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if is_blacklisted(interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("You are blacklisted from using the ticket system."), ephemeral=True)
+            return await interaction.response.send_message(embed=error_embed("You are blacklisted from submitting forms."), ephemeral=True)
 
         if is_maintenance(interaction.guild.id):
             return await interaction.response.send_message(embed=error_embed("The system is currently undergoing maintenance. Please try again later!"), ephemeral=True)
 
-        cog = interaction.client.get_cog("Echo")
-        if cog is None:
-            return await interaction.response.send_message(embed=error_embed("Ticket system unavailable."), ephemeral=True)
-        await cog.handle_ticket_open(interaction)
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
+        questions = config.get("questions", [])
 
+        if not questions:
+            # Fallback default questions if none are configured in dashboard
+            questions = [
+                {"label": "What type of bot do you need?", "placeholder": "e.g. Moderation, Music, Economy", "style": "short", "required": True},
+                {"label": "List required features and details", "placeholder": "Describe what the bot should do...", "style": "paragraph", "required": True},
+                {"label": "What is your budget?", "placeholder": "e.g. $20 / 1000 Robux", "style": "short", "required": False}
+            ]
 
-class TicketCloseView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
+        title = config.get("title") or "Custom Form"
+        ping_role_id = config.get("ping_role_id")
 
-    @discord.ui.button(label="🔒 Close Ticket", style=discord.ButtonStyle.red, custom_id="echo_ticket_close")
-    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        cog = interaction.client.get_cog("Echo")
-        if cog is None:
-            return await interaction.response.send_message(embed=error_embed("Ticket system unavailable."), ephemeral=True)
-        await cog.handle_ticket_close(interaction)
+        modal = DynamicCustomModal(title=title, questions=questions, ping_role_id=ping_role_id)
+        await interaction.response.send_modal(modal)
 
 
 # ----------------------------------------------------------------------
@@ -128,8 +162,7 @@ class Echo(commands.Cog):
         self.start_time = time.time()
 
     async def cog_load(self):
-        self.bot.add_view(TicketPanelView())
-        self.bot.add_view(TicketCloseView())
+        self.bot.add_view(FormPanelView())
 
     async def cog_check(self, ctx: commands.Context) -> bool:
         if is_blacklisted(ctx.author.id):
@@ -137,54 +170,8 @@ class Echo(commands.Cog):
             return False
         return True
 
-    def build_shop_embed(self) -> discord.Embed:
-        embed = discord.Embed(title=DEFAULT_SHOP_TITLE, description=DEFAULT_SHOP_DESCRIPTION, color=EMBED_COLOR)
-
-        db = get_db()
-        guild_id = self.bot.guilds[0].id if self.bot.guilds else 0
-        config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
-        global_discount = config.get("global_discount", 0)
-
-        # Check for discount expiration
-        discount_expires = config.get("discount_expires_at")
-        if discount_expires and int(time.time()) > discount_expires:
-            global_discount = 0
-            if db is not None:
-                db["guild_config"].update_one({"guild_id": guild_id}, {"$set": {"global_discount": 0, "discount_expires_at": None}})
-
-        items = get_shop_items()
-        if not items:
-            embed.add_field(name="No items available", value="Check back later for new packages!", inline=False)
-        else:
-            if global_discount > 0:
-                embed.description += f"\n\n🔥 **STOREWIDE SALE ACTIVE: {global_discount}% OFF ALL PACKAGES!**"
-
-            for item_id, name, item_desc, price in items:
-                field_value = item_desc or "\u200b"
-                if price:
-                    display_price = calculate_discount_price(price, global_discount) if global_discount > 0 else price
-                    field_value += f"\n**Price:** {display_price}"
-                embed.add_field(name=f"{name} — `#{item_id}`", value=field_value, inline=False)
-
-        embed.set_footer(text=DEFAULT_SHOP_FOOTER)
-        return embed
-
     # ====================================================================
-    # 1. /shop
-    # ====================================================================
-    @app_commands.command(name="shop", description="View available bots and services privately.")
-    async def shop(self, interaction: discord.Interaction):
-        if is_blacklisted(interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("You are blacklisted from using ECHO."), ephemeral=True)
-
-        if is_maintenance(interaction.guild.id):
-            return await interaction.response.send_message(embed=error_embed("The store is currently in maintenance mode."), ephemeral=True)
-
-        embed = self.build_shop_embed()
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    # ====================================================================
-    # 2. /system-stats
+    # Commands
     # ====================================================================
     @app_commands.command(name="system-stats", description="Shows bot ping and uptime.")
     async def system_stats(self, interaction: discord.Interaction):
@@ -204,100 +191,6 @@ class Echo(commands.Cog):
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-    # ====================================================================
-    # 3. /redeem
-    # ====================================================================
-    @app_commands.command(name="redeem", description="Redeem a promo discount code.")
-    async def redeem(self, interaction: discord.Interaction, code: str):
-        if is_blacklisted(interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("You are blacklisted."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        clean_code = code.strip().upper()
-        promo = db["promo_codes"].find_one({"code": clean_code})
-        if not promo:
-            return await interaction.response.send_message(embed=error_embed("Invalid promo code!"), ephemeral=True)
-
-        # Check Expiration Limit
-        expires_at = promo.get("expires_at")
-        if expires_at and int(time.time()) > expires_at:
-            return await interaction.response.send_message(embed=error_embed("This promo code has expired!"), ephemeral=True)
-
-        # Check Per-User Limit
-        user_limit = promo.get("user_limit", 0)
-        user_id_str = str(interaction.user.id)
-        
-        redemption_doc = db["promo_redemptions"].find_one({"code": clean_code, "user_id": user_id_str})
-        times_used = redemption_doc.get("count", 0) if redemption_doc else 0
-
-        if user_limit > 0 and times_used >= user_limit:
-            return await interaction.response.send_message(embed=error_embed(f"You have reached the limit of {user_limit} redemption(s) for this code!"), ephemeral=True)
-
-        # Increment User Redemption Count
-        db["promo_redemptions"].update_one(
-            {"code": clean_code, "user_id": user_id_str},
-            {"$inc": {"count": 1}},
-            upsert=True
-        )
-
-        discount = promo.get("discount", 0)
-        embed = discord.Embed(
-            title="🎉 Promo Code Redeemed!",
-            description=f"Code **{clean_code}** is valid for **{discount}% OFF** your next purchase!\n\nMention this code inside your purchase ticket to claim your discount.",
-            color=discord.Color.green()
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    # ====================================================================
-    # 4. /check-promo (Owner Only)
-    # ====================================================================
-    @app_commands.command(name="check-promo", description="Check promo codes redeemed or won by a user (Owner Only).")
-    async def check_promo(self, interaction: discord.Interaction, user: discord.User):
-        is_bot_owner = await self.bot.is_owner(interaction.user)
-        is_guild_owner = interaction.guild and (interaction.user.id == interaction.guild.owner_id)
-        if not (is_bot_owner or is_guild_owner or interaction.user.guild_permissions.administrator):
-            return await interaction.response.send_message(embed=error_embed("Only the server or bot owner can use this command."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        user_id_str = str(user.id)
-        redemptions = list(db["promo_redemptions"].find({"user_id": user_id_str}))
-
-        embed = discord.Embed(
-            title=f"🎟️ Promo Code History for {user.name}",
-            color=EMBED_COLOR
-        )
-        embed.set_thumbnail(url=user.display_avatar.url)
-
-        if not redemptions:
-            embed.description = f"User {user.mention} (`{user.id}`) has not redeemed or used any promo codes yet."
-        else:
-            embed.description = f"Showing promo code activity for {user.mention} (`{user.id}`):"
-            for doc in redemptions:
-                code_name = doc.get("code", "UNKNOWN")
-                count = doc.get("count", 0)
-                promo = db["promo_codes"].find_one({"code": code_name})
-
-                if promo:
-                    discount = promo.get("discount", 0)
-                    expires_at = promo.get("expires_at")
-                    status = "Expired" if (expires_at and int(time.time()) > expires_at) else "Active"
-                    value_str = f"**Discount:** `{discount}% OFF` | **Times Redeemed:** `{count}` | **Status:** `{status}`"
-                else:
-                    value_str = f"**Times Redeemed:** `{count}` | **Status:** `Code Deleted`"
-
-                embed.add_field(name=f"🏷️ Code: `{code_name}`", value=value_str, inline=False)
-
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    # ====================================================================
-    # 5. /blacklist
-    # ====================================================================
     @app_commands.command(name="blacklist", description="Add or remove a user from the bot blacklist (Admins Only).")
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
         if not interaction.user.guild_permissions.administrator:
@@ -310,14 +203,11 @@ class Echo(commands.Cog):
         existing = db["blacklist"].find_one({"user_id": str(user.id)})
         if existing:
             db["blacklist"].delete_one({"user_id": str(user.id)})
-            await interaction.response.send_message(embed=info_embed(f"✅ Removed {user.mention} (`{user.id}`) from the blacklist."), ephemeral=True)
+            await interaction.response.send_message(embed=info_embed(f"✅ Removed {user.mention} from blacklist."), ephemeral=True)
         else:
             db["blacklist"].insert_one({"user_id": str(user.id), "username": str(user), "reason": reason})
-            await interaction.response.send_message(embed=info_embed(f"⛔ Blacklisted {user.mention} (`{user.id}`). Reason: {reason}"), ephemeral=True)
+            await interaction.response.send_message(embed=info_embed(f"⛔ Blacklisted {user.mention}. Reason: {reason}"), ephemeral=True)
 
-    # ====================================================================
-    # 6. /dashboard
-    # ====================================================================
     @app_commands.command(name="dashboard", description="Get the link to access the ECHO Web Control Dashboard.")
     async def dashboard(self, interaction: discord.Interaction):
         if not interaction.user.guild_permissions.administrator:
@@ -327,21 +217,15 @@ class Echo(commands.Cog):
         if not dashboard_url.startswith(("http://", "https://")):
             dashboard_url = f"https://{dashboard_url}"
 
-        embed = discord.Embed(
-            title="🌐 ECHO Web Dashboard",
-            description="Manage shop packages, customize ticket panels, set discounts, and manage blacklists directly from the web panel.",
-            color=EMBED_COLOR
-        )
-
+        embed = discord.Embed(title="🌐 ECHO Web Dashboard", description="Build custom forms, manage questions, and review form submissions.", color=EMBED_COLOR)
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Open Web Control Panel", url=dashboard_url, style=discord.ButtonStyle.link, emoji="🎛️"))
-
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     # ====================================================================
-    # Web Deploy & Edit Handlers
+    # Web Handlers: Unified Embed + Button Deployment
     # ====================================================================
-    async def deploy_ticket_panel_from_web(self, channel_id: int):
+    async def deploy_form_panel_from_web(self, channel_id: int):
         channel = self.bot.get_channel(channel_id)
         if channel is None:
             raise Exception(f"Channel ID {channel_id} not found.")
@@ -349,173 +233,42 @@ class Echo(commands.Cog):
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": channel.guild.id}) if db is not None else {}
 
-        title = config.get("title") or "💳 MARKETPLACE REGISTER"
-        desc = config.get("description") or "Click the button below to open a private ticket channel."
+        title = config.get("title") or "🤖 REQUEST CUSTOM BOT COMMISSION"
+        desc = config.get("description") or "Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!"
+        button_label = config.get("button_label") or "📝 Fill Out Form"
 
         embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
-        msg = await channel.send(embed=embed, view=TicketPanelView())
+        view = FormPanelView(button_label=button_label)
+        msg = await channel.send(embed=embed, view=view)
 
         if db is not None:
-            db["guild_config"].update_one({"guild_id": channel.guild.id}, {"$set": {"last_ticket_msg_id": msg.id, "panel_channel_id": channel.id}})
+            db["guild_config"].update_one(
+                {"guild_id": channel.guild.id},
+                {"$set": {"last_form_msg_id": msg.id, "channel_id": channel.id}}
+            )
 
-    async def update_ticket_panel_from_web(self):
+    async def update_form_panel_from_web(self):
         db = get_db()
         guild_id = self.bot.guilds[0].id if self.bot.guilds else 0
         config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
 
-        msg_id = config.get("last_ticket_msg_id")
-        channel_id = config.get("panel_channel_id")
+        msg_id = config.get("last_form_msg_id")
+        channel_id = config.get("channel_id")
         if not msg_id or not channel_id:
-            raise Exception("No active ticket panel message stored.")
+            raise Exception("No active form panel message stored.")
 
         channel = self.bot.get_channel(channel_id)
         if not channel:
-            raise Exception("Ticket panel channel not found.")
+            raise Exception("Form channel not found.")
 
         msg = await channel.fetch_message(msg_id)
-        title = config.get("title") or "💳 MARKETPLACE REGISTER"
-        desc = config.get("description") or "Click the button below to open a private ticket channel."
+        title = config.get("title") or "🤖 REQUEST CUSTOM BOT COMMISSION"
+        desc = config.get("description") or "Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!"
+        button_label = config.get("button_label") or "📝 Fill Out Form"
 
         embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
-        await msg.edit(embed=embed, view=TicketPanelView())
-
-    async def deploy_shop_panel_from_web(self, channel_id: int):
-        channel = self.bot.get_channel(channel_id)
-        if channel is None:
-            raise Exception(f"Channel ID {channel_id} not found.")
-
-        embed = self.build_shop_embed()
-        msg = await channel.send(embed=embed)
-
-        db = get_db()
-        if db is not None:
-            db["guild_config"].update_one({"guild_id": channel.guild.id}, {"$set": {"last_shop_msg_id": msg.id, "shop_channel_id": channel.id}})
-
-    async def update_shop_panel_from_web(self):
-        db = get_db()
-        guild_id = self.bot.guilds[0].id if self.bot.guilds else 0
-        config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
-
-        msg_id = config.get("last_shop_msg_id")
-        channel_id = config.get("shop_channel_id")
-        if not msg_id or not channel_id:
-            raise Exception("No active shop message stored.")
-
-        channel = self.bot.get_channel(channel_id)
-        if not channel:
-            raise Exception("Shop channel not found.")
-
-        msg = await channel.fetch_message(msg_id)
-        embed = self.build_shop_embed()
-        await msg.edit(embed=embed)
-
-    # ====================================================================
-    # Ticket open/close & Web Logging Handlers
-    # ====================================================================
-    async def handle_ticket_open(self, interaction: discord.Interaction):
-        guild = interaction.guild
-        db = get_db()
-        config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else None
-
-        if not config:
-            return await interaction.response.send_message(
-                embed=error_embed("The ticket system isn't configured for this server yet."), ephemeral=True
-            )
-
-        staff_role_id = config.get("staff_role_id")
-        category_id = config.get("category_id")
-        welcome_message = config.get("welcome_message", "Thanks for opening a ticket!")
-        counter = config.get("ticket_counter", 0) + 1
-
-        if db is not None:
-            db["guild_config"].update_one({"guild_id": guild.id}, {"$set": {"ticket_counter": counter}})
-
-        safe_name = re.sub(r"[^a-z0-9-]", "", interaction.user.name.lower().replace(" ", "-"))[:20] or "user"
-        channel_name = f"{safe_name}-{counter}"
-
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True, read_message_history=True),
-            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-        }
-        if staff_role_id:
-            staff_role = guild.get_role(staff_role_id)
-            if staff_role:
-                overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
-
-        category = guild.get_channel(category_id) if category_id else None
-
-        try:
-            ticket_channel = await guild.create_text_channel(
-                name=channel_name, overwrites=overwrites, category=category,
-                reason=f"Ticket opened by {interaction.user} ({interaction.user.id})",
-            )
-        except discord.Forbidden:
-            return await interaction.response.send_message(embed=error_embed("I don't have permission to create channels."), ephemeral=True)
-
-        welcome_embed = discord.Embed(title="🎫 New Ticket", description=welcome_message, color=EMBED_COLOR)
-        welcome_embed.add_field(name="Opened by", value=interaction.user.mention, inline=True)
-        welcome_embed.add_field(name="Ticket #", value=f"`{counter}`", inline=True)
-        await ticket_channel.send(content=interaction.user.mention, embed=welcome_embed, view=TicketCloseView())
-
-        await interaction.response.send_message(embed=info_embed(f"✅ Ticket created: {ticket_channel.mention}"), ephemeral=True)
-
-        # Log Ticket Creation to Web MongoDB
-        if db is not None:
-            db["ticket_logs"].insert_one({
-                "ticket_number": counter,
-                "username": str(interaction.user),
-                "user_id": str(interaction.user.id),
-                "action": "OPENED",
-                "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-            })
-
-        # Send Automatic Receipt DM to User
-        try:
-            receipt_embed = discord.Embed(title="🧾 ECHO Purchase Ticket Receipt", color=discord.Color.green())
-            receipt_embed.add_field(name="Ticket Number", value=f"`#{counter}`", inline=True)
-            receipt_embed.add_field(name="Server", value=guild.name, inline=True)
-            receipt_embed.add_field(name="Date & Time", value=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"), inline=False)
-            receipt_embed.set_footer(text="Keep this receipt for your records.")
-            await interaction.user.send(embed=receipt_embed)
-        except discord.Forbidden:
-            pass
-
-    async def handle_ticket_close(self, interaction: discord.Interaction):
-        channel = interaction.channel
-        guild = interaction.guild
-        db = get_db()
-        config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else None
-
-        await interaction.response.send_message(embed=info_embed("🔒 Closing ticket, generating transcript..."), ephemeral=True)
-
-        lines = []
-        async for msg in channel.history(limit=500, oldest_first=True):
-            ts = msg.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            content = msg.content or "*(no text content — attachment/embed)*"
-            lines.append(f"[{ts}] {msg.author} ({msg.author.id}): {content}")
-        transcript_text = "\n".join(lines) or "(no messages)"
-
-        # Extract ticket number from channel name
-        match = re.search(r'\d+', channel.name)
-        ticket_num = match.group(0) if match else "N/A"
-
-        # Log Ticket Closure and Transcript to Web Dashboard Database
-        if db is not None:
-            db["ticket_logs"].insert_one({
-                "ticket_number": ticket_num,
-                "username": str(interaction.user),
-                "user_id": str(interaction.user.id),
-                "action": "CLOSED",
-                "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-                "transcript": transcript_text
-            })
-
-        await asyncio.sleep(2)
-        try:
-            await channel.delete(reason=f"Ticket closed by {interaction.user}")
-        except discord.Forbidden:
-            pass
+        view = FormPanelView(button_label=button_label)
+        await msg.edit(embed=embed, view=view)
 
 
 async def setup(bot: commands.Bot):
