@@ -73,15 +73,46 @@
       from { opacity: 0; transform: translateY(6px) scale(0.99); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
-    .animate-fade-in { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .animate-fade-in { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: #090a0f; }
     ::-webkit-scrollbar-thumb { background: #232838; border-radius: 9999px; }
 
-    .glow-purple { box-shadow: 0 0 25px rgba(88, 101, 242, 0.25); }
-    .glow-green { box-shadow: 0 0 25px rgba(35, 165, 90, 0.25); }
-    .glow-red { box-shadow: 0 0 25px rgba(242, 63, 67, 0.25); }
+    .glow-purple { box-shadow: 0 0 20px rgba(88, 101, 242, 0.25); }
+    .glow-green { box-shadow: 0 0 20px rgba(35, 165, 90, 0.25); }
+    .glow-red { box-shadow: 0 0 20px rgba(242, 63, 67, 0.25); }
+
+    /* Clean Switch CSS */
+    .switch-track {
+      width: 48px;
+      height: 26px;
+      background-color: #232838;
+      border-radius: 9999px;
+      position: relative;
+      transition: background-color 0.2s ease;
+      cursor: pointer;
+      display: inline-block;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .switch-thumb {
+      width: 20px;
+      height: 20px;
+      background-color: #ffffff;
+      border-radius: 9999px;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    input:checked + .switch-track {
+      background-color: #f23f43;
+      border-color: rgba(242, 63, 67, 0.4);
+    }
+    input:checked + .switch-track .switch-thumb {
+      transform: translateX(22px);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-echo-accent selection:text-white pb-20 md:pb-0">
@@ -199,7 +230,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-echo-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v9.0</span>
+      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v9.2</span>
     </div>
   </aside>
 
@@ -208,6 +239,7 @@
 
     <!-- OVERVIEW TAB -->
     <section id="tab-overview" class="space-y-4 md:space-y-6 animate-fade-in">
+      
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">System Command & Telemetry</h2>
@@ -216,6 +248,27 @@
         <button onclick="loadAllData(true, this)" class="bg-echo-card hover:bg-echo-card/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2.5 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
           <i class="fa-solid fa-arrows-rotate text-echo-accent" id="refresh-icon"></i> Refresh Telemetry
         </button>
+      </div>
+
+      <!-- Compact Maintenance Switch Bar -->
+      <div class="glass-card px-5 py-4 rounded-2xl flex items-center justify-between shadow-xl border border-white/5">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-echo-danger/10 text-echo-danger flex items-center justify-center text-sm shrink-0 border border-echo-danger/20">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-extrabold text-white">Maintenance Protocol</h3>
+            <p class="text-[11px] text-echo-muted hidden sm:block">Locks form submissions for non-admins.</p>
+          </div>
+        </div>
+        <div>
+          <label class="cursor-pointer inline-flex items-center">
+            <input type="checkbox" id="maintenance-toggle" onchange="toggleMaintenanceMode()" class="hidden">
+            <span class="switch-track">
+              <span class="switch-thumb"></span>
+            </span>
+          </label>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
@@ -269,6 +322,7 @@
           <canvas id="uptimeChart"></canvas>
         </div>
       </div>
+
     </section>
 
     <!-- FORM PANEL UI TAB -->
@@ -407,10 +461,14 @@
               <p class="text-xs text-echo-muted">Instantly cuts off command execution and modal submissions across your Discord server.</p>
             </div>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="maintenance-toggle-tab" onchange="syncMaintenanceToggle(this)" class="sr-only peer">
-            <div class="w-13 h-7 bg-echo-base peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-echo-danger glow-red"></div>
-          </label>
+          <div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="maintenance-toggle-tab" onchange="syncMaintenanceToggle(this)" class="hidden">
+              <span class="switch-track">
+                <span class="switch-thumb"></span>
+              </span>
+            </label>
+          </div>
         </div>
 
         <div class="space-y-3 text-xs text-echo-text">
@@ -721,6 +779,7 @@
       const textChannels = channels.filter(c => c.type === 'text');
       const fillSelect = (elemId, list, defaultLabel) => {
         const elem = document.getElementById(elemId);
+        if (!elem) return;
         const currentVal = elem.value;
         elem.innerHTML = `<option value="">${defaultLabel}</option>`;
         list.forEach(item => {
@@ -732,12 +791,14 @@
       fillSelect('form-channel-select', textChannels, '-- Select Output Channel --');
 
       const roleSelect = document.getElementById('form-role-select');
-      const curRole = roleSelect.value;
-      roleSelect.innerHTML = `<option value="">-- Select Ping Role --</option>`;
-      roles.forEach(r => {
-        const selected = curRole === String(r.id) ? 'selected' : '';
-        roleSelect.innerHTML += `<option value="${r.id}" ${selected}>@ ${r.name}</option>`;
-      });
+      if (roleSelect) {
+        const curRole = roleSelect.value;
+        roleSelect.innerHTML = `<option value="">-- Select Ping Role --</option>`;
+        roles.forEach(r => {
+          const selected = curRole === String(r.id) ? 'selected' : '';
+          roleSelect.innerHTML += `<option value="${r.id}" ${selected}>@ ${r.name}</option>`;
+        });
+      }
     }
 
     function renderFormQuestions() {
@@ -792,9 +853,6 @@
               <p class="text-[11px] sm:text-xs font-mono text-echo-muted">ID: ${b.user_id}</p>
               <p class="text-[11px] sm:text-xs text-echo-text">Reason: <span class="text-echo-muted">${b.reason || 'No reason provided'}</span></p>
             </div>
-            <button onclick="removeBlacklistUser('${b.user_id}', this)" class="text-echo-danger hover:bg-echo-danger/10 p-2.5 rounded-xl transition text-sm flex items-center justify-center shrink-0" title="Unblacklist User">
-              <i class="fa-solid fa-trash"></i>
-            </button>
           </div>
         `;
       });
@@ -967,19 +1025,6 @@
           loadAllData();
         }
       } catch (e) { showToast("Connection error.", true); }
-      finally { stopLoading(); }
-    }
-
-    async function removeBlacklistUser(userId, btn = null) {
-      const stopLoading = startBtnLoading(btn, "");
-      blacklist = blacklist.filter(b => b.user_id !== userId);
-      renderBlacklist();
-
-      showToast("Unblacklisting user...");
-      try {
-        const res = await fetch(`/api/blacklist/${userId}`, { method: 'DELETE' });
-        if (res.ok) showToast("Restriction lifted!");
-      } catch (e) { showToast("Error removing user.", true); }
       finally { stopLoading(); }
     }
 
