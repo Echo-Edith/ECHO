@@ -81,7 +81,6 @@ def get_guild_data():
     cog = _bot_ref.get_cog("Echo")
     uptime_sec = int(time.time() - cog.start_time) if cog else 0
 
-    # Calculate cloud DB storage usage
     db_usage_str = "0.24 MB"
     percent_val = 5
     if db is not None:
