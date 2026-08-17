@@ -56,7 +56,7 @@ def get_guild_data():
             "bot_name": "ECHO",
             "maintenance": False,
             "uptime_seconds": 0,
-            "db_usage": {"display": "0.24 MB", "percent": 5}
+            "db_usage": {"display": "0.00 MB", "percent": 1}
         })
 
     channels = []
@@ -82,15 +82,19 @@ def get_guild_data():
     cog = _bot_ref.get_cog("Echo")
     uptime_sec = int(time.time() - cog.start_time) if cog else 0
 
-    db_usage_str = "0.24 MB"
-    percent_val = 5
+    # Calculate actual cloud DB storage usage accurately
+    db_usage_str = "0.01 MB"
+    percent_val = 1
     if db is not None:
         try:
             stats = db.command("dbStats")
-            data_size_bytes = stats.get("dataSize", 250000)
-            data_size_mb = round(data_size_bytes / (1024 * 1024), 2)
-            db_usage_str = f"{data_size_mb} MB"
-            percent_val = max(1, min(100, int((data_size_mb / 512.0) * 100)))
+            data_bytes = stats.get("dataSize", 0) + stats.get("indexSize", 0)
+            data_mb = round(data_bytes / (1024 * 1024), 2)
+            if data_mb < 0.01:
+                db_usage_str = f"{round(data_bytes / 1024, 2)} KB"
+            else:
+                db_usage_str = f"{data_mb} MB"
+            percent_val = max(1, min(100, int((data_mb / 512.0) * 100)))
         except Exception:
             pass
 
@@ -130,7 +134,6 @@ def save_form_config():
     guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
 
     channel_id = int(data["channel_id"]) if data.get("channel_id") else None
-    log_channel_id = int(data["log_channel_id"]) if data.get("log_channel_id") else None
 
     db["guild_config"].update_one(
         {"guild_id": guild_id},
@@ -140,8 +143,7 @@ def save_form_config():
                 "title": data.get("title"),
                 "description": data.get("description"),
                 "button_label": data.get("button_label"),
-                "channel_id": channel_id,
-                "log_channel_id": log_channel_id
+                "channel_id": channel_id
             }
         },
         upsert=True
@@ -188,8 +190,7 @@ def handle_form_presets():
                     "title": data.get("title"),
                     "description": data.get("description"),
                     "button_label": data.get("button_label"),
-                    "channel_id": data.get("channel_id"),
-                    "log_channel_id": data.get("log_channel_id")
+                    "channel_id": data.get("channel_id")
                 }},
                 upsert=True
             )
@@ -201,8 +202,7 @@ def handle_form_presets():
         "title": doc.get("title"),
         "description": doc.get("description"),
         "button_label": doc.get("button_label"),
-        "channel_id": doc.get("channel_id"),
-        "log_channel_id": doc.get("log_channel_id")
+        "channel_id": doc.get("channel_id")
     } for doc in cursor]
 
     return jsonify(presets)
