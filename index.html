@@ -1,36 +1,26 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ECHO Command Center</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECHO Bot Admin Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace']
-          },
           colors: {
-            echo: {
-              base: '#0b0c0e',
-              surface: '#121418',
-              card: '#1a1d24',
-              border: '#2a2e39',
+            discord: {
+              bg: '#313338',
+              sidebar: '#2b2d31',
+              card: '#1e1f22',
               accent: '#5865F2',
-              accentGlow: 'rgba(88, 101, 242, 0.35)',
-              success: '#23a55a',
-              danger: '#f23f43',
-              warning: '#f0b232',
-              text: '#f2f3f5',
-              muted: '#80848e'
+              green: '#23a55a',
+              red: '#f23f43',
+              yellow: '#f0b232',
+              text: '#dbdee1',
+              muted: '#949ba4'
             }
           }
         }
@@ -38,578 +28,500 @@
     }
   </script>
   <style>
-    html, body {
-      overflow-x: hidden;
-      max-width: 100vw;
-    }
-    body {
-      background-color: #0b0c0e;
-      color: #f2f3f5;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(88, 101, 242, 0.08) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(35, 165, 90, 0.05) 0px, transparent 50%);
-      background-attachment: fixed;
-    }
-
-    .glass-panel {
-      background: rgba(18, 20, 24, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .glass-card {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%), rgba(26, 29, 36, 0.85);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-    }
-
-    .glass-card:hover {
-      border-color: rgba(255, 255, 255, 0.15);
-    }
-
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px) scale(0.99); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .animate-fade-in { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .fade-in { animation: fadeIn 0.25s ease; }
 
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: #0b0c0e; }
-    ::-webkit-scrollbar-thumb { background: #2a2e39; border-radius: 9999px; }
+    @keyframes flashHighlight {
+      0% { color: #5865F2; }
+      100% { color: inherit; }
+    }
+    .flash { animation: flashHighlight 0.6s ease; }
 
-    .glow-purple { box-shadow: 0 0 20px rgba(88, 101, 242, 0.25); }
-    .glow-green { box-shadow: 0 0 20px rgba(35, 165, 90, 0.25); }
-    .glow-red { box-shadow: 0 0 20px rgba(242, 63, 67, 0.25); }
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #1e1f22 25%, #2b2d31 37%, #1e1f22 63%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease infinite;
+    }
+
+    button, select, input, textarea {
+      transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-echo-accent selection:text-white pb-20 md:pb-0">
+<body class="bg-discord-bg text-discord-text font-sans min-h-screen flex flex-col md:flex-row antialiased">
 
-  <!-- Mobile Top Header -->
-  <header class="md:hidden glass-panel p-4 sticky top-0 z-40 flex items-center justify-between border-b border-echo-border shadow-xl">
-    <div class="flex items-center gap-3">
-      <div class="relative">
-        <img id="bot-avatar-img-mobile" src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-9 h-9 rounded-xl border border-white/10 shadow object-cover">
-        <span class="w-2.5 h-2.5 bg-echo-success border-2 border-echo-surface rounded-full absolute -bottom-0.5 -right-0.5"></span>
-      </div>
-      <div>
-        <div class="flex items-center gap-1.5">
-          <h1 class="font-extrabold text-white text-sm tracking-tight" id="bot-name-display-mobile">ECHO</h1>
-          <span class="bg-echo-accent/20 text-echo-accent border border-echo-accent/30 text-[9px] px-1.5 py-0.2 rounded font-extrabold">PRO</span>
-        </div>
-        <p class="text-[10px] text-echo-muted font-mono flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-echo-success animate-pulse"></span> Cloud Online
-        </p>
-      </div>
-    </div>
-    <button onclick="toggleMobileMenu()" class="bg-echo-card hover:bg-echo-border text-white w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center transition active:scale-95">
-      <i class="fa-solid fa-bars text-sm" id="menu-icon"></i>
-    </button>
-  </header>
-
-  <!-- Mobile Expandable Menu Overlay -->
-  <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[69px] z-30 glass-panel border-b border-echo-border p-4 space-y-2 animate-fade-in shadow-2xl">
-    <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-white bg-echo-accent shadow-md">
-      <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview
-    </button>
-    <button onclick="switchTab('tickets'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-ticket-simple w-4 text-center"></i> Ticket Setup
-    </button>
-    <button onclick="switchTab('ticketlogs'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-receipt w-4 text-center"></i> Ticket Logs
-    </button>
-    <button onclick="switchTab('shop'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-store w-4 text-center"></i> Shop Manager
-    </button>
-    <button onclick="switchTab('codes'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-tags w-4 text-center"></i> Promo Codes
-    </button>
-    <button onclick="switchTab('blacklist'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-user-slash w-4 text-center"></i> Blacklist
-    </button>
-  </div>
-
-  <!-- Mobile Bottom Navigation Bar -->
-  <nav class="md:hidden fixed bottom-0 inset-x-0 glass-panel border-t border-echo-border z-40 px-2 py-2 flex items-center justify-around">
-    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-1 p-2 text-echo-accent">
-      <i class="fa-solid fa-chart-pie text-base"></i>
-      <span class="text-[9px] font-bold">Stats</span>
-    </button>
-    <button onclick="switchTab('tickets')" id="m-nav-tickets" class="flex flex-col items-center gap-1 p-2 text-echo-muted">
-      <i class="fa-solid fa-ticket-simple text-base"></i>
-      <span class="text-[9px] font-bold">Tickets</span>
-    </button>
-    <button onclick="switchTab('shop')" id="m-nav-shop" class="flex flex-col items-center gap-1 p-2 text-echo-muted">
-      <i class="fa-solid fa-store text-base"></i>
-      <span class="text-[9px] font-bold">Shop</span>
-    </button>
-    <button onclick="switchTab('ticketlogs')" id="m-nav-ticketlogs" class="flex flex-col items-center gap-1 p-2 text-echo-muted">
-      <i class="fa-solid fa-receipt text-base"></i>
-      <span class="text-[9px] font-bold">Logs</span>
-    </button>
-    <button onclick="switchTab('blacklist')" id="m-nav-blacklist" class="flex flex-col items-center gap-1 p-2 text-echo-muted">
-      <i class="fa-solid fa-user-slash text-base"></i>
-      <span class="text-[9px] font-bold">Bans</span>
-    </button>
-  </nav>
-
-  <!-- Desktop Sidebar Navigation -->
-  <aside class="hidden md:flex w-72 glass-panel p-5 flex-col justify-between border-r border-echo-border shrink-0 z-30">
+  <!-- Sidebar -->
+  <aside class="w-full md:w-64 bg-discord-sidebar p-4 flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-800 shrink-0">
     <div>
-      <!-- Brand Header -->
-      <div class="flex items-center gap-3.5 p-3 rounded-2xl bg-echo-card/90 border border-white/10 mb-6 shadow-xl">
-        <div class="relative shrink-0">
-          <img id="bot-avatar-img" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar" class="w-12 h-12 rounded-xl border border-white/10 shadow object-cover">
-          <span class="w-3.5 h-3.5 bg-echo-success border-2 border-echo-surface rounded-full absolute -bottom-1 -right-1 shadow"></span>
+      <div class="flex items-center gap-3 p-2 mb-6">
+        <div class="relative">
+          <img id="bot-avatar-img" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar" class="w-12 h-12 rounded-full border-2 border-discord-accent shadow-lg object-cover">
+          <span class="w-3.5 h-3.5 bg-discord-green border-2 border-discord-sidebar rounded-full absolute bottom-0 right-0"></span>
         </div>
-        <div class="overflow-hidden">
-          <div class="flex items-center gap-2">
-            <h1 class="font-extrabold text-white text-base tracking-tight truncate" id="bot-name-display">ECHO</h1>
-            <span class="bg-echo-accent/20 text-echo-accent border border-echo-accent/30 text-[10px] px-1.5 py-0.5 rounded-md font-extrabold uppercase tracking-widest">CONTROL</span>
-          </div>
-          <p class="text-[11px] text-echo-muted font-medium flex items-center gap-1.5 mt-0.5">
-            <span class="w-2 h-2 rounded-full bg-echo-success animate-pulse"></span> Cloud Online
-          </p>
+        <div>
+          <h1 class="font-bold text-white text-lg leading-tight flex items-center gap-1.5" id="bot-name-display">
+            ECHO
+            <span class="bg-discord-accent text-[10px] px-1.5 py-0.5 rounded text-white font-semibold">ADMIN</span>
+          </h1>
+          <p class="text-xs text-discord-muted">Cloud Dashboard</p>
         </div>
       </div>
 
-      <!-- Navigation Matrix -->
-      <nav class="space-y-1.5">
-        <button onclick="switchTab('overview')" id="nav-overview" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-echo-accent glow-purple transition-all duration-200">
-          <i class="fa-solid fa-chart-line w-4 text-center text-sm"></i> Overview
+      <nav class="space-y-1">
+        <button onclick="switchTab('overview')" id="nav-overview" data-tab="overview" class="w-full flex items-center justify-between px-3 py-2.5 rounded-md font-medium text-sm text-white bg-discord-accent transition-all">
+          <span class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5"></i> Overview</span>
         </button>
-        <button onclick="switchTab('tickets')" id="nav-tickets" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-ticket-simple w-4 text-center text-sm"></i> Ticket Setup
+        <button onclick="switchTab('tickets')" id="nav-tickets" data-tab="tickets" class="w-full flex items-center justify-between px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
+          <span class="flex items-center gap-3"><i class="fa-solid fa-ticket w-5"></i> Ticket System</span>
         </button>
-        <button onclick="switchTab('ticketlogs')" id="nav-ticketlogs" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-receipt w-4 text-center text-sm"></i> Ticket Logs
+        <button onclick="switchTab('ticketlogs')" id="nav-ticketlogs" data-tab="ticketlogs" class="w-full flex items-center justify-between px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
+          <span class="flex items-center gap-3"><i class="fa-solid fa-folder-open w-5"></i> Ticket Logs</span>
+          <span id="badge-ticketlogs" class="hidden text-[10px] bg-gray-700 text-white px-1.5 py-0.5 rounded-full font-bold"></span>
         </button>
-        <button onclick="switchTab('shop')" id="nav-shop" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-store w-4 text-center text-sm"></i> Shop Manager
+        <button onclick="switchTab('shop')" id="nav-shop" data-tab="shop" class="w-full flex items-center justify-between px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
+          <span class="flex items-center gap-3"><i class="fa-solid fa-store w-5"></i> Shop Manager</span>
+          <span id="badge-shop" class="hidden text-[10px] bg-gray-700 text-white px-1.5 py-0.5 rounded-full font-bold"></span>
         </button>
-        <button onclick="switchTab('codes')" id="nav-codes" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-tags w-4 text-center text-sm"></i> Promo Codes
+        <button onclick="switchTab('codes')" id="nav-codes" data-tab="codes" class="w-full flex items-center justify-between px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
+          <span class="flex items-center gap-3"><i class="fa-solid fa-ticket-simple w-5"></i> Promo Codes</span>
+          <span id="badge-codes" class="hidden text-[10px] bg-gray-700 text-white px-1.5 py-0.5 rounded-full font-bold"></span>
         </button>
-        <button onclick="switchTab('blacklist')" id="nav-blacklist" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-user-slash w-4 text-center text-sm"></i> Blacklist
+        <button onclick="switchTab('blacklist')" id="nav-blacklist" data-tab="blacklist" class="w-full flex items-center justify-between px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all">
+          <span class="flex items-center gap-3"><i class="fa-solid fa-ban w-5"></i> Blacklist</span>
+          <span id="badge-blacklist" class="hidden text-[10px] bg-gray-700 text-white px-1.5 py-0.5 rounded-full font-bold"></span>
         </button>
       </nav>
     </div>
 
-    <!-- Sidebar Footer -->
-    <div class="pt-4 border-t border-white/5 text-[11px] text-echo-muted flex items-center justify-between font-mono">
-      <span class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-echo-success"></span> Sync Engine Active
+    <div class="mt-8 pt-4 border-t border-gray-800 text-xs text-discord-muted flex items-center justify-between">
+      <span class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-discord-green animate-pulse" id="live-dot"></span> Live Sync
       </span>
-      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v4.3</span>
+      <span>v4.0</span>
     </div>
   </aside>
 
-  <!-- Main Viewport -->
-  <main class="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6 md:space-y-8">
+  <!-- Main Content -->
+  <main class="flex-1 p-4 md:p-8 overflow-y-auto">
 
     <!-- OVERVIEW TAB -->
-    <section id="tab-overview" class="space-y-4 md:space-y-6 animate-fade-in">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
+    <section id="tab-overview" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">System Infrastructure</h2>
-          <p class="text-xs text-echo-muted mt-0.5 sm:mt-1">Real-time telemetrics for ECHO Discord Bot & Database Cluster.</p>
+          <h2 class="text-2xl font-bold text-white">System Status</h2>
+          <p class="text-sm text-discord-muted">
+            Real-time statistics synced with MongoDB and Discord.
+            <span class="text-discord-muted/70" id="last-updated-label"></span>
+          </p>
         </div>
-        <button onclick="loadAllData(true, this)" class="bg-echo-card hover:bg-echo-card/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2.5 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
-          <i class="fa-solid fa-arrows-rotate text-echo-accent" id="refresh-icon"></i> Sync Telemetry
+        <button onclick="loadAllData(true, this)" class="bg-discord-card hover:bg-gray-800 text-white text-xs px-3.5 py-2 rounded-md flex items-center gap-2 border border-gray-700 transition active:scale-95">
+          <i class="fa-solid fa-rotate-right" id="refresh-icon"></i> Sync Data
         </button>
       </div>
 
-      <!-- Maintenance Banner -->
-      <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
-        <div class="flex items-center gap-3.5 sm:gap-4">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-echo-danger/10 text-echo-danger flex items-center justify-center text-lg sm:text-xl shrink-0 border border-echo-danger/20">
-            <i class="fa-solid fa-shield-halved"></i>
+      <!-- Maintenance Mode Banner -->
+      <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-red-500/10 text-discord-red flex items-center justify-center text-xl">
+            <i class="fa-solid fa-triangle-exclamation"></i>
           </div>
           <div>
-            <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">Global Override</p>
-            <h3 class="text-sm sm:text-base font-bold text-white mt-0.5">Maintenance Protocol</h3>
-            <p class="text-xs text-echo-muted">Instantly locks down slash commands and ticket generation for non-admins.</p>
+            <p class="text-xs font-semibold text-discord-muted uppercase">Maintenance Mode</p>
+            <p class="text-sm text-white font-medium">Instantly turns off tickets and commands for non-admins.</p>
           </div>
         </div>
-        <label class="relative inline-flex items-center cursor-pointer self-end sm:self-auto">
-          <input type="checkbox" id="maintenance-toggle" onchange="toggleMaintenanceMode()" class="sr-only peer">
-          <div class="w-12 h-6.5 sm:w-13 sm:h-7 bg-echo-base peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 sm:after:h-6 after:w-5 sm:after:w-6 after:transition-all peer-checked:bg-echo-danger glow-red"></div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="maintenance-toggle" onchange="onMaintenanceToggle(event)" class="sr-only peer">
+          <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-red"></div>
         </label>
       </div>
 
-      <!-- Live Metric Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-        <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 sm:gap-5 shadow-2xl">
-          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-echo-accent/10 text-echo-accent flex items-center justify-center text-xl sm:text-2xl shrink-0 border border-echo-accent/20">
-            <i class="fa-solid fa-bolt"></i>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center gap-4 shadow-sm">
+          <div class="w-12 h-12 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-signal"></i>
           </div>
           <div>
-            <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">API Latency</p>
-            <p class="text-2xl sm:text-3xl font-black text-white font-mono mt-0.5" id="stat-ping">-- ms</p>
+            <p class="text-xs font-semibold text-discord-muted uppercase">Bot Latency</p>
+            <p class="text-2xl font-bold text-white" id="stat-ping">-- ms</p>
           </div>
         </div>
 
-        <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 sm:gap-5 shadow-2xl">
-          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-echo-success/10 text-echo-success flex items-center justify-center text-xl sm:text-2xl shrink-0 border border-echo-success/20">
+        <div class="bg-discord-card p-5 rounded-lg border border-gray-800 flex items-center gap-4 shadow-sm">
+          <div class="w-12 h-12 rounded-lg bg-amber-500/10 text-discord-yellow flex items-center justify-center text-xl">
             <i class="fa-solid fa-database"></i>
           </div>
           <div>
-            <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">Cloud Storage</p>
-            <p class="text-base sm:text-lg font-black text-echo-success mt-1">MongoDB Atlas</p>
+            <p class="text-xs font-semibold text-discord-muted uppercase">Cloud Database</p>
+            <p class="text-sm font-bold text-discord-green">MongoDB Atlas</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- TICKET SYSTEM TAB -->
-    <section id="tab-tickets" class="space-y-4 md:space-y-6 hidden">
-      <div class="glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
-        <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Ticket Panel Builder</h2>
-        <p class="text-xs text-echo-muted mt-1">Configure layout, staff roles, and deploy interactive registration embed widgets.</p>
+    <section id="tab-tickets" class="space-y-6 hidden">
+      <div>
+        <h2 class="text-2xl font-bold text-white">Ticket System Management</h2>
+        <p class="text-sm text-discord-muted">Configure roles, channels, and deploy/update ticket buttons in Discord.</p>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-        <!-- Settings Controls -->
-        <div class="lg:col-span-7 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 md:space-y-5 shadow-2xl">
-          <h3 class="text-xs font-extrabold uppercase tracking-widest text-echo-muted flex items-center gap-2 border-b border-white/5 pb-3">
-            <i class="fa-solid fa-sliders text-echo-accent"></i> Embed Parameters
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-discord-card p-6 rounded-lg border border-gray-800 space-y-4 shadow-sm">
+          <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-discord-accent"></i> Ticket Controls
           </h3>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Target Channel</label>
-              <select id="ticket-panel-channel" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
-                <option value="">Loading Channels...</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Staff Support Role</label>
-              <select id="ticket-staff-role" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
-                <option value="">Loading Roles...</option>
-              </select>
-            </div>
+          <div>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Target Panel Channel</label>
+            <select id="ticket-panel-channel" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
+              <option value="">Loading Channels...</option>
+            </select>
           </div>
 
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Category Overseer (Optional)</label>
-            <select id="ticket-category" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Staff Role</label>
+            <select id="ticket-staff-role" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
+              <option value="">Loading Roles...</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Ticket Category (Optional)</label>
+            <select id="ticket-category" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
               <option value="">Loading Categories...</option>
             </select>
           </div>
 
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Embed Title Header</label>
-            <input type="text" id="ticket-panel-title" oninput="updateTicketPreview()" value="💳 MARKETPLACE REGISTER" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Panel Embed Title</label>
+            <input type="text" id="ticket-panel-title" oninput="updateTicketPreview()" value="💳 MARKETPLACE REGISTER" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
           </div>
 
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Embed Body Description</label>
-            <textarea id="ticket-panel-desc" oninput="updateTicketPreview()" rows="2" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">Click the button below to open a private ticket channel.</textarea>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Panel Embed Description</label>
+            <textarea id="ticket-panel-desc" oninput="updateTicketPreview()" rows="2" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">Click the button below to open a private ticket channel.</textarea>
           </div>
 
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Internal Greeting Message</label>
-            <textarea id="ticket-welcome-msg" rows="2" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">Welcome! Please state what item you want to purchase or what issue you have.</textarea>
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Welcome Message Inside Ticket</label>
+            <textarea id="ticket-welcome-msg" rows="2" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">Welcome! Please state what item you want to purchase or what issue you have.</textarea>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-2">
-            <button onclick="saveTicketSettings(this)" class="bg-echo-base hover:bg-black text-white font-bold py-3 rounded-xl text-xs border border-white/10 transition active:scale-95 flex items-center justify-center gap-2">
-              <i class="fa-solid fa-floppy-disk text-echo-muted"></i> Save
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+            <button onclick="saveTicketSettings(this)" class="bg-discord-sidebar hover:bg-gray-700 text-white font-medium py-2.5 rounded text-sm border border-gray-700 transition active:scale-95 flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-floppy-disk"></i> Save Settings
             </button>
-            <button onclick="deployTicketPanel(this)" class="bg-echo-success hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
+            <button onclick="deployTicketPanel(this)" class="bg-discord-green hover:bg-emerald-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-1.5">
               <i class="fa-solid fa-paper-plane"></i> Deploy
             </button>
-            <button onclick="updateExistingTicketPanel(this)" class="bg-echo-accent hover:bg-echo-accent/80 text-white font-bold py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-purple">
-              <i class="fa-solid fa-arrows-rotate"></i> Update Live
+            <button onclick="updateExistingTicketPanel(this)" class="bg-discord-accent hover:bg-indigo-600 text-white font-medium py-2.5 rounded text-sm transition active:scale-95 flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-rotate"></i> Update Embed
             </button>
           </div>
         </div>
 
-        <!-- Realistic Discord Embed Simulator -->
-        <div class="lg:col-span-5 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
-          <h3 class="text-xs font-extrabold uppercase tracking-widest text-echo-muted flex items-center gap-2">
-            <i class="fa-brands fa-discord text-echo-accent text-base"></i> Discord Embed Simulator
+        <div class="bg-discord-card p-6 rounded-lg border border-gray-800 space-y-4 h-fit shadow-sm">
+          <h3 class="text-xs font-bold uppercase text-discord-muted tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-eye"></i> Ticket Panel Live Preview
           </h3>
-          
-          <div class="bg-[#313338] p-4 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner">
-            <div class="flex items-center gap-3">
-              <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-8 h-8 rounded-full">
-              <div class="flex items-center gap-1.5">
-                <span class="font-bold text-white text-xs">ECHO Bot</span>
-                <span class="bg-[#5865F2] text-white text-[9px] px-1 py-0.2 rounded font-bold uppercase">BOT</span>
-              </div>
-            </div>
-
-            <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-echo-accent space-y-2">
-              <p class="font-bold text-white text-xs sm:text-sm" id="preview-ticket-title">💳 MARKETPLACE REGISTER</p>
-              <p class="text-xs text-[#dbdee1] whitespace-pre-wrap leading-relaxed" id="preview-ticket-desc">Click the button below to open a private ticket channel.</p>
-            </div>
-
-            <div class="pt-1">
-              <button class="bg-[#5865F2] text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-2 cursor-default shadow">
-                <i class="fa-solid fa-ticket"></i> Open Ticket
-              </button>
-            </div>
+          <div class="bg-[#2b2d31] p-4 rounded border-l-4 border-discord-accent space-y-3">
+            <p class="font-bold text-white text-base" id="preview-ticket-title">💳 MARKETPLACE REGISTER</p>
+            <p class="text-xs text-discord-text whitespace-pre-wrap" id="preview-ticket-desc">Click the button below to open a private ticket channel.</p>
+            <button class="bg-discord-accent text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-2 opacity-90 cursor-default shadow">
+              <i class="fa-solid fa-ticket"></i> Open Ticket
+            </button>
           </div>
         </div>
       </div>
     </section>
 
     <!-- TICKET LOGS TAB -->
-    <section id="tab-ticketlogs" class="space-y-4 md:space-y-6 hidden">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
+    <section id="tab-ticketlogs" class="space-y-6 hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Audit & Ticket Logs</h2>
-          <p class="text-xs text-echo-muted mt-1">Live transcripts and timestamped records for all server ticket activity.</p>
+          <h2 class="text-2xl font-bold text-white">Ticket Logs & Activity</h2>
+          <p class="text-sm text-discord-muted">View all opened and closed ticket records directly in your dashboard.</p>
         </div>
-        <button onclick="loadTicketLogs(this)" class="bg-echo-card hover:bg-echo-card/80 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow w-full sm:w-auto">
-          <i class="fa-solid fa-arrows-rotate text-echo-accent"></i> Fetch Logs
+        <button onclick="loadTicketLogs(this)" class="bg-discord-card hover:bg-gray-800 text-white text-xs px-3.5 py-2 rounded-md flex items-center gap-2 border border-gray-700 transition active:scale-95">
+          <i class="fa-solid fa-rotate-right"></i> Refresh Logs
         </button>
       </div>
 
-      <div class="space-y-3 sm:space-y-4" id="ticket-logs-container">
-        <div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">Loading ticket logs from cloud database...</div>
+      <div>
+        <input type="text" id="ticket-logs-search" oninput="renderTicketLogs()" placeholder="Search by username, user ID, or ticket #..." class="w-full bg-discord-card border border-gray-700 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
+
+      <div class="space-y-3" id="ticket-logs-container">
+        <div class="skeleton h-20 rounded-lg"></div>
+        <div class="skeleton h-20 rounded-lg"></div>
+        <div class="skeleton h-20 rounded-lg"></div>
+      </div>
+      <div class="flex justify-center" id="ticket-logs-loadmore-wrap"></div>
     </section>
 
     <!-- SHOP MANAGER TAB -->
-    <section id="tab-shop" class="space-y-4 md:space-y-6 hidden">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
+    <section id="tab-shop" class="space-y-6 hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Shop Package Manager</h2>
-          <p class="text-xs text-echo-muted mt-1">Add items, configure storewide sales with automated timers, and sync shop embeds.</p>
+          <h2 class="text-2xl font-bold text-white">Shop Manager</h2>
+          <p class="text-sm text-discord-muted">Manage packages, active discounts, and update embeds in Discord.</p>
         </div>
-        <button onclick="openAddItemModal()" class="bg-echo-success hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green w-full sm:w-auto">
-          <i class="fa-solid fa-plus"></i> New Package
-        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="openAddItemModal()" class="bg-discord-green hover:bg-emerald-600 text-white text-xs px-3.5 py-2 rounded-md font-medium transition active:scale-95 flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> New Package
+          </button>
+        </div>
       </div>
 
-      <!-- Storewide Sale Control Banner -->
-      <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
+      <!-- Storewide Discount Config Box -->
+      <div class="bg-discord-card p-5 rounded-lg border border-gray-800 space-y-4 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-echo-warning/10 text-echo-warning flex items-center justify-center text-lg sm:text-xl shrink-0 border border-echo-warning/20">
+            <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-discord-yellow flex items-center justify-center text-lg">
               <i class="fa-solid fa-percent"></i>
             </div>
             <div>
-              <h3 class="text-xs sm:text-sm font-bold text-white">Storewide Sale Manager</h3>
-              <p class="text-[11px] sm:text-xs text-echo-muted">Applies calculated percentage discounts across all products.</p>
+              <h3 class="text-sm font-bold text-white">Storewide Discount Config</h3>
+              <p class="text-xs text-discord-muted">Discount prices automatically across all active shop items with an optional timer.</p>
             </div>
           </div>
-          <div id="active-discount-badge" class="hidden self-start sm:self-auto">
-            <span class="bg-echo-warning/10 text-echo-warning text-[11px] sm:text-xs px-3 py-1 rounded-full font-bold border border-echo-warning/30 flex items-center gap-1.5">
-              <i class="fa-solid fa-fire animate-bounce"></i> <span id="discount-badge-text">Active Sale</span>
+          <div id="active-discount-badge" class="hidden">
+            <span class="bg-discord-yellow/10 text-discord-yellow text-xs px-2.5 py-1 rounded-full font-bold border border-discord-yellow/20 flex items-center gap-1.5">
+              <i class="fa-solid fa-fire"></i> Active Discount
             </span>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Discount Rate (%)</label>
-            <input type="number" id="global-discount-input" min="0" max="100" placeholder="e.g. 20" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Discount (%)</label>
+            <input type="number" id="global-discount-input" min="0" max="100" placeholder="e.g. 20" oninput="clampInput(this, 0, 100)" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
           </div>
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Duration (Hours)</label>
-            <input type="number" id="global-discount-hours" min="0" placeholder="0 = Permanent Sale" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+            <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Time Limit (Hours)</label>
+            <input type="number" id="global-discount-hours" min="0" placeholder="0 = Permanent until removed" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
           </div>
           <div class="flex items-end gap-2">
-            <button onclick="saveGlobalDiscount(this)" class="flex-1 bg-echo-accent hover:bg-echo-accent/80 text-white font-bold py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-1.5 shadow glow-purple">
-              <i class="fa-solid fa-check"></i> Apply
+            <button onclick="saveGlobalDiscount(this)" class="flex-1 bg-discord-accent hover:bg-indigo-600 text-white font-medium py-2 rounded text-xs transition active:scale-95 flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-check"></i> Apply Discount
             </button>
-            <button onclick="removeGlobalDiscount(this)" class="bg-echo-danger hover:bg-red-600 text-white font-bold px-3.5 py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center shadow" title="Remove Sale">
-              <i class="fa-solid fa-trash"></i>
+            <button onclick="removeGlobalDiscount(this)" class="bg-discord-red hover:bg-red-600 text-white font-medium px-3 py-2 rounded text-xs transition active:scale-95 flex items-center gap-1" title="Remove Discount">
+              <i class="fa-solid fa-trash"></i> Remove
             </button>
           </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-        <div class="lg:col-span-7 space-y-4">
-          <!-- Target Channel Output -->
-          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
-            <h3 class="text-xs font-extrabold uppercase tracking-widest text-echo-muted">Shop Channel Target</h3>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-4">
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 space-y-3">
+            <h3 class="text-sm font-bold text-white">Shop Output Channel</h3>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <select id="shop-channel-select" class="sm:col-span-1 bg-echo-base border border-echo-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+              <select id="shop-channel-select" class="sm:col-span-1 bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
                 <option value="">Loading Channels...</option>
               </select>
-              <button onclick="deployShopPanel(this)" class="bg-echo-success hover:bg-emerald-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-1.5 shadow">
+              <button onclick="deployShopPanel(this)" class="bg-discord-green hover:bg-emerald-600 text-white px-3 py-2 rounded text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1.5">
                 <i class="fa-solid fa-paper-plane"></i> Deploy
               </button>
-              <button onclick="updateExistingShopPanel(this)" class="bg-echo-accent hover:bg-echo-accent/80 text-white font-bold px-3 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-1.5 shadow">
-                <i class="fa-solid fa-arrows-rotate"></i> Update
+              <button onclick="updateExistingShopPanel(this)" class="bg-discord-accent hover:bg-indigo-600 text-white px-3 py-2 rounded text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-rotate"></i> Update Embed
               </button>
             </div>
           </div>
 
-          <div class="space-y-3" id="shop-items-container"></div>
+          <div>
+            <input type="text" id="shop-items-search" oninput="renderShopItems()" placeholder="Search packages by name..." class="w-full bg-discord-card border border-gray-700 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-discord-accent">
+          </div>
+
+          <div class="space-y-3" id="shop-items-container">
+            <div class="skeleton h-20 rounded-lg"></div>
+            <div class="skeleton h-20 rounded-lg"></div>
+          </div>
         </div>
 
-        <!-- Simulated Shop Embed -->
-        <div class="lg:col-span-5 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl h-fit">
-          <h3 class="text-xs font-extrabold uppercase tracking-widest text-echo-muted flex items-center gap-2">
-            <i class="fa-brands fa-discord text-echo-accent text-base"></i> Shop Embed Simulator
+        <div class="bg-discord-card p-5 rounded-lg border border-gray-800 space-y-4 shadow-sm h-fit">
+          <h3 class="text-xs font-bold uppercase text-discord-muted tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-eye"></i> Shop Embed Preview
           </h3>
-          <div class="bg-[#313338] p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
-            <div class="flex items-center gap-3">
-              <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-8 h-8 rounded-full">
-              <div class="flex items-center gap-1.5">
-                <span class="font-bold text-white text-xs">ECHO Bot</span>
-                <span class="bg-[#5865F2] text-white text-[9px] px-1 py-0.2 rounded font-bold uppercase">BOT</span>
-              </div>
-            </div>
-
-            <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-echo-accent space-y-2.5">
-              <p class="font-bold text-white text-xs sm:text-sm">🛒 ECHO Bot Shop</p>
-              <p class="text-xs text-[#dbdee1] leading-relaxed" id="preview-shop-desc">Custom Discord bots built for your server. Reach out to get started!</p>
-              <div id="preview-shop-items" class="space-y-2 pt-2 border-t border-white/10"></div>
-            </div>
+          <div class="bg-[#2b2d31] p-4 rounded border-l-4 border-discord-accent space-y-3">
+            <p class="font-bold text-white text-base">🛒 ECHO Bot Shop</p>
+            <p class="text-xs text-discord-text" id="preview-shop-desc">Custom Discord bots built for your server. Reach out to get started!</p>
+            <div id="preview-shop-items" class="space-y-2 pt-2 border-t border-gray-700/50"></div>
           </div>
         </div>
       </div>
     </section>
 
     <!-- PROMO CODES TAB -->
-    <section id="tab-codes" class="space-y-4 md:space-y-6 hidden">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
+    <section id="tab-codes" class="space-y-6 hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Promo Codes</h2>
-          <p class="text-xs text-echo-muted mt-1">Manage codes, per-user usage caps, and custom expiration timers for <code class="bg-echo-base px-2 py-0.5 rounded text-echo-accent font-mono">/redeem</code>.</p>
+          <h2 class="text-2xl font-bold text-white">Promo Codes</h2>
+          <p class="text-sm text-discord-muted">Create discount codes with user redemption limits and expiration times for <code class="bg-discord-card px-1.5 py-0.5 rounded text-discord-accent">/redeem</code>.</p>
         </div>
-        <button onclick="openAddCodeModal()" class="bg-echo-success hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green w-full sm:w-auto">
-          <i class="fa-solid fa-plus"></i> New Code
+        <button onclick="openAddCodeModal()" class="bg-discord-green hover:bg-emerald-600 text-white text-xs px-3.5 py-2 rounded-md font-medium transition active:scale-95 flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> New Promo Code
         </button>
       </div>
 
-      <div class="space-y-3" id="promo-codes-container"></div>
+      <div class="space-y-3" id="promo-codes-container">
+        <div class="skeleton h-16 rounded-lg"></div>
+      </div>
     </section>
 
     <!-- BLACKLIST TAB -->
-    <section id="tab-blacklist" class="space-y-4 md:space-y-6 hidden">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
+    <section id="tab-blacklist" class="space-y-6 hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Access Control & Blacklist</h2>
-          <p class="text-xs text-echo-muted mt-1">View and manage users restricted from opening tickets or running commands.</p>
+          <h2 class="text-2xl font-bold text-white">Blacklisted Users</h2>
+          <p class="text-sm text-discord-muted">Banned users restricted from opening tickets or making purchases.</p>
         </div>
-        <button onclick="openAddBlacklistModal()" class="bg-echo-danger hover:bg-red-600 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-red w-full sm:w-auto">
+        <button onclick="openAddBlacklistModal()" class="bg-discord-red hover:bg-red-600 text-white text-xs px-3.5 py-2 rounded-md font-medium transition active:scale-95 flex items-center gap-2">
           <i class="fa-solid fa-user-slash"></i> Blacklist User ID
         </button>
       </div>
 
-      <div class="space-y-3" id="blacklist-container"></div>
+      <div class="space-y-3" id="blacklist-container">
+        <div class="skeleton h-16 rounded-lg"></div>
+      </div>
     </section>
 
   </main>
 
   <!-- Modal: Add Item -->
-  <div id="add-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
-    <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
-      <h3 class="text-base sm:text-lg font-extrabold text-white">Add Shop Package</h3>
+  <div id="add-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
+      <h3 class="text-lg font-bold text-white">Add Shop Package</h3>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Package Title</label>
-        <input type="text" id="item-name-input" placeholder="e.g. Moderation Bot Package" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Package Name</label>
+        <input type="text" id="item-name-input" placeholder="e.g. Utility Bot" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Description</label>
-        <input type="text" id="item-desc-input" placeholder="e.g. Custom moderation logs." class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Description</label>
+        <input type="text" id="item-desc-input" placeholder="e.g. Custom commands and search feature." class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Price Tag</label>
-        <input type="text" id="item-price-input" placeholder="e.g. 500 RBX or $15" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Price</label>
+        <input type="text" id="item-price-input" placeholder="e.g. 20 RBX or $10" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
-      <div class="flex items-center gap-2 pt-1">
-        <input type="checkbox" id="item-available-input" checked class="w-4 h-4 rounded bg-echo-base border-echo-border text-echo-accent focus:ring-0">
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="item-available-input" checked class="w-4 h-4 rounded bg-discord-sidebar border-gray-700 text-discord-accent focus:ring-0">
         <label for="item-available-input" class="text-xs text-white font-medium">Available for Purchase</label>
       </div>
-      <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
-        <button onclick="closeAddItemModal()" class="px-4 py-2 text-xs font-bold text-echo-muted hover:text-white transition">Cancel</button>
-        <button onclick="addShopItem(this)" class="px-4 py-2 text-xs bg-echo-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Add Package</button>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeAddItemModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
+        <button onclick="addShopItem(this)" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95 flex items-center gap-1.5">Add Package</button>
       </div>
     </div>
   </div>
 
   <!-- Modal: Edit Item -->
-  <div id="edit-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
-    <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
-      <h3 class="text-base sm:text-lg font-extrabold text-white">Edit Shop Package</h3>
+  <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
+      <h3 class="text-lg font-bold text-white">Edit Shop Package</h3>
       <input type="hidden" id="edit-item-id">
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Package Title</label>
-        <input type="text" id="edit-name-input" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Package Name</label>
+        <input type="text" id="edit-name-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Description</label>
-        <input type="text" id="edit-desc-input" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Description</label>
+        <input type="text" id="edit-desc-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Price Tag</label>
-        <input type="text" id="edit-price-input" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Price</label>
+        <input type="text" id="edit-price-input" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
-      <div class="flex items-center gap-2 pt-1">
-        <input type="checkbox" id="edit-available-input" class="w-4 h-4 rounded bg-echo-base border-echo-border text-echo-accent focus:ring-0">
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="edit-available-input" class="w-4 h-4 rounded bg-discord-sidebar border-gray-700 text-discord-accent focus:ring-0">
         <label for="edit-available-input" class="text-xs text-white font-medium">Available for Purchase</label>
       </div>
-      <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
-        <button onclick="closeEditItemModal()" class="px-4 py-2 text-xs font-bold text-echo-muted hover:text-white transition">Cancel</button>
-        <button onclick="saveEditShopItem(this)" class="px-4 py-2 text-xs bg-echo-accent hover:bg-echo-accent/80 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Update Package</button>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeEditItemModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
+        <button onclick="saveEditShopItem(this)" class="px-4 py-2 text-sm bg-discord-accent hover:bg-indigo-600 text-white rounded font-medium transition active:scale-95 flex items-center gap-1.5">Update Package</button>
       </div>
     </div>
   </div>
 
   <!-- Modal: Add Promo Code -->
-  <div id="code-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
-    <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
-      <h3 class="text-base sm:text-lg font-extrabold text-white">Create Promo Code</h3>
+  <div id="code-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
+      <h3 class="text-lg font-bold text-white">Create Promo Code</h3>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Code Word</label>
-        <input type="text" id="code-name-input" placeholder="e.g. WELCOME10" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs uppercase font-mono font-bold focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Code Word (Case-Insensitive)</label>
+        <input type="text" id="code-name-input" placeholder="e.g. WELCOME10" oninput="this.value = this.value.toUpperCase()" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm uppercase focus:outline-none focus:border-discord-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Discount Percentage (%)</label>
-        <input type="number" id="code-discount-input" min="1" max="100" placeholder="15" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Discount Percentage (%)</label>
+        <input type="number" id="code-discount-input" min="1" max="100" placeholder="15" oninput="clampInput(this, 1, 100)" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Per-User Cap</label>
-          <input type="number" id="code-limit-input" min="0" placeholder="1 (0 = Unlimited)" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+          <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Per User Limit</label>
+          <input type="number" id="code-limit-input" min="0" placeholder="1 (0 = Unlimited)" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
         </div>
         <div>
-          <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Duration (Hours)</label>
-          <input type="number" id="code-expire-input" min="0" placeholder="24 (0 = No Expiry)" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+          <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Expires In (Hours)</label>
+          <input type="number" id="code-expire-input" min="0" placeholder="24 (0 = No Expiry)" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
         </div>
       </div>
-      <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
-        <button onclick="closeAddCodeModal()" class="px-4 py-2 text-xs font-bold text-echo-muted hover:text-white transition">Cancel</button>
-        <button onclick="addPromoCode(this)" class="px-4 py-2 text-xs bg-echo-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Create Code</button>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeAddCodeModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
+        <button onclick="addPromoCode(this)" class="px-4 py-2 text-sm bg-discord-green hover:bg-emerald-600 text-white rounded font-medium transition active:scale-95 flex items-center gap-1.5">Create Code</button>
       </div>
     </div>
   </div>
 
   <!-- Modal: Add Blacklist -->
-  <div id="blacklist-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
-    <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
-      <h3 class="text-base sm:text-lg font-extrabold text-white">Blacklist User</h3>
+  <div id="blacklist-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-md rounded-lg p-6 space-y-4 shadow-2xl fade-in">
+      <h3 class="text-lg font-bold text-white">Blacklist User</h3>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Discord User ID</label>
-        <input type="text" id="blacklist-userid-input" placeholder="123456789012345678" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Discord User ID</label>
+        <input type="text" id="blacklist-userid-input" placeholder="123456789012345678" inputmode="numeric" oninput="this.value = this.value.replace(/\D/g, '')" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm font-mono focus:outline-none focus:border-discord-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Reason for Restriction</label>
-        <input type="text" id="blacklist-reason-input" placeholder="e.g. Repeated ticket spamming" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-xs font-semibold text-discord-muted uppercase mb-1">Reason</label>
+        <input type="text" id="blacklist-reason-input" placeholder="e.g. Spamming tickets / scamming" class="w-full bg-discord-sidebar border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-discord-accent">
       </div>
-      <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
-        <button onclick="closeAddBlacklistModal()" class="px-4 py-2 text-xs font-bold text-echo-muted hover:text-white transition">Cancel</button>
-        <button onclick="addBlacklistUser(this)" class="px-4 py-2 text-xs bg-echo-danger hover:bg-red-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Blacklist User</button>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeAddBlacklistModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
+        <button onclick="addBlacklistUser(this)" class="px-4 py-2 text-sm bg-discord-red hover:bg-red-600 text-white rounded font-medium transition active:scale-95 flex items-center gap-1.5">Blacklist User</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast Notification System -->
-  <div id="toast" class="fixed bottom-16 md:bottom-6 right-4 md:right-6 glass-panel text-white px-4 sm:px-5 py-3 rounded-xl sm:rounded-2xl shadow-2xl text-xs font-semibold transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4 flex items-center gap-2.5 sm:gap-3 z-50 border border-white/10">
-    <i class="fa-solid fa-circle-check text-echo-success text-sm sm:text-base" id="toast-icon"></i>
-    <span id="toast-message">Operation successful!</span>
+  <!-- Modal: Confirm destructive action -->
+  <div id="confirm-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-[60]">
+    <div class="bg-discord-card border border-gray-800 w-full max-w-sm rounded-lg p-6 space-y-4 shadow-2xl fade-in">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-red-500/10 text-discord-red flex items-center justify-center text-lg shrink-0">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white" id="confirm-title">Are you sure?</h3>
+          <p class="text-xs text-discord-muted" id="confirm-message">This action cannot be undone.</p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeConfirmModal()" class="px-4 py-2 text-sm text-discord-muted hover:text-white transition">Cancel</button>
+        <button id="confirm-action-btn" class="px-4 py-2 text-sm bg-discord-red hover:bg-red-600 text-white rounded font-medium transition active:scale-95">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-discord-accent text-white px-4 py-3 rounded-lg shadow-2xl text-sm font-medium transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4 flex items-center gap-2.5 z-50 border border-white/10">
+    <i class="fa-solid fa-circle-check text-green-400" id="toast-icon"></i>
+    <span id="toast-message">Action executed successfully!</span>
   </div>
 
   <script>
@@ -621,18 +533,54 @@
     let blacklist = [];
     let ticketLogs = [];
     let globalDiscount = 0;
-    let discountExpiresAt = null;
-    let countdownIntervalId = null;
+    let statsIntervalId = null;
+    let ticketLogsVisibleCount = 15;
+    let pendingConfirmAction = null;
 
-    function toggleMobileMenu() {
-      const menu = document.getElementById('mobile-menu');
-      const icon = document.getElementById('menu-icon');
-      if (menu.classList.contains('hidden')) {
-        menu.classList.remove('hidden');
-        icon.className = 'fa-solid fa-xmark text-sm';
-      } else {
-        menu.classList.add('hidden');
-        icon.className = 'fa-solid fa-bars text-sm';
+    // ------------------------------------------------------------
+    // Security: escape ALL untrusted text before it goes into innerHTML.
+    // Shop item names/descriptions, promo codes, blacklist reasons/usernames,
+    // and ticket log usernames/transcripts all come from user input at some
+    // point — without this, any of them could inject a <script> tag into
+    // this admin dashboard.
+    // ------------------------------------------------------------
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function clampInput(el, min, max) {
+      let v = parseInt(el.value);
+      if (isNaN(v)) return;
+      if (v < min) el.value = min;
+      if (v > max) el.value = max;
+    }
+
+    // ------------------------------------------------------------
+    // Shared fetch wrapper: adds a 10s timeout (so a hung request can't
+    // leave a button stuck spinning forever) and centralizes error logging
+    // instead of the previous silent `catch (e) {}` blocks.
+    // ------------------------------------------------------------
+    async function apiFetch(url, options = {}) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      try {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+          console.error(`Request failed: ${url} (HTTP ${res.status})`);
+          return null;
+        }
+        return res;
+      } catch (e) {
+        clearTimeout(timeoutId);
+        console.error(`Request error: ${url}`, e);
+        return null;
       }
     }
 
@@ -649,16 +597,63 @@
       };
     }
 
+    // ------------------------------------------------------------
+    // Confirm dialog — used before genuinely destructive/high-impact actions
+    // (deleting a package, deleting a promo code, enabling maintenance mode).
+    // Low-risk/reversible actions (removing a discount, un-blacklisting
+    // someone) skip this on purpose — confirming everything just trains
+    // people to click through without reading.
+    // ------------------------------------------------------------
+    function askConfirm(title, message, onConfirm) {
+      document.getElementById('confirm-title').innerText = title;
+      document.getElementById('confirm-message').innerText = message;
+      pendingConfirmAction = onConfirm;
+      document.getElementById('confirm-modal').classList.remove('hidden');
+      document.getElementById('confirm-action-btn').focus();
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').classList.add('hidden');
+      pendingConfirmAction = null;
+    }
+
+    document.getElementById('confirm-action-btn').addEventListener('click', () => {
+      const action = pendingConfirmAction;
+      closeConfirmModal();
+      if (action) action();
+    });
+
+    // Escape key closes whichever modal is open
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      ['add-modal', 'edit-modal', 'code-modal', 'blacklist-modal', 'confirm-modal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
+      });
+      pendingConfirmAction = null;
+    });
+
     async function loadAllData(manualSync = false, btn = null) {
       const stopLoading = manualSync ? startBtnLoading(btn, "Syncing...") : () => {};
       if (manualSync) {
         document.getElementById('refresh-icon').classList.add('fa-spin');
-        showToast("Synchronizing with cloud database...");
+        showToast("Syncing with bot backend...");
       }
 
       try {
-        const guildRes = await fetch('/api/guild-data');
-        if (guildRes.ok) {
+        // Parallel instead of sequential — this alone meaningfully speeds up
+        // the initial load, especially once ticket logs/promo codes/blacklist
+        // grow large.
+        const [guildRes, ticketRes, shopRes, codesRes, blRes, logsRes] = await Promise.all([
+          apiFetch('/api/guild-data'),
+          apiFetch('/api/ticket-stats'),
+          apiFetch('/api/shop-items'),
+          apiFetch('/api/promo-codes'),
+          apiFetch('/api/blacklist'),
+          apiFetch('/api/ticket-logs'),
+        ]);
+
+        if (guildRes) {
           const gData = await guildRes.json();
           channels = gData.channels || [];
           roles = gData.roles || [];
@@ -666,65 +661,57 @@
 
           updateStatValue('stat-ping', `${gData.latency || 0} ms`);
 
-          if (gData.bot_avatar) {
-            document.getElementById('bot-avatar-img').src = gData.bot_avatar;
-            document.getElementById('bot-avatar-img-mobile').src = gData.bot_avatar;
-          }
+          if (gData.bot_avatar) document.getElementById('bot-avatar-img').src = gData.bot_avatar;
           if (gData.bot_name) {
-            document.getElementById('bot-name-display').innerText = gData.bot_name;
-            document.getElementById('bot-name-display-mobile').innerText = gData.bot_name;
+            document.getElementById('bot-name-display').innerHTML = `${escapeHtml(gData.bot_name)} <span class="bg-discord-accent text-[10px] px-1.5 py-0.5 rounded text-white font-semibold">ADMIN</span>`;
           }
-
           if (gData.maintenance !== undefined) {
             document.getElementById('maintenance-toggle').checked = gData.maintenance;
           }
 
           globalDiscount = gData.global_discount || 0;
-          discountExpiresAt = gData.discount_expires_at || null;
           document.getElementById('global-discount-input').value = globalDiscount;
+          document.getElementById('active-discount-badge').classList.toggle('hidden', globalDiscount <= 0);
 
-          updateDiscountCountdownUI();
           populateDropdowns();
         }
 
-        const ticketRes = await fetch('/api/ticket-stats');
-        if (ticketRes.ok) {
+        if (ticketRes) {
           const tData = await ticketRes.json();
           if (tData.saved_config) {
-            if (tData.saved_config.title) document.getElementById("ticket-panel-title").value = tData.saved_config.title;
-            if (tData.saved_config.description) document.getElementById("ticket-panel-desc").value = tData.saved_config.description;
-            if (tData.saved_config.welcome_message) document.getElementById("ticket-welcome-msg").value = tData.saved_config.welcome_message;
-            if (tData.saved_config.panel_channel_id) document.getElementById("ticket-panel-channel").value = tData.saved_config.panel_channel_id;
-            if (tData.saved_config.staff_role_id) document.getElementById("ticket-staff-role").value = tData.saved_config.staff_role_id;
-            if (tData.saved_config.category_id) document.getElementById("ticket-category").value = tData.saved_config.category_id;
+            const cfg = tData.saved_config;
+            if (cfg.title) document.getElementById("ticket-panel-title").value = cfg.title;
+            if (cfg.description) document.getElementById("ticket-panel-desc").value = cfg.description;
+            if (cfg.welcome_message) document.getElementById("ticket-welcome-msg").value = cfg.welcome_message;
+            if (cfg.panel_channel_id) document.getElementById("ticket-panel-channel").value = cfg.panel_channel_id;
+            if (cfg.staff_role_id) document.getElementById("ticket-staff-role").value = cfg.staff_role_id;
+            if (cfg.category_id) document.getElementById("ticket-category").value = cfg.category_id;
             updateTicketPreview();
           }
         }
 
-        const shopRes = await fetch('/api/shop-items');
-        if (shopRes.ok) {
+        if (shopRes) {
           shopItems = await shopRes.json();
           renderShopItems();
         }
-
-        const codesRes = await fetch('/api/promo-codes');
-        if (codesRes.ok) {
+        if (codesRes) {
           promoCodes = await codesRes.json();
           renderPromoCodes();
         }
-
-        const blRes = await fetch('/api/blacklist');
-        if (blRes.ok) {
+        if (blRes) {
           blacklist = await blRes.json();
           renderBlacklist();
         }
-
-        loadTicketLogs();
+        if (logsRes) {
+          ticketLogs = await logsRes.json();
+          renderTicketLogs();
+        }
 
         touchLastUpdated();
-        if (manualSync) showToast("All system parameters updated!");
+        if (manualSync) showToast("All statistics updated!");
       } catch (e) {
-        if (manualSync) showToast("Connection failed", true);
+        console.error('loadAllData failed:', e);
+        if (manualSync) showToast("Error syncing with bot backend", true);
       } finally {
         stopLoading();
         if (manualSync) {
@@ -733,80 +720,92 @@
       }
     }
 
-    function updateDiscountCountdownUI() {
-      const discountBadge = document.getElementById('active-discount-badge');
-      const badgeText = document.getElementById('discount-badge-text');
-
-      if (globalDiscount > 0) {
-        discountBadge.classList.remove('hidden');
-        if (discountExpiresAt) {
-          const now = Math.floor(Date.now() / 1000);
-          const diff = discountExpiresAt - now;
-          if (diff > 0) {
-            const h = Math.floor(diff / 3600);
-            const m = Math.floor((diff % 3600) / 60);
-            const s = diff % 60;
-            badgeText.innerText = `Sale: ${globalDiscount}% OFF (${h}h ${m}m ${s}s left)`;
-          } else {
-            globalDiscount = 0;
-            discountExpiresAt = null;
-            discountBadge.classList.add('hidden');
-            renderShopItems();
-          }
-        } else {
-          badgeText.innerText = `Sale: ${globalDiscount}% OFF (Permanent)`;
-        }
-      } else {
-        discountBadge.classList.add('hidden');
-      }
-    }
-
-    function startCountdownTimer() {
-      if (countdownIntervalId) clearInterval(countdownIntervalId);
-      countdownIntervalId = setInterval(() => {
-        updateDiscountCountdownUI();
-      }, 1000);
-    }
-
     async function loadTicketLogs(btn = null) {
-      const stopLoading = startBtnLoading(btn, "Fetching...");
-      try {
-        const res = await fetch('/api/ticket-logs');
-        if (res.ok) {
-          ticketLogs = await res.json();
-          renderTicketLogs();
-        }
-      } catch (e) {}
-      finally { stopLoading(); }
+      const stopLoading = startBtnLoading(btn, "Loading...");
+      const res = await apiFetch('/api/ticket-logs');
+      if (res) {
+        ticketLogs = await res.json();
+        renderTicketLogs();
+      } else {
+        showToast("Couldn't load ticket logs.", true);
+      }
+      stopLoading();
     }
 
     function renderTicketLogs() {
       const container = document.getElementById("ticket-logs-container");
+      const loadMoreWrap = document.getElementById("ticket-logs-loadmore-wrap");
+      const query = (document.getElementById("ticket-logs-search")?.value || "").toLowerCase();
+
+      let filtered = ticketLogs;
+      if (query) {
+        filtered = ticketLogs.filter(log =>
+          String(log.username || '').toLowerCase().includes(query) ||
+          String(log.user_id || '').includes(query) ||
+          String(log.ticket_number || '').includes(query)
+        );
+      }
+
       container.innerHTML = "";
-      if (ticketLogs.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No ticket logs recorded yet.</div>`;
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-discord-muted bg-discord-card rounded-lg border border-gray-800">${ticketLogs.length === 0 ? 'No ticket logs recorded yet.' : 'No logs match your search.'}</div>`;
+        loadMoreWrap.innerHTML = "";
+        updateBadge('ticketlogs', ticketLogs.length);
         return;
       }
 
-      ticketLogs.forEach(log => {
+      const visible = filtered.slice(0, ticketLogsVisibleCount);
+
+      visible.forEach(log => {
         const actionBadge = log.action === 'CLOSED'
-          ? `<span class="bg-echo-danger/10 text-echo-danger text-[10px] px-2.5 py-0.5 rounded-md font-extrabold uppercase tracking-wider border border-echo-danger/20">Closed</span>`
-          : `<span class="bg-echo-success/10 text-echo-success text-[10px] px-2.5 py-0.5 rounded-md font-extrabold uppercase tracking-wider border border-echo-success/20">Opened</span>`;
+          ? `<span class="bg-discord-red/10 text-discord-red text-[10px] px-2 py-0.5 rounded font-bold uppercase">Closed</span>`
+          : `<span class="bg-discord-green/10 text-discord-green text-[10px] px-2 py-0.5 rounded font-bold uppercase">Opened</span>`;
 
         container.innerHTML += `
-          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl space-y-2.5 shadow-xl animate-fade-in">
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 space-y-2 shadow-sm fade-in">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="font-extrabold text-white text-xs sm:text-sm">Ticket #${log.ticket_number}</span>
+                <span class="font-bold text-white text-sm">Ticket #${escapeHtml(log.ticket_number)}</span>
                 ${actionBadge}
+                <button onclick="copyToClipboard('${escapeHtml(String(log.ticket_number))}', this)" class="text-discord-muted hover:text-white transition text-xs" title="Copy ticket number">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
               </div>
-              <span class="text-[10px] sm:text-xs text-echo-muted font-mono">${log.timestamp || ''}</span>
+              <span class="text-xs text-discord-muted">${escapeHtml(log.timestamp || '')}</span>
             </div>
-            <p class="text-xs text-echo-text">User: <span class="font-bold text-white">${log.username}</span> <code class="text-echo-muted bg-echo-base px-1.5 py-0.5 rounded border border-white/5 font-mono text-[10px] sm:text-xs">ID: ${log.user_id}</code></p>
-            ${log.transcript ? `<details class="mt-2 text-xs"><summary class="cursor-pointer text-echo-accent hover:underline font-bold">View Chat Transcript</summary><pre class="mt-2 p-3 bg-echo-base rounded-xl text-echo-text font-mono text-[10px] sm:text-[11px] border border-white/5 overflow-x-auto max-h-48 whitespace-pre-wrap">${escapeHtml(log.transcript)}</pre></details>` : ''}
+            <p class="text-xs text-discord-text">User: <span class="font-semibold text-white">${escapeHtml(log.username)}</span> <code class="text-discord-muted bg-discord-sidebar px-1 py-0.5 rounded">ID: ${escapeHtml(log.user_id)}</code>
+              <button onclick="copyToClipboard('${escapeHtml(String(log.user_id))}', this)" class="text-discord-muted hover:text-white transition text-xs ml-1" title="Copy user ID"><i class="fa-regular fa-copy"></i></button>
+            </p>
+            ${log.transcript ? `<details class="mt-2 text-xs"><summary class="cursor-pointer text-discord-accent hover:underline font-medium">View Transcript Log</summary><pre class="mt-2 p-3 bg-discord-sidebar rounded text-discord-text font-mono text-[11px] overflow-x-auto max-h-40 whitespace-pre-wrap">${escapeHtml(log.transcript)}</pre></details>` : ''}
           </div>
         `;
       });
+
+      loadMoreWrap.innerHTML = filtered.length > visible.length
+        ? `<button onclick="ticketLogsVisibleCount += 15; renderTicketLogs();" class="text-xs text-discord-accent hover:underline font-medium py-2">Load ${Math.min(15, filtered.length - visible.length)} more (${filtered.length - visible.length} remaining)</button>`
+        : "";
+
+      updateBadge('ticketlogs', ticketLogs.length);
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied to clipboard!");
+        if (btn) {
+          const original = btn.innerHTML;
+          btn.innerHTML = `<i class="fa-solid fa-check text-discord-green"></i>`;
+          setTimeout(() => { btn.innerHTML = original; }, 1200);
+        }
+      }).catch(() => showToast("Couldn't copy — try selecting it manually.", true));
+    }
+
+    async function refreshStatsOnly() {
+      const res = await apiFetch('/api/guild-data');
+      if (res) {
+        const gData = await res.json();
+        updateStatValue('stat-ping', `${gData.latency || 0} ms`);
+      }
+      touchLastUpdated();
     }
 
     function updateStatValue(elemId, newValue) {
@@ -815,13 +814,44 @@
       const newText = String(newValue);
       if (el.innerText !== newText) {
         el.innerText = newText;
+        el.classList.remove('flash');
+        void el.offsetWidth;
+        el.classList.add('flash');
+      }
+    }
+
+    function updateBadge(tab, count) {
+      const el = document.getElementById(`badge-${tab}`);
+      if (!el) return;
+      if (count > 0) {
+        el.innerText = count > 99 ? '99+' : count;
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
       }
     }
 
     function touchLastUpdated() {
       const label = document.getElementById('last-updated-label');
-      if (label) label.innerText = `• synced ${new Date().toLocaleTimeString()}`;
+      if (label) label.innerText = `• updated ${new Date().toLocaleTimeString()}`;
     }
+
+    function startStatsPolling() {
+      if (statsIntervalId) return;
+      statsIntervalId = setInterval(refreshStatsOnly, 1000);
+    }
+
+    function stopStatsPolling() {
+      if (statsIntervalId) {
+        clearInterval(statsIntervalId);
+        statsIntervalId = null;
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopStatsPolling();
+      else { startStatsPolling(); refreshStatsOnly(); }
+    });
 
     function populateDropdowns() {
       const textChannels = channels.filter(c => c.type === 'text');
@@ -831,11 +861,11 @@
         elem.innerHTML = `<option value="">${defaultLabel}</option>`;
         list.forEach(item => {
           const selected = currentVal === String(item.id) ? 'selected' : '';
-          elem.innerHTML += `<option value="${item.id}" ${selected}># ${item.name}</option>`;
+          elem.innerHTML += `<option value="${item.id}" ${selected}># ${escapeHtml(item.name)}</option>`;
         });
       };
 
-      fillSelect('ticket-panel-channel', textChannels, '-- Select Target Channel --');
+      fillSelect('ticket-panel-channel', textChannels, '-- Select Panel Channel --');
       fillSelect('shop-channel-select', textChannels, '-- Select Shop Channel --');
 
       const roleSelect = document.getElementById('ticket-staff-role');
@@ -843,7 +873,7 @@
       roleSelect.innerHTML = `<option value="">-- Select Staff Role --</option>`;
       roles.forEach(r => {
         const selected = curRole === String(r.id) ? 'selected' : '';
-        roleSelect.innerHTML += `<option value="${r.id}" ${selected}>@ ${r.name}</option>`;
+        roleSelect.innerHTML += `<option value="${r.id}" ${selected}>@ ${escapeHtml(r.name)}</option>`;
       });
 
       const catSelect = document.getElementById('ticket-category');
@@ -851,7 +881,7 @@
       catSelect.innerHTML = `<option value="">-- Select Category --</option>`;
       categories.forEach(c => {
         const selected = curCat === String(c.id) ? 'selected' : '';
-        catSelect.innerHTML += `<option value="${c.id}" ${selected}>📁 ${c.name}</option>`;
+        catSelect.innerHTML += `<option value="${c.id}" ${selected}>📁 ${escapeHtml(c.name)}</option>`;
       });
     }
 
@@ -867,41 +897,49 @@
     function renderShopItems() {
       const container = document.getElementById("shop-items-container");
       const previewContainer = document.getElementById("preview-shop-items");
+      const query = (document.getElementById("shop-items-search")?.value || "").toLowerCase();
 
       container.innerHTML = "";
       previewContainer.innerHTML = "";
 
+      const filtered = query ? shopItems.filter(i => (i.name || '').toLowerCase().includes(query)) : shopItems;
+
+      updateBadge('shop', shopItems.length);
+
       if (shopItems.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No shop packages found. Click "+ New Package" above to add one!</div>`;
-        previewContainer.innerHTML = `<p class="text-xs text-echo-muted italic">No items currently listed.</p>`;
+        container.innerHTML = `<div class="p-6 text-center text-discord-muted bg-discord-card rounded-lg border border-gray-800">No shop packages found. Click "+ New Package" to add one!</div>`;
+        previewContainer.innerHTML = `<p class="text-xs text-discord-muted italic">No items currently listed.</p>`;
         return;
       }
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-discord-muted bg-discord-card rounded-lg border border-gray-800">No packages match your search.</div>`;
+      }
 
-      shopItems.forEach((item) => {
+      filtered.forEach((item) => {
         const isAvail = item.available !== false;
-        const availBadge = isAvail 
-          ? `<span class="bg-echo-success/10 text-echo-success text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border border-echo-success/20">Available</span>`
-          : `<span class="bg-echo-danger/10 text-echo-danger text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border border-echo-danger/20">Paused</span>`;
+        const availBadge = isAvail
+          ? `<span class="bg-green-500/10 text-green-400 text-[10px] px-2 py-0.5 rounded font-semibold">Available</span>`
+          : `<span class="bg-red-500/10 text-red-400 text-[10px] px-2 py-0.5 rounded font-semibold">Paused</span>`;
 
-        const displayPrice = globalDiscount > 0 
-          ? calculateDiscountPrice(item.price || 'Free', globalDiscount) 
+        const displayPrice = globalDiscount > 0
+          ? calculateDiscountPrice(item.price || 'Free', globalDiscount)
           : (item.price || 'Free');
 
         container.innerHTML += `
-          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in gap-3">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <p class="font-bold text-white text-xs sm:text-sm truncate">#${item.id} — ${item.name}</p>
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm hover:border-gray-700 transition fade-in">
+            <div>
+              <div class="flex items-center gap-2">
+                <p class="font-bold text-white text-sm">#${item.id} — ${escapeHtml(item.name)}</p>
                 ${availBadge}
               </div>
-              <p class="text-xs text-echo-muted mt-1 truncate">${item.desc || ''}</p>
-              <p class="text-xs font-mono text-echo-accent font-bold mt-1.5 truncate">Price: ${displayPrice}</p>
+              <p class="text-xs text-discord-muted mt-0.5">${escapeHtml(item.desc || '')}</p>
+              <p class="text-xs font-mono text-discord-accent mt-1">Price: ${escapeHtml(displayPrice)}</p>
             </div>
-            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              <button onclick="openEditItemModal(${item.id}, '${escapeHtml(item.name)}', '${escapeHtml(item.desc || '')}', '${escapeHtml(item.price || '')}', ${isAvail})" class="bg-echo-base hover:bg-black text-white p-2 sm:p-2.5 rounded-xl transition text-xs flex items-center gap-1 border border-white/5" title="Edit Package">
-                <i class="fa-solid fa-pen-to-square"></i> <span class="hidden sm:inline">Edit</span>
+            <div class="flex items-center gap-2">
+              <button onclick='openEditItemModal(${item.id}, ${JSON.stringify(item.name)}, ${JSON.stringify(item.desc || "")}, ${JSON.stringify(item.price || "")}, ${isAvail})' class="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded transition text-xs flex items-center gap-1.5" title="Edit Package">
+                <i class="fa-solid fa-pen-to-square"></i> Edit
               </button>
-              <button onclick="removeItem(${item.id}, this)" class="text-echo-danger hover:bg-echo-danger/10 p-2 sm:p-2.5 rounded-xl transition text-sm" title="Delete Package">
+              <button onclick="removeItem(${item.id}, this)" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm" title="Delete Package">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
@@ -911,9 +949,9 @@
         if (isAvail) {
           previewContainer.innerHTML += `
             <div class="text-xs">
-              <p class="font-semibold text-white">${item.name} — <span class="font-mono text-echo-muted">#${item.id}</span></p>
-              <p class="text-[11px] text-echo-muted">${item.desc || ''}</p>
-              <p class="text-[11px] text-echo-text mt-0.5">Price: <code class="bg-echo-base px-1.5 py-0.5 rounded text-echo-accent font-mono">${displayPrice}</code></p>
+              <p class="font-semibold text-white">${escapeHtml(item.name)} — <span class="font-mono text-discord-muted">#${item.id}</span></p>
+              <p class="text-[11px] text-discord-muted">${escapeHtml(item.desc || '')}</p>
+              <p class="text-[11px] text-discord-text mt-0.5">Price: <code class="bg-discord-sidebar px-1 py-0.5 rounded text-discord-accent">${escapeHtml(displayPrice)}</code></p>
             </div>
           `;
         }
@@ -921,7 +959,7 @@
 
       const previewDesc = document.getElementById('preview-shop-desc');
       if (globalDiscount > 0) {
-        previewDesc.innerHTML = `Custom Discord bots built for your server.<br><span class="text-echo-warning font-bold">🔥 STOREWIDE SALE: ${globalDiscount}% OFF ALL ITEMS!</span>`;
+        previewDesc.innerHTML = `Custom Discord bots built for your server.<br><span class="text-discord-yellow font-bold">🔥 STOREWIDE SALE: ${globalDiscount}% OFF ALL ITEMS!</span>`;
       } else {
         previewDesc.innerText = "Custom Discord bots built for your server. Reach out to get started!";
       }
@@ -930,29 +968,31 @@
     function renderPromoCodes() {
       const container = document.getElementById("promo-codes-container");
       container.innerHTML = "";
+      updateBadge('codes', promoCodes.length);
       if (promoCodes.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No active promo codes. Click "+ New Code" above to add one!</div>`;
+        container.innerHTML = `<div class="p-6 text-center text-discord-muted bg-discord-card rounded-lg border border-gray-800">No active promo codes. Click "+ New Promo Code" to add one!</div>`;
         return;
       }
       promoCodes.forEach(code => {
-        const limitStr = code.user_limit > 0 ? `${code.user_limit} use limit per person` : 'Unlimited uses';
+        const limitStr = code.user_limit > 0 ? `${code.user_limit} per user` : 'Unlimited uses';
         let expireStr = 'Never expires';
         if (code.expires_at) {
           const expDate = new Date(code.expires_at * 1000);
-          expireStr = expDate < new Date() ? `<span class="text-echo-danger font-bold">Expired</span>` : `Expires: ${expDate.toLocaleString()}`;
+          expireStr = expDate < new Date() ? `<span class="text-discord-red font-bold">Expired</span>` : `Expires: ${expDate.toLocaleString()}`;
         }
 
         container.innerHTML += `
-          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl">
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm fade-in">
             <div>
-              <p class="font-mono font-bold text-white text-xs sm:text-sm bg-echo-base px-2.5 py-1 rounded-xl inline-block border border-white/10">${code.code}</p>
-              <div class="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-echo-muted mt-2 flex-wrap">
-                <span class="text-echo-success font-bold">${code.discount}% OFF</span>
+              <span class="font-mono font-bold text-white text-sm bg-discord-sidebar px-2 py-1 rounded inline-block border border-gray-700">${escapeHtml(code.code)}</span>
+              <button onclick="copyToClipboard('${escapeHtml(code.code)}', this)" class="text-discord-muted hover:text-white transition text-xs ml-1.5" title="Copy code"><i class="fa-regular fa-copy"></i></button>
+              <div class="flex items-center gap-3 text-xs text-discord-muted mt-1.5">
+                <span class="text-discord-green font-bold">${code.discount}% OFF</span>
                 <span>• ${limitStr}</span>
                 <span>• ${expireStr}</span>
               </div>
             </div>
-            <button onclick="removePromoCode('${code.code}', this)" class="text-echo-danger hover:bg-echo-danger/10 p-2.5 rounded-xl transition text-sm">
+            <button onclick="removePromoCode('${escapeHtml(code.code)}', this)" class="text-discord-red hover:bg-red-500/10 p-2 rounded transition text-sm">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -963,24 +1003,27 @@
     function renderBlacklist() {
       const container = document.getElementById("blacklist-container");
       container.innerHTML = "";
+      updateBadge('blacklist', blacklist.length);
       if (blacklist.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No blacklisted users.</div>`;
+        container.innerHTML = `<div class="p-6 text-center text-discord-muted bg-discord-card rounded-lg border border-gray-800">No blacklisted users.</div>`;
         return;
       }
       blacklist.forEach(b => {
-        const usernameDisplay = b.username ? `@${b.username}` : 'Unknown User';
+        const usernameDisplay = b.username ? `@${escapeHtml(b.username)}` : 'Unknown User';
 
         container.innerHTML += `
-          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in">
+          <div class="bg-discord-card p-4 rounded-lg border border-gray-800 flex items-center justify-between shadow-sm hover:border-gray-700 transition fade-in">
             <div class="space-y-1">
               <div class="flex items-center gap-2">
-                <p class="font-bold text-white text-xs sm:text-sm">${usernameDisplay}</p>
-                <span class="bg-echo-danger/10 text-echo-danger text-[9px] sm:text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-echo-danger/20">Blacklisted</span>
+                <p class="font-bold text-white text-sm">${usernameDisplay}</p>
+                <span class="bg-discord-red/10 text-discord-red text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Blacklisted</span>
               </div>
-              <p class="text-[11px] sm:text-xs font-mono text-echo-muted">ID: ${b.user_id}</p>
-              <p class="text-[11px] sm:text-xs text-echo-text">Reason: <span class="text-echo-muted">${b.reason || 'No reason provided'}</span></p>
+              <p class="text-xs font-mono text-discord-muted">ID: ${escapeHtml(b.user_id)}
+                <button onclick="copyToClipboard('${escapeHtml(String(b.user_id))}', this)" class="text-discord-muted hover:text-white transition text-xs ml-1"><i class="fa-regular fa-copy"></i></button>
+              </p>
+              <p class="text-xs text-discord-text">Reason: <span class="text-discord-muted">${escapeHtml(b.reason || 'No reason provided')}</span></p>
             </div>
-            <button onclick="removeBlacklistUser('${b.user_id}', this)" class="text-echo-danger hover:bg-echo-danger/10 p-2.5 rounded-xl transition text-sm flex items-center justify-center shrink-0" title="Unblacklist User">
+            <button onclick="removeBlacklistUser('${escapeHtml(String(b.user_id))}', this)" class="text-discord-red hover:bg-red-500/10 p-2.5 rounded transition text-sm flex items-center gap-1.5 font-medium" title="Unblacklist User">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -988,32 +1031,37 @@
       });
     }
 
-    function escapeHtml(str) {
-      return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    }
-
     function updateTicketPreview() {
       document.getElementById("preview-ticket-title").innerText = document.getElementById("ticket-panel-title").value || "💳 MARKETPLACE REGISTER";
       document.getElementById("preview-ticket-desc").innerText = document.getElementById("ticket-panel-desc").value || "Click the button below to open a ticket channel.";
     }
 
+    function onMaintenanceToggle(e) {
+      const enabling = e.target.checked;
+      if (enabling) {
+        // Revert visually until confirmed — this is the one toggle where an
+        // accidental click has real operational impact (kills tickets/commands
+        // for everyone who isn't an admin).
+        e.target.checked = false;
+        askConfirm(
+          "Enable Maintenance Mode?",
+          "This immediately disables tickets and commands for everyone except admins.",
+          () => { e.target.checked = true; toggleMaintenanceMode(); }
+        );
+      } else {
+        toggleMaintenanceMode();
+      }
+    }
+
     async function toggleMaintenanceMode() {
       const enabled = document.getElementById("maintenance-toggle").checked;
-      showToast(enabled ? "Enabling Maintenance Protocol..." : "Disabling Maintenance Protocol...");
-      try {
-        const res = await fetch('/api/maintenance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ maintenance: enabled })
-        });
-        if (res.ok) {
-          showToast(enabled ? "Maintenance Protocol Active!" : "Maintenance Protocol Disengaged!");
-        } else {
-          showToast("Failed to update maintenance mode.", true);
-        }
-      } catch (e) {
-        showToast("Backend connection error.", true);
-      }
+      showToast(enabled ? "Enabling Maintenance Mode..." : "Disabling Maintenance Mode...");
+      const res = await apiFetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maintenance: enabled })
+      });
+      showToast(res ? (enabled ? "Maintenance Mode Enabled!" : "Maintenance Mode Disabled!") : "Backend connection error.", !res);
     }
 
     async function saveGlobalDiscount(btn = null) {
@@ -1022,56 +1070,36 @@
       const hours = parseInt(document.getElementById("global-discount-hours").value) || 0;
 
       globalDiscount = val;
-      discountExpiresAt = hours > 0 ? Math.floor(Date.now() / 1000) + (hours * 3600) : null;
-      updateDiscountCountdownUI();
+      document.getElementById('active-discount-badge').classList.toggle('hidden', globalDiscount <= 0);
       renderShopItems();
+      showToast(`Storewide discount updated to ${val}%!`);
 
-      showToast("Applying storewide sale...");
-      try {
-        const res = await fetch('/api/global-discount', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ discount: val, hours: hours })
-        });
-        if (res.ok) {
-          showToast(`Storewide sale active at ${val}% OFF!`);
-          loadAllData();
-        } else {
-          showToast("Failed to apply discount.", true);
-        }
-      } catch (e) {
-        showToast("Backend connection error.", true);
-      } finally {
-        stopLoading();
-      }
+      const res = await apiFetch('/api/global-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discount: val, hours: hours })
+      });
+      if (!res) showToast("Backend connection error.", true);
+      stopLoading();
     }
 
     async function removeGlobalDiscount(btn = null) {
       const stopLoading = startBtnLoading(btn, "Removing...");
-      
+
       globalDiscount = 0;
-      discountExpiresAt = null;
       document.getElementById("global-discount-input").value = "0";
       document.getElementById("global-discount-hours").value = "";
-      updateDiscountCountdownUI();
+      document.getElementById('active-discount-badge').classList.add('hidden');
       renderShopItems();
+      showToast("Storewide discount removed!");
 
-      showToast("Disengaging storewide sale...");
-      try {
-        const res = await fetch('/api/global-discount', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ discount: 0, hours: 0 })
-        });
-        if (res.ok) {
-          showToast("Storewide sale removed!");
-          loadAllData();
-        }
-      } catch (e) {
-        showToast("Backend connection error.", true);
-      } finally {
-        stopLoading();
-      }
+      const res = await apiFetch('/api/global-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discount: 0, hours: 0 })
+      });
+      if (!res) showToast("Backend connection error.", true);
+      stopLoading();
     }
 
     async function saveTicketSettings(btn = null) {
@@ -1085,156 +1113,94 @@
         category_id: document.getElementById("ticket-category").value
       };
 
-      updateTicketPreview();
-      showToast("Saving ticket configurations...");
-      try {
-        const res = await fetch('/api/save-ticket-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          showToast("Ticket settings saved!");
-        } else {
-          showToast("Failed to save settings.", true);
-        }
-      } catch (e) {
-        showToast("Backend connection error.", true);
-      } finally {
-        stopLoading();
-      }
+      showToast("Saving ticket settings...");
+      const res = await apiFetch('/api/save-ticket-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      showToast(res ? "Ticket panel configurations saved!" : "Failed to save settings.", !res);
+      stopLoading();
     }
 
     async function deployTicketPanel(btn = null) {
       const channelId = document.getElementById("ticket-panel-channel").value;
       if (!channelId) {
-        showToast("Select a Target Channel first!", true);
+        showToast("Please select a Panel Channel first!", true);
         return;
       }
       const stopLoading = startBtnLoading(btn, "Deploying...");
       await saveTicketSettings();
-      showToast("Deploying ticket embed to Discord...");
-      try {
-        const res = await fetch('/api/deploy-ticket-panel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel_id: channelId })
-        });
-        if (res.ok) {
-          showToast("Ticket panel deployed!");
-        } else {
-          showToast("Error deploying panel.", true);
-        }
-      } catch (e) {
-        showToast("Failed to deploy panel.", true);
-      } finally {
-        stopLoading();
-      }
+      showToast("Deploying ticket panel to Discord...");
+      const res = await apiFetch('/api/deploy-ticket-panel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: channelId })
+      });
+      showToast(res ? "Ticket panel successfully deployed!" : "Error deploying panel.", !res);
+      stopLoading();
     }
 
     async function updateExistingTicketPanel(btn = null) {
       const stopLoading = startBtnLoading(btn, "Updating...");
       await saveTicketSettings();
-      showToast("Updating live ticket embed in Discord...");
-      try {
-        const res = await fetch('/api/update-ticket-panel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        if (res.ok) {
-          showToast("Live ticket embed updated!");
-        } else {
-          showToast("No active panel found to update.", true);
-        }
-      } catch (e) {
-        showToast("Failed to update embed.", true);
-      } finally {
-        stopLoading();
-      }
+      showToast("Updating existing ticket embed in Discord...");
+      const res = await apiFetch('/api/update-ticket-panel', { method: 'POST' });
+      showToast(res ? "Existing ticket embed successfully updated!" : "No active panel message found to update. Deploy one first!", !res);
+      stopLoading();
     }
 
     async function deployShopPanel(btn = null) {
       const channelId = document.getElementById("shop-channel-select").value;
       if (!channelId) {
-        showToast("Select a Shop Channel first!", true);
+        showToast("Please select a Shop Output Channel first!", true);
         return;
       }
       const stopLoading = startBtnLoading(btn, "Deploying...");
       showToast("Posting shop embed to Discord...");
-      try {
-        const res = await fetch('/api/deploy-shop-panel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel_id: channelId })
-        });
-        if (res.ok) {
-          showToast("Shop embed posted successfully!");
-        } else {
-          showToast("Error deploying shop embed.", true);
-        }
-      } catch (e) {
-        showToast("Failed to post shop embed.", true);
-      } finally {
-        stopLoading();
-      }
+      const res = await apiFetch('/api/deploy-shop-panel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: channelId })
+      });
+      showToast(res ? "Shop embed successfully posted!" : "Error deploying shop embed.", !res);
+      stopLoading();
     }
 
     async function updateExistingShopPanel(btn = null) {
       const stopLoading = startBtnLoading(btn, "Updating...");
-      showToast("Updating live shop embed in Discord...");
-      try {
-        const res = await fetch('/api/update-shop-panel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        if (res.ok) {
-          showToast("Live shop embed updated!");
-        } else {
-          showToast("No active shop embed found.", true);
-        }
-      } catch (e) {
-        showToast("Failed to update embed.", true);
-      } finally {
-        stopLoading();
-      }
+      showToast("Updating existing shop embed in Discord...");
+      const res = await apiFetch('/api/update-shop-panel', { method: 'POST' });
+      showToast(res ? "Existing shop embed successfully updated!" : "No active shop message found to update. Deploy one first!", !res);
+      stopLoading();
     }
 
     async function addShopItem(btn = null) {
-      const name = document.getElementById("item-name-input").value;
+      const name = document.getElementById("item-name-input").value.trim();
       const desc = document.getElementById("item-desc-input").value;
       const price = document.getElementById("item-price-input").value;
       const available = document.getElementById("item-available-input").checked;
 
       if (!name) {
-        showToast("Package title required.", true);
+        showToast("Package name is required.", true);
         return;
       }
 
       const stopLoading = startBtnLoading(btn, "Adding...");
-
-      const nextId = shopItems.length > 0 ? Math.max(...shopItems.map(i => i.id)) + 1 : 1;
-      shopItems.push({ id: nextId, name, desc, price, available });
-      renderShopItems();
-      closeAddItemModal();
-
       showToast("Adding package...");
-      try {
-        const res = await fetch('/api/shop-items', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description: desc, price, available })
-        });
-        if (res.ok) {
-          showToast("Package added!");
-          loadAllData();
-        } else {
-          showToast("Failed to add package.", true);
-        }
-      } catch (e) {
-        showToast("Error adding shop package.", true);
-      } finally {
-        stopLoading();
+      const res = await apiFetch('/api/shop-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description: desc, price, available })
+      });
+      if (res) {
+        showToast("New package added to shop!");
+        closeAddItemModal();
+        await loadAllData();
+      } else {
+        showToast("Failed to add package.", true);
       }
+      stopLoading();
     }
 
     function openEditItemModal(id, name, desc, price, available) {
@@ -1244,66 +1210,60 @@
       document.getElementById("edit-price-input").value = price;
       document.getElementById("edit-available-input").checked = available;
       document.getElementById("edit-modal").classList.remove("hidden");
+      document.getElementById("edit-name-input").focus();
     }
 
     function closeEditItemModal() { document.getElementById("edit-modal").classList.add("hidden"); }
 
     async function saveEditShopItem(btn = null) {
       const id = parseInt(document.getElementById("edit-item-id").value);
-      const name = document.getElementById("edit-name-input").value;
+      const name = document.getElementById("edit-name-input").value.trim();
       const desc = document.getElementById("edit-desc-input").value;
       const price = document.getElementById("edit-price-input").value;
       const available = document.getElementById("edit-available-input").checked;
 
+      if (!name) {
+        showToast("Package name is required.", true);
+        return;
+      }
+
       const stopLoading = startBtnLoading(btn, "Updating...");
 
-      const itemIdx = shopItems.findIndex(i => i.id === id);
-      if (itemIdx !== -1) {
-        shopItems[itemIdx] = { id, name, desc, price, available };
+      const itemIndex = shopItems.findIndex(i => i.id === id);
+      if (itemIndex !== -1) {
+        shopItems[itemIndex] = { id, name, desc, price, available };
         renderShopItems();
       }
+
+      showToast("Package updated successfully!");
       closeEditItemModal();
 
-      showToast("Saving changes...");
-      try {
-        const res = await fetch(`/api/shop-items/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description: desc, price, available })
-        });
-        if (res.ok) {
-          showToast("Package updated!");
-          loadAllData();
-        } else {
-          showToast("Failed to edit item.", true);
-        }
-      } catch (e) {
-        showToast("Error updating item.", true);
-      } finally {
-        stopLoading();
-      }
+      const res = await apiFetch(`/api/shop-items/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description: desc, price, available })
+      });
+      if (!res) showToast("Error updating item.", true);
+      stopLoading();
     }
 
-    async function removeItem(id, btn = null) {
-      const stopLoading = startBtnLoading(btn, "");
+    function removeItem(id, btn = null) {
+      const item = shopItems.find(i => i.id === id);
+      askConfirm(
+        "Delete this package?",
+        `"${item ? item.name : 'This package'}" will be permanently removed from the shop.`,
+        () => performRemoveItem(id, btn)
+      );
+    }
 
+    async function performRemoveItem(id, btn) {
+      const stopLoading = startBtnLoading(btn, "");
       shopItems = shopItems.filter(i => i.id !== id);
       renderShopItems();
-
-      showToast("Deleting package...");
-      try {
-        const res = await fetch(`/api/shop-items/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-          showToast("Package deleted!");
-          loadAllData();
-        } else {
-          showToast("Failed to delete item.", true);
-        }
-      } catch (e) {
-        showToast("Error deleting item.", true);
-      } finally {
-        stopLoading();
-      }
+      showToast("Package deleted!");
+      const res = await apiFetch(`/api/shop-items/${id}`, { method: 'DELETE' });
+      if (!res) showToast("Error deleting item.", true);
+      stopLoading();
     }
 
     async function addPromoCode(btn = null) {
@@ -1313,156 +1273,128 @@
       const hours = parseInt(document.getElementById("code-expire-input").value) || 0;
 
       if (!code || discount <= 0) {
-        showToast("Enter a valid code and discount.", true);
+        showToast("Enter a valid code and discount percentage.", true);
         return;
       }
 
       const stopLoading = startBtnLoading(btn, "Creating...");
 
-      promoCodes.push({
-        code, discount, user_limit,
-        expires_at: hours > 0 ? Math.floor(Date.now() / 1000) + (hours * 3600) : null
-      });
+      promoCodes.push({ code, discount, user_limit, expires_at: hours > 0 ? (Math.floor(Date.now() / 1000) + hours * 3600) : null });
       renderPromoCodes();
+      showToast("Promo code created successfully!");
       closeAddCodeModal();
 
-      showToast("Creating promo code...");
-      try {
-        const res = await fetch('/api/promo-codes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, discount, user_limit, expire_hours: hours })
-        });
-        if (res.ok) {
-          showToast("Promo code created!");
-          loadAllData();
-        } else {
-          showToast("Failed to create code.", true);
-        }
-      } catch (e) {
-        showToast("Connection error.", true);
-      } finally {
-        stopLoading();
-      }
+      const res = await apiFetch('/api/promo-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, discount, user_limit, expire_hours: hours })
+      });
+      if (!res) showToast("Connection error.", true);
+      stopLoading();
     }
 
-    async function removePromoCode(code, btn = null) {
-      const stopLoading = startBtnLoading(btn, "");
+    function removePromoCode(code, btn = null) {
+      askConfirm("Delete this promo code?", `"${code}" will stop working immediately.`, () => performRemovePromoCode(code, btn));
+    }
 
+    async function performRemovePromoCode(code, btn) {
+      const stopLoading = startBtnLoading(btn, "");
       promoCodes = promoCodes.filter(c => c.code !== code);
       renderPromoCodes();
-
-      showToast("Deleting promo code...");
-      try {
-        const res = await fetch(`/api/promo-codes/${encodeURIComponent(code)}`, { method: 'DELETE' });
-        if (res.ok) {
-          showToast("Promo code deleted!");
-          loadAllData();
-        }
-      } catch (e) {
-        showToast("Error deleting code.", true);
-      } finally {
-        stopLoading();
-      }
+      showToast("Promo code deleted!");
+      const res = await apiFetch(`/api/promo-codes/${encodeURIComponent(code)}`, { method: 'DELETE' });
+      if (!res) showToast("Error deleting code.", true);
+      stopLoading();
     }
 
     async function addBlacklistUser(btn = null) {
       const userId = document.getElementById("blacklist-userid-input").value.trim();
       const reason = document.getElementById("blacklist-reason-input").value.trim();
-      if (!userId) {
-        showToast("Discord User ID required.", true);
+      if (!userId || !/^\d{15,25}$/.test(userId)) {
+        showToast("Enter a valid numeric Discord user ID.", true);
         return;
       }
       const stopLoading = startBtnLoading(btn, "Saving...");
 
       blacklist.push({ user_id: userId, username: "Fetching Username...", reason });
       renderBlacklist();
+      showToast("User blacklisted!");
       closeAddBlacklistModal();
 
-      showToast("Restricting user...");
-      try {
-        const res = await fetch('/api/blacklist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, reason })
-        });
-        if (res.ok) {
-          showToast("User blacklisted!");
-          loadAllData();
-        } else {
-          showToast("Failed to blacklist user.", true);
-        }
-      } catch (e) {
+      const res = await apiFetch('/api/blacklist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, reason })
+      });
+      if (res) {
+        await loadAllData();
+      } else {
         showToast("Connection error.", true);
-      } finally {
-        stopLoading();
       }
+      stopLoading();
     }
 
     async function removeBlacklistUser(userId, btn = null) {
       const stopLoading = startBtnLoading(btn, "");
-
       blacklist = blacklist.filter(b => b.user_id !== userId);
       renderBlacklist();
-
-      showToast("Unblacklisting user...");
-      try {
-        const res = await fetch(`/api/blacklist/${userId}`, { method: 'DELETE' });
-        if (res.ok) {
-          showToast("User restriction lifted!");
-          loadAllData();
-        } else {
-          showToast("Failed to unblacklist user.", true);
-        }
-      } catch (e) {
-        showToast("Error removing user.", true);
-      } finally {
-        stopLoading();
-      }
+      showToast("User unblacklisted successfully!");
+      const res = await apiFetch(`/api/blacklist/${userId}`, { method: 'DELETE' });
+      if (!res) showToast("Error removing user.", true);
+      stopLoading();
     }
 
-    function switchTab(tab) {
-      const tabs = ['overview', 'tickets', 'ticketlogs', 'shop', 'codes', 'blacklist'];
-      tabs.forEach(t => {
+    // ------------------------------------------------------------
+    // Tab routing via URL hash — refresh-safe and shareable/bookmarkable,
+    // without touching localStorage/sessionStorage.
+    // ------------------------------------------------------------
+    const VALID_TABS = ['overview', 'tickets', 'ticketlogs', 'shop', 'codes', 'blacklist'];
+
+    function switchTab(tab, pushHash = true) {
+      if (!VALID_TABS.includes(tab)) tab = 'overview';
+
+      VALID_TABS.forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
-        
-        // Desktop Nav
-        const desktopNav = document.getElementById(`nav-${t}`);
-        if (desktopNav) {
-          desktopNav.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200';
-        }
-        
-        // Mobile Bottom Nav
-        const mobileNav = document.getElementById(`m-nav-${t}`);
-        if (mobileNav) {
-          mobileNav.className = 'flex flex-col items-center gap-1 p-2 text-echo-muted';
-        }
+        document.getElementById(`nav-${t}`).className = 'w-full flex items-center justify-between px-3 py-2.5 rounded-md font-medium text-sm text-discord-muted hover:bg-discord-card hover:text-white transition-all';
       });
 
       const target = document.getElementById(`tab-${tab}`);
       target.classList.remove('hidden');
-      target.classList.remove('animate-fade-in');
+      target.classList.remove('fade-in');
       void target.offsetWidth;
-      target.classList.add('animate-fade-in');
+      target.classList.add('fade-in');
 
-      // Set Active Nav
-      const activeDesktop = document.getElementById(`nav-${tab}`);
-      if (activeDesktop) {
-        activeDesktop.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-echo-accent glow-purple transition-all duration-200';
-      }
-      
-      const activeMobile = document.getElementById(`m-nav-${tab}`);
-      if (activeMobile) {
-        activeMobile.className = 'flex flex-col items-center gap-1 p-2 text-echo-accent font-bold';
-      }
+      document.getElementById(`nav-${tab}`).className = 'w-full flex items-center justify-between px-3 py-2.5 rounded-md font-medium text-sm text-white bg-discord-accent transition-all';
+
+      if (pushHash) window.location.hash = tab;
     }
 
-    function openAddItemModal() { document.getElementById("add-modal").classList.remove("hidden"); }
-    function closeAddItemModal() { document.getElementById("add-modal").classList.add("hidden"); }
-    function openAddCodeModal() { document.getElementById("code-modal").classList.remove("hidden"); }
-    function closeAddCodeModal() { document.getElementById("code-modal").classList.add("hidden"); }
-    function openAddBlacklistModal() { document.getElementById("blacklist-modal").classList.remove("hidden"); }
-    function closeAddBlacklistModal() { document.getElementById("blacklist-modal").classList.add("hidden"); }
+    window.addEventListener('hashchange', () => switchTab(window.location.hash.slice(1), false));
+
+    function openAddItemModal() {
+      document.getElementById("add-modal").classList.remove("hidden");
+      document.getElementById("item-name-input").focus();
+    }
+    function closeAddItemModal() {
+      document.getElementById("add-modal").classList.add("hidden");
+      ['item-name-input', 'item-desc-input', 'item-price-input'].forEach(id => document.getElementById(id).value = '');
+    }
+    function openAddCodeModal() {
+      document.getElementById("code-modal").classList.remove("hidden");
+      document.getElementById("code-name-input").focus();
+    }
+    function closeAddCodeModal() {
+      document.getElementById("code-modal").classList.add("hidden");
+      ['code-name-input', 'code-discount-input', 'code-limit-input', 'code-expire-input'].forEach(id => document.getElementById(id).value = '');
+    }
+    function openAddBlacklistModal() {
+      document.getElementById("blacklist-modal").classList.remove("hidden");
+      document.getElementById("blacklist-userid-input").focus();
+    }
+    function closeAddBlacklistModal() {
+      document.getElementById("blacklist-modal").classList.add("hidden");
+      ['blacklist-userid-input', 'blacklist-reason-input'].forEach(id => document.getElementById(id).value = '');
+    }
 
     function showToast(msg, isError = false) {
       const toast = document.getElementById("toast");
@@ -1471,11 +1403,11 @@
 
       message.innerText = msg;
       if (isError) {
-        toast.classList.replace("bg-echo-accent", "bg-echo-danger");
-        icon.className = "fa-solid fa-circle-xmark text-white text-base";
+        toast.classList.replace("bg-discord-accent", "bg-discord-red");
+        icon.className = "fa-solid fa-circle-xmark text-white";
       } else {
-        toast.classList.replace("bg-echo-danger", "bg-echo-accent");
-        icon.className = "fa-solid fa-circle-check text-echo-success text-base";
+        toast.classList.replace("bg-discord-red", "bg-discord-accent");
+        icon.className = "fa-solid fa-circle-check text-green-400";
       }
 
       toast.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
@@ -1484,9 +1416,10 @@
       }, 3000);
     }
 
+    // Init: respect a tab in the URL hash if present, then load data
+    switchTab(window.location.hash.slice(1) || 'overview', false);
     loadAllData();
-    startCountdownTimer();
+    startStatsPolling();
   </script>
 </body>
 </html>
-
