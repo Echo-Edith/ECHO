@@ -229,7 +229,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-echo-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v10.0</span>
+      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v11.0</span>
     </div>
   </aside>
 
@@ -328,10 +328,35 @@
         <p class="text-xs text-echo-muted mt-1">Deploy information and form triggers together into a single clean Discord UI Embed with button attached!</p>
       </div>
 
+      <!-- Presets Manager Vault -->
+      <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-echo-accent/10 text-echo-accent flex items-center justify-center text-lg shrink-0 border border-echo-accent/20">
+              <i class="fa-solid fa-box-archive"></i>
+            </div>
+            <div>
+              <h3 class="text-xs sm:text-sm font-bold text-white">Saved Form Preset Vault</h3>
+              <p class="text-[11px] text-echo-muted">Save, load, or delete multiple custom form configurations instantly.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input type="text" id="preset-name-input" placeholder="Preset Name (e.g. Bot Inquiries)" class="flex-1 sm:w-48 bg-echo-base border border-echo-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+            <button onclick="saveCurrentAsPreset(this)" class="bg-echo-accent hover:bg-echo-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center gap-1.5 shadow shrink-0">
+              <i class="fa-solid fa-bookmark"></i> Save Preset
+            </button>
+          </div>
+        </div>
+
+        <div id="presets-list-container" class="space-y-2 pt-1">
+          <p class="text-xs text-echo-muted italic">No saved presets found.</p>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         <div class="lg:col-span-7 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 md:space-y-5 shadow-2xl">
           <h3 class="text-xs font-extrabold uppercase tracking-widest text-echo-muted flex items-center gap-2 border-b border-white/5 pb-3">
-            <i class="fa-solid fa-sliders text-echo-accent"></i> Embed & Notification Setup
+            <i class="fa-solid fa-sliders text-echo-accent"></i> Embed & Channel Setup
           </h3>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -348,13 +373,6 @@
                 <option value="">Loading Channels...</option>
               </select>
             </div>
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Role to Ping on Submission</label>
-            <select id="form-role-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
-              <option value="">Loading Roles...</option>
-            </select>
           </div>
 
           <div>
@@ -564,6 +582,7 @@
     let blacklist = [];
     let formQuestions = [];
     let formSubmissions = [];
+    let formPresets = [];
     let rawUptimeSeconds = 0;
     let telemetryInterval = null;
     let chartInstance = null;
@@ -700,7 +719,6 @@
           if (fConfig.button_label) document.getElementById("form-button-label").value = fConfig.button_label;
           if (fConfig.channel_id) document.getElementById("form-channel-select").value = fConfig.channel_id;
           if (fConfig.log_channel_id) document.getElementById("log-channel-select").value = fConfig.log_channel_id;
-          if (fConfig.ping_role_id) document.getElementById("form-role-select").value = fConfig.ping_role_id;
           updateFormPreview();
         }
 
@@ -708,6 +726,12 @@
         if (questionsRes.ok) {
           formQuestions = await questionsRes.json();
           renderFormQuestions();
+        }
+
+        const presetsRes = await fetch('/api/form-presets');
+        if (presetsRes.ok) {
+          formPresets = await presetsRes.json();
+          renderPresets();
         }
 
         const blRes = await fetch('/api/blacklist');
@@ -764,13 +788,119 @@
                 <span class="font-extrabold text-white text-xs sm:text-sm">Inquiry From: ${escapeHtml(sub.username)}</span>
                 <span class="bg-echo-accent/10 text-echo-accent text-[10px] px-2 py-0.5 rounded font-bold uppercase">Form Entry</span>
               </div>
-              <span class="text-[10px] sm:text-xs text-echo-muted font-mono">${sub.timestamp || ''}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] sm:text-xs text-echo-muted font-mono">${sub.timestamp || ''}</span>
+                <button onclick="deleteSubmission('${sub.id}', this)" class="text-echo-danger hover:bg-echo-danger/10 p-1.5 rounded-lg transition text-xs" title="Delete Submission">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
             </div>
             <p class="text-xs text-echo-text"><code class="text-echo-muted bg-echo-base px-1.5 py-0.5 rounded border border-white/5 font-mono text-[10px] sm:text-xs">User ID: ${sub.user_id}</code></p>
             <div class="space-y-1.5 pt-1">${answersHtml}</div>
           </div>
         `;
       });
+    }
+
+    async function deleteSubmission(subId, btn = null) {
+      const stopLoading = startBtnLoading(btn, "");
+      formSubmissions = formSubmissions.filter(s => s.id !== subId);
+      renderFormSubmissions();
+
+      showToast("Deleting submission...");
+      try {
+        const res = await fetch(`/api/form-submissions/${subId}`, { method: 'DELETE' });
+        if (res.ok) showToast("Submission deleted!");
+      } catch (e) { showToast("Error deleting submission.", true); }
+      finally { stopLoading(); }
+    }
+
+    function renderPresets() {
+      const container = document.getElementById("presets-list-container");
+      container.innerHTML = "";
+      if (formPresets.length === 0) {
+        container.innerHTML = `<p class="text-xs text-echo-muted italic">No saved presets found.</p>`;
+        return;
+      }
+
+      formPresets.forEach(preset => {
+        container.innerHTML += `
+          <div class="flex items-center justify-between p-2.5 bg-echo-base rounded-xl border border-white/5">
+            <div>
+              <p class="font-bold text-white text-xs">${escapeHtml(preset.name)}</p>
+              <p class="text-[10px] text-echo-muted">Title: "${escapeHtml(preset.title)}"</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="loadPreset('${escapeHtml(preset.name)}', this)" class="bg-echo-accent hover:bg-echo-accent/80 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition active:scale-95 flex items-center gap-1 shadow">
+                <i class="fa-solid fa-download"></i> Load
+              </button>
+              <button onclick="deletePreset('${escapeHtml(preset.name)}', this)" class="text-echo-danger hover:bg-echo-danger/10 p-1.5 rounded-lg transition text-xs" title="Delete Preset">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    async function saveCurrentAsPreset(btn = null) {
+      const name = document.getElementById("preset-name-input").value.trim();
+      if (!name) {
+        showToast("Enter a preset name.", true);
+        return;
+      }
+
+      const stopLoading = startBtnLoading(btn, "Saving...");
+      const presetData = {
+        name: name,
+        title: document.getElementById("form-panel-title").value,
+        description: document.getElementById("form-panel-desc").value,
+        button_label: document.getElementById("form-button-label").value,
+        channel_id: document.getElementById("form-channel-select").value,
+        log_channel_id: document.getElementById("log-channel-select").value
+      };
+
+      showToast("Saving preset...");
+      try {
+        const res = await fetch('/api/form-presets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(presetData)
+        });
+        if (res.ok) {
+          showToast("Preset saved!");
+          document.getElementById("preset-name-input").value = "";
+          loadAllData();
+        }
+      } catch (e) { showToast("Error saving preset.", true); }
+      finally { stopLoading(); }
+    }
+
+    async function loadPreset(presetName, btn = null) {
+      const preset = formPresets.find(p => p.name === presetName);
+      if (!preset) return;
+
+      document.getElementById("form-panel-title").value = preset.title || "";
+      document.getElementById("form-panel-desc").value = preset.description || "";
+      document.getElementById("form-button-label").value = preset.button_label || "";
+      if (preset.channel_id) document.getElementById("form-channel-select").value = preset.channel_id;
+      if (preset.log_channel_id) document.getElementById("log-channel-select").value = preset.log_channel_id;
+
+      updateFormPreview();
+      showToast(`Loaded preset "${presetName}"!`);
+    }
+
+    async function deletePreset(presetName, btn = null) {
+      const stopLoading = startBtnLoading(btn, "");
+      formPresets = formPresets.filter(p => p.name !== presetName);
+      renderPresets();
+
+      showToast("Deleting preset...");
+      try {
+        const res = await fetch(`/api/form-presets/${encodeURIComponent(presetName)}`, { method: 'DELETE' });
+        if (res.ok) showToast("Preset deleted!");
+      } catch (e) { showToast("Error deleting preset.", true); }
+      finally { stopLoading(); }
     }
 
     function updateStatValue(elemId, newValue) {
@@ -794,16 +924,6 @@
 
       fillSelect('form-channel-select', textChannels, '-- Select Button Channel --');
       fillSelect('log-channel-select', textChannels, '-- Select Submission Log Channel --');
-
-      const roleSelect = document.getElementById('form-role-select');
-      if (roleSelect) {
-        const curRole = roleSelect.value;
-        roleSelect.innerHTML = `<option value="">-- Select Ping Role --</option>`;
-        roles.forEach(r => {
-          const selected = curRole === String(r.id) ? 'selected' : '';
-          roleSelect.innerHTML += `<option value="${r.id}" ${selected}>@ ${r.name}</option>`;
-        });
-      }
     }
 
     function renderFormQuestions() {
@@ -902,8 +1022,7 @@
         description: document.getElementById("form-panel-desc").value,
         button_label: document.getElementById("form-button-label").value,
         channel_id: document.getElementById("form-channel-select").value,
-        log_channel_id: document.getElementById("log-channel-select").value,
-        ping_role_id: document.getElementById("form-role-select").value
+        log_channel_id: document.getElementById("log-channel-select").value
       };
 
       updateFormPreview();
