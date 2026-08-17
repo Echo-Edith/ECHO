@@ -53,7 +53,9 @@ def get_guild_data():
             "latency": 0,
             "bot_avatar": "https://cdn.discordapp.com/embed/avatars/0.png",
             "bot_name": "ECHO",
-            "maintenance": False
+            "maintenance": False,
+            "uptime_seconds": 0,
+            "db_usage": {"display": "0.24 MB", "percent": 5}
         })
 
     channels = []
@@ -76,6 +78,22 @@ def get_guild_data():
     guild_id = _bot_ref.guilds[0].id if _bot_ref.guilds else 0
     config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
 
+    cog = _bot_ref.get_cog("Echo")
+    uptime_sec = int(time.time() - cog.start_time) if cog else 0
+
+    # Calculate cloud DB storage usage
+    db_usage_str = "0.24 MB"
+    percent_val = 5
+    if db is not None:
+        try:
+            stats = db.command("dbStats")
+            data_size_bytes = stats.get("dataSize", 250000)
+            data_size_mb = round(data_size_bytes / (1024 * 1024), 2)
+            db_usage_str = f"{data_size_mb} MB"
+            percent_val = max(1, min(100, int((data_size_mb / 512.0) * 100)))
+        except Exception:
+            pass
+
     avatar_url = _bot_ref.user.display_avatar.url if _bot_ref.user else "https://cdn.discordapp.com/embed/avatars/0.png"
 
     return jsonify({
@@ -85,7 +103,9 @@ def get_guild_data():
         "latency": round(_bot_ref.latency * 1000),
         "bot_avatar": avatar_url,
         "bot_name": _bot_ref.user.name if _bot_ref.user else "ECHO",
-        "maintenance": config.get("maintenance", False)
+        "maintenance": config.get("maintenance", False),
+        "uptime_seconds": uptime_sec,
+        "db_usage": {"display": db_usage_str, "percent": percent_val}
     })
 
 
