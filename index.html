@@ -229,7 +229,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-echo-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v11.0</span>
+      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v11.2</span>
     </div>
   </aside>
 
@@ -246,26 +246,6 @@
         <button onclick="loadAllData(true, this)" class="bg-echo-card hover:bg-echo-card/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2.5 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
           <i class="fa-solid fa-arrows-rotate text-echo-accent" id="refresh-icon"></i> Refresh Telemetry
         </button>
-      </div>
-
-      <div class="glass-card px-5 py-4 rounded-2xl flex items-center justify-between shadow-xl border border-white/5">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-echo-danger/10 text-echo-danger flex items-center justify-center text-sm shrink-0 border border-echo-danger/20">
-            <i class="fa-solid fa-shield-halved"></i>
-          </div>
-          <div>
-            <h3 class="text-xs font-extrabold text-white">Maintenance Protocol</h3>
-            <p class="text-[11px] text-echo-muted hidden sm:block">Locks form submissions for non-admins.</p>
-          </div>
-        </div>
-        <div>
-          <label class="cursor-pointer inline-flex items-center">
-            <input type="checkbox" id="maintenance-toggle" onchange="toggleMaintenanceMode()" class="hidden">
-            <span class="switch-track">
-              <span class="switch-thumb"></span>
-            </span>
-          </label>
-        </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
@@ -293,16 +273,16 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <i class="fa-solid fa-database text-echo-success text-sm"></i>
-              <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">Cloud Database</p>
+              <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">Cloud Database Memory</p>
             </div>
-            <span class="text-xs font-mono font-bold text-echo-success" id="stat-db-usage">0.24 MB</span>
+            <span class="text-xs font-mono font-bold text-echo-success" id="stat-db-usage">0.00 MB</span>
           </div>
           <div class="w-full bg-echo-base h-2 rounded-full overflow-hidden border border-white/5 mt-1">
-            <div id="db-progress-bar" class="bg-echo-success h-full transition-all duration-500 rounded-full" style="width: 5%;"></div>
+            <div id="db-progress-bar" class="bg-echo-success h-full transition-all duration-500 rounded-full" style="width: 1%;"></div>
           </div>
           <p class="text-[10px] text-echo-muted font-mono flex justify-between">
             <span>MongoDB Atlas</span>
-            <span>512 MB Free Tier</span>
+            <span>512.00 MB Free Tier</span>
           </p>
         </div>
       </div>
@@ -356,23 +336,14 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         <div class="lg:col-span-7 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 md:space-y-5 shadow-2xl">
           <h3 class="text-xs font-extrabold uppercase tracking-widest text-echo-muted flex items-center gap-2 border-b border-white/5 pb-3">
-            <i class="fa-solid fa-sliders text-echo-accent"></i> Embed & Channel Setup
+            <i class="fa-solid fa-sliders text-echo-accent"></i> Embed Setup
           </h3>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Form Button Channel</label>
-              <select id="form-channel-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
-                <option value="">Loading Channels...</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Submission Log Channel</label>
-              <select id="log-channel-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
-                <option value="">Loading Channels...</option>
-              </select>
-            </div>
+          <div>
+            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Form Button Target Channel</label>
+            <select id="form-channel-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
+              <option value="">Loading Channels...</option>
+            </select>
           </div>
 
           <div>
@@ -718,7 +689,6 @@
           if (fConfig.description) document.getElementById("form-panel-desc").value = fConfig.description;
           if (fConfig.button_label) document.getElementById("form-button-label").value = fConfig.button_label;
           if (fConfig.channel_id) document.getElementById("form-channel-select").value = fConfig.channel_id;
-          if (fConfig.log_channel_id) document.getElementById("log-channel-select").value = fConfig.log_channel_id;
           updateFormPreview();
         }
 
@@ -807,10 +777,15 @@
       formSubmissions = formSubmissions.filter(s => s.id !== subId);
       renderFormSubmissions();
 
-      showToast("Deleting submission...");
+      showToast("Deleting submission permanently...");
       try {
         const res = await fetch(`/api/form-submissions/${subId}`, { method: 'DELETE' });
-        if (res.ok) showToast("Submission deleted!");
+        if (res.ok) {
+          showToast("Submission deleted permanently from cloud database!");
+          loadFormSubmissions();
+        } else {
+          showToast("Failed to delete submission.", true);
+        }
       } catch (e) { showToast("Error deleting submission.", true); }
       finally { stopLoading(); }
     }
@@ -856,8 +831,7 @@
         title: document.getElementById("form-panel-title").value,
         description: document.getElementById("form-panel-desc").value,
         button_label: document.getElementById("form-button-label").value,
-        channel_id: document.getElementById("form-channel-select").value,
-        log_channel_id: document.getElementById("log-channel-select").value
+        channel_id: document.getElementById("form-channel-select").value
       };
 
       showToast("Saving preset...");
@@ -884,7 +858,6 @@
       document.getElementById("form-panel-desc").value = preset.description || "";
       document.getElementById("form-button-label").value = preset.button_label || "";
       if (preset.channel_id) document.getElementById("form-channel-select").value = preset.channel_id;
-      if (preset.log_channel_id) document.getElementById("log-channel-select").value = preset.log_channel_id;
 
       updateFormPreview();
       showToast(`Loaded preset "${presetName}"!`);
@@ -923,7 +896,6 @@
       };
 
       fillSelect('form-channel-select', textChannels, '-- Select Button Channel --');
-      fillSelect('log-channel-select', textChannels, '-- Select Submission Log Channel --');
     }
 
     function renderFormQuestions() {
@@ -1021,8 +993,7 @@
         title: document.getElementById("form-panel-title").value,
         description: document.getElementById("form-panel-desc").value,
         button_label: document.getElementById("form-button-label").value,
-        channel_id: document.getElementById("form-channel-select").value,
-        log_channel_id: document.getElementById("log-channel-select").value
+        channel_id: document.getElementById("form-channel-select").value
       };
 
       updateFormPreview();
