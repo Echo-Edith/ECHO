@@ -62,7 +62,7 @@ def is_maintenance(guild_id: int) -> bool:
 # Dynamic Multi-Part Chained Modals
 # ----------------------------------------------------------------------
 class ChainedCustomModal(discord.ui.Modal):
-    def __init__(self, title: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict], ping_role_id: Optional[int], log_channel_id: Optional[int]):
+    def __init__(self, title: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict], log_channel_id: Optional[int]):
         modal_title = f"{title} (Part {current_index // 5 + 1})" if len(all_questions) > 5 else title
         super().__init__(title=modal_title[:45])
         
@@ -70,7 +70,6 @@ class ChainedCustomModal(discord.ui.Modal):
         self.all_questions = all_questions
         self.current_index = current_index
         self.previous_answers = previous_answers
-        self.ping_role_id = ping_role_id
         self.log_channel_id = log_channel_id
         self.inputs = []
 
@@ -88,7 +87,6 @@ class ChainedCustomModal(discord.ui.Modal):
             self.add_item(field_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Accumulate current answers
         current_answers = list(self.previous_answers)
         for label, inp in self.inputs:
             val = inp.value.strip() or "*(No Answer)*"
@@ -96,7 +94,6 @@ class ChainedCustomModal(discord.ui.Modal):
 
         next_index = self.current_index + len(self.inputs)
 
-        # Check if more questions remain
         if next_index < len(self.all_questions):
             next_chunk = self.all_questions[next_index:next_index + 5]
             next_modal = ChainedCustomModal(
@@ -105,7 +102,6 @@ class ChainedCustomModal(discord.ui.Modal):
                 all_questions=self.all_questions,
                 current_index=next_index,
                 previous_answers=current_answers,
-                ping_role_id=self.ping_role_id,
                 log_channel_id=self.log_channel_id
             )
             await interaction.response.send_modal(next_modal)
@@ -114,7 +110,6 @@ class ChainedCustomModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
         db = get_db()
 
-        # Build final submission embed
         embed = discord.Embed(
             title=f"📥 New Form Submission: {self.main_title}",
             color=discord.Color.green(),
@@ -125,7 +120,6 @@ class ChainedCustomModal(discord.ui.Modal):
         for ans in current_answers:
             embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
 
-        # Store in MongoDB
         if db is not None:
             db["form_submissions"].insert_one({
                 "username": str(interaction.user),
@@ -134,25 +128,18 @@ class ChainedCustomModal(discord.ui.Modal):
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             })
 
-        # Output target: Selected Log Channel or Current Interaction Channel
         target_channel = interaction.channel
         if self.log_channel_id and interaction.guild:
             ch = interaction.guild.get_channel(self.log_channel_id)
             if ch:
                 target_channel = ch
 
-        ping_content = ""
-        if self.ping_role_id and interaction.guild:
-            role = interaction.guild.get_role(self.ping_role_id)
-            if role:
-                ping_content = role.mention
-
-        await target_channel.send(content=ping_content, embed=embed)
+        await target_channel.send(embed=embed)
         await interaction.followup.send(embed=info_embed("✅ Submission Received!", "Thank you for filling out the form. Our team has received your submission and will review it shortly!"), ephemeral=True)
 
 
 # ----------------------------------------------------------------------
-# Persistent Button View attached to Embed Panel
+# Persistent Button View
 # ----------------------------------------------------------------------
 class FormPanelView(discord.ui.View):
     def __init__(self, button_label: str = "📝 Fill Out Form"):
@@ -179,7 +166,6 @@ class FormPanelView(discord.ui.View):
             ]
 
         title = config.get("title") or "Custom Form"
-        ping_role_id = config.get("ping_role_id")
         log_channel_id = config.get("log_channel_id")
 
         first_chunk = questions[:5]
@@ -189,7 +175,6 @@ class FormPanelView(discord.ui.View):
             all_questions=questions,
             current_index=0,
             previous_answers=[],
-            ping_role_id=ping_role_id,
             log_channel_id=log_channel_id
         )
         await interaction.response.send_modal(modal)
