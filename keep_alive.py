@@ -3,6 +3,7 @@ import time
 import asyncio
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
+from bson.objectid import ObjectId
 
 try:
     import pymongo
@@ -129,7 +130,7 @@ def save_form_config():
     guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
 
     channel_id = int(data["channel_id"]) if data.get("channel_id") else None
-    ping_role_id = int(data["ping_role_id"]) if data.get("ping_role_id") else None
+    log_channel_id = int(data["log_channel_id"]) if data.get("log_channel_id") else None
 
     db["guild_config"].update_one(
         {"guild_id": guild_id},
@@ -140,7 +141,7 @@ def save_form_config():
                 "description": data.get("description"),
                 "button_label": data.get("button_label"),
                 "channel_id": channel_id,
-                "ping_role_id": ping_role_id
+                "log_channel_id": log_channel_id
             }
         },
         upsert=True
@@ -170,6 +171,51 @@ def handle_form_questions():
     return jsonify(doc.get("questions", []))
 
 
+@app.route('/api/form-presets', methods=['GET', 'POST'])
+def handle_form_presets():
+    db = get_db()
+    if db is None:
+        return jsonify([])
+
+    if request.method == 'POST':
+        data = request.json or {}
+        preset_name = str(data.get("name", "")).strip()
+        if preset_name:
+            db["form_presets"].update_one(
+                {"name": preset_name},
+                {"$set": {
+                    "name": preset_name,
+                    "title": data.get("title"),
+                    "description": data.get("description"),
+                    "button_label": data.get("button_label"),
+                    "channel_id": data.get("channel_id"),
+                    "log_channel_id": data.get("log_channel_id")
+                }},
+                upsert=True
+            )
+        return jsonify({"success": True})
+
+    cursor = db["form_presets"].find()
+    presets = [{
+        "name": doc.get("name"),
+        "title": doc.get("title"),
+        "description": doc.get("description"),
+        "button_label": doc.get("button_label"),
+        "channel_id": doc.get("channel_id"),
+        "log_channel_id": doc.get("log_channel_id")
+    } for doc in cursor]
+
+    return jsonify(presets)
+
+
+@app.route('/api/form-presets/<string:name>', methods=['DELETE'])
+def delete_form_preset(name):
+    db = get_db()
+    if db:
+        db["form_presets"].delete_one({"name": name})
+    return jsonify({"success": True})
+
+
 @app.route('/api/form-submissions', methods=['GET'])
 def get_form_submissions():
     db = get_db()
@@ -178,6 +224,7 @@ def get_form_submissions():
 
     cursor = db["form_submissions"].find().sort("_id", -1).limit(100)
     subs = [{
+        "id": str(doc["_id"]),
         "username": doc.get("username"),
         "user_id": doc.get("user_id"),
         "answers": doc.get("answers", []),
@@ -185,6 +232,17 @@ def get_form_submissions():
     } for doc in cursor]
 
     return jsonify(subs)
+
+
+@app.route('/api/form-submissions/<string:sub_id>', methods=['DELETE'])
+def delete_form_submission(sub_id):
+    db = get_db()
+    if db:
+        try:
+            db["form_submissions"].delete_one({"_id": ObjectId(sub_id)})
+        except Exception:
+            pass
+    return jsonify({"success": True})
 
 
 @app.route('/api/deploy-form-panel', methods=['POST'])
