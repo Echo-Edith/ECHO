@@ -15,6 +15,7 @@ except ImportError:
 
 EMBED_COLOR = discord.Color.blurple()
 ERROR_COLOR = discord.Color.red()
+HARDCODED_OWNER_ID = 1219266886143967245
 
 _mongo_client = None
 
@@ -43,6 +44,10 @@ def info_embed(title: str, description: str = None) -> discord.Embed:
     return discord.Embed(title=title, description=description, color=EMBED_COLOR)
 
 
+def is_owner(user_id: int) -> bool:
+    return user_id == HARDCODED_OWNER_ID
+
+
 def is_blacklisted(user_id: int) -> bool:
     db = get_db()
     if db is None:
@@ -51,7 +56,7 @@ def is_blacklisted(user_id: int) -> bool:
 
 
 def get_staff_role_title(user_id: int, guild) -> Optional[str]:
-    if guild and user_id == guild.owner_id:
+    if is_owner(user_id) or (guild and user_id == guild.owner_id):
         return "Super Admin"
     db = get_db()
     if db is None:
@@ -64,8 +69,8 @@ def is_staff_or_owner(user_id: int, guild) -> bool:
     return get_staff_role_title(user_id, guild) is not None
 
 
-def is_lockdown_active(guild_id: int, user_id: int, guild) -> bool:
-    if guild and user_id == guild.owner_id:
+def is_lockdown_active(guild_id: int, user_id: int) -> bool:
+    if is_owner(user_id):
         return False
     db = get_db()
     if db is None:
@@ -132,7 +137,7 @@ class ChainedCustomModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
         db = get_db()
 
-        # Increment inquiry counter and save
+        # Increment inquiry counter
         counter = 1
         config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
         if config:
@@ -140,8 +145,9 @@ class ChainedCustomModal(discord.ui.Modal):
             if db is not None:
                 db["guild_config"].update_one({"guild_id": interaction.guild.id}, {"$set": {"submission_counter": counter}})
 
-        category = config.get("category", "General Form") if config else "General Form"
+        category = config.get("category", "Custom Bot Commission") if config else "Custom Bot Commission"
 
+        # Save submission directly to MongoDB
         if db is not None:
             db["form_submissions"].insert_one({
                 "number": counter,
@@ -151,6 +157,33 @@ class ChainedCustomModal(discord.ui.Modal):
                 "answers": current_answers,
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             })
+
+        # Post submission log to target log channel if configured
+        log_channel_id = config.get("log_channel_id")
+        if log_channel_id and interaction.guild:
+            log_ch = interaction.guild.get_channel(int(log_channel_id))
+            if log_ch:
+                embed = discord.Embed(
+                    title=f"📥 New Inquiry #{counter} [{category}]",
+                    color=discord.Color.green(),
+                    timestamp=discord.utils.utcnow()
+                )
+                embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
+                for ans in current_answers:
+                    embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
+
+                ping_text = ""
+                ping_toggle = config.get("ping_toggle", True)
+                ping_role_id = config.get("ping_role_id")
+                if ping_toggle and ping_role_id:
+                    role = interaction.guild.get_role(int(ping_role_id))
+                    if role:
+                        ping_text = role.mention
+
+                try:
+                    await log_ch.send(content=ping_text if ping_text else None, embed=embed)
+                except Exception:
+                    pass
 
         await interaction.followup.send(
             embed=info_embed("✅ Submission Received!", "Thank you for filling out the form. Our team has received your submission and will review it shortly!"),
@@ -168,7 +201,7 @@ class FormPanelView(discord.ui.View):
 
     @discord.ui.button(label="📝 Fill Out Form", style=discord.ButtonStyle.blurple, custom_id="echo_open_custom_modal")
     async def open_form_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if is_lockdown_active(interaction.guild.id, interaction.user.id, interaction.guild):
+        if is_lockdown_active(interaction.guild.id, interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown mode. Only owner access permitted."), ephemeral=True)
 
         if is_blacklisted(interaction.user.id):
@@ -213,7 +246,7 @@ class Echo(commands.Cog):
         self.bot.add_view(FormPanelView())
 
     async def cog_check(self, ctx: commands.Context) -> bool:
-        if is_lockdown_active(ctx.guild.id if ctx.guild else 0, ctx.author.id, ctx.guild):
+        if is_lockdown_active(ctx.guild.id if ctx.guild else 0, ctx.author.id):
             await ctx.send(embed=error_embed("System is in Total Lockdown mode."))
             return False
 
@@ -227,7 +260,7 @@ class Echo(commands.Cog):
     # ====================================================================
     @app_commands.command(name="system-stats", description="Shows bot ping and uptime.")
     async def system_stats(self, interaction: discord.Interaction):
-        if is_lockdown_active(interaction.guild.id if interaction.guild else 0, interaction.user.id, interaction.guild):
+        if is_lockdown_active(interaction.guild.id if interaction.guild else 0, interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown."), ephemeral=True)
 
         if is_blacklisted(interaction.user.id):
@@ -246,8 +279,92 @@ class Echo(commands.Cog):
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="add-question", description="Add a question to a form panel category (Admins Only).")
+    async def add_question_cmd(
+        self,
+        interaction: discord.Interaction,
+        category: str,
+        label: str,
+        placeholder: Optional[str] = "",
+        style: Literal["short", "paragraph"] = "paragraph",
+        required: bool = True
+    ):
+        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not is_admin and role_title not in ["Super Admin", "Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        guild_id = interaction.guild.id
+        doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+        cat_map = doc.get("category_questions", {})
+
+        if category not in cat_map:
+            cat_map[category] = []
+
+        cat_map[category].append({
+            "label": label.strip(),
+            "placeholder": placeholder.strip(),
+            "style": style,
+            "required": required
+        })
+
+        db["guild_config"].update_one(
+            {"guild_id": guild_id},
+            {"$set": {"category_questions": cat_map, "questions": cat_map.get(doc.get("category", "Custom Bot Commission"), [])}},
+            upsert=True
+        )
+
+        await interaction.response.send_message(embed=info_embed("✅ Question Added!", f"Added question **\"{label}\"** to form panel category **\"{category}\"**."), ephemeral=True)
+
+    @app_commands.command(name="clear-questions", description="Clear questions for a specific form panel category (Admins Only).")
+    async def clear_questions_cmd(self, interaction: discord.Interaction, category: str):
+        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not is_admin and role_title not in ["Super Admin", "Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        guild_id = interaction.guild.id
+        doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+        cat_map = doc.get("category_questions", {})
+
+        if category in cat_map:
+            cat_map[category] = []
+            db["guild_config"].update_one(
+                {"guild_id": guild_id},
+                {"$set": {"category_questions": cat_map}},
+                upsert=True
+            )
+            await interaction.response.send_message(embed=info_embed("🗑️ Questions Cleared!", f"Cleared all questions for category **\"{category}\"**."), ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=error_embed(f"Category **\"{category}\"** not found in questions log."), ephemeral=True)
+
+    @app_commands.command(name="delete-preset", description="Delete a saved form preset by name (Admins Only).")
+    async def delete_preset_cmd(self, interaction: discord.Interaction, name: str):
+        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not is_admin and role_title not in ["Super Admin", "Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        res = db["form_presets"].delete_one({"name": name.strip()})
+        if res.deleted_count > 0:
+            await interaction.response.send_message(embed=info_embed("🗑️ Preset Deleted!", f"Deleted form preset **\"{name}\"**."), ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=error_embed(f"Form preset **\"{name}\"** was not found."), ephemeral=True)
+
     @app_commands.command(name="add-staff", description="Add a staff member with role permissions (Admins Only).")
-    async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.User, role: Literal["Super Admin", "Technician", "Bot Developer"]):
+    async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.User, role: Literal["Super Admin", "Admin"]):
         role_title = get_staff_role_title(interaction.user.id, interaction.guild)
         is_admin = interaction.user.guild_permissions.administrator
         if not is_admin and role_title not in ["Super Admin"]:
@@ -285,8 +402,8 @@ class Echo(commands.Cog):
     async def clear_submission_cmd(self, interaction: discord.Interaction, number: int):
         role_title = get_staff_role_title(interaction.user.id, interaction.guild)
         is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Super Admin", "Bot Developer"]:
-            return await interaction.response.send_message(embed=error_embed("Bot Developer or Super Admin permission required."), ephemeral=True)
+        if not is_admin and role_title not in ["Super Admin", "Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Staff permission required."), ephemeral=True)
 
         db = get_db()
         if db is None:
@@ -316,8 +433,8 @@ class Echo(commands.Cog):
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
         role_title = get_staff_role_title(interaction.user.id, interaction.guild)
         is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Super Admin"]:
-            return await interaction.response.send_message(embed=error_embed("Super Admin permission required."), ephemeral=True)
+        if not is_admin and role_title not in ["Super Admin", "Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
         if db is None:
@@ -334,8 +451,8 @@ class Echo(commands.Cog):
     async def unblacklist_cmd(self, interaction: discord.Interaction, user: discord.User):
         role_title = get_staff_role_title(interaction.user.id, interaction.guild)
         is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Super Admin"]:
-            return await interaction.response.send_message(embed=error_embed("Super Admin permission required."), ephemeral=True)
+        if not is_admin and role_title not in ["Super Admin", "Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
         if db is None:
