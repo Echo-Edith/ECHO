@@ -191,7 +191,7 @@
     </button>
   </nav>
 
-  <!-- Desktop Sidebar -->
+  <!-- Desktop Sidebar Navigation -->
   <aside class="hidden md:flex w-72 glass-panel p-5 flex-col justify-between border-r border-echo-border shrink-0 z-30">
     <div>
       <div class="flex items-center gap-3.5 p-3 rounded-2xl bg-echo-card/90 border border-white/10 mb-6 shadow-xl">
@@ -239,7 +239,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-echo-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v12.0</span>
+      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v12.1</span>
     </div>
   </aside>
 
@@ -450,7 +450,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Staff Access Management</h2>
-          <p class="text-xs text-echo-muted mt-1">Grant team members control over the web dashboard & bot commands. Saved permanently to MongoDB.</p>
+          <p class="text-xs text-echo-muted mt-1">Grant team members role-based control over the web dashboard & bot commands. Saved permanently to MongoDB.</p>
         </div>
         <button onclick="openAddStaffModal()" class="bg-echo-accent hover:bg-echo-accent/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-purple w-full sm:w-auto">
           <i class="fa-solid fa-user-plus"></i> Add Staff Member
@@ -489,7 +489,7 @@
               </label>
             </div>
           </div>
-          <p class="text-xs text-echo-muted">Staff members can still manage submissions and preview form panels while this switch is active.</p>
+          <p class="text-xs text-echo-muted">Technicians and staff members can still manage settings during standard maintenance.</p>
         </div>
 
         <!-- Total Lockdown Protocol (Owner Only) -->
@@ -513,7 +513,7 @@
               </label>
             </div>
           </div>
-          <p class="text-xs text-echo-muted">Blocks <strong>ALL users, admins, and staff members</strong> from using the bot or dashboard. Only your hardcoded Owner User ID can access systems during lockdown.</p>
+          <p class="text-xs text-echo-muted">Blocks <strong>ALL users, admins, Technicians, and Bot Developers</strong> from using the bot or dashboard. Only your hardcoded Owner User ID can access systems during lockdown.</p>
         </div>
       </div>
     </section>
@@ -574,8 +574,12 @@
         <input type="text" id="staff-userid-input" placeholder="123456789012345678" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-echo-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Role Designation</label>
-        <input type="text" id="staff-role-input" placeholder="e.g. Lead Developer / Support Specialist" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Assigned Staff Role & Permissions</label>
+        <select id="staff-role-input" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+          <option value="Super Admin">Super Admin (Full Access All Tabs)</option>
+          <option value="Technician">Technician (Maintenance & Safety Tab Only)</option>
+          <option value="Bot Developer">Bot Developer (Inquiries & Submissions Tab Only)</option>
+        </select>
       </div>
       <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
         <button onclick="closeAddStaffModal()" class="px-4 py-2 text-xs font-bold text-echo-muted hover:text-white transition">Cancel</button>
@@ -697,23 +701,15 @@
 
     function populateDropdowns() {
       const textChannels = channels.filter(c => c.type === 'text');
-      const fillSelect = (elemId, list, defaultLabel) => {
-        const elem = document.getElementById(elemId);
-        if (!elem) return;
-        const currentVal = elem.value;
-        elem.innerHTML = `<option value="">${defaultLabel}</option>`;
-        list.forEach(item => {
-          const selected = currentVal === String(item.id) ? 'selected' : '';
-          elem.innerHTML += `<option value="${item.id}" ${selected}># ${item.name}</option>`;
-        });
-      };
-
-      fillSelect('form-channel-select', textChannels, '-- Select Button Channel --');
-
-      if (savedFormConfig && savedFormConfig.channel_id) {
-        const chSelect = document.getElementById('form-channel-select');
-        if (chSelect) chSelect.value = savedFormConfig.channel_id;
-      }
+      const elem = document.getElementById('form-channel-select');
+      if (!elem) return;
+      
+      const currentVal = elem.value || (savedFormConfig ? savedFormConfig.channel_id : '');
+      elem.innerHTML = `<option value="">-- Select Button Channel --</option>`;
+      textChannels.forEach(item => {
+        const selected = (String(currentVal) === String(item.id)) ? 'selected' : '';
+        elem.innerHTML += `<option value="${item.id}" ${selected}># ${item.name}</option>`;
+      });
     }
 
     async function loadAllData(manualSync = false, btn = null) {
@@ -761,7 +757,6 @@
           }
 
           if (gData.maintenance !== undefined) {
-            document.getElementById('maintenance-toggle').checked = gData.maintenance;
             document.getElementById('maintenance-toggle-tab').checked = gData.maintenance;
           }
 
@@ -849,11 +844,13 @@
           });
         }
 
+        const usernameDisplay = sub.username ? `@${escapeHtml(sub.username)}` : 'Unknown Discord User';
+
         container.innerHTML += `
           <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl space-y-2.5 shadow-xl animate-fade-in">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="font-extrabold text-white text-xs sm:text-sm">Inquiry From: ${escapeHtml(sub.username)}</span>
+                <span class="font-extrabold text-white text-xs sm:text-sm">Inquiry From: ${usernameDisplay}</span>
                 <span class="bg-echo-accent/10 text-echo-accent text-[10px] px-2 py-0.5 rounded font-bold uppercase">Form Entry</span>
               </div>
               <div class="flex items-center gap-2">
@@ -920,19 +917,24 @@
       const container = document.getElementById("staff-container");
       container.innerHTML = "";
       if (staffMembers.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No staff members assigned.</div>`;
+        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No staff members assigned. Assign staff via dashboard or using /add-staff in Discord.</div>`;
         return;
       }
 
       staffMembers.forEach(s => {
-        const usernameDisplay = s.username ? `@${s.username}` : 'Staff Member';
+        const usernameDisplay = s.username ? `@${escapeHtml(s.username)}` : 'Unknown Discord User';
+        const roleTitle = escapeHtml(s.role_title || 'Staff');
+
+        let badgeStyle = "bg-echo-accent/10 text-echo-accent border-echo-accent/20";
+        if (roleTitle === 'Technician') badgeStyle = "bg-echo-warning/10 text-echo-warning border-echo-warning/20";
+        if (roleTitle === 'Bot Developer') badgeStyle = "bg-echo-success/10 text-echo-success border-echo-success/20";
 
         container.innerHTML += `
           <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in">
             <div class="space-y-1">
               <div class="flex items-center gap-2">
                 <p class="font-bold text-white text-xs sm:text-sm">${usernameDisplay}</p>
-                <span class="bg-echo-accent/10 text-echo-accent text-[9px] sm:text-[10px] px-2 py-0.5 rounded font-bold uppercase border border-echo-accent/20">${escapeHtml(s.role_title || 'Staff')}</span>
+                <span class="${badgeStyle} text-[9px] sm:text-[10px] px-2 py-0.5 rounded font-bold uppercase border">${roleTitle}</span>
               </div>
               <p class="text-[11px] sm:text-xs font-mono text-echo-muted">ID: ${s.user_id}</p>
             </div>
@@ -1048,7 +1050,7 @@
         return;
       }
       blacklist.forEach(b => {
-        const usernameDisplay = b.username ? `@${b.username}` : 'Unknown User';
+        const usernameDisplay = b.username ? `@${escapeHtml(b.username)}` : 'Unknown Discord User';
 
         container.innerHTML += `
           <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in">
@@ -1076,8 +1078,7 @@
     }
 
     async function toggleMaintenanceMode() {
-      const enabled = document.getElementById("maintenance-toggle").checked;
-      document.getElementById("maintenance-toggle-tab").checked = enabled;
+      const enabled = document.getElementById("maintenance-toggle-tab").checked;
       showToast(enabled ? "Enabling Maintenance Protocol..." : "Disabling Maintenance Protocol...");
       try {
         const res = await fetch('/api/maintenance', {
@@ -1093,7 +1094,7 @@
 
     async function toggleTotalLockdown() {
       const enabled = document.getElementById("total-lockdown-toggle").checked;
-      showToast(enabled ? "ACTIVING TOTAL LOCKDOWN..." : "Disengaging Total Lockdown...");
+      showToast(enabled ? "ACTIVATING TOTAL LOCKDOWN..." : "Disengaging Total Lockdown...");
       try {
         const res = await fetch('/api/lockdown', {
           method: 'POST',
@@ -1104,12 +1105,6 @@
           showToast(enabled ? "TOTAL LOCKDOWN ACTIVE! Owner access only." : "Total Lockdown Disengaged!");
         }
       } catch (e) { showToast("Connection error.", true); }
-    }
-
-    async function syncMaintenanceToggle(el) {
-      const enabled = el.checked;
-      document.getElementById("maintenance-toggle").checked = enabled;
-      await toggleMaintenanceMode();
     }
 
     async function saveFormPanelSettings(btn = null) {
@@ -1218,14 +1213,14 @@
 
     async function addStaffUser(btn = null) {
       const userId = document.getElementById("staff-userid-input").value.trim();
-      const roleTitle = document.getElementById("staff-role-input").value.trim();
+      const roleTitle = document.getElementById("staff-role-input").value;
       if (!userId) {
         showToast("Discord User ID required.", true);
         return;
       }
       const stopLoading = startBtnLoading(btn, "Saving...");
 
-      staffMembers.push({ user_id: userId, username: "Fetching Username...", role_title: roleTitle || "Staff" });
+      staffMembers.push({ user_id: userId, username: "Fetching Username...", role_title: roleTitle });
       renderStaff();
       closeAddStaffModal();
 
