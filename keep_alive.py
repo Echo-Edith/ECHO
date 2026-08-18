@@ -247,34 +247,6 @@ def handle_form_presets():
     return jsonify(presets)
 
 
-@app.route('/api/staff', methods=['GET'])
-def get_staff():
-    db = get_db()
-    if db is None:
-        return jsonify([])
-
-    cursor = db["staff_members"].find()
-    staff_list = []
-    for doc in cursor:
-        uid = doc["user_id"]
-        uname = doc.get("username", "Unknown User")
-        if uname == "Unknown User" and _bot_ref and _bot_ref.is_ready():
-            try:
-                user_obj = _bot_ref.get_user(int(uid))
-                if user_obj:
-                    uname = str(user_obj)
-            except Exception:
-                pass
-
-        staff_list.append({
-            "user_id": uid,
-            "username": uname,
-            "role_title": doc.get("role_title", "Admin")
-        })
-
-    return jsonify(staff_list)
-
-
 @app.route('/api/deploy-form-panel', methods=['POST'])
 def deploy_form_panel():
     if _bot_ref is None or not _bot_ref.is_ready():
@@ -341,34 +313,6 @@ def handle_lockdown():
         upsert=True
     )
     return jsonify({"success": True})
-
-
-@app.route('/api/blacklist', methods=['GET'])
-def get_blacklist():
-    db = get_db()
-    if db is None:
-        return jsonify([])
-
-    cursor = db["blacklist"].find()
-    bl_list = []
-    for doc in cursor:
-        uid = doc["user_id"]
-        uname = doc.get("username", "Unknown User")
-        if uname == "Unknown User" and _bot_ref and _bot_ref.is_ready():
-            try:
-                user_obj = _bot_ref.get_user(int(uid))
-                if user_obj:
-                    uname = str(user_obj)
-            except Exception:
-                pass
-
-        bl_list.append({
-            "user_id": uid,
-            "username": uname,
-            "reason": doc.get("reason", "No reason provided")
-        })
-
-    return jsonify(bl_list)
 
 
 def run():
