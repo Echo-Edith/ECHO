@@ -4,14 +4,13 @@ import logging
 import asyncio
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
-from bson.objectid import ObjectId
 
 try:
     import pymongo
 except ImportError:
     pymongo = None
 
-# Suppress verbose Flask / Werkzeug HTTP request logs to keep stdout and cron logs minimal
+# Suppress verbose Flask / Werkzeug HTTP request logs
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -44,7 +43,6 @@ def home():
     return "<h1>ORCA Dashboard Active!</h1>", 200
 
 
-# Ultra-lightweight 15-byte ping endpoint for uptime monitors / cronjobs
 @app.route('/ping')
 @app.route('/health')
 @app.route('/cron')
@@ -78,7 +76,7 @@ def get_guild_data():
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
     config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
 
-    cog = _bot_ref.get_cog("Echo") if _bot_ref else None
+    cog = _bot_ref.get_cog("Orca") if _bot_ref else None
     uptime_sec = int(time.time() - cog.start_time) if cog else 0
 
     db_usage_str = "0.01 MB"
@@ -254,7 +252,7 @@ def deploy_form_panel():
 
     data = request.json or {}
     channel_id = data.get("channel_id")
-    cog = _bot_ref.get_cog("Echo")
+    cog = _bot_ref.get_cog("Orca")
     if not cog or not channel_id:
         return jsonify({"error": "Invalid request"}), 400
 
@@ -271,7 +269,7 @@ def update_form_panel():
     if _bot_ref is None or not _bot_ref.is_ready():
         return jsonify({"error": "Bot not ready"}), 500
 
-    cog = _bot_ref.get_cog("Echo")
+    cog = _bot_ref.get_cog("Orca")
     if not cog:
         return jsonify({"error": "Cog not loaded"}), 500
 
