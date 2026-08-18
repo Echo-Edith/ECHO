@@ -2,7 +2,7 @@ import os
 import time
 import asyncio
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 import discord
 from discord import app_commands
@@ -50,13 +50,18 @@ def is_blacklisted(user_id: int) -> bool:
     return db["blacklist"].find_one({"user_id": str(user_id)}) is not None
 
 
-def is_staff_or_owner(user_id: int, guild) -> bool:
+def get_staff_role_title(user_id: int, guild) -> Optional[str]:
     if guild and user_id == guild.owner_id:
-        return True
+        return "Super Admin"
     db = get_db()
     if db is None:
-        return False
-    return db["staff_members"].find_one({"user_id": str(user_id)}) is not None
+        return None
+    doc = db["staff_members"].find_one({"user_id": str(user_id)})
+    return doc.get("role_title") if doc else None
+
+
+def is_staff_or_owner(user_id: int, guild) -> bool:
+    return get_staff_role_title(user_id, guild) is not None
 
 
 def is_lockdown_active(guild_id: int, user_id: int, guild) -> bool:
@@ -230,10 +235,47 @@ class Echo(commands.Cog):
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="add-staff", description="Add a staff member with role permissions (Admins Only).")
+    async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.User, role: Literal["Super Admin", "Technician", "Bot Developer"]):
+        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not is_admin and role_title not in ["Super Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Super Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        db["staff_members"].update_one(
+            {"user_id": str(user.id)},
+            {"$set": {"user_id": str(user.id), "username": str(user), "role_title": role}},
+            upsert=True
+        )
+        await interaction.response.send_message(embed=info_embed(f"👑 Added {user.mention} as staff with role **{role}**!"), ephemeral=True)
+
+    @app_commands.command(name="remove-staff", description="Remove a staff member's access (Admins Only).")
+    async def remove_staff_cmd(self, interaction: discord.Interaction, user: discord.User):
+        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not is_admin and role_title not in ["Super Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Super Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        result = db["staff_members"].delete_one({"user_id": str(user.id)})
+        if result.deleted_count > 0:
+            await interaction.response.send_message(embed=info_embed(f"✅ Revoked staff access for {user.mention} (`{user.id}`)."), ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=error_embed(f"User {user.mention} was not found in the staff database."), ephemeral=True)
+
     @app_commands.command(name="blacklist", description="Add a user to the bot blacklist (Admins Only).")
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
-        if not is_staff_or_owner(interaction.user.id, interaction.guild) and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Staff or Admin permission required."), ephemeral=True)
+        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not is_admin and role_title not in ["Super Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Super Admin permission required."), ephemeral=True)
 
         db = get_db()
         if db is None:
@@ -248,8 +290,10 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="unblacklist", description="Remove a user from the bot blacklist (Admins Only).")
     async def unblacklist_cmd(self, interaction: discord.Interaction, user: discord.User):
-        if not is_staff_or_owner(interaction.user.id, interaction.guild) and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Staff or Admin permission required."), ephemeral=True)
+        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not is_admin and role_title not in ["Super Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Super Admin permission required."), ephemeral=True)
 
         db = get_db()
         if db is None:
