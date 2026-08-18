@@ -196,7 +196,7 @@ class FormPanelView(discord.ui.View):
         super().__init__(timeout=None)
         self.open_form_button.label = button_label[:80]
 
-    @discord.ui.button(label="📝 Fill Out Form", style=discord.ButtonStyle.blurple, custom_id="echo_open_custom_modal")
+    @discord.ui.button(label="📝 Fill Out Form", style=discord.ButtonStyle.blurple, custom_id="orca_open_custom_modal")
     async def open_form_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if is_lockdown_active(interaction.guild.id, interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown mode. Only owner access permitted."), ephemeral=True)
@@ -234,7 +234,7 @@ class FormPanelView(discord.ui.View):
 # ----------------------------------------------------------------------
 # Main cog
 # ----------------------------------------------------------------------
-class Echo(commands.Cog):
+class Orca(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.start_time = time.time()
@@ -276,9 +276,24 @@ class Echo(commands.Cog):
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="delete-preset", description="Delete a saved form preset by name (Admins Only).")
+    async def delete_preset_cmd(self, interaction: discord.Interaction, name: str):
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
+            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        res = db["form_presets"].delete_one({"name": name.strip()})
+        if res.deleted_count > 0:
+            await interaction.response.send_message(embed=info_embed("🗑️ Preset Deleted!", f"Deleted form preset **\"{name.strip()}\"**."), ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=error_embed(f"Form preset **\"{name.strip()}\"** was not found."), ephemeral=True)
+
     @app_commands.command(name="rename-category", description="Rename an existing form panel category (Admins Only).")
     async def rename_category_cmd(self, interaction: discord.Interaction, old_name: str, new_name: str):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -302,7 +317,7 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="delete-category", description="Delete an existing form panel category and its questions (Admins Only).")
     async def delete_category_cmd(self, interaction: discord.Interaction, name: str):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -489,5 +504,5 @@ class Echo(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Echo(bot))
+    await bot.add_cog(Orca(bot))
 
