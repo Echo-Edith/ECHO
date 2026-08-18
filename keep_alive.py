@@ -1,3 +1,4 @@
+```python
 import os
 import time
 import logging
@@ -11,7 +12,7 @@ try:
 except ImportError:
     pymongo = None
 
-# Suppress verbose Flask / Werkzeug HTTP request logs to keep stdout and cron logs minimal
+# Suppress verbose Flask / Werkzeug HTTP request logs
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -44,7 +45,6 @@ def home():
     return "<h1>ORCA Dashboard Active!</h1>", 200
 
 
-# Ultra-lightweight 15-byte ping endpoint for uptime monitors / cronjobs
 @app.route('/ping')
 @app.route('/health')
 @app.route('/cron')
@@ -114,6 +114,55 @@ def get_guild_data():
     })
 
 
+@app.route('/api/form-panels', methods=['GET'])
+def get_form_panels():
+    db = get_db()
+    if db is None:
+        return jsonify([])
+
+    cursor = db["form_panels"].find()
+    panels = [{
+        "category": doc.get("category"),
+        "title": doc.get("title"),
+        "description": doc.get("description"),
+        "button_label": doc.get("button_label"),
+        "channel_id": doc.get("channel_id"),
+        "log_channel_id": doc.get("log_channel_id")
+    } for doc in cursor]
+
+    if not panels:
+        panels = [
+            {"category": "Custom Bot Commission", "title": "🤖 REQUEST CUSTOM BOT COMMISSION", "description": "Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!", "button_label": "📝 Fill Out Form"},
+            {"category": "Partnership Application", "title": "🤝 PARTNERSHIP APPLICATION", "description": "Apply for a server partnership with us! Click the button below to fill out the partnership details.", "button_label": "🤝 Apply for Partnership"}
+        ]
+
+    return jsonify(panels)
+
+
+@app.route('/api/create-form-panel', methods=['POST'])
+def create_form_panel():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "No database"}), 500
+
+    data = request.json or {}
+    category = str(data.get("category", "")).strip()
+    if not category:
+        return jsonify({"error": "Category name required"}), 400
+
+    db["form_panels"].update_one(
+        {"category": category},
+        {"$set": {
+            "category": category,
+            "title": f"🤖 {category.upper()}",
+            "description": f"Submit your details for {category} using the form button below!",
+            "button_label": "📝 Fill Out Form"
+        }},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
 @app.route('/api/form-config', methods=['GET'])
 def get_form_config():
     db = get_db()
@@ -143,10 +192,12 @@ def save_form_config():
     data = request.json or {}
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
 
+    category = data.get("category", "Custom Bot Commission")
     channel_id = int(data["channel_id"]) if data.get("channel_id") else None
     log_channel_id = int(data["log_channel_id"]) if data.get("log_channel_id") else None
     ping_role_id = int(data["ping_role_id"]) if data.get("ping_role_id") else None
 
+    # Save to global guild config
     db["guild_config"].update_one(
         {"guild_id": guild_id},
         {
@@ -155,11 +206,27 @@ def save_form_config():
                 "title": data.get("title"),
                 "description": data.get("description"),
                 "button_label": data.get("button_label"),
-                "category": data.get("category", "Custom Bot Commission"),
+                "category": category,
                 "channel_id": channel_id,
                 "log_channel_id": log_channel_id,
                 "ping_role_id": ping_role_id,
                 "ping_toggle": bool(data.get("ping_toggle", True))
+            }
+        },
+        upsert=True
+    )
+
+    # Also save to panels collection
+    db["form_panels"].update_one(
+        {"category": category},
+        {
+            "$set": {
+                "category": category,
+                "title": data.get("title"),
+                "description": data.get("description"),
+                "button_label": data.get("button_label"),
+                "channel_id": channel_id,
+                "log_channel_id": log_channel_id
             }
         },
         upsert=True
@@ -184,98 +251,34 @@ def get_all_form_questions():
     return jsonify(categories_map)
 
 
-@app.route('/api/form-questions', methods=['GET', 'POST'])
-def handle_form_questions():
+@app.route('/api/form-questions-by-cat', methods=['POST'])
+def save_form_questions_by_cat():
     db = get_db()
     if db is None:
-        return jsonify([])
+        return jsonify({"error": "No database"}), 500
+
+    data = request.json or {}
+    category = data.get("category", "Custom Bot Commission")
+    questions = data.get("questions", [])
 
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-
-    if request.method == 'POST':
-        data = request.json or {}
-        questions = data.get("questions", [])
-        db["guild_config"].update_one(
-            {"guild_id": guild_id},
-            {"$set": {"questions": questions}},
-            upsert=True
-        )
-        return jsonify({"success": True})
-
     doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-    return jsonify(doc.get("questions", []))
+    cat_map = doc.get("category_questions", {})
 
-
-@app.route('/api/form-presets', methods=['GET', 'POST'])
-def handle_form_presets():
-    db = get_db()
-    if db is None:
-        return jsonify([])
-
-    if request.method == 'POST':
-        data = request.json or {}
-        preset_name = str(data.get("name", "")).strip()
-        if preset_name:
-            db["form_presets"].update_one(
-                {"name": preset_name},
-                {"$set": {
-                    "name": preset_name,
-                    "title": data.get("title"),
-                    "description": data.get("description"),
-                    "button_label": data.get("button_label"),
-                    "channel_id": data.get("channel_id")
-                }},
-                upsert=True
-            )
-        return jsonify({"success": True})
-
-    cursor = db["form_presets"].find()
-    presets = [{
-        "name": doc.get("name"),
-        "title": doc.get("title"),
-        "description": doc.get("description"),
-        "button_label": doc.get("button_label"),
-        "channel_id": doc.get("channel_id")
-    } for doc in cursor]
-
-    return jsonify(presets)
-
-
-@app.route('/api/form-presets/<string:name>', methods=['DELETE'])
-def delete_form_preset(name):
-    db = get_db()
-    if db:
-        db["form_presets"].delete_one({"name": name})
+    cat_map[category] = questions
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"category_questions": cat_map, "questions": questions if category == doc.get("category") else doc.get("questions", [])}},
+        upsert=True
+    )
     return jsonify({"success": True})
 
 
-@app.route('/api/staff', methods=['GET', 'POST'])
+@app.route('/api/staff', methods=['GET'])
 def handle_staff():
     db = get_db()
     if db is None:
         return jsonify([])
-
-    if request.method == 'POST':
-        data = request.json or {}
-        user_id = str(data.get("user_id")).strip()
-        role_title = str(data.get("role_title", "Admin"))
-
-        username = "Unknown User"
-        if _bot_ref and _bot_ref.is_ready():
-            try:
-                user_obj = _bot_ref.get_user(int(user_id)) or asyncio.run_coroutine_threadsafe(_bot_ref.fetch_user(int(user_id)), _bot_ref.loop).result(timeout=3)
-                if user_obj:
-                    username = str(user_obj)
-            except Exception:
-                pass
-
-        if user_id:
-            db["staff_members"].update_one(
-                {"user_id": user_id},
-                {"$set": {"user_id": user_id, "username": username, "role_title": role_title}},
-                upsert=True
-            )
-        return jsonify({"success": True})
 
     cursor = db["staff_members"].find()
     staff_list = []
@@ -297,14 +300,6 @@ def handle_staff():
         })
 
     return jsonify(staff_list)
-
-
-@app.route('/api/staff/<string:user_id>', methods=['DELETE'])
-def delete_staff(user_id):
-    db = get_db()
-    if db:
-        db["staff_members"].delete_one({"user_id": str(user_id)})
-    return jsonify({"success": True})
 
 
 @app.route('/api/deploy-form-panel', methods=['POST'])
@@ -375,33 +370,11 @@ def handle_lockdown():
     return jsonify({"success": True})
 
 
-@app.route('/api/blacklist', methods=['GET', 'POST'])
+@app.route('/api/blacklist', methods=['GET'])
 def handle_blacklist():
     db = get_db()
     if db is None:
         return jsonify([])
-
-    if request.method == 'POST':
-        data = request.json or {}
-        user_id = str(data.get("user_id")).strip()
-        reason = str(data.get("reason", "No reason provided"))
-
-        username = "Unknown User"
-        if _bot_ref and _bot_ref.is_ready():
-            try:
-                user_obj = _bot_ref.get_user(int(user_id)) or asyncio.run_coroutine_threadsafe(_bot_ref.fetch_user(int(user_id)), _bot_ref.loop).result(timeout=3)
-                if user_obj:
-                    username = str(user_obj)
-            except Exception:
-                pass
-
-        if user_id:
-            db["blacklist"].update_one(
-                {"user_id": user_id},
-                {"$set": {"user_id": user_id, "username": username, "reason": reason}},
-                upsert=True
-            )
-        return jsonify({"success": True})
 
     cursor = db["blacklist"].find()
     bl_list = []
@@ -425,14 +398,6 @@ def handle_blacklist():
     return jsonify(bl_list)
 
 
-@app.route('/api/blacklist/<string:user_id>', methods=['DELETE'])
-def delete_blacklist(user_id):
-    db = get_db()
-    if db:
-        db["blacklist"].delete_one({"user_id": str(user_id)})
-    return jsonify({"success": True})
-
-
 def run():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
@@ -445,3 +410,4 @@ def keep_alive(bot=None):
     t.daemon = True
     t.start()
 
+```
