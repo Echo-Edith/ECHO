@@ -36,7 +36,7 @@ def home():
                 return render_template_string(f.read())
         except Exception as e:
             return f"Error loading dashboard: {e}", 500
-    return "<h1>ECHO Dashboard Active!</h1>", 200
+    return "<h1>ORCA Dashboard Active!</h1>", 200
 
 
 @app.route('/ping')
@@ -89,7 +89,7 @@ def get_guild_data():
             pass
 
     avatar_url = _bot_ref.user.display_avatar.url if (_bot_ref and _bot_ref.user) else "https://cdn.discordapp.com/embed/avatars/0.png"
-    bot_name = _bot_ref.user.name if (_bot_ref and _bot_ref.user) else "ECHO"
+    bot_name = _bot_ref.user.name if (_bot_ref and _bot_ref.user) else "ORCA"
     latency_ms = round(_bot_ref.latency * 1000) if _bot_ref else 0
 
     return jsonify({
@@ -136,6 +136,7 @@ def save_form_config():
                 "title": data.get("title"),
                 "description": data.get("description"),
                 "button_label": data.get("button_label"),
+                "category": data.get("category", "Custom Bot Commission"),
                 "channel_id": channel_id
             }
         },
@@ -276,6 +277,8 @@ def get_form_submissions():
     cursor = db["form_submissions"].find().sort("_id", -1).limit(100)
     subs = [{
         "id": str(doc["_id"]),
+        "number": doc.get("number", 1),
+        "category": doc.get("category", "General Form"),
         "username": doc.get("username", "Unknown User"),
         "user_id": doc.get("user_id"),
         "answers": doc.get("answers", []),
