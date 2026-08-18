@@ -144,19 +144,13 @@
       <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview
     </button>
     <button onclick="switchTab('formpanel'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-rectangle-list w-4 text-center"></i> Form Panels
+      <i class="fa-solid fa-rectangle-list w-4 text-center"></i> Form Panel
     </button>
     <button onclick="switchTab('formbuilder'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-list-check w-4 text-center"></i> Form Questions
     </button>
-    <button onclick="switchTab('staff'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-user-shield w-4 text-center"></i> Staff Roster
-    </button>
     <button onclick="switchTab('maintenance'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-shield-halved w-4 text-center"></i> Maintenance
-    </button>
-    <button onclick="switchTab('blacklist'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-user-slash w-4 text-center"></i> Blacklist
     </button>
   </div>
 
@@ -173,10 +167,6 @@
     <button onclick="switchTab('formbuilder')" id="m-nav-formbuilder" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
       <i class="fa-solid fa-list-check text-sm"></i>
       <span class="text-[9px] font-bold">Fields</span>
-    </button>
-    <button onclick="switchTab('staff')" id="m-nav-staff" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
-      <i class="fa-solid fa-user-shield text-sm"></i>
-      <span class="text-[9px] font-bold">Staff</span>
     </button>
     <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
       <i class="fa-solid fa-shield-halved text-sm"></i>
@@ -213,14 +203,8 @@
         <button onclick="switchTab('formbuilder')" id="nav-formbuilder" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-list-check w-4 text-center text-sm"></i> Form Questions
         </button>
-        <button onclick="switchTab('staff')" id="nav-staff" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-user-shield w-4 text-center text-sm"></i> Staff Roster
-        </button>
         <button onclick="switchTab('maintenance')" id="nav-maintenance" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-shield-halved w-4 text-center text-sm"></i> Maintenance
-        </button>
-        <button onclick="switchTab('blacklist')" id="nav-blacklist" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-user-slash w-4 text-center text-sm"></i> Blacklist
         </button>
       </nav>
     </div>
@@ -229,7 +213,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v15.0</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v16.0</span>
     </div>
   </aside>
 
@@ -334,10 +318,35 @@
         </div>
       </div>
 
+      <!-- Presets Manager Vault -->
+      <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-orca-accent/10 text-orca-accent flex items-center justify-center text-lg shrink-0 border border-orca-accent/20">
+              <i class="fa-solid fa-box-archive"></i>
+            </div>
+            <div>
+              <h3 class="text-xs sm:text-sm font-bold text-white">Saved Form Preset Vault</h3>
+              <p class="text-[11px] text-orca-muted">Save or load custom form configurations. Delete via Discord command <code class="bg-orca-base px-1.5 py-0.5 rounded text-orca-accent font-mono text-[10px]">/delete-preset</code>.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input type="text" id="preset-name-input" placeholder="Preset Name (e.g. Bot Inquiries)" class="flex-1 sm:w-48 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            <button onclick="saveCurrentAsPreset(this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center gap-1.5 shadow shrink-0">
+              <i class="fa-solid fa-bookmark"></i> Save Preset
+            </button>
+          </div>
+        </div>
+
+        <div id="presets-list-container" class="space-y-2 pt-1">
+          <p class="text-xs text-orca-muted italic">No saved presets found.</p>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         <div class="lg:col-span-7 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 md:space-y-5 shadow-2xl">
           <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-3">
-            <i class="fa-solid fa-sliders text-orca-accent"></i> Embed & Channel Routing Setup
+            <i class="fa-solid fa-sliders text-orca-accent"></i> Embed & Logging Setup
           </h3>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -468,16 +477,6 @@
       </div>
     </section>
 
-    <!-- STAFF MEMBERS TAB (READ-ONLY) -->
-    <section id="tab-staff" class="space-y-4 md:space-y-6 hidden">
-      <div class="glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
-        <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Staff Access Roster</h2>
-        <p class="text-xs text-orca-muted mt-1">View staff members authorized to access bot systems. Manage staff in Discord using <code class="bg-orca-base px-2 py-0.5 rounded text-orca-accent font-mono">/add-staff</code> and <code class="bg-orca-base px-2 py-0.5 rounded text-orca-accent font-mono">/remove-staff</code>.</p>
-      </div>
-
-      <div class="space-y-3" id="staff-container"></div>
-    </section>
-
     <!-- MAINTENANCE & SAFETY TAB -->
     <section id="tab-maintenance" class="space-y-4 md:space-y-6 hidden">
       <div class="glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
@@ -507,7 +506,7 @@
               </label>
             </div>
           </div>
-          <p class="text-xs text-orca-muted">Admins and staff members can still manage settings during standard maintenance.</p>
+          <p class="text-xs text-orca-muted">Server moderators can still manage settings during standard maintenance.</p>
         </div>
 
         <!-- Total Lockdown Protocol (Owner Only) -->
@@ -519,7 +518,7 @@
               </div>
               <div>
                 <h3 class="text-sm font-bold text-white">Total Lockdown Mode</h3>
-                <p class="text-[11px] text-orca-danger font-bold">Owner Access Only (1219266886143967245)</p>
+                <p class="text-[11px] text-orca-danger font-bold">Hardcoded Owner Access Only (1219266886143967245)</p>
               </div>
             </div>
             <div>
@@ -531,19 +530,9 @@
               </label>
             </div>
           </div>
-          <p class="text-xs text-orca-muted">Blocks <strong>ALL users, admins, and staff</strong> from using the bot or dashboard. Only Owner ID <code class="font-mono text-orca-accent">1219266886143967245</code> can access systems during lockdown.</p>
+          <p class="text-xs text-orca-muted">Blocks <strong>ALL users and server moderators</strong> from using the bot or dashboard. Only Owner ID <code class="font-mono text-orca-accent">1219266886143967245</code> can access systems during lockdown.</p>
         </div>
       </div>
-    </section>
-
-    <!-- BLACKLIST TAB (READ-ONLY) -->
-    <section id="tab-blacklist" class="space-y-4 md:space-y-6 hidden">
-      <div class="glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
-        <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Access Control & Blacklist Log</h2>
-        <p class="text-xs text-orca-muted mt-1">View users restricted from opening forms or running commands. Manage restrictions in Discord using <code class="bg-orca-base px-2 py-0.5 rounded text-orca-accent font-mono">/blacklist</code> and <code class="bg-orca-base px-2 py-0.5 rounded text-orca-accent font-mono">/unblacklist</code>.</p>
-      </div>
-
-      <div class="space-y-3" id="blacklist-container"></div>
     </section>
 
   </main>
@@ -588,8 +577,6 @@
     let channels = [];
     let roles = [];
     let categories = [];
-    let blacklist = [];
-    let staffMembers = [];
     let categoryQuestionsMap = {};
     let activeQuestionsList = [];
     let formPresets = [];
@@ -824,18 +811,6 @@
           renderPresets();
         }
 
-        const staffRes = await fetch('/api/staff');
-        if (staffRes.ok) {
-          staffMembers = await staffRes.json();
-          renderStaff();
-        }
-
-        const blRes = await fetch('/api/blacklist');
-        if (blRes.ok) {
-          blacklist = await blRes.json();
-          renderBlacklist();
-        }
-
         if (manualSync) showToast("All parameters synced!");
       } catch (e) {
         if (manualSync) showToast("Connection failed", true);
@@ -956,32 +931,6 @@
       });
     }
 
-    function renderStaff() {
-      const container = document.getElementById("staff-container");
-      container.innerHTML = "";
-      if (staffMembers.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">No staff members assigned. Assign staff using <code class="bg-orca-base px-2 py-0.5 rounded text-orca-accent font-mono">/add-staff</code> in Discord.</div>`;
-        return;
-      }
-
-      staffMembers.forEach(s => {
-        const usernameDisplay = s.username ? `@${escapeHtml(s.username)}` : 'Unknown Discord User';
-        const roleTitle = escapeHtml(s.role_title || 'Admin');
-
-        container.innerHTML += `
-          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <p class="font-bold text-white text-xs sm:text-sm">${usernameDisplay}</p>
-                <span class="bg-orca-accent/10 text-orca-accent border border-orca-accent/20 text-[9px] sm:text-[10px] px-2 py-0.5 rounded font-bold uppercase">${roleTitle}</span>
-              </div>
-              <p class="text-[11px] sm:text-xs font-mono text-orca-muted">ID: ${s.user_id}</p>
-            </div>
-          </div>
-        `;
-      });
-    }
-
     async function saveCurrentAsPreset(btn = null) {
       const name = document.getElementById("preset-name-input").value.trim();
       if (!name) {
@@ -1031,31 +980,6 @@
       const el = document.getElementById(elemId);
       if (!el) return;
       el.innerText = String(newValue);
-    }
-
-    function renderBlacklist() {
-      const container = document.getElementById("blacklist-container");
-      container.innerHTML = "";
-      if (blacklist.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">No blacklisted users. Add restrictions in Discord using <code class="bg-orca-base px-2 py-0.5 rounded text-orca-accent font-mono">/blacklist</code>.</div>`;
-        return;
-      }
-      blacklist.forEach(b => {
-        const usernameDisplay = b.username ? `@${escapeHtml(b.username)}` : 'Unknown Discord User';
-
-        container.innerHTML += `
-          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <p class="font-bold text-white text-xs sm:text-sm">${usernameDisplay}</p>
-                <span class="bg-orca-danger/10 text-orca-danger text-[9px] sm:text-[10px] px-2 py-0.5 rounded font-bold uppercase border border-orca-danger/20">Blacklisted</span>
-              </div>
-              <p class="text-[11px] sm:text-xs font-mono text-orca-muted">ID: ${b.user_id}</p>
-              <p class="text-[11px] sm:text-xs text-orca-text">Reason: <span class="text-orca-muted">${b.reason || 'No reason provided'}</span></p>
-            </div>
-          </div>
-        `;
-      });
     }
 
     function escapeHtml(str) {
@@ -1162,7 +1086,7 @@
     }
 
     function switchTab(tab) {
-      const tabs = ['overview', 'formpanel', 'formbuilder', 'staff', 'maintenance', 'blacklist'];
+      const tabs = ['overview', 'formpanel', 'formbuilder', 'maintenance'];
       tabs.forEach(t => {
         const tabEl = document.getElementById(`tab-${t}`);
         if (tabEl) tabEl.classList.add('hidden');
