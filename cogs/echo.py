@@ -50,6 +50,25 @@ def is_blacklisted(user_id: int) -> bool:
     return db["blacklist"].find_one({"user_id": str(user_id)}) is not None
 
 
+def is_staff_or_owner(user_id: int, guild) -> bool:
+    if guild and user_id == guild.owner_id:
+        return True
+    db = get_db()
+    if db is None:
+        return False
+    return db["staff_members"].find_one({"user_id": str(user_id)}) is not None
+
+
+def is_lockdown_active(guild_id: int, user_id: int, guild) -> bool:
+    if guild and user_id == guild.owner_id:
+        return False
+    db = get_db()
+    if db is None:
+        return False
+    config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+    return config.get("lockdown", False)
+
+
 def is_maintenance(guild_id: int) -> bool:
     db = get_db()
     if db is None:
@@ -133,10 +152,13 @@ class FormPanelView(discord.ui.View):
 
     @discord.ui.button(label="📝 Fill Out Form", style=discord.ButtonStyle.blurple, custom_id="echo_open_custom_modal")
     async def open_form_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_lockdown_active(interaction.guild.id, interaction.user.id, interaction.guild):
+            return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown mode. Only owner access permitted."), ephemeral=True)
+
         if is_blacklisted(interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("You are blacklisted from submitting forms."), ephemeral=True)
 
-        if is_maintenance(interaction.guild.id):
+        if is_maintenance(interaction.guild.id) and not is_staff_or_owner(interaction.user.id, interaction.guild):
             return await interaction.response.send_message(embed=error_embed("The system is currently undergoing maintenance. Please try again later!"), ephemeral=True)
 
         db = get_db()
@@ -175,6 +197,10 @@ class Echo(commands.Cog):
         self.bot.add_view(FormPanelView())
 
     async def cog_check(self, ctx: commands.Context) -> bool:
+        if is_lockdown_active(ctx.guild.id if ctx.guild else 0, ctx.author.id, ctx.guild):
+            await ctx.send(embed=error_embed("System is in Total Lockdown mode."))
+            return False
+
         if is_blacklisted(ctx.author.id):
             await ctx.send(embed=error_embed("You are blacklisted from using ECHO commands."))
             return False
@@ -185,6 +211,9 @@ class Echo(commands.Cog):
     # ====================================================================
     @app_commands.command(name="system-stats", description="Shows bot ping and uptime.")
     async def system_stats(self, interaction: discord.Interaction):
+        if is_lockdown_active(interaction.guild.id if interaction.guild else 0, interaction.user.id, interaction.guild):
+            return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown."), ephemeral=True)
+
         if is_blacklisted(interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("You are blacklisted."), ephemeral=True)
 
@@ -203,8 +232,8 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="blacklist", description="Add a user to the bot blacklist (Admins Only).")
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
-        if not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
+        if not is_staff_or_owner(interaction.user.id, interaction.guild) and not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(embed=error_embed("Staff or Admin permission required."), ephemeral=True)
 
         db = get_db()
         if db is None:
@@ -219,8 +248,8 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="unblacklist", description="Remove a user from the bot blacklist (Admins Only).")
     async def unblacklist_cmd(self, interaction: discord.Interaction, user: discord.User):
-        if not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
+        if not is_staff_or_owner(interaction.user.id, interaction.guild) and not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(embed=error_embed("Staff or Admin permission required."), ephemeral=True)
 
         db = get_db()
         if db is None:
@@ -234,8 +263,8 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="dashboard", description="Get the link to access the ECHO Web Control Dashboard.")
     async def dashboard(self, interaction: discord.Interaction):
-        if not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Only server admins can access the dashboard link."), ephemeral=True)
+        if not is_staff_or_owner(interaction.user.id, interaction.guild) and not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(embed=error_embed("Only staff members or server admins can access the dashboard link."), ephemeral=True)
 
         dashboard_url = os.getenv("DASHBOARD_URL", "https://echo-dashboard.duckdns.org").strip()
         if not dashboard_url.startswith(("http://", "https://")):
