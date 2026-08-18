@@ -152,6 +152,9 @@
     <button onclick="switchTab('submissions'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-inbox w-4 text-center"></i> Submissions
     </button>
+    <button onclick="switchTab('staff'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
+      <i class="fa-solid fa-user-shield w-4 text-center"></i> Staff Access
+    </button>
     <button onclick="switchTab('maintenance'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-shield-halved w-4 text-center"></i> Maintenance
     </button>
@@ -177,6 +180,10 @@
     <button onclick="switchTab('submissions')" id="m-nav-submissions" class="flex flex-col items-center gap-1 px-2 py-1 text-echo-muted">
       <i class="fa-solid fa-inbox text-sm"></i>
       <span class="text-[9px] font-bold">Inquiries</span>
+    </button>
+    <button onclick="switchTab('staff')" id="m-nav-staff" class="flex flex-col items-center gap-1 px-2 py-1 text-echo-muted">
+      <i class="fa-solid fa-user-shield text-sm"></i>
+      <span class="text-[9px] font-bold">Staff</span>
     </button>
     <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-1 px-2 py-1 text-echo-muted">
       <i class="fa-solid fa-shield-halved text-sm"></i>
@@ -216,6 +223,9 @@
         <button onclick="switchTab('submissions')" id="nav-submissions" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-inbox w-4 text-center text-sm"></i> Submissions
         </button>
+        <button onclick="switchTab('staff')" id="nav-staff" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
+          <i class="fa-solid fa-user-shield w-4 text-center text-sm"></i> Staff Members
+        </button>
         <button onclick="switchTab('maintenance')" id="nav-maintenance" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-shield-halved w-4 text-center text-sm"></i> Maintenance
         </button>
@@ -229,14 +239,14 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-echo-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v11.2</span>
+      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v12.0</span>
     </div>
   </aside>
 
   <!-- Viewport -->
   <main class="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6 md:space-y-8">
 
-    <!-- OVERVIEW TAB -->
+    <!-- OVERVIEW TAB (PURE VIEWING TELEMETRY) -->
     <section id="tab-overview" class="space-y-4 md:space-y-6 animate-fade-in">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
@@ -273,16 +283,16 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <i class="fa-solid fa-database text-echo-success text-sm"></i>
-              <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">Cloud Database Memory</p>
+              <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">Cloud Database</p>
             </div>
-            <span class="text-xs font-mono font-bold text-echo-success" id="stat-db-usage">0.00 MB</span>
+            <span class="text-xs font-mono font-bold text-echo-success" id="stat-db-usage">0.24 MB</span>
           </div>
           <div class="w-full bg-echo-base h-2 rounded-full overflow-hidden border border-white/5 mt-1">
-            <div id="db-progress-bar" class="bg-echo-success h-full transition-all duration-500 rounded-full" style="width: 1%;"></div>
+            <div id="db-progress-bar" class="bg-echo-success h-full transition-all duration-500 rounded-full" style="width: 5%;"></div>
           </div>
           <p class="text-[10px] text-echo-muted font-mono flex justify-between">
             <span>MongoDB Atlas</span>
-            <span>512.00 MB Free Tier</span>
+            <span>512 MB Free Tier</span>
           </p>
         </div>
       </div>
@@ -342,7 +352,7 @@
           <div>
             <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Form Button Target Channel</label>
             <select id="form-channel-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
-              <option value="">Loading Channels...</option>
+              <option value="">-- Select Button Channel --</option>
             </select>
           </div>
 
@@ -435,41 +445,75 @@
       </div>
     </section>
 
+    <!-- STAFF MEMBERS TAB -->
+    <section id="tab-staff" class="space-y-4 md:space-y-6 hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Staff Access Management</h2>
+          <p class="text-xs text-echo-muted mt-1">Grant team members control over the web dashboard & bot commands. Saved permanently to MongoDB.</p>
+        </div>
+        <button onclick="openAddStaffModal()" class="bg-echo-accent hover:bg-echo-accent/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-purple w-full sm:w-auto">
+          <i class="fa-solid fa-user-plus"></i> Add Staff Member
+        </button>
+      </div>
+
+      <div class="space-y-3" id="staff-container"></div>
+    </section>
+
     <!-- MAINTENANCE & SAFETY TAB -->
     <section id="tab-maintenance" class="space-y-4 md:space-y-6 hidden">
       <div class="glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Maintenance & Safety Protocol</h2>
-        <p class="text-xs text-echo-muted mt-1">Manage global emergency lockouts, security flags, and bot operational locks.</p>
+        <p class="text-xs text-echo-muted mt-1">Manage global emergency lockouts, total lockdown switches, and security flags.</p>
       </div>
 
-      <div class="glass-card p-6 rounded-2xl md:rounded-3xl space-y-5 shadow-2xl max-w-2xl">
-        <div class="flex items-center justify-between border-b border-white/5 pb-4">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-echo-danger/10 text-echo-danger flex items-center justify-center text-xl shrink-0 border border-echo-danger/20">
-              <i class="fa-solid fa-shield-halved"></i>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Standard Maintenance Protocol -->
+        <div class="glass-card p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+          <div class="flex items-center justify-between border-b border-white/5 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-echo-warning/10 text-echo-warning flex items-center justify-center text-lg shrink-0 border border-echo-warning/20">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white">Standard Maintenance</h3>
+                <p class="text-[11px] text-echo-muted">Disables form submissions for regular members.</p>
+              </div>
             </div>
             <div>
-              <h3 class="text-base font-bold text-white">Emergency Lockdown Switch</h3>
-              <p class="text-xs text-echo-muted">Instantly cuts off command execution and modal submissions across your Discord server.</p>
+              <label class="cursor-pointer inline-flex items-center">
+                <input type="checkbox" id="maintenance-toggle-tab" onchange="toggleMaintenanceMode()" class="hidden">
+                <span class="switch-track">
+                  <span class="switch-thumb"></span>
+                </span>
+              </label>
             </div>
           </div>
-          <div>
-            <label class="cursor-pointer inline-flex items-center">
-              <input type="checkbox" id="maintenance-toggle-tab" onchange="syncMaintenanceToggle(this)" class="hidden">
-              <span class="switch-track">
-                <span class="switch-thumb"></span>
-              </span>
-            </label>
-          </div>
+          <p class="text-xs text-echo-muted">Staff members can still manage submissions and preview form panels while this switch is active.</p>
         </div>
 
-        <div class="space-y-3 text-xs text-echo-text">
-          <p class="font-bold text-white">Security Checklist:</p>
-          <ul class="space-y-2 text-echo-muted font-medium">
-            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-echo-success"></i> Database Connection: <span>Online & Secure</span></li>
-            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-echo-success"></i> Slash Commands Gateway: <span>Registered</span></li>
-            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-echo-success"></i> Anti-Spam Blacklist Engine: <span>Active</span></li>
-          </ul>
+        <!-- Total Lockdown Protocol (Owner Only) -->
+        <div class="glass-card p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl border border-echo-danger/30">
+          <div class="flex items-center justify-between border-b border-white/5 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-echo-danger/10 text-echo-danger flex items-center justify-center text-lg shrink-0 border border-echo-danger/20">
+                <i class="fa-solid fa-lock"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white">Total Lockdown Mode</h3>
+                <p class="text-[11px] text-echo-danger font-bold">Owner Access Only!</p>
+              </div>
+            </div>
+            <div>
+              <label class="cursor-pointer inline-flex items-center">
+                <input type="checkbox" id="total-lockdown-toggle" onchange="toggleTotalLockdown()" class="hidden">
+                <span class="switch-track">
+                  <span class="switch-thumb"></span>
+                </span>
+              </label>
+            </div>
+          </div>
+          <p class="text-xs text-echo-muted">Blocks <strong>ALL users, admins, and staff members</strong> from using the bot or dashboard. Only your hardcoded Owner User ID can access systems during lockdown.</p>
         </div>
       </div>
     </section>
@@ -521,6 +565,25 @@
     </div>
   </div>
 
+  <!-- Modal: Add Staff Member -->
+  <div id="staff-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
+    <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
+      <h3 class="text-base sm:text-lg font-extrabold text-white">Add Staff Member</h3>
+      <div>
+        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Discord User ID</label>
+        <input type="text" id="staff-userid-input" placeholder="123456789012345678" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-echo-accent">
+      </div>
+      <div>
+        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Role Designation</label>
+        <input type="text" id="staff-role-input" placeholder="e.g. Lead Developer / Support Specialist" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+      </div>
+      <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
+        <button onclick="closeAddStaffModal()" class="px-4 py-2 text-xs font-bold text-echo-muted hover:text-white transition">Cancel</button>
+        <button onclick="addStaffUser(this)" class="px-4 py-2 text-xs bg-echo-accent hover:bg-echo-accent/80 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Save Staff</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Add Blacklist -->
   <div id="blacklist-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
     <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
@@ -551,9 +614,11 @@
     let roles = [];
     let categories = [];
     let blacklist = [];
+    let staffMembers = [];
     let formQuestions = [];
     let formSubmissions = [];
     let formPresets = [];
+    let savedFormConfig = {};
     let rawUptimeSeconds = 0;
     let telemetryInterval = null;
     let chartInstance = null;
@@ -630,6 +695,27 @@
       }, 1000);
     }
 
+    function populateDropdowns() {
+      const textChannels = channels.filter(c => c.type === 'text');
+      const fillSelect = (elemId, list, defaultLabel) => {
+        const elem = document.getElementById(elemId);
+        if (!elem) return;
+        const currentVal = elem.value;
+        elem.innerHTML = `<option value="">${defaultLabel}</option>`;
+        list.forEach(item => {
+          const selected = currentVal === String(item.id) ? 'selected' : '';
+          elem.innerHTML += `<option value="${item.id}" ${selected}># ${item.name}</option>`;
+        });
+      };
+
+      fillSelect('form-channel-select', textChannels, '-- Select Button Channel --');
+
+      if (savedFormConfig && savedFormConfig.channel_id) {
+        const chSelect = document.getElementById('form-channel-select');
+        if (chSelect) chSelect.value = savedFormConfig.channel_id;
+      }
+    }
+
     async function loadAllData(manualSync = false, btn = null) {
       const stopLoading = manualSync ? startBtnLoading(btn, "Syncing...") : () => {};
       if (manualSync) {
@@ -679,16 +765,22 @@
             document.getElementById('maintenance-toggle-tab').checked = gData.maintenance;
           }
 
+          if (gData.lockdown !== undefined) {
+            document.getElementById('total-lockdown-toggle').checked = gData.lockdown;
+          }
+
           populateDropdowns();
         }
 
         const formConfigRes = await fetch('/api/form-config');
         if (formConfigRes.ok) {
-          const fConfig = await formConfigRes.json();
-          if (fConfig.title) document.getElementById("form-panel-title").value = fConfig.title;
-          if (fConfig.description) document.getElementById("form-panel-desc").value = fConfig.description;
-          if (fConfig.button_label) document.getElementById("form-button-label").value = fConfig.button_label;
-          if (fConfig.channel_id) document.getElementById("form-channel-select").value = fConfig.channel_id;
+          savedFormConfig = await formConfigRes.json();
+          if (savedFormConfig.title) document.getElementById("form-panel-title").value = savedFormConfig.title;
+          if (savedFormConfig.description) document.getElementById("form-panel-desc").value = savedFormConfig.description;
+          if (savedFormConfig.button_label) document.getElementById("form-button-label").value = savedFormConfig.button_label;
+          if (savedFormConfig.channel_id && document.getElementById("form-channel-select")) {
+            document.getElementById("form-channel-select").value = savedFormConfig.channel_id;
+          }
           updateFormPreview();
         }
 
@@ -702,6 +794,12 @@
         if (presetsRes.ok) {
           formPresets = await presetsRes.json();
           renderPresets();
+        }
+
+        const staffRes = await fetch('/api/staff');
+        if (staffRes.ok) {
+          staffMembers = await staffRes.json();
+          renderStaff();
         }
 
         const blRes = await fetch('/api/blacklist');
@@ -781,7 +879,7 @@
       try {
         const res = await fetch(`/api/form-submissions/${subId}`, { method: 'DELETE' });
         if (res.ok) {
-          showToast("Submission deleted permanently from cloud database!");
+          showToast("Submission deleted permanently!");
           loadFormSubmissions();
         } else {
           showToast("Failed to delete submission.", true);
@@ -813,6 +911,34 @@
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderStaff() {
+      const container = document.getElementById("staff-container");
+      container.innerHTML = "";
+      if (staffMembers.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No staff members assigned.</div>`;
+        return;
+      }
+
+      staffMembers.forEach(s => {
+        const usernameDisplay = s.username ? `@${s.username}` : 'Staff Member';
+
+        container.innerHTML += `
+          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <p class="font-bold text-white text-xs sm:text-sm">${usernameDisplay}</p>
+                <span class="bg-echo-accent/10 text-echo-accent text-[9px] sm:text-[10px] px-2 py-0.5 rounded font-bold uppercase border border-echo-accent/20">${escapeHtml(s.role_title || 'Staff')}</span>
+              </div>
+              <p class="text-[11px] sm:text-xs font-mono text-echo-muted">ID: ${s.user_id}</p>
+            </div>
+            <button onclick="removeStaffUser('${s.user_id}', this)" class="text-echo-danger hover:bg-echo-danger/10 p-2.5 rounded-xl transition text-sm flex items-center justify-center shrink-0" title="Remove Staff Access">
+              <i class="fa-solid fa-trash"></i>
+            </button>
           </div>
         `;
       });
@@ -880,22 +1006,6 @@
       const el = document.getElementById(elemId);
       if (!el) return;
       el.innerText = String(newValue);
-    }
-
-    function populateDropdowns() {
-      const textChannels = channels.filter(c => c.type === 'text');
-      const fillSelect = (elemId, list, defaultLabel) => {
-        const elem = document.getElementById(elemId);
-        if (!elem) return;
-        const currentVal = elem.value;
-        elem.innerHTML = `<option value="">${defaultLabel}</option>`;
-        list.forEach(item => {
-          const selected = currentVal === String(item.id) ? 'selected' : '';
-          elem.innerHTML += `<option value="${item.id}" ${selected}># ${item.name}</option>`;
-        });
-      };
-
-      fillSelect('form-channel-select', textChannels, '-- Select Button Channel --');
     }
 
     function renderFormQuestions() {
@@ -977,6 +1087,21 @@
         });
         if (res.ok) {
           showToast(enabled ? "Maintenance Protocol Active!" : "Maintenance Protocol Disengaged!");
+        }
+      } catch (e) { showToast("Connection error.", true); }
+    }
+
+    async function toggleTotalLockdown() {
+      const enabled = document.getElementById("total-lockdown-toggle").checked;
+      showToast(enabled ? "ACTIVING TOTAL LOCKDOWN..." : "Disengaging Total Lockdown...");
+      try {
+        const res = await fetch('/api/lockdown', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lockdown: enabled })
+        });
+        if (res.ok) {
+          showToast(enabled ? "TOTAL LOCKDOWN ACTIVE! Owner access only." : "Total Lockdown Disengaged!");
         }
       } catch (e) { showToast("Connection error.", true); }
     }
@@ -1091,6 +1216,47 @@
       finally { stopLoading(); }
     }
 
+    async function addStaffUser(btn = null) {
+      const userId = document.getElementById("staff-userid-input").value.trim();
+      const roleTitle = document.getElementById("staff-role-input").value.trim();
+      if (!userId) {
+        showToast("Discord User ID required.", true);
+        return;
+      }
+      const stopLoading = startBtnLoading(btn, "Saving...");
+
+      staffMembers.push({ user_id: userId, username: "Fetching Username...", role_title: roleTitle || "Staff" });
+      renderStaff();
+      closeAddStaffModal();
+
+      showToast("Granting staff access...");
+      try {
+        const res = await fetch('/api/staff', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, role_title: roleTitle })
+        });
+        if (res.ok) {
+          showToast("Staff member added!");
+          loadAllData();
+        }
+      } catch (e) { showToast("Connection error.", true); }
+      finally { stopLoading(); }
+    }
+
+    async function removeStaffUser(userId, btn = null) {
+      const stopLoading = startBtnLoading(btn, "");
+      staffMembers = staffMembers.filter(s => s.user_id !== userId);
+      renderStaff();
+
+      showToast("Revoking staff access...");
+      try {
+        const res = await fetch(`/api/staff/${userId}`, { method: 'DELETE' });
+        if (res.ok) showToast("Staff access revoked!");
+      } catch (e) { showToast("Error revoking staff access.", true); }
+      finally { stopLoading(); }
+    }
+
     async function addBlacklistUser(btn = null) {
       const userId = document.getElementById("blacklist-userid-input").value.trim();
       const reason = document.getElementById("blacklist-reason-input").value.trim();
@@ -1120,7 +1286,7 @@
     }
 
     function switchTab(tab) {
-      const tabs = ['overview', 'formpanel', 'formbuilder', 'submissions', 'maintenance', 'blacklist'];
+      const tabs = ['overview', 'formpanel', 'formbuilder', 'submissions', 'staff', 'maintenance', 'blacklist'];
       tabs.forEach(t => {
         const tabEl = document.getElementById(`tab-${t}`);
         if (tabEl) tabEl.classList.add('hidden');
@@ -1157,6 +1323,8 @@
 
     function openAddQuestionModal() { document.getElementById("question-modal").classList.remove("hidden"); }
     function closeAddQuestionModal() { document.getElementById("question-modal").classList.add("hidden"); }
+    function openAddStaffModal() { document.getElementById("staff-modal").classList.remove("hidden"); }
+    function closeAddStaffModal() { document.getElementById("staff-modal").classList.add("hidden"); }
     function openAddBlacklistModal() { document.getElementById("blacklist-modal").classList.remove("hidden"); }
     function closeAddBlacklistModal() { document.getElementById("blacklist-modal").classList.add("hidden"); }
 
