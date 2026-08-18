@@ -137,7 +137,6 @@ class ChainedCustomModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
         db = get_db()
 
-        # Increment inquiry counter
         counter = 1
         config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
         if config:
@@ -147,7 +146,6 @@ class ChainedCustomModal(discord.ui.Modal):
 
         category = config.get("category", "Custom Bot Commission") if config else "Custom Bot Commission"
 
-        # Save submission directly to MongoDB
         if db is not None:
             db["form_submissions"].insert_one({
                 "number": counter,
@@ -158,7 +156,6 @@ class ChainedCustomModal(discord.ui.Modal):
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             })
 
-        # Post submission log to target log channel if configured
         log_channel_id = config.get("log_channel_id")
         if log_channel_id and interaction.guild:
             log_ch = interaction.guild.get_channel(int(log_channel_id))
@@ -281,9 +278,8 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="delete-preset", description="Delete a saved form preset by name (Admins Only).")
     async def delete_preset_cmd(self, interaction: discord.Interaction, name: str):
-        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
-        is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Admin"]:
+        is_admin = interaction.user.guild_permissions.administrator or is_staff_or_owner(interaction.user.id, interaction.guild)
+        if not is_admin:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -297,10 +293,9 @@ class Echo(commands.Cog):
             await interaction.response.send_message(embed=error_embed(f"Form preset **\"{name}\"** was not found."), ephemeral=True)
 
     @app_commands.command(name="add-staff", description="Add a staff member with role permissions (Admins Only).")
-    async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.User, role: Literal["Admin"]):
-        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
-        is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Admin"]:
+    async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.User, role: Literal["Admin"] = "Admin"):
+        is_admin = interaction.user.guild_permissions.administrator or is_owner(interaction.user.id)
+        if not is_admin:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -316,9 +311,8 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="remove-staff", description="Remove a staff member's access (Admins Only).")
     async def remove_staff_cmd(self, interaction: discord.Interaction, user: discord.User):
-        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
-        is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Admin"]:
+        is_admin = interaction.user.guild_permissions.administrator or is_owner(interaction.user.id)
+        if not is_admin:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -331,42 +325,10 @@ class Echo(commands.Cog):
         else:
             await interaction.response.send_message(embed=error_embed(f"User {user.mention} was not found in the staff database."), ephemeral=True)
 
-    @app_commands.command(name="clear-submission", description="Delete a submission by Inquiry Number (Staff Only).")
-    async def clear_submission_cmd(self, interaction: discord.Interaction, number: int):
-        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
-        is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Admin"]:
-            return await interaction.response.send_message(embed=error_embed("Staff permission required."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        res = db["form_submissions"].delete_one({"number": number})
-        if res.deleted_count > 0:
-            await interaction.response.send_message(embed=info_embed(f"🗑️ Deleted Inquiry #{number} permanently."), ephemeral=True)
-        else:
-            await interaction.response.send_message(embed=error_embed(f"Inquiry #{number} not found."), ephemeral=True)
-
-    @app_commands.command(name="clear-all-submissions", description="Permanently delete all form submissions (Admin Only).")
-    async def clear_all_submissions_cmd(self, interaction: discord.Interaction):
-        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
-        is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Admin"]:
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        res = db["form_submissions"].delete_many({})
-        await interaction.response.send_message(embed=info_embed(f"🗑️ Purged {res.deleted_count} submissions from database."), ephemeral=True)
-
     @app_commands.command(name="blacklist", description="Add a user to the bot blacklist (Admins Only).")
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
-        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
-        is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Admin"]:
+        is_admin = interaction.user.guild_permissions.administrator or is_staff_or_owner(interaction.user.id, interaction.guild)
+        if not is_admin:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -382,9 +344,8 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="unblacklist", description="Remove a user from the bot blacklist (Admins Only).")
     async def unblacklist_cmd(self, interaction: discord.Interaction, user: discord.User):
-        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
-        is_admin = interaction.user.guild_permissions.administrator
-        if not is_admin and role_title not in ["Admin"]:
+        is_admin = interaction.user.guild_permissions.administrator or is_staff_or_owner(interaction.user.id, interaction.guild)
+        if not is_admin:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
