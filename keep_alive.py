@@ -1,4 +1,3 @@
-```python
 import os
 import time
 import logging
@@ -409,5 +408,3 @@ def keep_alive(bot=None):
     t = Thread(target=run)
     t.daemon = True
     t.start()
-
-```
