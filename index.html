@@ -147,10 +147,7 @@
       <i class="fa-solid fa-rectangle-list w-4 text-center"></i> Form Panel
     </button>
     <button onclick="switchTab('formbuilder'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-list-check w-4 text-center"></i> Form Questions
-    </button>
-    <button onclick="switchTab('submissions'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-inbox w-4 text-center"></i> Submissions
+      <i class="fa-solid fa-list-check w-4 text-center"></i> Question Log
     </button>
     <button onclick="switchTab('staff'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-user-shield w-4 text-center"></i> Staff Access
@@ -175,11 +172,7 @@
     </button>
     <button onclick="switchTab('formbuilder')" id="m-nav-formbuilder" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
       <i class="fa-solid fa-list-check text-sm"></i>
-      <span class="text-[9px] font-bold">Fields</span>
-    </button>
-    <button onclick="switchTab('submissions')" id="m-nav-submissions" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
-      <i class="fa-solid fa-inbox text-sm"></i>
-      <span class="text-[9px] font-bold">Inquiries</span>
+      <span class="text-[9px] font-bold">Log</span>
     </button>
     <button onclick="switchTab('staff')" id="m-nav-staff" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
       <i class="fa-solid fa-user-shield text-sm"></i>
@@ -218,10 +211,7 @@
           <i class="fa-solid fa-rectangle-list w-4 text-center text-sm"></i> Form Panel UI
         </button>
         <button onclick="switchTab('formbuilder')" id="nav-formbuilder" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-list-check w-4 text-center text-sm"></i> Form Questions
-        </button>
-        <button onclick="switchTab('submissions')" id="nav-submissions" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-inbox w-4 text-center text-sm"></i> Submissions
+          <i class="fa-solid fa-list-check w-4 text-center text-sm"></i> Question Log
         </button>
         <button onclick="switchTab('staff')" id="nav-staff" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-user-shield w-4 text-center text-sm"></i> Staff Members
@@ -239,7 +229,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v13.0</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v14.0</span>
     </div>
   </aside>
 
@@ -331,7 +321,7 @@
             </div>
           </div>
           <div class="flex items-center gap-2 w-full sm:w-auto">
-            <select id="form-category-select" onchange="switchFormCategory()" class="bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            <select id="form-category-select" class="bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
               <option value="Custom Bot Commission">🤖 Custom Bot Commission</option>
               <option value="Partnership Application">🤝 Partnership Application</option>
             </select>
@@ -339,42 +329,43 @@
         </div>
       </div>
 
-      <!-- Presets Manager Vault -->
-      <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-orca-accent/10 text-orca-accent flex items-center justify-center text-lg shrink-0 border border-orca-accent/20">
-              <i class="fa-solid fa-box-archive"></i>
-            </div>
-            <div>
-              <h3 class="text-xs sm:text-sm font-bold text-white">Saved Form Preset Vault</h3>
-              <p class="text-[11px] text-orca-muted">Save, load, or delete multiple custom form configurations instantly.</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 w-full sm:w-auto">
-            <input type="text" id="preset-name-input" placeholder="Preset Name (e.g. Bot Inquiries)" class="flex-1 sm:w-48 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-            <button onclick="saveCurrentAsPreset(this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center gap-1.5 shadow shrink-0">
-              <i class="fa-solid fa-bookmark"></i> Save Preset
-            </button>
-          </div>
-        </div>
-
-        <div id="presets-list-container" class="space-y-2 pt-1">
-          <p class="text-xs text-orca-muted italic">No saved presets found.</p>
-        </div>
-      </div>
-
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         <div class="lg:col-span-7 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 md:space-y-5 shadow-2xl">
           <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-3">
-            <i class="fa-solid fa-sliders text-orca-accent"></i> Embed Setup
+            <i class="fa-solid fa-sliders text-orca-accent"></i> Embed & Logging Setup
           </h3>
 
-          <div>
-            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1.5">Form Button Target Channel</label>
-            <select id="form-channel-select" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-              <option value="">-- Select Button Channel --</option>
-            </select>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1.5">Form Button Target Channel</label>
+              <select id="form-channel-select" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                <option value="">-- Select Button Channel --</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1.5">Submission Log Target Channel</label>
+              <select id="log-channel-select" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                <option value="">-- Select Log Channel --</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1.5">Role to Ping on Submission</label>
+              <select id="form-role-select" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                <option value="">-- Select Role (Optional) --</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1.5">Ping Role / Mention</label>
+              <select id="form-ping-toggle" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                <option value="true">True (Ping Role on Submission)</option>
+                <option value="false">False (No Role Mention)</option>
+              </select>
+            </div>
           </div>
 
           <div>
@@ -434,35 +425,15 @@
       </div>
     </section>
 
-    <!-- FORM BUILDER QUESTIONS TAB -->
+    <!-- FORM QUESTION LOG INSPECTOR TAB -->
     <section id="tab-formbuilder" class="space-y-4 md:space-y-6 hidden">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
-        <div>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Form Question Builder</h2>
-          <p class="text-xs text-orca-muted mt-1">Add unlimited questions! Discord modals will automatically chain multi-part forms if you exceed 5 questions.</p>
-        </div>
-        <button onclick="openAddQuestionModal()" class="bg-orca-success hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green w-full sm:w-auto">
-          <i class="fa-solid fa-plus"></i> Add Question Field
-        </button>
+      <div class="glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
+        <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Form Question Inspector Log</h2>
+        <p class="text-xs text-orca-muted mt-1">Review active questionnaire prompts configured per category. Questions are added or cleared via Discord bot commands (`/add-question` & `/clear-questions`).</p>
       </div>
 
-      <div class="space-y-3" id="form-questions-container"></div>
-    </section>
-
-    <!-- SUBMISSIONS TAB -->
-    <section id="tab-submissions" class="space-y-4 md:space-y-6 hidden">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
-        <div>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Form Submissions</h2>
-          <p class="text-xs text-orca-muted mt-1">Real-time incoming client inquiries categorized with sequential inquiry numbers.</p>
-        </div>
-        <button onclick="loadFormSubmissions(this)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow w-full sm:w-auto">
-          <i class="fa-solid fa-arrows-rotate text-orca-accent"></i> Refresh Submissions
-        </button>
-      </div>
-
-      <div class="space-y-3 sm:space-y-4" id="form-submissions-container">
-        <div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">Loading submissions...</div>
+      <div class="space-y-3" id="collapsible-questions-container">
+        <div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">Loading configured questions from database...</div>
       </div>
     </section>
 
@@ -471,7 +442,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Staff Access Management</h2>
-          <p class="text-xs text-orca-muted mt-1">Grant team members role-based control over the web dashboard & bot commands. Saved permanently to MongoDB.</p>
+          <p class="text-xs text-orca-muted mt-1">Grant team members Admin or Super Admin control over the web dashboard & bot commands. Saved permanently to MongoDB.</p>
         </div>
         <button onclick="openAddStaffModal()" class="bg-orca-accent hover:bg-orca-accent/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue w-full sm:w-auto">
           <i class="fa-solid fa-user-plus"></i> Add Staff Member
@@ -510,7 +481,7 @@
               </label>
             </div>
           </div>
-          <p class="text-xs text-orca-muted">Technicians and staff members can still manage settings during standard maintenance.</p>
+          <p class="text-xs text-orca-muted">Admins and Super Admins can still manage settings during standard maintenance.</p>
         </div>
 
         <!-- Total Lockdown Protocol (Owner Only) -->
@@ -522,7 +493,7 @@
               </div>
               <div>
                 <h3 class="text-sm font-bold text-white">Total Lockdown Mode</h3>
-                <p class="text-[11px] text-orca-danger font-bold">Owner Access Only!</p>
+                <p class="text-[11px] text-orca-danger font-bold">Hardcoded Owner Access Only (1219266886143967245)</p>
               </div>
             </div>
             <div>
@@ -534,7 +505,7 @@
               </label>
             </div>
           </div>
-          <p class="text-xs text-orca-muted">Blocks <strong>ALL users, admins, Technicians, and Bot Developers</strong> from using the bot or dashboard. Only your hardcoded Owner User ID can access systems during lockdown.</p>
+          <p class="text-xs text-orca-muted">Blocks <strong>ALL users, admins, and Super Admins</strong> from using the bot or dashboard. Only Owner ID <code class="font-mono text-orca-accent">1219266886143967245</code> can access systems during lockdown.</p>
         </div>
       </div>
     </section>
@@ -556,36 +527,6 @@
 
   </main>
 
-  <!-- Modal: Add Question Field -->
-  <div id="question-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
-    <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
-      <h3 class="text-base sm:text-lg font-extrabold text-white">Add Form Question</h3>
-      <div>
-        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Question Label / Prompt</label>
-        <input type="text" id="q-label-input" placeholder="e.g. What features do you need in your bot?" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-      </div>
-      <div>
-        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Placeholder Text</label>
-        <input type="text" id="q-placeholder-input" placeholder="e.g. Needs music, moderation, and logs..." class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-      </div>
-      <div>
-        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Input Field Type</label>
-        <select id="q-style-input" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-          <option value="paragraph">Paragraph Text (Long Multi-line)</option>
-          <option value="short">Short Input Text (Single Line)</option>
-        </select>
-      </div>
-      <div class="flex items-center gap-2 pt-1">
-        <input type="checkbox" id="q-required-input" checked class="w-4 h-4 rounded bg-orca-base border-orca-border text-orca-accent focus:ring-0">
-        <label for="q-required-input" class="text-xs text-white font-medium">Require Answer to Submit</label>
-      </div>
-      <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
-        <button onclick="closeAddQuestionModal()" class="px-4 py-2 text-xs font-bold text-orca-muted hover:text-white transition">Cancel</button>
-        <button onclick="addFormQuestion(this)" class="px-4 py-2 text-xs bg-orca-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Add Question</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Modal: Add Staff Member -->
   <div id="staff-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
     <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
@@ -597,9 +538,8 @@
       <div>
         <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Assigned Staff Role & Permissions</label>
         <select id="staff-role-input" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-          <option value="Super Admin">Super Admin (Full Access All Tabs)</option>
-          <option value="Technician">Technician (Maintenance & Safety Tab Only)</option>
-          <option value="Bot Developer">Bot Developer (Inquiries & Submissions Tab Only)</option>
+          <option value="Admin">Admin</option>
+          <option value="Super Admin">Super Admin</option>
         </select>
       </div>
       <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
@@ -640,8 +580,7 @@
     let categories = [];
     let blacklist = [];
     let staffMembers = [];
-    let formQuestions = [];
-    let formSubmissions = [];
+    let categoryQuestionsMap = {};
     let formPresets = [];
     let savedFormConfig = {};
     let rawUptimeSeconds = 0;
@@ -722,15 +661,29 @@
 
     function populateDropdowns() {
       const textChannels = channels.filter(c => c.type === 'text');
-      const elem = document.getElementById('form-channel-select');
-      if (!elem) return;
-      
-      const currentVal = elem.value || (savedFormConfig ? savedFormConfig.channel_id : '');
-      elem.innerHTML = `<option value="">-- Select Button Channel --</option>`;
-      textChannels.forEach(item => {
-        const selected = (String(currentVal) === String(item.id)) ? 'selected' : '';
-        elem.innerHTML += `<option value="${item.id}" ${selected}># ${item.name}</option>`;
-      });
+      const fillSelect = (elemId, list, defaultLabel) => {
+        const elem = document.getElementById(elemId);
+        if (!elem) return;
+        const currentVal = elem.value || (savedFormConfig ? savedFormConfig[elemId === 'form-channel-select' ? 'channel_id' : 'log_channel_id'] : '');
+        elem.innerHTML = `<option value="">${defaultLabel}</option>`;
+        list.forEach(item => {
+          const selected = (String(currentVal) === String(item.id)) ? 'selected' : '';
+          elem.innerHTML += `<option value="${item.id}" ${selected}># ${item.name}</option>`;
+        });
+      };
+
+      fillSelect('form-channel-select', textChannels, '-- Select Button Channel --');
+      fillSelect('log-channel-select', textChannels, '-- Select Log Channel --');
+
+      const roleSelect = document.getElementById('form-role-select');
+      if (roleSelect) {
+        const currentVal = roleSelect.value || (savedFormConfig ? savedFormConfig.ping_role_id : '');
+        roleSelect.innerHTML = `<option value="">-- Select Role (Optional) --</option>`;
+        roles.forEach(r => {
+          const selected = (String(currentVal) === String(r.id)) ? 'selected' : '';
+          roleSelect.innerHTML += `<option value="${r.id}" ${selected}>@ ${r.name}</option>`;
+        });
+      }
     }
 
     async function loadAllData(manualSync = false, btn = null) {
@@ -795,16 +748,23 @@
           if (savedFormConfig.description) document.getElementById("form-panel-desc").value = savedFormConfig.description;
           if (savedFormConfig.button_label) document.getElementById("form-button-label").value = savedFormConfig.button_label;
           if (savedFormConfig.category) document.getElementById("form-category-select").value = savedFormConfig.category;
+          if (savedFormConfig.ping_toggle !== undefined) document.getElementById("form-ping-toggle").value = String(savedFormConfig.ping_toggle);
           if (savedFormConfig.channel_id && document.getElementById("form-channel-select")) {
             document.getElementById("form-channel-select").value = savedFormConfig.channel_id;
+          }
+          if (savedFormConfig.log_channel_id && document.getElementById("log-channel-select")) {
+            document.getElementById("log-channel-select").value = savedFormConfig.log_channel_id;
+          }
+          if (savedFormConfig.ping_role_id && document.getElementById("form-role-select")) {
+            document.getElementById("form-role-select").value = savedFormConfig.ping_role_id;
           }
           updateFormPreview();
         }
 
-        const questionsRes = await fetch('/api/form-questions');
+        const questionsRes = await fetch('/api/all-form-questions');
         if (questionsRes.ok) {
-          formQuestions = await questionsRes.json();
-          renderFormQuestions();
+          categoryQuestionsMap = await questionsRes.json();
+          renderCollapsibleQuestions();
         }
 
         const presetsRes = await fetch('/api/form-presets');
@@ -825,8 +785,6 @@
           renderBlacklist();
         }
 
-        loadFormSubmissions();
-
         if (manualSync) showToast("All parameters synced!");
       } catch (e) {
         if (manualSync) showToast("Connection failed", true);
@@ -838,49 +796,54 @@
       }
     }
 
-    async function loadFormSubmissions(btn = null) {
-      const stopLoading = startBtnLoading(btn, "Fetching...");
-      try {
-        const res = await fetch('/api/form-submissions');
-        if (res.ok) {
-          formSubmissions = await res.json();
-          renderFormSubmissions();
-        }
-      } catch (e) {}
-      finally { stopLoading(); }
-    }
-
-    function renderFormSubmissions() {
-      const container = document.getElementById("form-submissions-container");
+    function renderCollapsibleQuestions() {
+      const container = document.getElementById("collapsible-questions-container");
       container.innerHTML = "";
-      if (formSubmissions.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">No form submissions received yet.</div>`;
+
+      const categoriesList = Object.keys(categoryQuestionsMap);
+      if (categoriesList.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">No form questions added yet. Use <code class="bg-orca-base px-2 py-0.5 rounded text-orca-accent font-mono">/add-question</code> in Discord to add questions to any form panel category.</div>`;
         return;
       }
 
-      formSubmissions.forEach(sub => {
-        let answersHtml = '';
-        if (sub.answers && Array.isArray(sub.answers)) {
-          sub.answers.forEach(a => {
-            answersHtml += `<div class="p-2.5 bg-orca-base/80 rounded-xl border border-white/5 mt-1.5"><p class="text-[10px] font-bold uppercase tracking-wider text-orca-accent">${escapeHtml(a.label)}</p><p class="text-xs text-white mt-0.5 whitespace-pre-wrap">${escapeHtml(a.value)}</p></div>`;
+      categoriesList.forEach(catName => {
+        const qList = categoryQuestionsMap[catName] || [];
+        let questionsHtml = "";
+
+        if (qList.length === 0) {
+          questionsHtml = `<p class="text-xs text-orca-muted italic p-3">No active questions under this form panel category.</p>`;
+        } else {
+          qList.forEach((q, idx) => {
+            const styleBadge = q.style === 'paragraph' 
+              ? `<span class="bg-orca-accent/10 text-orca-accent text-[10px] px-2 py-0.5 rounded font-bold uppercase">Paragraph</span>`
+              : `<span class="bg-orca-success/10 text-orca-success text-[10px] px-2 py-0.5 rounded font-bold uppercase">Short Text</span>`;
+
+            questionsHtml += `
+              <div class="p-3 bg-orca-base/80 rounded-xl border border-white/5 space-y-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-white text-xs">Q${idx + 1}: ${escapeHtml(q.label)}</span>
+                  ${styleBadge}
+                  ${q.required ? '<span class="text-orca-danger text-[10px] font-bold">*Required</span>' : ''}
+                </div>
+                <p class="text-[11px] text-orca-muted">Placeholder: "${escapeHtml(q.placeholder || 'None')}"</p>
+              </div>
+            `;
           });
         }
 
-        const usernameDisplay = sub.username ? `@${escapeHtml(sub.username)}` : 'Unknown Discord User';
-        const categoryDisplay = escapeHtml(sub.category || 'General Form');
-
         container.innerHTML += `
-          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl space-y-2.5 shadow-xl animate-fade-in">
-            <div class="flex items-center justify-between flex-wrap gap-2">
-              <div class="flex items-center gap-2">
-                <span class="font-black text-white text-xs sm:text-sm">Inquiry #${sub.number || 1}</span>
-                <span class="bg-orca-accent/10 text-orca-accent text-[10px] px-2 py-0.5 rounded font-bold uppercase">${categoryDisplay}</span>
-              </div>
-              <span class="text-[10px] sm:text-xs text-orca-muted font-mono">${sub.timestamp || ''}</span>
+          <details class="glass-card rounded-2xl md:rounded-3xl border border-white/5 overflow-hidden transition group">
+            <summary class="p-4 sm:p-5 font-bold text-xs sm:text-sm text-white cursor-pointer flex items-center justify-between hover:bg-white/5 transition select-none">
+              <span class="flex items-center gap-2.5">
+                <i class="fa-solid fa-folder text-orca-accent"></i> ${escapeHtml(catName)}
+                <span class="bg-orca-base text-orca-muted text-[10px] px-2 py-0.5 rounded font-mono border border-white/5">${qList.length} Question(s)</span>
+              </span>
+              <i class="fa-solid fa-chevron-down text-orca-muted text-xs transition group-open:rotate-180"></i>
+            </summary>
+            <div class="p-4 pt-0 space-y-2.5 border-t border-white/5 mt-2">
+              ${questionsHtml}
             </div>
-            <p class="text-xs text-orca-text"><span class="font-bold text-white">${usernameDisplay}</span> <code class="text-orca-muted bg-orca-base px-1.5 py-0.5 rounded border border-white/5 font-mono text-[10px] sm:text-xs">ID: ${sub.user_id}</code></p>
-            <div class="space-y-1.5 pt-1">${answersHtml}</div>
-          </div>
+          </details>
         `;
       });
     }
@@ -904,9 +867,6 @@
               <button onclick="loadPreset('${escapeHtml(preset.name)}', this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition active:scale-95 flex items-center gap-1 shadow">
                 <i class="fa-solid fa-download"></i> Load
               </button>
-              <button onclick="deletePreset('${escapeHtml(preset.name)}', this)" class="text-orca-danger hover:bg-orca-danger/10 p-1.5 rounded-lg transition text-xs" title="Delete Preset">
-                <i class="fa-solid fa-trash"></i>
-              </button>
             </div>
           </div>
         `;
@@ -923,11 +883,10 @@
 
       staffMembers.forEach(s => {
         const usernameDisplay = s.username ? `@${escapeHtml(s.username)}` : 'Unknown Discord User';
-        const roleTitle = escapeHtml(s.role_title || 'Staff');
+        const roleTitle = escapeHtml(s.role_title || 'Admin');
 
         let badgeStyle = "bg-orca-accent/10 text-orca-accent border-orca-accent/20";
-        if (roleTitle === 'Technician') badgeStyle = "bg-orca-warning/10 text-orca-warning border-orca-warning/20";
-        if (roleTitle === 'Bot Developer') badgeStyle = "bg-orca-success/10 text-orca-success border-orca-success/20";
+        if (roleTitle === 'Super Admin') badgeStyle = "bg-orca-success/10 text-orca-success border-orca-success/20";
 
         container.innerHTML += `
           <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in">
@@ -991,55 +950,10 @@
       showToast(`Loaded preset "${presetName}"!`);
     }
 
-    async function deletePreset(presetName, btn = null) {
-      const stopLoading = startBtnLoading(btn, "");
-      formPresets = formPresets.filter(p => p.name !== presetName);
-      renderPresets();
-
-      showToast("Deleting preset...");
-      try {
-        const res = await fetch(`/api/form-presets/${encodeURIComponent(presetName)}`, { method: 'DELETE' });
-        if (res.ok) showToast("Preset deleted!");
-      } catch (e) { showToast("Error deleting preset.", true); }
-      finally { stopLoading(); }
-    }
-
     function updateStatValue(elemId, newValue) {
       const el = document.getElementById(elemId);
       if (!el) return;
       el.innerText = String(newValue);
-    }
-
-    function renderFormQuestions() {
-      const container = document.getElementById("form-questions-container");
-      container.innerHTML = "";
-
-      if (formQuestions.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">No questions configured. Click "+ Add Question Field" above to create questions!</div>`;
-        return;
-      }
-
-      formQuestions.forEach((q, idx) => {
-        const styleBadge = q.style === 'paragraph' 
-          ? `<span class="bg-orca-accent/10 text-orca-accent text-[10px] px-2 py-0.5 rounded font-bold uppercase">Paragraph Input</span>`
-          : `<span class="bg-orca-success/10 text-orca-success text-[10px] px-2 py-0.5 rounded font-bold uppercase">Short Text</span>`;
-
-        container.innerHTML += `
-          <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in gap-3">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <p class="font-bold text-white text-xs sm:text-sm truncate">Q${idx + 1}: ${escapeHtml(q.label)}</p>
-                ${styleBadge}
-                ${q.required ? '<span class="text-orca-danger text-[10px] font-bold">*Required</span>' : ''}
-              </div>
-              <p class="text-xs text-orca-muted mt-1 truncate">Placeholder: "${escapeHtml(q.placeholder || 'None')}"</p>
-            </div>
-            <button onclick="removeFormQuestion(${idx}, this)" class="text-orca-danger hover:bg-orca-danger/10 p-2.5 rounded-xl transition text-sm shrink-0" title="Delete Question">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </div>
-        `;
-      });
     }
 
     function renderBlacklist() {
@@ -1114,7 +1028,10 @@
         description: document.getElementById("form-panel-desc").value,
         button_label: document.getElementById("form-button-label").value,
         category: document.getElementById("form-category-select").value,
-        channel_id: document.getElementById("form-channel-select").value
+        channel_id: document.getElementById("form-channel-select").value,
+        log_channel_id: document.getElementById("log-channel-select").value,
+        ping_role_id: document.getElementById("form-role-select").value,
+        ping_toggle: document.getElementById("form-ping-toggle").value === "true"
       };
 
       updateFormPreview();
@@ -1164,51 +1081,6 @@
         if (res.ok) showToast("Live form embed updated!");
         else showToast("No active panel found to update.", true);
       } catch (e) { showToast("Failed to update embed.", true); }
-      finally { stopLoading(); }
-    }
-
-    async function addFormQuestion(btn = null) {
-      const label = document.getElementById("q-label-input").value.trim();
-      const placeholder = document.getElementById("q-placeholder-input").value.trim();
-      const style = document.getElementById("q-style-input").value;
-      const required = document.getElementById("q-required-input").checked;
-
-      if (!label) {
-        showToast("Question label required.", true);
-        return;
-      }
-
-      const stopLoading = startBtnLoading(btn, "Adding...");
-      formQuestions.push({ label, placeholder, style, required });
-      renderFormQuestions();
-      closeAddQuestionModal();
-
-      showToast("Saving questions...");
-      try {
-        const res = await fetch('/api/form-questions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ questions: formQuestions })
-        });
-        if (res.ok) showToast("Questions updated!");
-      } catch (e) { showToast("Error saving questions.", true); }
-      finally { stopLoading(); }
-    }
-
-    async function removeFormQuestion(idx, btn = null) {
-      const stopLoading = startBtnLoading(btn, "");
-      formQuestions.splice(idx, 1);
-      renderFormQuestions();
-
-      showToast("Saving changes...");
-      try {
-        const res = await fetch('/api/form-questions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ questions: formQuestions })
-        });
-        if (res.ok) showToast("Question removed!");
-      } catch (e) { showToast("Error saving changes.", true); }
       finally { stopLoading(); }
     }
 
@@ -1282,7 +1154,7 @@
     }
 
     function switchTab(tab) {
-      const tabs = ['overview', 'formpanel', 'formbuilder', 'submissions', 'staff', 'maintenance', 'blacklist'];
+      const tabs = ['overview', 'formpanel', 'formbuilder', 'staff', 'maintenance', 'blacklist'];
       tabs.forEach(t => {
         const tabEl = document.getElementById(`tab-${t}`);
         if (tabEl) tabEl.classList.add('hidden');
@@ -1317,8 +1189,6 @@
       }
     }
 
-    function openAddQuestionModal() { document.getElementById("question-modal").classList.remove("hidden"); }
-    function closeAddQuestionModal() { document.getElementById("question-modal").classList.add("hidden"); }
     function openAddStaffModal() { document.getElementById("staff-modal").classList.remove("hidden"); }
     function closeAddStaffModal() { document.getElementById("staff-modal").classList.add("hidden"); }
     function openAddBlacklistModal() { document.getElementById("blacklist-modal").classList.remove("hidden"); }
