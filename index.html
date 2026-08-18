@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ECHO Command Center</title>
+  <title>𝐎𝐑𝐂𝐀 Command Center</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,13 +20,13 @@
             mono: ['"JetBrains Mono"', 'monospace']
           },
           colors: {
-            echo: {
+            orca: {
               base: '#090a0f',
               surface: '#0f1118',
               card: '#161923',
               border: '#232838',
-              accent: '#5865F2',
-              accentHover: '#4752C4',
+              accent: '#3b82f6',
+              accentHover: '#2563eb',
               success: '#23a55a',
               danger: '#f23f43',
               warning: '#f0b232',
@@ -45,7 +45,7 @@
       color: #f2f3f5;
       font-family: 'Plus Jakarta Sans', sans-serif;
       background-image: 
-        radial-gradient(at 0% 0%, rgba(88, 101, 242, 0.12) 0px, transparent 50%),
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(35, 165, 90, 0.08) 0px, transparent 50%),
         radial-gradient(at 50% 50%, rgba(15, 17, 24, 0.5) 0px, transparent 100%);
       background-attachment: fixed;
@@ -65,7 +65,7 @@
     }
 
     .glass-card:hover {
-      border-color: rgba(88, 101, 242, 0.3);
+      border-color: rgba(59, 130, 246, 0.3);
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
     }
 
@@ -79,7 +79,7 @@
     ::-webkit-scrollbar-track { background: #090a0f; }
     ::-webkit-scrollbar-thumb { background: #232838; border-radius: 9999px; }
 
-    .glow-purple { box-shadow: 0 0 20px rgba(88, 101, 242, 0.25); }
+    .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.25); }
     .glow-green { box-shadow: 0 0 20px rgba(35, 165, 90, 0.25); }
     .glow-red { box-shadow: 0 0 20px rgba(242, 63, 67, 0.25); }
 
@@ -114,167 +114,167 @@
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-echo-accent selection:text-white pb-20 md:pb-0">
+<body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-orca-accent selection:text-white pb-20 md:pb-0">
 
   <!-- Mobile Top Header -->
-  <header class="md:hidden glass-panel p-4 sticky top-0 z-40 flex items-center justify-between border-b border-echo-border shadow-2xl">
+  <header class="md:hidden glass-panel p-4 sticky top-0 z-40 flex items-center justify-between border-b border-orca-border shadow-2xl">
     <div class="flex items-center gap-3">
       <div class="relative">
         <img id="bot-avatar-img-mobile" src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-9 h-9 rounded-xl border border-white/10 shadow object-cover">
-        <span class="w-2.5 h-2.5 bg-echo-success border-2 border-echo-surface rounded-full absolute -bottom-0.5 -right-0.5"></span>
+        <span class="w-2.5 h-2.5 bg-orca-success border-2 border-orca-surface rounded-full absolute -bottom-0.5 -right-0.5"></span>
       </div>
       <div>
         <div class="flex items-center gap-1.5">
-          <h1 class="font-extrabold text-white text-sm tracking-tight" id="bot-name-display-mobile">ECHO</h1>
-          <span class="bg-echo-accent/20 text-echo-accent border border-echo-accent/30 text-[9px] px-1.5 py-0.2 rounded font-extrabold">STUDIO</span>
+          <h1 class="font-extrabold text-white text-sm tracking-tight" id="bot-name-display-mobile">𝐎𝐑𝐂𝐀</h1>
+          <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-[9px] px-1.5 py-0.2 rounded font-extrabold">STUDIO</span>
         </div>
-        <p class="text-[10px] text-echo-muted font-mono flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-echo-success animate-pulse"></span> Cloud Online
+        <p class="text-[10px] text-orca-muted font-mono flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-orca-success animate-pulse"></span> Cloud Online
         </p>
       </div>
     </div>
-    <button onclick="toggleMobileMenu()" class="bg-echo-card hover:bg-echo-border text-white w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center transition active:scale-95">
+    <button onclick="toggleMobileMenu()" class="bg-orca-card hover:bg-orca-border text-white w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center transition active:scale-95">
       <i class="fa-solid fa-bars text-sm" id="menu-icon"></i>
     </button>
   </header>
 
   <!-- Mobile Menu Overlay -->
-  <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[69px] z-30 glass-panel border-b border-echo-border p-4 space-y-2 animate-fade-in shadow-2xl">
-    <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-white bg-echo-accent shadow-md">
+  <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[69px] z-30 glass-panel border-b border-orca-border p-4 space-y-2 animate-fade-in shadow-2xl">
+    <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent shadow-md">
       <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview
     </button>
-    <button onclick="switchTab('formpanel'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
+    <button onclick="switchTab('formpanel'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-rectangle-list w-4 text-center"></i> Form Panel
     </button>
-    <button onclick="switchTab('formbuilder'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
+    <button onclick="switchTab('formbuilder'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-list-check w-4 text-center"></i> Form Questions
     </button>
-    <button onclick="switchTab('submissions'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
+    <button onclick="switchTab('submissions'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-inbox w-4 text-center"></i> Submissions
     </button>
-    <button onclick="switchTab('staff'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
+    <button onclick="switchTab('staff'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-user-shield w-4 text-center"></i> Staff Access
     </button>
-    <button onclick="switchTab('maintenance'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
+    <button onclick="switchTab('maintenance'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-shield-halved w-4 text-center"></i> Maintenance
     </button>
-    <button onclick="switchTab('blacklist'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-echo-muted hover:bg-white/5 hover:text-white">
+    <button onclick="switchTab('blacklist'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
       <i class="fa-solid fa-user-slash w-4 text-center"></i> Blacklist
     </button>
   </div>
 
   <!-- Mobile Bottom Navigation Bar -->
-  <nav class="md:hidden fixed bottom-0 inset-x-0 glass-panel border-t border-echo-border z-40 px-1 py-2 flex items-center justify-around">
-    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-1 px-2 py-1 text-echo-accent">
+  <nav class="md:hidden fixed bottom-0 inset-x-0 glass-panel border-t border-orca-border z-40 px-1 py-2 flex items-center justify-around">
+    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-accent">
       <i class="fa-solid fa-chart-pie text-sm"></i>
       <span class="text-[9px] font-bold">Stats</span>
     </button>
-    <button onclick="switchTab('formpanel')" id="m-nav-formpanel" class="flex flex-col items-center gap-1 px-2 py-1 text-echo-muted">
+    <button onclick="switchTab('formpanel')" id="m-nav-formpanel" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
       <i class="fa-solid fa-rectangle-list text-sm"></i>
       <span class="text-[9px] font-bold">Panel</span>
     </button>
-    <button onclick="switchTab('formbuilder')" id="m-nav-formbuilder" class="flex flex-col items-center gap-1 px-2 py-1 text-echo-muted">
+    <button onclick="switchTab('formbuilder')" id="m-nav-formbuilder" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
       <i class="fa-solid fa-list-check text-sm"></i>
       <span class="text-[9px] font-bold">Fields</span>
     </button>
-    <button onclick="switchTab('submissions')" id="m-nav-submissions" class="flex flex-col items-center gap-1 px-2 py-1 text-echo-muted">
+    <button onclick="switchTab('submissions')" id="m-nav-submissions" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
       <i class="fa-solid fa-inbox text-sm"></i>
       <span class="text-[9px] font-bold">Inquiries</span>
     </button>
-    <button onclick="switchTab('staff')" id="m-nav-staff" class="flex flex-col items-center gap-1 px-2 py-1 text-echo-muted">
+    <button onclick="switchTab('staff')" id="m-nav-staff" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
       <i class="fa-solid fa-user-shield text-sm"></i>
       <span class="text-[9px] font-bold">Staff</span>
     </button>
-    <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-1 px-2 py-1 text-echo-muted">
+    <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-1 px-2 py-1 text-orca-muted">
       <i class="fa-solid fa-shield-halved text-sm"></i>
       <span class="text-[9px] font-bold">Safety</span>
     </button>
   </nav>
 
   <!-- Desktop Sidebar Navigation -->
-  <aside class="hidden md:flex w-72 glass-panel p-5 flex-col justify-between border-r border-echo-border shrink-0 z-30">
+  <aside class="hidden md:flex w-72 glass-panel p-5 flex-col justify-between border-r border-orca-border shrink-0 z-30">
     <div>
-      <div class="flex items-center gap-3.5 p-3 rounded-2xl bg-echo-card/90 border border-white/10 mb-6 shadow-xl">
+      <div class="flex items-center gap-3.5 p-3 rounded-2xl bg-orca-card/90 border border-white/10 mb-6 shadow-xl">
         <div class="relative shrink-0">
           <img id="bot-avatar-img" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar" class="w-12 h-12 rounded-xl border border-white/10 shadow object-cover">
-          <span class="w-3.5 h-3.5 bg-echo-success border-2 border-echo-surface rounded-full absolute -bottom-1 -right-1 shadow"></span>
+          <span class="w-3.5 h-3.5 bg-orca-success border-2 border-orca-surface rounded-full absolute -bottom-1 -right-1 shadow"></span>
         </div>
         <div class="overflow-hidden">
           <div class="flex items-center gap-2">
-            <h1 class="font-extrabold text-white text-base tracking-tight truncate" id="bot-name-display">ECHO</h1>
-            <span class="bg-echo-accent/20 text-echo-accent border border-echo-accent/30 text-[10px] px-1.5 py-0.5 rounded-md font-extrabold uppercase tracking-widest">STUDIO</span>
+            <h1 class="font-extrabold text-white text-base tracking-tight truncate" id="bot-name-display">𝐎𝐑𝐂𝐀</h1>
+            <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-[10px] px-1.5 py-0.5 rounded-md font-extrabold uppercase tracking-widest">STUDIO</span>
           </div>
-          <p class="text-[11px] text-echo-muted font-medium flex items-center gap-1.5 mt-0.5">
-            <span class="w-2 h-2 rounded-full bg-echo-success animate-pulse"></span> Cloud Online
+          <p class="text-[11px] text-orca-muted font-medium flex items-center gap-1.5 mt-0.5">
+            <span class="w-2 h-2 rounded-full bg-orca-success animate-pulse"></span> Cloud Online
           </p>
         </div>
       </div>
 
       <nav class="space-y-1.5">
-        <button onclick="switchTab('overview')" id="nav-overview" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-echo-accent glow-purple transition-all duration-200">
+        <button onclick="switchTab('overview')" id="nav-overview" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all duration-200">
           <i class="fa-solid fa-chart-line w-4 text-center text-sm"></i> Telemetry & Stats
         </button>
-        <button onclick="switchTab('formpanel')" id="nav-formpanel" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
+        <button onclick="switchTab('formpanel')" id="nav-formpanel" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-rectangle-list w-4 text-center text-sm"></i> Form Panel UI
         </button>
-        <button onclick="switchTab('formbuilder')" id="nav-formbuilder" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
+        <button onclick="switchTab('formbuilder')" id="nav-formbuilder" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-list-check w-4 text-center text-sm"></i> Form Questions
         </button>
-        <button onclick="switchTab('submissions')" id="nav-submissions" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
+        <button onclick="switchTab('submissions')" id="nav-submissions" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-inbox w-4 text-center text-sm"></i> Submissions
         </button>
-        <button onclick="switchTab('staff')" id="nav-staff" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
+        <button onclick="switchTab('staff')" id="nav-staff" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-user-shield w-4 text-center text-sm"></i> Staff Members
         </button>
-        <button onclick="switchTab('maintenance')" id="nav-maintenance" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
+        <button onclick="switchTab('maintenance')" id="nav-maintenance" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-shield-halved w-4 text-center text-sm"></i> Maintenance
         </button>
-        <button onclick="switchTab('blacklist')" id="nav-blacklist" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200">
+        <button onclick="switchTab('blacklist')" id="nav-blacklist" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
           <i class="fa-solid fa-user-slash w-4 text-center text-sm"></i> Blacklist
         </button>
       </nav>
     </div>
 
-    <div class="pt-4 border-t border-white/5 text-[11px] text-echo-muted flex items-center justify-between font-mono">
+    <div class="pt-4 border-t border-white/5 text-[11px] text-orca-muted flex items-center justify-between font-mono">
       <span class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-echo-success"></span> Live Sync Ticking
+        <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-echo-card px-2 py-1 rounded border border-white/5 font-bold">v12.1</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v13.0</span>
     </div>
   </aside>
 
   <!-- Viewport -->
   <main class="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6 md:space-y-8">
 
-    <!-- OVERVIEW TAB (PURE VIEWING TELEMETRY) -->
+    <!-- OVERVIEW TAB -->
     <section id="tab-overview" class="space-y-4 md:space-y-6 animate-fade-in">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">System Command & Telemetry</h2>
-          <p class="text-xs text-echo-muted mt-0.5 sm:mt-1">Real-time infrastructure health, memory analytics, and latency graphing.</p>
+          <p class="text-xs text-orca-muted mt-0.5 sm:mt-1">Real-time infrastructure health, memory analytics, and latency graphing.</p>
         </div>
-        <button onclick="loadAllData(true, this)" class="bg-echo-card hover:bg-echo-card/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2.5 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
-          <i class="fa-solid fa-arrows-rotate text-echo-accent" id="refresh-icon"></i> Refresh Telemetry
+        <button onclick="loadAllData(true, this)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2.5 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
+          <i class="fa-solid fa-arrows-rotate text-orca-accent" id="refresh-icon"></i> Refresh Telemetry
         </button>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
         <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 shadow-2xl">
-          <div class="w-12 h-12 rounded-2xl bg-echo-accent/10 text-echo-accent flex items-center justify-center text-xl shrink-0 border border-echo-accent/20">
+          <div class="w-12 h-12 rounded-2xl bg-orca-accent/10 text-orca-accent flex items-center justify-center text-xl shrink-0 border border-orca-accent/20">
             <i class="fa-solid fa-bolt"></i>
           </div>
           <div>
-            <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">Bot Ping (Realtime)</p>
+            <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Bot Ping (Realtime)</p>
             <p class="text-2xl sm:text-3xl font-black text-white font-mono mt-0.5" id="stat-ping">-- ms</p>
           </div>
         </div>
 
         <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl flex items-center gap-4 shadow-2xl">
-          <div class="w-12 h-12 rounded-2xl bg-echo-warning/10 text-echo-warning flex items-center justify-center text-xl shrink-0 border border-echo-warning/20">
+          <div class="w-12 h-12 rounded-2xl bg-orca-warning/10 text-orca-warning flex items-center justify-center text-xl shrink-0 border border-orca-warning/20">
             <i class="fa-solid fa-stopwatch"></i>
           </div>
           <div>
-            <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">System Uptime</p>
+            <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">System Uptime</p>
             <p class="text-lg sm:text-xl font-black text-white font-mono mt-1" id="stat-uptime">00d 00h 00m 00s</p>
           </div>
         </div>
@@ -282,17 +282,17 @@
         <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl flex flex-col justify-center gap-2 shadow-2xl">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <i class="fa-solid fa-database text-echo-success text-sm"></i>
-              <p class="text-[10px] font-extrabold text-echo-muted uppercase tracking-widest">Cloud Database</p>
+              <i class="fa-solid fa-database text-orca-success text-sm"></i>
+              <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Cloud Database</p>
             </div>
-            <span class="text-xs font-mono font-bold text-echo-success" id="stat-db-usage">0.24 MB</span>
+            <span class="text-xs font-mono font-bold text-orca-success" id="stat-db-usage">0.01 MB</span>
           </div>
-          <div class="w-full bg-echo-base h-2 rounded-full overflow-hidden border border-white/5 mt-1">
-            <div id="db-progress-bar" class="bg-echo-success h-full transition-all duration-500 rounded-full" style="width: 5%;"></div>
+          <div class="w-full bg-orca-base h-2 rounded-full overflow-hidden border border-white/5 mt-1">
+            <div id="db-progress-bar" class="bg-orca-success h-full transition-all duration-500 rounded-full" style="width: 1%;"></div>
           </div>
-          <p class="text-[10px] text-echo-muted font-mono flex justify-between">
+          <p class="text-[10px] text-orca-muted font-mono flex justify-between">
             <span>MongoDB Atlas</span>
-            <span>512 MB Free Tier</span>
+            <span>512.00 MB Free Tier</span>
           </p>
         </div>
       </div>
@@ -300,10 +300,10 @@
       <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
         <div class="flex items-center justify-between border-b border-white/5 pb-3">
           <div class="flex items-center gap-2">
-            <i class="fa-solid fa-chart-area text-echo-accent"></i>
+            <i class="fa-solid fa-chart-area text-orca-accent"></i>
             <h3 class="text-xs font-extrabold uppercase tracking-widest text-white">System Telemetry & Latency Trends</h3>
           </div>
-          <span class="text-[10px] font-mono text-echo-muted bg-echo-base px-2 py-1 rounded border border-white/5">Auto-Sampling</span>
+          <span class="text-[10px] font-mono text-orca-muted bg-orca-base px-2 py-1 rounded border border-white/5">Auto-Sampling</span>
         </div>
         <div class="h-56 sm:h-64 w-full">
           <canvas id="uptimeChart"></canvas>
@@ -315,96 +315,117 @@
     <section id="tab-formpanel" class="space-y-4 md:space-y-6 hidden">
       <div class="glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Unified Form Panel Embed</h2>
-        <p class="text-xs text-echo-muted mt-1">Deploy information and form triggers together into a single clean Discord UI Embed with button attached!</p>
+        <p class="text-xs text-orca-muted mt-1">Deploy information and form triggers together into a single clean Discord UI Embed with button attached!</p>
+      </div>
+
+      <!-- Form Category Switcher -->
+      <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-orca-accent/10 text-orca-accent flex items-center justify-center text-lg shrink-0 border border-orca-accent/20">
+              <i class="fa-solid fa-folder-tree"></i>
+            </div>
+            <div>
+              <h3 class="text-xs sm:text-sm font-bold text-white">Form Category / Type</h3>
+              <p class="text-[11px] text-orca-muted">Select or create a category to organize forms (e.g. Custom Bot, Partnership).</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <select id="form-category-select" onchange="switchFormCategory()" class="bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+              <option value="Custom Bot Commission">🤖 Custom Bot Commission</option>
+              <option value="Partnership Application">🤝 Partnership Application</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <!-- Presets Manager Vault -->
       <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-echo-accent/10 text-echo-accent flex items-center justify-center text-lg shrink-0 border border-echo-accent/20">
+            <div class="w-10 h-10 rounded-xl bg-orca-accent/10 text-orca-accent flex items-center justify-center text-lg shrink-0 border border-orca-accent/20">
               <i class="fa-solid fa-box-archive"></i>
             </div>
             <div>
               <h3 class="text-xs sm:text-sm font-bold text-white">Saved Form Preset Vault</h3>
-              <p class="text-[11px] text-echo-muted">Save, load, or delete multiple custom form configurations instantly.</p>
+              <p class="text-[11px] text-orca-muted">Save, load, or delete multiple custom form configurations instantly.</p>
             </div>
           </div>
           <div class="flex items-center gap-2 w-full sm:w-auto">
-            <input type="text" id="preset-name-input" placeholder="Preset Name (e.g. Bot Inquiries)" class="flex-1 sm:w-48 bg-echo-base border border-echo-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
-            <button onclick="saveCurrentAsPreset(this)" class="bg-echo-accent hover:bg-echo-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center gap-1.5 shadow shrink-0">
+            <input type="text" id="preset-name-input" placeholder="Preset Name (e.g. Bot Inquiries)" class="flex-1 sm:w-48 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            <button onclick="saveCurrentAsPreset(this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center gap-1.5 shadow shrink-0">
               <i class="fa-solid fa-bookmark"></i> Save Preset
             </button>
           </div>
         </div>
 
         <div id="presets-list-container" class="space-y-2 pt-1">
-          <p class="text-xs text-echo-muted italic">No saved presets found.</p>
+          <p class="text-xs text-orca-muted italic">No saved presets found.</p>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         <div class="lg:col-span-7 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 md:space-y-5 shadow-2xl">
-          <h3 class="text-xs font-extrabold uppercase tracking-widest text-echo-muted flex items-center gap-2 border-b border-white/5 pb-3">
-            <i class="fa-solid fa-sliders text-echo-accent"></i> Embed Setup
+          <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-3">
+            <i class="fa-solid fa-sliders text-orca-accent"></i> Embed Setup
           </h3>
 
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Form Button Target Channel</label>
-            <select id="form-channel-select" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1.5">Form Button Target Channel</label>
+            <select id="form-channel-select" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
               <option value="">-- Select Button Channel --</option>
             </select>
           </div>
 
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Panel Title</label>
-            <input type="text" id="form-panel-title" oninput="updateFormPreview()" value="🤖 REQUEST CUSTOM BOT COMMISSION" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1.5">Panel Title</label>
+            <input type="text" id="form-panel-title" oninput="updateFormPreview()" value="🤖 REQUEST CUSTOM BOT COMMISSION" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
           </div>
 
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Panel Description Content</label>
-            <textarea id="form-panel-desc" oninput="updateFormPreview()" rows="3" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!</textarea>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1.5">Panel Description Content</label>
+            <textarea id="form-panel-desc" oninput="updateFormPreview()" rows="3" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!</textarea>
           </div>
 
           <div>
-            <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1.5">Interactive Button Label</label>
-            <input type="text" id="form-button-label" oninput="updateFormPreview()" value="📝 Fill Out Form" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent transition">
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1.5">Interactive Button Label</label>
+            <input type="text" id="form-button-label" oninput="updateFormPreview()" value="📝 Fill Out Form" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-2">
-            <button onclick="saveFormPanelSettings(this)" class="bg-echo-base hover:bg-black text-white font-bold py-3 rounded-xl text-xs border border-white/10 transition active:scale-95 flex items-center justify-center gap-2">
-              <i class="fa-solid fa-floppy-disk text-echo-muted"></i> Save Config
+            <button onclick="saveFormPanelSettings(this)" class="bg-orca-base hover:bg-black text-white font-bold py-3 rounded-xl text-xs border border-white/10 transition active:scale-95 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-floppy-disk text-orca-muted"></i> Save Config
             </button>
-            <button onclick="deployFormPanel(this)" class="bg-echo-success hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
+            <button onclick="deployFormPanel(this)" class="bg-orca-success hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
               <i class="fa-solid fa-paper-plane"></i> Deploy Embed
             </button>
-            <button onclick="updateExistingFormPanel(this)" class="bg-echo-accent hover:bg-echo-accent/80 text-white font-bold py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-purple">
+            <button onclick="updateExistingFormPanel(this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
               <i class="fa-solid fa-arrows-rotate"></i> Update Live
             </button>
           </div>
         </div>
 
         <div class="lg:col-span-5 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
-          <h3 class="text-xs font-extrabold uppercase tracking-widest text-echo-muted flex items-center gap-2">
-            <i class="fa-brands fa-discord text-echo-accent text-base"></i> Discord Combined UI Simulator
+          <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
+            <i class="fa-brands fa-discord text-orca-accent text-base"></i> Discord Combined UI Simulator
           </h3>
           
           <div class="bg-[#313338] p-4 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner">
             <div class="flex items-center gap-3">
               <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-8 h-8 rounded-full">
               <div class="flex items-center gap-1.5">
-                <span class="font-bold text-white text-xs">ECHO Bot</span>
-                <span class="bg-[#5865F2] text-white text-[9px] px-1 py-0.2 rounded font-bold uppercase">BOT</span>
+                <span class="font-bold text-white text-xs">𝐎𝐑𝐂𝐀 Bot</span>
+                <span class="bg-[#3b82f6] text-white text-[9px] px-1 py-0.2 rounded font-bold uppercase">BOT</span>
               </div>
             </div>
 
-            <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-echo-accent space-y-2">
+            <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-orca-accent space-y-2">
               <p class="font-bold text-white text-xs sm:text-sm" id="preview-form-title">🤖 REQUEST CUSTOM BOT COMMISSION</p>
               <p class="text-xs text-[#dbdee1] whitespace-pre-wrap leading-relaxed" id="preview-form-desc">Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!</p>
             </div>
 
             <div class="pt-1">
-              <button class="bg-[#5865F2] text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-2 cursor-default shadow">
+              <button class="bg-[#3b82f6] text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-2 cursor-default shadow">
                 <i class="fa-solid fa-file-pen"></i> <span id="preview-button-label">📝 Fill Out Form</span>
               </button>
             </div>
@@ -418,9 +439,9 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Form Question Builder</h2>
-          <p class="text-xs text-echo-muted mt-1">Add unlimited questions! Discord modals will automatically chain multi-part forms if you exceed 5 questions.</p>
+          <p class="text-xs text-orca-muted mt-1">Add unlimited questions! Discord modals will automatically chain multi-part forms if you exceed 5 questions.</p>
         </div>
-        <button onclick="openAddQuestionModal()" class="bg-echo-success hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green w-full sm:w-auto">
+        <button onclick="openAddQuestionModal()" class="bg-orca-success hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green w-full sm:w-auto">
           <i class="fa-solid fa-plus"></i> Add Question Field
         </button>
       </div>
@@ -433,15 +454,15 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Form Submissions</h2>
-          <p class="text-xs text-echo-muted mt-1">Real-time incoming client inquiries and completed form submissions.</p>
+          <p class="text-xs text-orca-muted mt-1">Real-time incoming client inquiries categorized with sequential inquiry numbers.</p>
         </div>
-        <button onclick="loadFormSubmissions(this)" class="bg-echo-card hover:bg-echo-card/80 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow w-full sm:w-auto">
-          <i class="fa-solid fa-arrows-rotate text-echo-accent"></i> Refresh Submissions
+        <button onclick="loadFormSubmissions(this)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow w-full sm:w-auto">
+          <i class="fa-solid fa-arrows-rotate text-orca-accent"></i> Refresh Submissions
         </button>
       </div>
 
       <div class="space-y-3 sm:space-y-4" id="form-submissions-container">
-        <div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">Loading submissions...</div>
+        <div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">Loading submissions...</div>
       </div>
     </section>
 
@@ -450,9 +471,9 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Staff Access Management</h2>
-          <p class="text-xs text-echo-muted mt-1">Grant team members role-based control over the web dashboard & bot commands. Saved permanently to MongoDB.</p>
+          <p class="text-xs text-orca-muted mt-1">Grant team members role-based control over the web dashboard & bot commands. Saved permanently to MongoDB.</p>
         </div>
-        <button onclick="openAddStaffModal()" class="bg-echo-accent hover:bg-echo-accent/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-purple w-full sm:w-auto">
+        <button onclick="openAddStaffModal()" class="bg-orca-accent hover:bg-orca-accent/80 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue w-full sm:w-auto">
           <i class="fa-solid fa-user-plus"></i> Add Staff Member
         </button>
       </div>
@@ -464,7 +485,7 @@
     <section id="tab-maintenance" class="space-y-4 md:space-y-6 hidden">
       <div class="glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Maintenance & Safety Protocol</h2>
-        <p class="text-xs text-echo-muted mt-1">Manage global emergency lockouts, total lockdown switches, and security flags.</p>
+        <p class="text-xs text-orca-muted mt-1">Manage global emergency lockouts, total lockdown switches, and security flags.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -472,12 +493,12 @@
         <div class="glass-card p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
           <div class="flex items-center justify-between border-b border-white/5 pb-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-echo-warning/10 text-echo-warning flex items-center justify-center text-lg shrink-0 border border-echo-warning/20">
+              <div class="w-10 h-10 rounded-xl bg-orca-warning/10 text-orca-warning flex items-center justify-center text-lg shrink-0 border border-orca-warning/20">
                 <i class="fa-solid fa-triangle-exclamation"></i>
               </div>
               <div>
                 <h3 class="text-sm font-bold text-white">Standard Maintenance</h3>
-                <p class="text-[11px] text-echo-muted">Disables form submissions for regular members.</p>
+                <p class="text-[11px] text-orca-muted">Disables form submissions for regular members.</p>
               </div>
             </div>
             <div>
@@ -489,19 +510,19 @@
               </label>
             </div>
           </div>
-          <p class="text-xs text-echo-muted">Technicians and staff members can still manage settings during standard maintenance.</p>
+          <p class="text-xs text-orca-muted">Technicians and staff members can still manage settings during standard maintenance.</p>
         </div>
 
         <!-- Total Lockdown Protocol (Owner Only) -->
-        <div class="glass-card p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl border border-echo-danger/30">
+        <div class="glass-card p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl border border-orca-danger/30">
           <div class="flex items-center justify-between border-b border-white/5 pb-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-echo-danger/10 text-echo-danger flex items-center justify-center text-lg shrink-0 border border-echo-danger/20">
+              <div class="w-10 h-10 rounded-xl bg-orca-danger/10 text-orca-danger flex items-center justify-center text-lg shrink-0 border border-orca-danger/20">
                 <i class="fa-solid fa-lock"></i>
               </div>
               <div>
                 <h3 class="text-sm font-bold text-white">Total Lockdown Mode</h3>
-                <p class="text-[11px] text-echo-danger font-bold">Owner Access Only!</p>
+                <p class="text-[11px] text-orca-danger font-bold">Owner Access Only!</p>
               </div>
             </div>
             <div>
@@ -513,7 +534,7 @@
               </label>
             </div>
           </div>
-          <p class="text-xs text-echo-muted">Blocks <strong>ALL users, admins, Technicians, and Bot Developers</strong> from using the bot or dashboard. Only your hardcoded Owner User ID can access systems during lockdown.</p>
+          <p class="text-xs text-orca-muted">Blocks <strong>ALL users, admins, Technicians, and Bot Developers</strong> from using the bot or dashboard. Only your hardcoded Owner User ID can access systems during lockdown.</p>
         </div>
       </div>
     </section>
@@ -523,9 +544,9 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Access Control & Blacklist</h2>
-          <p class="text-xs text-echo-muted mt-1">View and manage users restricted from opening forms or running commands.</p>
+          <p class="text-xs text-orca-muted mt-1">View and manage users restricted from opening forms or running commands.</p>
         </div>
-        <button onclick="openAddBlacklistModal()" class="bg-echo-danger hover:bg-red-600 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-red w-full sm:w-auto">
+        <button onclick="openAddBlacklistModal()" class="bg-orca-danger hover:bg-red-600 text-white text-xs font-bold px-4 py-2.5 sm:py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-red w-full sm:w-auto">
           <i class="fa-solid fa-user-slash"></i> Blacklist User ID
         </button>
       </div>
@@ -540,27 +561,27 @@
     <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
       <h3 class="text-base sm:text-lg font-extrabold text-white">Add Form Question</h3>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Question Label / Prompt</label>
-        <input type="text" id="q-label-input" placeholder="e.g. What features do you need in your bot?" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Question Label / Prompt</label>
+        <input type="text" id="q-label-input" placeholder="e.g. What features do you need in your bot?" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Placeholder Text</label>
-        <input type="text" id="q-placeholder-input" placeholder="e.g. Needs music, moderation, and logs..." class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Placeholder Text</label>
+        <input type="text" id="q-placeholder-input" placeholder="e.g. Needs music, moderation, and logs..." class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Input Field Type</label>
-        <select id="q-style-input" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Input Field Type</label>
+        <select id="q-style-input" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
           <option value="paragraph">Paragraph Text (Long Multi-line)</option>
           <option value="short">Short Input Text (Single Line)</option>
         </select>
       </div>
       <div class="flex items-center gap-2 pt-1">
-        <input type="checkbox" id="q-required-input" checked class="w-4 h-4 rounded bg-echo-base border-echo-border text-echo-accent focus:ring-0">
+        <input type="checkbox" id="q-required-input" checked class="w-4 h-4 rounded bg-orca-base border-orca-border text-orca-accent focus:ring-0">
         <label for="q-required-input" class="text-xs text-white font-medium">Require Answer to Submit</label>
       </div>
       <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
-        <button onclick="closeAddQuestionModal()" class="px-4 py-2 text-xs font-bold text-echo-muted hover:text-white transition">Cancel</button>
-        <button onclick="addFormQuestion(this)" class="px-4 py-2 text-xs bg-echo-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Add Question</button>
+        <button onclick="closeAddQuestionModal()" class="px-4 py-2 text-xs font-bold text-orca-muted hover:text-white transition">Cancel</button>
+        <button onclick="addFormQuestion(this)" class="px-4 py-2 text-xs bg-orca-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Add Question</button>
       </div>
     </div>
   </div>
@@ -570,20 +591,20 @@
     <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
       <h3 class="text-base sm:text-lg font-extrabold text-white">Add Staff Member</h3>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Discord User ID</label>
-        <input type="text" id="staff-userid-input" placeholder="123456789012345678" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-echo-accent">
+        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Discord User ID</label>
+        <input type="text" id="staff-userid-input" placeholder="123456789012345678" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Assigned Staff Role & Permissions</label>
-        <select id="staff-role-input" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Assigned Staff Role & Permissions</label>
+        <select id="staff-role-input" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
           <option value="Super Admin">Super Admin (Full Access All Tabs)</option>
           <option value="Technician">Technician (Maintenance & Safety Tab Only)</option>
           <option value="Bot Developer">Bot Developer (Inquiries & Submissions Tab Only)</option>
         </select>
       </div>
       <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
-        <button onclick="closeAddStaffModal()" class="px-4 py-2 text-xs font-bold text-echo-muted hover:text-white transition">Cancel</button>
-        <button onclick="addStaffUser(this)" class="px-4 py-2 text-xs bg-echo-accent hover:bg-echo-accent/80 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Save Staff</button>
+        <button onclick="closeAddStaffModal()" class="px-4 py-2 text-xs font-bold text-orca-muted hover:text-white transition">Cancel</button>
+        <button onclick="addStaffUser(this)" class="px-4 py-2 text-xs bg-orca-accent hover:bg-orca-accent/80 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Save Staff</button>
       </div>
     </div>
   </div>
@@ -593,23 +614,23 @@
     <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-fade-in">
       <h3 class="text-base sm:text-lg font-extrabold text-white">Blacklist User</h3>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Discord User ID</label>
-        <input type="text" id="blacklist-userid-input" placeholder="123456789012345678" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-echo-accent">
+        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Discord User ID</label>
+        <input type="text" id="blacklist-userid-input" placeholder="123456789012345678" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
       </div>
       <div>
-        <label class="block text-[10px] font-extrabold text-echo-muted uppercase tracking-widest mb-1">Reason for Restriction</label>
-        <input type="text" id="blacklist-reason-input" placeholder="e.g. Repeated form spamming" class="w-full bg-echo-base border border-echo-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-echo-accent">
+        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Reason for Restriction</label>
+        <input type="text" id="blacklist-reason-input" placeholder="e.g. Repeated form spamming" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
       </div>
       <div class="flex justify-end gap-3 pt-3 border-t border-white/5">
-        <button onclick="closeAddBlacklistModal()" class="px-4 py-2 text-xs font-bold text-echo-muted hover:text-white transition">Cancel</button>
-        <button onclick="addBlacklistUser(this)" class="px-4 py-2 text-xs bg-echo-danger hover:bg-red-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Blacklist User</button>
+        <button onclick="closeAddBlacklistModal()" class="px-4 py-2 text-xs font-bold text-orca-muted hover:text-white transition">Cancel</button>
+        <button onclick="addBlacklistUser(this)" class="px-4 py-2 text-xs bg-orca-danger hover:bg-red-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Blacklist User</button>
       </div>
     </div>
   </div>
 
   <!-- Toast System -->
   <div id="toast" class="fixed bottom-16 md:bottom-6 right-4 md:right-6 glass-panel text-white px-4 sm:px-5 py-3 rounded-xl sm:rounded-2xl shadow-2xl text-xs font-semibold transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4 flex items-center gap-2.5 sm:gap-3 z-50 border border-white/10">
-    <i class="fa-solid fa-circle-check text-echo-success text-sm sm:text-base" id="toast-icon"></i>
+    <i class="fa-solid fa-circle-check text-orca-success text-sm sm:text-base" id="toast-icon"></i>
     <span id="toast-message">Operation successful!</span>
   </div>
 
@@ -637,13 +658,13 @@
           datasets: [{
             label: 'API Ping (ms)',
             data: pingHistory,
-            borderColor: '#5865F2',
-            backgroundColor: 'rgba(88, 101, 242, 0.15)',
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.15)',
             borderWidth: 2.5,
             fill: true,
             tension: 0.4,
             pointRadius: 3,
-            pointBackgroundColor: '#5865F2'
+            pointBackgroundColor: '#3b82f6'
           }]
         },
         options: {
@@ -773,6 +794,7 @@
           if (savedFormConfig.title) document.getElementById("form-panel-title").value = savedFormConfig.title;
           if (savedFormConfig.description) document.getElementById("form-panel-desc").value = savedFormConfig.description;
           if (savedFormConfig.button_label) document.getElementById("form-button-label").value = savedFormConfig.button_label;
+          if (savedFormConfig.category) document.getElementById("form-category-select").value = savedFormConfig.category;
           if (savedFormConfig.channel_id && document.getElementById("form-channel-select")) {
             document.getElementById("form-channel-select").value = savedFormConfig.channel_id;
           }
@@ -832,7 +854,7 @@
       const container = document.getElementById("form-submissions-container");
       container.innerHTML = "";
       if (formSubmissions.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No form submissions received yet.</div>`;
+        container.innerHTML = `<div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">No form submissions received yet.</div>`;
         return;
       }
 
@@ -840,71 +862,49 @@
         let answersHtml = '';
         if (sub.answers && Array.isArray(sub.answers)) {
           sub.answers.forEach(a => {
-            answersHtml += `<div class="p-2.5 bg-echo-base/80 rounded-xl border border-white/5 mt-1.5"><p class="text-[10px] font-bold uppercase tracking-wider text-echo-accent">${escapeHtml(a.label)}</p><p class="text-xs text-white mt-0.5 whitespace-pre-wrap">${escapeHtml(a.value)}</p></div>`;
+            answersHtml += `<div class="p-2.5 bg-orca-base/80 rounded-xl border border-white/5 mt-1.5"><p class="text-[10px] font-bold uppercase tracking-wider text-orca-accent">${escapeHtml(a.label)}</p><p class="text-xs text-white mt-0.5 whitespace-pre-wrap">${escapeHtml(a.value)}</p></div>`;
           });
         }
 
         const usernameDisplay = sub.username ? `@${escapeHtml(sub.username)}` : 'Unknown Discord User';
+        const categoryDisplay = escapeHtml(sub.category || 'General Form');
 
         container.innerHTML += `
           <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl space-y-2.5 shadow-xl animate-fade-in">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between flex-wrap gap-2">
               <div class="flex items-center gap-2">
-                <span class="font-extrabold text-white text-xs sm:text-sm">Inquiry From: ${usernameDisplay}</span>
-                <span class="bg-echo-accent/10 text-echo-accent text-[10px] px-2 py-0.5 rounded font-bold uppercase">Form Entry</span>
+                <span class="font-black text-white text-xs sm:text-sm">Inquiry #${sub.number || 1}</span>
+                <span class="bg-orca-accent/10 text-orca-accent text-[10px] px-2 py-0.5 rounded font-bold uppercase">${categoryDisplay}</span>
               </div>
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] sm:text-xs text-echo-muted font-mono">${sub.timestamp || ''}</span>
-                <button onclick="deleteSubmission('${sub.id}', this)" class="text-echo-danger hover:bg-echo-danger/10 p-1.5 rounded-lg transition text-xs" title="Delete Submission">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
+              <span class="text-[10px] sm:text-xs text-orca-muted font-mono">${sub.timestamp || ''}</span>
             </div>
-            <p class="text-xs text-echo-text"><code class="text-echo-muted bg-echo-base px-1.5 py-0.5 rounded border border-white/5 font-mono text-[10px] sm:text-xs">User ID: ${sub.user_id}</code></p>
+            <p class="text-xs text-orca-text"><span class="font-bold text-white">${usernameDisplay}</span> <code class="text-orca-muted bg-orca-base px-1.5 py-0.5 rounded border border-white/5 font-mono text-[10px] sm:text-xs">ID: ${sub.user_id}</code></p>
             <div class="space-y-1.5 pt-1">${answersHtml}</div>
           </div>
         `;
       });
     }
 
-    async function deleteSubmission(subId, btn = null) {
-      const stopLoading = startBtnLoading(btn, "");
-      formSubmissions = formSubmissions.filter(s => s.id !== subId);
-      renderFormSubmissions();
-
-      showToast("Deleting submission permanently...");
-      try {
-        const res = await fetch(`/api/form-submissions/${subId}`, { method: 'DELETE' });
-        if (res.ok) {
-          showToast("Submission deleted permanently!");
-          loadFormSubmissions();
-        } else {
-          showToast("Failed to delete submission.", true);
-        }
-      } catch (e) { showToast("Error deleting submission.", true); }
-      finally { stopLoading(); }
-    }
-
     function renderPresets() {
       const container = document.getElementById("presets-list-container");
       container.innerHTML = "";
       if (formPresets.length === 0) {
-        container.innerHTML = `<p class="text-xs text-echo-muted italic">No saved presets found.</p>`;
+        container.innerHTML = `<p class="text-xs text-orca-muted italic">No saved presets found.</p>`;
         return;
       }
 
       formPresets.forEach(preset => {
         container.innerHTML += `
-          <div class="flex items-center justify-between p-2.5 bg-echo-base rounded-xl border border-white/5">
+          <div class="flex items-center justify-between p-2.5 bg-orca-base rounded-xl border border-white/5">
             <div>
               <p class="font-bold text-white text-xs">${escapeHtml(preset.name)}</p>
-              <p class="text-[10px] text-echo-muted">Title: "${escapeHtml(preset.title)}"</p>
+              <p class="text-[10px] text-orca-muted">Title: "${escapeHtml(preset.title)}"</p>
             </div>
             <div class="flex items-center gap-2">
-              <button onclick="loadPreset('${escapeHtml(preset.name)}', this)" class="bg-echo-accent hover:bg-echo-accent/80 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition active:scale-95 flex items-center gap-1 shadow">
+              <button onclick="loadPreset('${escapeHtml(preset.name)}', this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition active:scale-95 flex items-center gap-1 shadow">
                 <i class="fa-solid fa-download"></i> Load
               </button>
-              <button onclick="deletePreset('${escapeHtml(preset.name)}', this)" class="text-echo-danger hover:bg-echo-danger/10 p-1.5 rounded-lg transition text-xs" title="Delete Preset">
+              <button onclick="deletePreset('${escapeHtml(preset.name)}', this)" class="text-orca-danger hover:bg-orca-danger/10 p-1.5 rounded-lg transition text-xs" title="Delete Preset">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
@@ -917,7 +917,7 @@
       const container = document.getElementById("staff-container");
       container.innerHTML = "";
       if (staffMembers.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No staff members assigned. Assign staff via dashboard or using /add-staff in Discord.</div>`;
+        container.innerHTML = `<div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">No staff members assigned. Assign staff via dashboard or using /add-staff in Discord.</div>`;
         return;
       }
 
@@ -925,9 +925,9 @@
         const usernameDisplay = s.username ? `@${escapeHtml(s.username)}` : 'Unknown Discord User';
         const roleTitle = escapeHtml(s.role_title || 'Staff');
 
-        let badgeStyle = "bg-echo-accent/10 text-echo-accent border-echo-accent/20";
-        if (roleTitle === 'Technician') badgeStyle = "bg-echo-warning/10 text-echo-warning border-echo-warning/20";
-        if (roleTitle === 'Bot Developer') badgeStyle = "bg-echo-success/10 text-echo-success border-echo-success/20";
+        let badgeStyle = "bg-orca-accent/10 text-orca-accent border-orca-accent/20";
+        if (roleTitle === 'Technician') badgeStyle = "bg-orca-warning/10 text-orca-warning border-orca-warning/20";
+        if (roleTitle === 'Bot Developer') badgeStyle = "bg-orca-success/10 text-orca-success border-orca-success/20";
 
         container.innerHTML += `
           <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in">
@@ -936,9 +936,9 @@
                 <p class="font-bold text-white text-xs sm:text-sm">${usernameDisplay}</p>
                 <span class="${badgeStyle} text-[9px] sm:text-[10px] px-2 py-0.5 rounded font-bold uppercase border">${roleTitle}</span>
               </div>
-              <p class="text-[11px] sm:text-xs font-mono text-echo-muted">ID: ${s.user_id}</p>
+              <p class="text-[11px] sm:text-xs font-mono text-orca-muted">ID: ${s.user_id}</p>
             </div>
-            <button onclick="removeStaffUser('${s.user_id}', this)" class="text-echo-danger hover:bg-echo-danger/10 p-2.5 rounded-xl transition text-sm flex items-center justify-center shrink-0" title="Remove Staff Access">
+            <button onclick="removeStaffUser('${s.user_id}', this)" class="text-orca-danger hover:bg-orca-danger/10 p-2.5 rounded-xl transition text-sm flex items-center justify-center shrink-0" title="Remove Staff Access">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -1015,14 +1015,14 @@
       container.innerHTML = "";
 
       if (formQuestions.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No questions configured. Click "+ Add Question Field" above to create questions!</div>`;
+        container.innerHTML = `<div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">No questions configured. Click "+ Add Question Field" above to create questions!</div>`;
         return;
       }
 
       formQuestions.forEach((q, idx) => {
         const styleBadge = q.style === 'paragraph' 
-          ? `<span class="bg-echo-accent/10 text-echo-accent text-[10px] px-2 py-0.5 rounded font-bold uppercase">Paragraph Input</span>`
-          : `<span class="bg-echo-success/10 text-echo-success text-[10px] px-2 py-0.5 rounded font-bold uppercase">Short Text</span>`;
+          ? `<span class="bg-orca-accent/10 text-orca-accent text-[10px] px-2 py-0.5 rounded font-bold uppercase">Paragraph Input</span>`
+          : `<span class="bg-orca-success/10 text-orca-success text-[10px] px-2 py-0.5 rounded font-bold uppercase">Short Text</span>`;
 
         container.innerHTML += `
           <div class="glass-card p-4 sm:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between shadow-xl hover:border-white/10 transition animate-fade-in gap-3">
@@ -1030,11 +1030,11 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <p class="font-bold text-white text-xs sm:text-sm truncate">Q${idx + 1}: ${escapeHtml(q.label)}</p>
                 ${styleBadge}
-                ${q.required ? '<span class="text-echo-danger text-[10px] font-bold">*Required</span>' : ''}
+                ${q.required ? '<span class="text-orca-danger text-[10px] font-bold">*Required</span>' : ''}
               </div>
-              <p class="text-xs text-echo-muted mt-1 truncate">Placeholder: "${escapeHtml(q.placeholder || 'None')}"</p>
+              <p class="text-xs text-orca-muted mt-1 truncate">Placeholder: "${escapeHtml(q.placeholder || 'None')}"</p>
             </div>
-            <button onclick="removeFormQuestion(${idx}, this)" class="text-echo-danger hover:bg-echo-danger/10 p-2.5 rounded-xl transition text-sm shrink-0" title="Delete Question">
+            <button onclick="removeFormQuestion(${idx}, this)" class="text-orca-danger hover:bg-orca-danger/10 p-2.5 rounded-xl transition text-sm shrink-0" title="Delete Question">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -1046,7 +1046,7 @@
       const container = document.getElementById("blacklist-container");
       container.innerHTML = "";
       if (blacklist.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-echo-muted glass-card rounded-2xl md:rounded-3xl">No blacklisted users.</div>`;
+        container.innerHTML = `<div class="p-8 text-center text-orca-muted glass-card rounded-2xl md:rounded-3xl">No blacklisted users.</div>`;
         return;
       }
       blacklist.forEach(b => {
@@ -1057,10 +1057,10 @@
             <div class="space-y-1">
               <div class="flex items-center gap-2">
                 <p class="font-bold text-white text-xs sm:text-sm">${usernameDisplay}</p>
-                <span class="bg-echo-danger/10 text-echo-danger text-[9px] sm:text-[10px] px-2 py-0.5 rounded font-bold uppercase border border-echo-danger/20">Blacklisted</span>
+                <span class="bg-orca-danger/10 text-orca-danger text-[9px] sm:text-[10px] px-2 py-0.5 rounded font-bold uppercase border border-orca-danger/20">Blacklisted</span>
               </div>
-              <p class="text-[11px] sm:text-xs font-mono text-echo-muted">ID: ${b.user_id}</p>
-              <p class="text-[11px] sm:text-xs text-echo-text">Reason: <span class="text-echo-muted">${b.reason || 'No reason provided'}</span></p>
+              <p class="text-[11px] sm:text-xs font-mono text-orca-muted">ID: ${b.user_id}</p>
+              <p class="text-[11px] sm:text-xs text-orca-text">Reason: <span class="text-orca-muted">${b.reason || 'No reason provided'}</span></p>
             </div>
           </div>
         `;
@@ -1113,6 +1113,7 @@
         title: document.getElementById("form-panel-title").value,
         description: document.getElementById("form-panel-desc").value,
         button_label: document.getElementById("form-button-label").value,
+        category: document.getElementById("form-category-select").value,
         channel_id: document.getElementById("form-channel-select").value
       };
 
@@ -1288,12 +1289,12 @@
         
         const desktopNav = document.getElementById(`nav-${t}`);
         if (desktopNav) {
-          desktopNav.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-echo-muted hover:bg-white/5 hover:text-white transition-all duration-200';
+          desktopNav.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200';
         }
         
         const mobileNav = document.getElementById(`m-nav-${t}`);
         if (mobileNav) {
-          mobileNav.className = 'flex flex-col items-center gap-1 px-2 py-1 text-echo-muted';
+          mobileNav.className = 'flex flex-col items-center gap-1 px-2 py-1 text-orca-muted';
         }
       });
 
@@ -1307,12 +1308,12 @@
 
       const activeDesktop = document.getElementById(`nav-${tab}`);
       if (activeDesktop) {
-        activeDesktop.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-echo-accent glow-purple transition-all duration-200';
+        activeDesktop.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all duration-200';
       }
       
       const activeMobile = document.getElementById(`m-nav-${tab}`);
       if (activeMobile) {
-        activeMobile.className = 'flex flex-col items-center gap-1 px-2 py-1 text-echo-accent font-bold';
+        activeMobile.className = 'flex flex-col items-center gap-1 px-2 py-1 text-orca-accent font-bold';
       }
     }
 
@@ -1330,11 +1331,11 @@
 
       message.innerText = msg;
       if (isError) {
-        toast.classList.replace("bg-echo-accent", "bg-echo-danger");
+        toast.classList.replace("bg-orca-accent", "bg-orca-danger");
         icon.className = "fa-solid fa-circle-xmark text-white text-sm sm:text-base";
       } else {
-        toast.classList.replace("bg-echo-danger", "bg-echo-accent");
-        icon.className = "fa-solid fa-circle-check text-echo-success text-sm sm:text-base";
+        toast.classList.replace("bg-orca-danger", "bg-orca-accent");
+        icon.className = "fa-solid fa-circle-check text-orca-success text-sm sm:text-base";
       }
 
       toast.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
