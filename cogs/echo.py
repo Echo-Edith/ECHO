@@ -57,7 +57,7 @@ def is_blacklisted(user_id: int) -> bool:
 
 def get_staff_role_title(user_id: int, guild) -> Optional[str]:
     if is_owner(user_id) or (guild and user_id == guild.owner_id):
-        return "Admin"
+        return "Server Moderator"
     db = get_db()
     if db is None:
         return None
@@ -276,26 +276,57 @@ class Echo(commands.Cog):
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="delete-preset", description="Delete a saved form preset by name (Admins Only).")
-    async def delete_preset_cmd(self, interaction: discord.Interaction, name: str):
-        is_admin = interaction.user.guild_permissions.administrator or is_staff_or_owner(interaction.user.id, interaction.guild)
-        if not is_admin:
+    @app_commands.command(name="rename-category", description="Rename an existing form panel category (Admins Only).")
+    async def rename_category_cmd(self, interaction: discord.Interaction, old_name: str, new_name: str):
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
         if db is None:
             return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
 
-        res = db["form_presets"].delete_one({"name": name.strip()})
-        if res.deleted_count > 0:
-            await interaction.response.send_message(embed=info_embed("🗑️ Preset Deleted!", f"Deleted form preset **\"{name}\"**."), ephemeral=True)
-        else:
-            await interaction.response.send_message(embed=error_embed(f"Form preset **\"{name}\"** was not found."), ephemeral=True)
+        guild_id = interaction.guild.id
+        doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+        cat_map = doc.get("category_questions", {})
 
-    @app_commands.command(name="add-staff", description="Add a staff member with role permissions (Admins Only).")
-    async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.User, role: Literal["Admin"] = "Admin"):
-        is_admin = interaction.user.guild_permissions.administrator or is_owner(interaction.user.id)
-        if not is_admin:
+        if old_name.strip() in cat_map:
+            cat_map[new_name.strip()] = cat_map.pop(old_name.strip())
+            db["guild_config"].update_one(
+                {"guild_id": guild_id},
+                {"$set": {"category_questions": cat_map}},
+                upsert=True
+            )
+            await interaction.response.send_message(embed=info_embed("✏️ Category Renamed!", f"Renamed category **\"{old_name.strip()}\"** to **\"{new_name.strip()}\"**."), ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=error_embed(f"Category **\"{old_name.strip()}\"** not found."), ephemeral=True)
+
+    @app_commands.command(name="delete-category", description="Delete an existing form panel category and its questions (Admins Only).")
+    async def delete_category_cmd(self, interaction: discord.Interaction, name: str):
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        guild_id = interaction.guild.id
+        doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+        cat_map = doc.get("category_questions", {})
+
+        if name.strip() in cat_map:
+            cat_map.pop(name.strip())
+            db["guild_config"].update_one(
+                {"guild_id": guild_id},
+                {"$set": {"category_questions": cat_map}},
+                upsert=True
+            )
+            await interaction.response.send_message(embed=info_embed("🗑️ Category Deleted!", f"Deleted category **\"{name.strip()}\"** and its questions."), ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=error_embed(f"Category **\"{name.strip()}\"** not found."), ephemeral=True)
+
+    @app_commands.command(name="add-staff", description="Add a server moderator (Admins Only).")
+    async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.User):
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -304,15 +335,14 @@ class Echo(commands.Cog):
 
         db["staff_members"].update_one(
             {"user_id": str(user.id)},
-            {"$set": {"user_id": str(user.id), "username": str(user), "role_title": role}},
+            {"$set": {"user_id": str(user.id), "username": str(user), "role_title": "Server Moderator"}},
             upsert=True
         )
-        await interaction.response.send_message(embed=info_embed(f"👑 Added {user.mention} as staff with role **{role}**!"), ephemeral=True)
+        await interaction.response.send_message(embed=info_embed(f"👑 Added {user.mention} as **Server Moderator**!"), ephemeral=True)
 
-    @app_commands.command(name="remove-staff", description="Remove a staff member's access (Admins Only).")
+    @app_commands.command(name="remove-staff", description="Remove a server moderator (Admins Only).")
     async def remove_staff_cmd(self, interaction: discord.Interaction, user: discord.User):
-        is_admin = interaction.user.guild_permissions.administrator or is_owner(interaction.user.id)
-        if not is_admin:
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -321,14 +351,52 @@ class Echo(commands.Cog):
 
         result = db["staff_members"].delete_one({"user_id": str(user.id)})
         if result.deleted_count > 0:
-            await interaction.response.send_message(embed=info_embed(f"✅ Revoked staff access for {user.mention} (`{user.id}`)."), ephemeral=True)
+            await interaction.response.send_message(embed=info_embed(f"✅ Revoked moderator access for {user.mention} (`{user.id}`)."), ephemeral=True)
         else:
-            await interaction.response.send_message(embed=error_embed(f"User {user.mention} was not found in the staff database."), ephemeral=True)
+            await interaction.response.send_message(embed=error_embed(f"User {user.mention} was not found in the staff roster."), ephemeral=True)
+
+    @app_commands.command(name="staff-list", description="Display all authorized server moderators (Clean Embed).")
+    async def staff_list_cmd(self, interaction: discord.Interaction):
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        cursor = db["staff_members"].find()
+        staff_lines = []
+        for doc in cursor:
+            uid = doc.get("user_id")
+            staff_lines.append(f"<@{uid}> (ID: `{uid}`)")
+
+        embed = discord.Embed(
+            title="🛡️ Authorized Staff Roster",
+            description="\n".join(staff_lines) if staff_lines else "*(No staff members assigned)*",
+            color=EMBED_COLOR
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="blacklisted-list", description="Display all blacklisted users (Clean Embed).")
+    async def blacklisted_list_cmd(self, interaction: discord.Interaction):
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        cursor = db["blacklist"].find()
+        bl_lines = []
+        for doc in cursor:
+            uid = doc.get("user_id")
+            reason = doc.get("reason", "No reason provided")
+            bl_lines.append(f"<@{uid}> (ID: `{uid}`) — *{reason}*")
+
+        embed = discord.Embed(
+            title="⛔ Blacklisted Users Log",
+            description="\n".join(bl_lines) if bl_lines else "*(No blacklisted users)*",
+            color=ERROR_COLOR
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="blacklist", description="Add a user to the bot blacklist (Admins Only).")
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
-        is_admin = interaction.user.guild_permissions.administrator or is_staff_or_owner(interaction.user.id, interaction.guild)
-        if not is_admin:
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -344,8 +412,7 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="unblacklist", description="Remove a user from the bot blacklist (Admins Only).")
     async def unblacklist_cmd(self, interaction: discord.Interaction, user: discord.User):
-        is_admin = interaction.user.guild_permissions.administrator or is_staff_or_owner(interaction.user.id, interaction.guild)
-        if not is_admin:
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -360,14 +427,14 @@ class Echo(commands.Cog):
 
     @app_commands.command(name="dashboard", description="Get the link to access the 𝐎𝐑𝐂𝐀 Web Control Dashboard.")
     async def dashboard(self, interaction: discord.Interaction):
-        if not is_staff_or_owner(interaction.user.id, interaction.guild) and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Only staff members or server admins can access the dashboard link."), ephemeral=True)
+        if not is_owner(interaction.user.id):
+            return await interaction.response.send_message(embed=error_embed("Only the Bot Owner (1219266886143967245) can access the Web Control Dashboard."), ephemeral=True)
 
         dashboard_url = os.getenv("DASHBOARD_URL", "https://echo-dashboard.duckdns.org").strip()
         if not dashboard_url.startswith(("http://", "https://")):
             dashboard_url = f"https://{dashboard_url}"
 
-        embed = discord.Embed(title="🌐 𝐎𝐑𝐂𝐀 Web Dashboard", description="Build custom forms, manage questions, and review form submissions.", color=EMBED_COLOR)
+        embed = discord.Embed(title="🌐 𝐎𝐑𝐂𝐀 Web Dashboard", description="Build custom forms, manage questions, and review system telemetry.", color=EMBED_COLOR)
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Open Web Control Panel", url=dashboard_url, style=discord.ButtonStyle.link, emoji="🎛️"))
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
