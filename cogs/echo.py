@@ -132,9 +132,20 @@ class ChainedCustomModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
         db = get_db()
 
-        # Save submission directly and exclusively to MongoDB
+        # Increment inquiry counter and save
+        counter = 1
+        config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
+        if config:
+            counter = config.get("submission_counter", 0) + 1
+            if db is not None:
+                db["guild_config"].update_one({"guild_id": interaction.guild.id}, {"$set": {"submission_counter": counter}})
+
+        category = config.get("category", "General Form") if config else "General Form"
+
         if db is not None:
             db["form_submissions"].insert_one({
+                "number": counter,
+                "category": category,
                 "username": str(interaction.user),
                 "user_id": str(interaction.user.id),
                 "answers": current_answers,
@@ -207,7 +218,7 @@ class Echo(commands.Cog):
             return False
 
         if is_blacklisted(ctx.author.id):
-            await ctx.send(embed=error_embed("You are blacklisted from using ECHO commands."))
+            await ctx.send(embed=error_embed("You are blacklisted from using 𝐎𝐑𝐂𝐀 commands."))
             return False
         return True
 
@@ -230,7 +241,7 @@ class Echo(commands.Cog):
         minutes, seconds = divmod(remainder, 60)
         uptime_str = f"{hours}h {minutes}m {seconds}s"
 
-        embed = discord.Embed(title="⚙️ ECHO System Stats", color=EMBED_COLOR)
+        embed = discord.Embed(title="⚙️ 𝐎𝐑𝐂𝐀 System Stats", color=EMBED_COLOR)
         embed.add_field(name="📶 Ping", value=f"`{latency_ms}ms`", inline=True)
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
@@ -270,6 +281,37 @@ class Echo(commands.Cog):
         else:
             await interaction.response.send_message(embed=error_embed(f"User {user.mention} was not found in the staff database."), ephemeral=True)
 
+    @app_commands.command(name="clear-submission", description="Delete a submission by Inquiry Number (Staff Only).")
+    async def clear_submission_cmd(self, interaction: discord.Interaction, number: int):
+        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not is_admin and role_title not in ["Super Admin", "Bot Developer"]:
+            return await interaction.response.send_message(embed=error_embed("Bot Developer or Super Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        res = db["form_submissions"].delete_one({"number": number})
+        if res.deleted_count > 0:
+            await interaction.response.send_message(embed=info_embed(f"🗑️ Deleted Inquiry #{number} permanently."), ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=error_embed(f"Inquiry #{number} not found."), ephemeral=True)
+
+    @app_commands.command(name="clear-all-submissions", description="Permanently delete all form submissions (Super Admin Only).")
+    async def clear_all_submissions_cmd(self, interaction: discord.Interaction):
+        role_title = get_staff_role_title(interaction.user.id, interaction.guild)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not is_admin and role_title not in ["Super Admin"]:
+            return await interaction.response.send_message(embed=error_embed("Super Admin permission required."), ephemeral=True)
+
+        db = get_db()
+        if db is None:
+            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+
+        res = db["form_submissions"].delete_many({})
+        await interaction.response.send_message(embed=info_embed(f"🗑️ Purged {res.deleted_count} submissions from database."), ephemeral=True)
+
     @app_commands.command(name="blacklist", description="Add a user to the bot blacklist (Admins Only).")
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
         role_title = get_staff_role_title(interaction.user.id, interaction.guild)
@@ -305,7 +347,7 @@ class Echo(commands.Cog):
         else:
             await interaction.response.send_message(embed=error_embed(f"User {user.mention} was not found on the blacklist."), ephemeral=True)
 
-    @app_commands.command(name="dashboard", description="Get the link to access the ECHO Web Control Dashboard.")
+    @app_commands.command(name="dashboard", description="Get the link to access the 𝐎𝐑𝐂𝐀 Web Control Dashboard.")
     async def dashboard(self, interaction: discord.Interaction):
         if not is_staff_or_owner(interaction.user.id, interaction.guild) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Only staff members or server admins can access the dashboard link."), ephemeral=True)
@@ -314,7 +356,7 @@ class Echo(commands.Cog):
         if not dashboard_url.startswith(("http://", "https://")):
             dashboard_url = f"https://{dashboard_url}"
 
-        embed = discord.Embed(title="🌐 ECHO Web Dashboard", description="Build custom forms, manage questions, and review form submissions.", color=EMBED_COLOR)
+        embed = discord.Embed(title="🌐 𝐎𝐑𝐂𝐀 Web Dashboard", description="Build custom forms, manage questions, and review form submissions.", color=EMBED_COLOR)
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Open Web Control Panel", url=dashboard_url, style=discord.ButtonStyle.link, emoji="🎛️"))
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
