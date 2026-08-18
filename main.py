@@ -17,7 +17,7 @@ class EchoClient(commands.Bot):
     async def setup_hook(self):
         # Safely try loading extension from either cogs folder or root
         loaded = False
-        for ext in ['cogs.echo', 'echo']:
+        for ext in ['cogs.orca', 'orca']:
             try:
                 await self.load_extension(ext)
                 print(f"✅ Extension loaded: {ext}")
