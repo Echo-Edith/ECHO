@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 import asyncio
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
@@ -9,6 +10,10 @@ try:
     import pymongo
 except ImportError:
     pymongo = None
+
+# Suppress verbose Flask / Werkzeug HTTP request logs to keep stdout and cron logs minimal
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 app = Flask(__name__)
 _bot_ref = None
@@ -39,9 +44,12 @@ def home():
     return "<h1>ORCA Dashboard Active!</h1>", 200
 
 
+# Ultra-lightweight 15-byte ping endpoint for uptime monitors / cronjobs
 @app.route('/ping')
-def ping():
-    return "pong", 200
+@app.route('/health')
+@app.route('/cron')
+def cron_ping():
+    return jsonify({"status": "ok"}), 200
 
 
 @app.route('/api/guild-data', methods=['GET'])
@@ -114,7 +122,16 @@ def get_form_config():
 
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
     doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-    return jsonify(doc)
+    return jsonify({
+        "title": doc.get("title", ""),
+        "description": doc.get("description", ""),
+        "button_label": doc.get("button_label", ""),
+        "category": doc.get("category", "Custom Bot Commission"),
+        "channel_id": doc.get("channel_id"),
+        "log_channel_id": doc.get("log_channel_id"),
+        "ping_role_id": doc.get("ping_role_id"),
+        "ping_toggle": doc.get("ping_toggle", True)
+    })
 
 
 @app.route('/api/save-form-config', methods=['POST'])
@@ -127,6 +144,8 @@ def save_form_config():
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
 
     channel_id = int(data["channel_id"]) if data.get("channel_id") else None
+    log_channel_id = int(data["log_channel_id"]) if data.get("log_channel_id") else None
+    ping_role_id = int(data["ping_role_id"]) if data.get("ping_role_id") else None
 
     db["guild_config"].update_one(
         {"guild_id": guild_id},
@@ -137,12 +156,32 @@ def save_form_config():
                 "description": data.get("description"),
                 "button_label": data.get("button_label"),
                 "category": data.get("category", "Custom Bot Commission"),
-                "channel_id": channel_id
+                "channel_id": channel_id,
+                "log_channel_id": log_channel_id,
+                "ping_role_id": ping_role_id,
+                "ping_toggle": bool(data.get("ping_toggle", True))
             }
         },
         upsert=True
     )
     return jsonify({"success": True})
+
+
+@app.route('/api/all-form-questions', methods=['GET'])
+def get_all_form_questions():
+    db = get_db()
+    if db is None:
+        return jsonify({})
+
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+    doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+    categories_map = doc.get("category_questions", {})
+
+    if not categories_map and doc.get("questions"):
+        main_cat = doc.get("category", "Custom Bot Commission")
+        categories_map = {main_cat: doc.get("questions", [])}
+
+    return jsonify(categories_map)
 
 
 @app.route('/api/form-questions', methods=['GET', 'POST'])
@@ -219,7 +258,7 @@ def handle_staff():
     if request.method == 'POST':
         data = request.json or {}
         user_id = str(data.get("user_id")).strip()
-        role_title = str(data.get("role_title", "Staff"))
+        role_title = str(data.get("role_title", "Admin"))
 
         username = "Unknown User"
         if _bot_ref and _bot_ref.is_ready():
@@ -254,7 +293,7 @@ def handle_staff():
         staff_list.append({
             "user_id": uid,
             "username": uname,
-            "role_title": doc.get("role_title", "Staff")
+            "role_title": doc.get("role_title", "Admin")
         })
 
     return jsonify(staff_list)
@@ -265,37 +304,6 @@ def delete_staff(user_id):
     db = get_db()
     if db:
         db["staff_members"].delete_one({"user_id": str(user_id)})
-    return jsonify({"success": True})
-
-
-@app.route('/api/form-submissions', methods=['GET'])
-def get_form_submissions():
-    db = get_db()
-    if db is None:
-        return jsonify([])
-
-    cursor = db["form_submissions"].find().sort("_id", -1).limit(100)
-    subs = [{
-        "id": str(doc["_id"]),
-        "number": doc.get("number", 1),
-        "category": doc.get("category", "General Form"),
-        "username": doc.get("username", "Unknown User"),
-        "user_id": doc.get("user_id"),
-        "answers": doc.get("answers", []),
-        "timestamp": doc.get("timestamp")
-    } for doc in cursor]
-
-    return jsonify(subs)
-
-
-@app.route('/api/form-submissions/<string:sub_id>', methods=['DELETE'])
-def delete_form_submission(sub_id):
-    db = get_db()
-    if db:
-        try:
-            db["form_submissions"].delete_one({"_id": ObjectId(sub_id)})
-        except Exception:
-            pass
     return jsonify({"success": True})
 
 
