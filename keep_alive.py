@@ -11,7 +11,7 @@ try:
 except ImportError:
     pymongo = None
 
-# Suppress verbose Flask / Werkzeug HTTP request logs
+# Suppress verbose Flask / Werkzeug HTTP request logs to keep stdout and cron logs minimal
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -44,6 +44,7 @@ def home():
     return "<h1>ORCA Dashboard Active!</h1>", 200
 
 
+# Ultra-lightweight 15-byte ping endpoint for uptime monitors / cronjobs
 @app.route('/ping')
 @app.route('/health')
 @app.route('/cron')
@@ -113,55 +114,6 @@ def get_guild_data():
     })
 
 
-@app.route('/api/form-panels', methods=['GET'])
-def get_form_panels():
-    db = get_db()
-    if db is None:
-        return jsonify([])
-
-    cursor = db["form_panels"].find()
-    panels = [{
-        "category": doc.get("category"),
-        "title": doc.get("title"),
-        "description": doc.get("description"),
-        "button_label": doc.get("button_label"),
-        "channel_id": doc.get("channel_id"),
-        "log_channel_id": doc.get("log_channel_id")
-    } for doc in cursor]
-
-    if not panels:
-        panels = [
-            {"category": "Custom Bot Commission", "title": "🤖 REQUEST CUSTOM BOT COMMISSION", "description": "Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!", "button_label": "📝 Fill Out Form"},
-            {"category": "Partnership Application", "title": "🤝 PARTNERSHIP APPLICATION", "description": "Apply for a server partnership with us! Click the button below to fill out the partnership details.", "button_label": "🤝 Apply for Partnership"}
-        ]
-
-    return jsonify(panels)
-
-
-@app.route('/api/create-form-panel', methods=['POST'])
-def create_form_panel():
-    db = get_db()
-    if db is None:
-        return jsonify({"error": "No database"}), 500
-
-    data = request.json or {}
-    category = str(data.get("category", "")).strip()
-    if not category:
-        return jsonify({"error": "Category name required"}), 400
-
-    db["form_panels"].update_one(
-        {"category": category},
-        {"$set": {
-            "category": category,
-            "title": f"🤖 {category.upper()}",
-            "description": f"Submit your details for {category} using the form button below!",
-            "button_label": "📝 Fill Out Form"
-        }},
-        upsert=True
-    )
-    return jsonify({"success": True})
-
-
 @app.route('/api/form-config', methods=['GET'])
 def get_form_config():
     db = get_db()
@@ -191,12 +143,10 @@ def save_form_config():
     data = request.json or {}
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
 
-    category = data.get("category", "Custom Bot Commission")
     channel_id = int(data["channel_id"]) if data.get("channel_id") else None
     log_channel_id = int(data["log_channel_id"]) if data.get("log_channel_id") else None
     ping_role_id = int(data["ping_role_id"]) if data.get("ping_role_id") else None
 
-    # Save to global guild config
     db["guild_config"].update_one(
         {"guild_id": guild_id},
         {
@@ -205,27 +155,11 @@ def save_form_config():
                 "title": data.get("title"),
                 "description": data.get("description"),
                 "button_label": data.get("button_label"),
-                "category": category,
+                "category": data.get("category", "Custom Bot Commission"),
                 "channel_id": channel_id,
                 "log_channel_id": log_channel_id,
                 "ping_role_id": ping_role_id,
                 "ping_toggle": bool(data.get("ping_toggle", True))
-            }
-        },
-        upsert=True
-    )
-
-    # Also save to panels collection
-    db["form_panels"].update_one(
-        {"category": category},
-        {
-            "$set": {
-                "category": category,
-                "title": data.get("title"),
-                "description": data.get("description"),
-                "button_label": data.get("button_label"),
-                "channel_id": channel_id,
-                "log_channel_id": log_channel_id
             }
         },
         upsert=True
@@ -250,31 +184,71 @@ def get_all_form_questions():
     return jsonify(categories_map)
 
 
-@app.route('/api/form-questions-by-cat', methods=['POST'])
-def save_form_questions_by_cat():
+@app.route('/api/form-questions', methods=['GET', 'POST'])
+def handle_form_questions():
     db = get_db()
     if db is None:
-        return jsonify({"error": "No database"}), 500
-
-    data = request.json or {}
-    category = data.get("category", "Custom Bot Commission")
-    questions = data.get("questions", [])
+        return jsonify([])
 
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-    doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-    cat_map = doc.get("category_questions", {})
 
-    cat_map[category] = questions
-    db["guild_config"].update_one(
-        {"guild_id": guild_id},
-        {"$set": {"category_questions": cat_map, "questions": questions if category == doc.get("category") else doc.get("questions", [])}},
-        upsert=True
-    )
-    return jsonify({"success": True})
+    if request.method == 'POST':
+        data = request.json or {}
+        category = data.get("category", "Custom Bot Commission")
+        questions = data.get("questions", [])
+
+        doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+        cat_map = doc.get("category_questions", {})
+        cat_map[category] = questions
+
+        db["guild_config"].update_one(
+            {"guild_id": guild_id},
+            {"$set": {"category_questions": cat_map, "questions": cat_map.get(doc.get("category", "Custom Bot Commission"), [])}},
+            upsert=True
+        )
+        return jsonify({"success": True})
+
+    doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+    return jsonify(doc.get("questions", []))
+
+
+@app.route('/api/form-presets', methods=['GET', 'POST'])
+def handle_form_presets():
+    db = get_db()
+    if db is None:
+        return jsonify([])
+
+    if request.method == 'POST':
+        data = request.json or {}
+        preset_name = str(data.get("name", "")).strip()
+        if preset_name:
+            db["form_presets"].update_one(
+                {"name": preset_name},
+                {"$set": {
+                    "name": preset_name,
+                    "title": data.get("title"),
+                    "description": data.get("description"),
+                    "button_label": data.get("button_label"),
+                    "channel_id": data.get("channel_id")
+                }},
+                upsert=True
+            )
+        return jsonify({"success": True})
+
+    cursor = db["form_presets"].find()
+    presets = [{
+        "name": doc.get("name"),
+        "title": doc.get("title"),
+        "description": doc.get("description"),
+        "button_label": doc.get("button_label"),
+        "channel_id": doc.get("channel_id")
+    } for doc in cursor]
+
+    return jsonify(presets)
 
 
 @app.route('/api/staff', methods=['GET'])
-def handle_staff():
+def get_staff():
     db = get_db()
     if db is None:
         return jsonify([])
@@ -370,7 +344,7 @@ def handle_lockdown():
 
 
 @app.route('/api/blacklist', methods=['GET'])
-def handle_blacklist():
+def get_blacklist():
     db = get_db()
     if db is None:
         return jsonify([])
@@ -408,3 +382,4 @@ def keep_alive(bot=None):
     t = Thread(target=run)
     t.daemon = True
     t.start()
+
