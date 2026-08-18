@@ -55,8 +55,9 @@ def get_guild_data():
             "bot_avatar": "https://cdn.discordapp.com/embed/avatars/0.png",
             "bot_name": "ECHO",
             "maintenance": False,
+            "lockdown": False,
             "uptime_seconds": 0,
-            "db_usage": {"display": "0.00 MB", "percent": 1}
+            "db_usage": {"display": "0.01 MB", "percent": 1}
         })
 
     channels = []
@@ -82,7 +83,6 @@ def get_guild_data():
     cog = _bot_ref.get_cog("Echo")
     uptime_sec = int(time.time() - cog.start_time) if cog else 0
 
-    # Calculate actual cloud DB storage usage accurately
     db_usage_str = "0.01 MB"
     percent_val = 1
     if db is not None:
@@ -108,6 +108,7 @@ def get_guild_data():
         "bot_avatar": avatar_url,
         "bot_name": _bot_ref.user.name if _bot_ref.user else "ECHO",
         "maintenance": config.get("maintenance", False),
+        "lockdown": config.get("lockdown", False),
         "uptime_seconds": uptime_sec,
         "db_usage": {"display": db_usage_str, "percent": percent_val}
     })
@@ -216,6 +217,50 @@ def delete_form_preset(name):
     return jsonify({"success": True})
 
 
+@app.route('/api/staff', methods=['GET', 'POST'])
+def handle_staff():
+    db = get_db()
+    if db is None:
+        return jsonify([])
+
+    if request.method == 'POST':
+        data = request.json or {}
+        user_id = str(data.get("user_id")).strip()
+        role_title = str(data.get("role_title", "Staff"))
+
+        username = "Unknown User"
+        if _bot_ref and _bot_ref.is_ready():
+            try:
+                user_obj = _bot_ref.get_user(int(user_id))
+                if user_obj:
+                    username = str(user_obj)
+            except Exception:
+                pass
+
+        if user_id:
+            db["staff_members"].update_one(
+                {"user_id": user_id},
+                {"$set": {"user_id": user_id, "username": username, "role_title": role_title}},
+                upsert=True
+            )
+        return jsonify({"success": True})
+
+    cursor = db["staff_members"].find()
+    return jsonify([{
+        "user_id": doc["user_id"],
+        "username": doc.get("username", "Unknown User"),
+        "role_title": doc.get("role_title", "Staff")
+    } for doc in cursor])
+
+
+@app.route('/api/staff/<string:user_id>', methods=['DELETE'])
+def delete_staff(user_id):
+    db = get_db()
+    if db:
+        db["staff_members"].delete_one({"user_id": str(user_id)})
+    return jsonify({"success": True})
+
+
 @app.route('/api/form-submissions', methods=['GET'])
 def get_form_submissions():
     db = get_db()
@@ -292,6 +337,22 @@ def handle_maintenance():
     db["guild_config"].update_one(
         {"guild_id": guild_id},
         {"$set": {"maintenance": bool(data.get("maintenance"))}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
+@app.route('/api/lockdown', methods=['POST'])
+def handle_lockdown():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "No database"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"lockdown": bool(data.get("lockdown"))}},
         upsert=True
     )
     return jsonify({"success": True})
