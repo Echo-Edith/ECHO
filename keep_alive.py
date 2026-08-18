@@ -46,41 +46,31 @@ def ping():
 
 @app.route('/api/guild-data', methods=['GET'])
 def get_guild_data():
-    if _bot_ref is None or not _bot_ref.is_ready():
-        return jsonify({
-            "channels": [],
-            "roles": [],
-            "categories": [],
-            "latency": 0,
-            "bot_avatar": "https://cdn.discordapp.com/embed/avatars/0.png",
-            "bot_name": "ECHO",
-            "maintenance": False,
-            "lockdown": False,
-            "uptime_seconds": 0,
-            "db_usage": {"display": "0.01 MB", "percent": 1}
-        })
-
     channels = []
     roles = []
     categories = []
 
-    for guild in _bot_ref.guilds:
-        for ch in guild.channels:
-            if str(ch.type) == "text":
-                channels.append({"id": str(ch.id), "name": ch.name, "type": "text"})
-            elif str(ch.type) == "category":
-                categories.append({"id": str(ch.id), "name": ch.name})
+    if _bot_ref and _bot_ref.guilds:
+        try:
+            for guild in _bot_ref.guilds:
+                for ch in guild.channels:
+                    if str(ch.type) == "text":
+                        channels.append({"id": str(ch.id), "name": ch.name, "type": "text"})
+                    elif str(ch.type) == "category":
+                        categories.append({"id": str(ch.id), "name": ch.name})
 
-        for r in guild.roles:
-            if not r.is_default():
-                roles.append({"id": str(r.id), "name": r.name})
-        break
+                for r in guild.roles:
+                    if not r.is_default():
+                        roles.append({"id": str(r.id), "name": r.name})
+                break
+        except Exception:
+            pass
 
     db = get_db()
-    guild_id = _bot_ref.guilds[0].id if _bot_ref.guilds else 0
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
     config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
 
-    cog = _bot_ref.get_cog("Echo")
+    cog = _bot_ref.get_cog("Echo") if _bot_ref else None
     uptime_sec = int(time.time() - cog.start_time) if cog else 0
 
     db_usage_str = "0.01 MB"
@@ -98,15 +88,17 @@ def get_guild_data():
         except Exception:
             pass
 
-    avatar_url = _bot_ref.user.display_avatar.url if _bot_ref.user else "https://cdn.discordapp.com/embed/avatars/0.png"
+    avatar_url = _bot_ref.user.display_avatar.url if (_bot_ref and _bot_ref.user) else "https://cdn.discordapp.com/embed/avatars/0.png"
+    bot_name = _bot_ref.user.name if (_bot_ref and _bot_ref.user) else "ECHO"
+    latency_ms = round(_bot_ref.latency * 1000) if _bot_ref else 0
 
     return jsonify({
         "channels": channels,
         "roles": roles,
         "categories": categories,
-        "latency": round(_bot_ref.latency * 1000),
+        "latency": latency_ms,
         "bot_avatar": avatar_url,
-        "bot_name": _bot_ref.user.name if _bot_ref.user else "ECHO",
+        "bot_name": bot_name,
         "maintenance": config.get("maintenance", False),
         "lockdown": config.get("lockdown", False),
         "uptime_seconds": uptime_sec,
@@ -120,7 +112,7 @@ def get_form_config():
     if db is None:
         return jsonify({})
 
-    guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
     doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
     return jsonify(doc)
 
@@ -132,7 +124,7 @@ def save_form_config():
         return jsonify({"error": "No database"}), 500
 
     data = request.json or {}
-    guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
 
     channel_id = int(data["channel_id"]) if data.get("channel_id") else None
 
@@ -158,7 +150,7 @@ def handle_form_questions():
     if db is None:
         return jsonify([])
 
-    guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
 
     if request.method == 'POST':
         data = request.json or {}
@@ -231,7 +223,7 @@ def handle_staff():
         username = "Unknown User"
         if _bot_ref and _bot_ref.is_ready():
             try:
-                user_obj = _bot_ref.get_user(int(user_id))
+                user_obj = _bot_ref.get_user(int(user_id)) or asyncio.run_coroutine_threadsafe(_bot_ref.fetch_user(int(user_id)), _bot_ref.loop).result(timeout=3)
                 if user_obj:
                     username = str(user_obj)
             except Exception:
@@ -246,11 +238,25 @@ def handle_staff():
         return jsonify({"success": True})
 
     cursor = db["staff_members"].find()
-    return jsonify([{
-        "user_id": doc["user_id"],
-        "username": doc.get("username", "Unknown User"),
-        "role_title": doc.get("role_title", "Staff")
-    } for doc in cursor])
+    staff_list = []
+    for doc in cursor:
+        uid = doc["user_id"]
+        uname = doc.get("username", "Unknown User")
+        if uname == "Unknown User" and _bot_ref and _bot_ref.is_ready():
+            try:
+                user_obj = _bot_ref.get_user(int(uid))
+                if user_obj:
+                    uname = str(user_obj)
+            except Exception:
+                pass
+
+        staff_list.append({
+            "user_id": uid,
+            "username": uname,
+            "role_title": doc.get("role_title", "Staff")
+        })
+
+    return jsonify(staff_list)
 
 
 @app.route('/api/staff/<string:user_id>', methods=['DELETE'])
@@ -270,7 +276,7 @@ def get_form_submissions():
     cursor = db["form_submissions"].find().sort("_id", -1).limit(100)
     subs = [{
         "id": str(doc["_id"]),
-        "username": doc.get("username"),
+        "username": doc.get("username", "Unknown User"),
         "user_id": doc.get("user_id"),
         "answers": doc.get("answers", []),
         "timestamp": doc.get("timestamp")
@@ -333,7 +339,7 @@ def handle_maintenance():
         return jsonify({"error": "No database"}), 500
 
     data = request.json or {}
-    guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
     db["guild_config"].update_one(
         {"guild_id": guild_id},
         {"$set": {"maintenance": bool(data.get("maintenance"))}},
@@ -349,7 +355,7 @@ def handle_lockdown():
         return jsonify({"error": "No database"}), 500
 
     data = request.json or {}
-    guild_id = _bot_ref.guilds[0].id if _bot_ref and _bot_ref.guilds else 0
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
     db["guild_config"].update_one(
         {"guild_id": guild_id},
         {"$set": {"lockdown": bool(data.get("lockdown"))}},
@@ -372,7 +378,7 @@ def handle_blacklist():
         username = "Unknown User"
         if _bot_ref and _bot_ref.is_ready():
             try:
-                user_obj = _bot_ref.get_user(int(user_id))
+                user_obj = _bot_ref.get_user(int(user_id)) or asyncio.run_coroutine_threadsafe(_bot_ref.fetch_user(int(user_id)), _bot_ref.loop).result(timeout=3)
                 if user_obj:
                     username = str(user_obj)
             except Exception:
@@ -387,11 +393,25 @@ def handle_blacklist():
         return jsonify({"success": True})
 
     cursor = db["blacklist"].find()
-    return jsonify([{
-        "user_id": doc["user_id"],
-        "username": doc.get("username", "Unknown User"),
-        "reason": doc.get("reason", "No reason provided")
-    } for doc in cursor])
+    bl_list = []
+    for doc in cursor:
+        uid = doc["user_id"]
+        uname = doc.get("username", "Unknown User")
+        if uname == "Unknown User" and _bot_ref and _bot_ref.is_ready():
+            try:
+                user_obj = _bot_ref.get_user(int(uid))
+                if user_obj:
+                    uname = str(user_obj)
+            except Exception:
+                pass
+
+        bl_list.append({
+            "user_id": uid,
+            "username": uname,
+            "reason": doc.get("reason", "No reason provided")
+        })
+
+    return jsonify(bl_list)
 
 
 @app.route('/api/blacklist/<string:user_id>', methods=['DELETE'])
