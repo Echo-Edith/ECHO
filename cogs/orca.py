@@ -1,8 +1,9 @@
 import os
 import time
 import asyncio
+import re
 from datetime import datetime
-from typing import Optional, List, Literal
+from typing import Optional, List, Dict, Any
 
 import discord
 from discord import app_commands
@@ -36,6 +37,11 @@ def get_db():
         return None
 
 
+def sanitize_custom_id(category: str) -> str:
+    clean = re.sub(r'[^a-zA-Z0-9_]', '_', category.lower())
+    return f"orca_form_{clean}"[:100]
+
+
 def error_embed(message: str) -> discord.Embed:
     return discord.Embed(title="❌ Error", description=message, color=ERROR_COLOR)
 
@@ -55,20 +61,6 @@ def is_blacklisted(user_id: int) -> bool:
     return db["blacklist"].find_one({"user_id": str(user_id)}) is not None
 
 
-def get_staff_role_title(user_id: int, guild) -> Optional[str]:
-    if is_owner(user_id) or (guild and user_id == guild.owner_id):
-        return "Server Moderator"
-    db = get_db()
-    if db is None:
-        return None
-    doc = db["staff_members"].find_one({"user_id": str(user_id)})
-    return doc.get("role_title") if doc else None
-
-
-def is_staff_or_owner(user_id: int, guild) -> bool:
-    return get_staff_role_title(user_id, guild) is not None
-
-
 def is_lockdown_active(guild_id: int, user_id: int) -> bool:
     if is_owner(user_id):
         return False
@@ -79,7 +71,9 @@ def is_lockdown_active(guild_id: int, user_id: int) -> bool:
     return config.get("lockdown", False)
 
 
-def is_maintenance(guild_id: int) -> bool:
+def is_maintenance(guild_id: int, user_id: int, guild: Optional[discord.Guild]) -> bool:
+    if is_owner(user_id) or (guild and user_id == guild.owner_id):
+        return False
     db = get_db()
     if db is None:
         return False
@@ -91,11 +85,12 @@ def is_maintenance(guild_id: int) -> bool:
 # Dynamic Multi-Part Chained Modals
 # ----------------------------------------------------------------------
 class ChainedCustomModal(discord.ui.Modal):
-    def __init__(self, title: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict]):
+    def __init__(self, title: str, category: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict]):
         modal_title = f"{title} (Part {current_index // 5 + 1})" if len(all_questions) > 5 else title
         super().__init__(title=modal_title[:45])
         
         self.main_title = title
+        self.category = category
         self.all_questions = all_questions
         self.current_index = current_index
         self.previous_answers = previous_answers
@@ -126,6 +121,7 @@ class ChainedCustomModal(discord.ui.Modal):
             next_chunk = self.all_questions[next_index:next_index + 5]
             next_modal = ChainedCustomModal(
                 title=self.main_title,
+                category=self.category,
                 questions_chunk=next_chunk,
                 all_questions=self.all_questions,
                 current_index=next_index,
@@ -144,12 +140,10 @@ class ChainedCustomModal(discord.ui.Modal):
             if db is not None:
                 db["guild_config"].update_one({"guild_id": interaction.guild.id}, {"$set": {"submission_counter": counter}})
 
-        category = config.get("category", "Custom Bot Commission") if config else "Custom Bot Commission"
-
         if db is not None:
             db["form_submissions"].insert_one({
                 "number": counter,
-                "category": category,
+                "category": self.category,
                 "username": str(interaction.user),
                 "user_id": str(interaction.user.id),
                 "answers": current_answers,
@@ -161,7 +155,7 @@ class ChainedCustomModal(discord.ui.Modal):
             log_ch = interaction.guild.get_channel(int(log_channel_id))
             if log_ch:
                 embed = discord.Embed(
-                    title=f"📥 New Inquiry #{counter} [{category}]",
+                    title=f"📥 New Inquiry #{counter} [{self.category}]",
                     color=discord.Color.green(),
                     timestamp=discord.utils.utcnow()
                 )
@@ -183,46 +177,55 @@ class ChainedCustomModal(discord.ui.Modal):
                     pass
 
         await interaction.followup.send(
-            embed=info_embed("✅ Submission Received!", "Thank you for filling out the form. Our team has received your submission and will review it shortly!"),
+            embed=info_embed("✅ Submission Received!", f"Thank you for filling out the **{self.category}** form. Our team has received your submission and will review it shortly!"),
             ephemeral=True
         )
 
 
 # ----------------------------------------------------------------------
-# Persistent Button View
+# Dynamic Category Button View
 # ----------------------------------------------------------------------
 class FormPanelView(discord.ui.View):
-    def __init__(self, button_label: str = "📝 Fill Out Form"):
+    def __init__(self, category: str = "Custom Bot Commission", button_label: str = "📝 Fill Out Form"):
         super().__init__(timeout=None)
-        self.open_form_button.label = button_label[:80]
+        self.category = category
+        custom_id = sanitize_custom_id(category)
 
-    @discord.ui.button(label="📝 Fill Out Form", style=discord.ButtonStyle.blurple, custom_id="orca_open_custom_modal")
-    async def open_form_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        btn = discord.ui.Button(
+            label=button_label[:80],
+            style=discord.ButtonStyle.blurple,
+            custom_id=custom_id
+        )
+        btn.callback = self.open_form_callback
+        self.add_item(btn)
+
+    async def open_form_callback(self, interaction: discord.Interaction):
         if is_lockdown_active(interaction.guild.id, interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown mode. Only owner access permitted."), ephemeral=True)
 
         if is_blacklisted(interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("You are blacklisted from submitting forms."), ephemeral=True)
 
-        if is_maintenance(interaction.guild.id) and not is_staff_or_owner(interaction.user.id, interaction.guild):
+        if is_maintenance(interaction.guild.id, interaction.user.id, interaction.guild):
             return await interaction.response.send_message(embed=error_embed("The system is currently undergoing maintenance. Please try again later!"), ephemeral=True)
 
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
-        questions = config.get("questions", [])
+        
+        cat_map = config.get("category_questions", {}) if config else {}
+        questions = cat_map.get(self.category, [])
 
         if not questions:
             questions = [
-                {"label": "What type of bot do you need?", "placeholder": "e.g. Moderation, Music, Economy", "style": "short", "required": True},
-                {"label": "List required features and details", "placeholder": "Describe what the bot should do...", "style": "paragraph", "required": True},
-                {"label": "What is your budget?", "placeholder": "e.g. $20 / 1000 Robux", "style": "short", "required": False}
+                {"label": "Please explain your request details", "placeholder": "Type your request here...", "style": "paragraph", "required": True}
             ]
 
-        title = config.get("title") or "Custom Form"
+        title = config.get("title") or self.category
 
         first_chunk = questions[:5]
         modal = ChainedCustomModal(
             title=title,
+            category=self.category,
             questions_chunk=first_chunk,
             all_questions=questions,
             current_index=0,
@@ -232,7 +235,7 @@ class FormPanelView(discord.ui.View):
 
 
 # ----------------------------------------------------------------------
-# Main cog
+# Main Cog
 # ----------------------------------------------------------------------
 class Orca(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -240,7 +243,19 @@ class Orca(commands.Cog):
         self.start_time = time.time()
 
     async def cog_load(self):
-        self.bot.add_view(FormPanelView())
+        db = get_db()
+        registered_cats = set(["Custom Bot Commission", "Partnership Application"])
+        if db is not None:
+            try:
+                for doc in db["guild_config"].find():
+                    cat_map = doc.get("category_questions", {})
+                    for cat in cat_map.keys():
+                        registered_cats.add(cat)
+            except Exception:
+                pass
+        
+        for cat in registered_cats:
+            self.bot.add_view(FormPanelView(category=cat))
 
     async def cog_check(self, ctx: commands.Context) -> bool:
         if is_lockdown_active(ctx.guild.id if ctx.guild else 0, ctx.author.id):
@@ -276,24 +291,9 @@ class Orca(commands.Cog):
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="delete-preset", description="Delete a saved form preset by name (Admins Only).")
-    async def delete_preset_cmd(self, interaction: discord.Interaction, name: str):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        res = db["form_presets"].delete_one({"name": name.strip()})
-        if res.deleted_count > 0:
-            await interaction.response.send_message(embed=info_embed("🗑️ Preset Deleted!", f"Deleted form preset **\"{name.strip()}\"**."), ephemeral=True)
-        else:
-            await interaction.response.send_message(embed=error_embed(f"Form preset **\"{name.strip()}\"** was not found."), ephemeral=True)
-
     @app_commands.command(name="rename-category", description="Rename an existing form panel category (Admins Only).")
     async def rename_category_cmd(self, interaction: discord.Interaction, old_name: str, new_name: str):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -317,7 +317,7 @@ class Orca(commands.Cog):
 
     @app_commands.command(name="delete-category", description="Delete an existing form panel category and its questions (Admins Only).")
     async def delete_category_cmd(self, interaction: discord.Interaction, name: str):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -338,56 +338,6 @@ class Orca(commands.Cog):
             await interaction.response.send_message(embed=info_embed("🗑️ Category Deleted!", f"Deleted category **\"{name.strip()}\"** and its questions."), ephemeral=True)
         else:
             await interaction.response.send_message(embed=error_embed(f"Category **\"{name.strip()}\"** not found."), ephemeral=True)
-
-    @app_commands.command(name="add-staff", description="Add a server moderator (Admins Only).")
-    async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.User):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        db["staff_members"].update_one(
-            {"user_id": str(user.id)},
-            {"$set": {"user_id": str(user.id), "username": str(user), "role_title": "Server Moderator"}},
-            upsert=True
-        )
-        await interaction.response.send_message(embed=info_embed(f"👑 Added {user.mention} as **Server Moderator**!"), ephemeral=True)
-
-    @app_commands.command(name="remove-staff", description="Remove a server moderator (Admins Only).")
-    async def remove_staff_cmd(self, interaction: discord.Interaction, user: discord.User):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        result = db["staff_members"].delete_one({"user_id": str(user.id)})
-        if result.deleted_count > 0:
-            await interaction.response.send_message(embed=info_embed(f"✅ Revoked moderator access for {user.mention} (`{user.id}`)."), ephemeral=True)
-        else:
-            await interaction.response.send_message(embed=error_embed(f"User {user.mention} was not found in the staff roster."), ephemeral=True)
-
-    @app_commands.command(name="staff-list", description="Display all authorized server moderators (Clean Embed).")
-    async def staff_list_cmd(self, interaction: discord.Interaction):
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        cursor = db["staff_members"].find()
-        staff_lines = []
-        for doc in cursor:
-            uid = doc.get("user_id")
-            staff_lines.append(f"<@{uid}> (ID: `{uid}`)")
-
-        embed = discord.Embed(
-            title="🛡️ Authorized Staff Roster",
-            description="\n".join(staff_lines) if staff_lines else "*(No staff members assigned)*",
-            color=EMBED_COLOR
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="blacklisted-list", description="Display all blacklisted users (Clean Embed).")
     async def blacklisted_list_cmd(self, interaction: discord.Interaction):
@@ -411,7 +361,7 @@ class Orca(commands.Cog):
 
     @app_commands.command(name="blacklist", description="Add a user to the bot blacklist (Admins Only).")
     async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -427,7 +377,7 @@ class Orca(commands.Cog):
 
     @app_commands.command(name="unblacklist", description="Remove a user from the bot blacklist (Admins Only).")
     async def unblacklist_cmd(self, interaction: discord.Interaction, user: discord.User):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator and not is_staff_or_owner(interaction.user.id, interaction.guild):
+        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
 
         db = get_db()
@@ -457,7 +407,7 @@ class Orca(commands.Cog):
     # ====================================================================
     # Web Handlers: Unified Embed + Button Deployment
     # ====================================================================
-    async def deploy_form_panel_from_web(self, channel_id: int):
+    async def deploy_form_panel_from_web(self, channel_id: int, category: str = "Custom Bot Commission"):
         channel = self.bot.get_channel(channel_id)
         if channel is None:
             raise Exception(f"Channel ID {channel_id} not found.")
@@ -465,21 +415,25 @@ class Orca(commands.Cog):
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": channel.guild.id}) if db is not None else {}
 
-        title = config.get("title") or "🤖 REQUEST CUSTOM BOT COMMISSION"
-        desc = config.get("description") or "Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!"
+        title = config.get("title") or f"📋 {category.upper()}"
+        desc = config.get("description") or f"Click the button below to submit a {category} request."
         button_label = config.get("button_label") or "📝 Fill Out Form"
 
         embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
-        view = FormPanelView(button_label=button_label)
+        view = FormPanelView(category=category, button_label=button_label)
         msg = await channel.send(embed=embed, view=view)
 
         if db is not None:
             db["guild_config"].update_one(
                 {"guild_id": channel.guild.id},
-                {"$set": {"last_form_msg_id": msg.id, "channel_id": channel.id}}
+                {"$set": {
+                    "last_form_msg_id": msg.id,
+                    "channel_id": channel.id,
+                    "category": category
+                }}
             )
 
-    async def update_form_panel_from_web(self):
+    async def update_form_panel_from_web(self, category: str = "Custom Bot Commission"):
         db = get_db()
         guild_id = self.bot.guilds[0].id if self.bot.guilds else 0
         config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
@@ -494,12 +448,12 @@ class Orca(commands.Cog):
             raise Exception("Form channel not found.")
 
         msg = await channel.fetch_message(msg_id)
-        title = config.get("title") or "🤖 REQUEST CUSTOM BOT COMMISSION"
-        desc = config.get("description") or "Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!"
+        title = config.get("title") or f"📋 {category.upper()}"
+        desc = config.get("description") or f"Click the button below to submit a {category} request."
         button_label = config.get("button_label") or "📝 Fill Out Form"
 
         embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
-        view = FormPanelView(button_label=button_label)
+        view = FormPanelView(category=category, button_label=button_label)
         await msg.edit(embed=embed, view=view)
 
 
