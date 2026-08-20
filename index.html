@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>𝐎𝐑𝐂A Automation Command Center • Discord Ticket & Verification Engine</title>
+  <title>𝐎𝐑𝐂A Automation Command Center • Discord Studio Suite</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -144,7 +144,6 @@
         </div>
       </div>
     </div>
-    <!-- Top Hamburger Menu Button -->
     <button onclick="toggleMobileMenu()" class="bg-orca-card active:scale-95 text-white w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center transition shadow">
       <i class="fa-solid fa-bars text-sm" id="menu-icon"></i>
     </button>
@@ -153,13 +152,16 @@
   <!-- Mobile Menu Overlay Dropdown -->
   <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl">
     <button onclick="switchTab('overview'); toggleMobileMenu()" id="m-top-nav-overview" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent transition">
-      <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview (/system-stats)
+      <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview
     </button>
     <button onclick="switchTab('ticket-engine'); toggleMobileMenu()" id="m-top-nav-ticket-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets Engine
     </button>
     <button onclick="switchTab('verification-engine'); toggleMobileMenu()" id="m-top-nav-verification-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-user-check w-4 text-center"></i> Verification Engine
+    </button>
+    <button onclick="switchTab('custom-roles'); toggleMobileMenu()" id="m-top-nav-custom-roles" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-wand-magic-sparkles w-4 text-center"></i> Custom Roles & Staff
     </button>
     <button onclick="switchTab('maintenance'); toggleMobileMenu()" id="m-top-nav-maintenance" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-shield-halved w-4 text-center"></i> Safety & Maintenance
@@ -179,6 +181,10 @@
     <button onclick="switchTab('verification-engine')" id="m-nav-verification-engine" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
       <i class="fa-solid fa-user-check text-base"></i>
       <span class="text-[10px] font-extrabold tracking-tight">Verify</span>
+    </button>
+    <button onclick="switchTab('custom-roles')" id="m-nav-custom-roles" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
+      <i class="fa-solid fa-wand-magic-sparkles text-base"></i>
+      <span class="text-[10px] font-extrabold tracking-tight">Roles</span>
     </button>
     <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
       <i class="fa-solid fa-shield-halved text-base"></i>
@@ -200,7 +206,7 @@
             <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-[10px] px-1.5 py-0.5 rounded-md font-extrabold">STUDIO</span>
           </div>
           <p class="text-[11px] text-orca-muted font-medium flex items-center gap-1.5 mt-0.5">
-            <span class="w-2 h-2 rounded-full bg-orca-success animate-pulse"></span> /system-stats Live
+            <span class="w-2 h-2 rounded-full bg-orca-success animate-pulse"></span> Live Telemetry
           </p>
         </div>
       </div>
@@ -214,6 +220,9 @@
         </button>
         <button onclick="switchTab('verification-engine')" id="nav-verification-engine" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-user-check w-4 text-center text-emerald-400"></i> Verification Engine
+        </button>
+        <button onclick="switchTab('custom-roles')" id="nav-custom-roles" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-wand-magic-sparkles w-4 text-center text-amber-400"></i> Custom Roles & Staff
         </button>
         <button onclick="switchTab('maintenance')" id="nav-maintenance" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-shield-halved w-4 text-center text-rose-400"></i> Maintenance & Safety
@@ -232,7 +241,7 @@
   <!-- Main Content Viewport -->
   <main class="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-5 md:space-y-8">
 
-    <!-- TAB 1: ACCURATE LIVE /system-stats OVERVIEW -->
+    <!-- TAB 1: OVERVIEW -->
     <section id="tab-overview" class="space-y-4 md:space-y-6 animate-fade-in">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
@@ -403,15 +412,15 @@
                 <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Ticket Panel Message Embed</h4>
                 <div>
                   <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Title</label>
-                  <input type="text" id="ticket-panel-title" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+                  <input type="text" id="ticket-panel-title" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
                 </div>
                 <div>
                   <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
-                  <textarea id="ticket-panel-desc" rows="2" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+                  <textarea id="ticket-panel-desc" rows="2" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
                 </div>
                 <div>
                   <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Label</label>
-                  <input type="text" id="ticket-button-label" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+                  <input type="text" id="ticket-button-label" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
                 </div>
               </div>
             </div>
@@ -448,22 +457,6 @@
             </div>
 
           </div>
-
-          <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
-            <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
-              <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Live Simulator Preview
-            </h3>
-            <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner text-white">
-              <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-orca-accent space-y-2">
-                <p class="font-bold text-xs sm:text-sm text-white" id="sim-panel-title">🤖 CUSTOM BOT COMMISSION TICKET PANEL</p>
-                <p class="text-xs text-[#dbdee1] leading-relaxed" id="sim-panel-desc">Click below to open a ticket!</p>
-                <button class="bg-[#23a55a] text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 shadow">
-                  <i class="fa-solid fa-ticket"></i> <span id="sim-button-label">Open Ticket</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
     </section>
@@ -480,88 +473,136 @@
         </span>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-8">
-        <div class="lg:col-span-7 space-y-5">
-          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
-            <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-2.5">
-              <i class="fa-solid fa-sliders text-emerald-400"></i> Verification Channel & Logging
-            </h3>
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Verification Channel</label>
+            <select id="verify-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+          </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Verification Channel</label>
-                <select id="verify-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Verification Log Channel</label>
-                <select id="verify-log-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
-              </div>
-            </div>
-
-            <!-- MULTI-ROLE SELECTOR -->
-            <div class="space-y-2 pt-2 border-t border-white/5">
-              <div class="flex items-center justify-between">
-                <label class="block text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest">
-                  <i class="fa-solid fa-tags"></i> Assigned Roles Upon Verification
-                </label>
-                <button onclick="addVerificationRoleDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
-                  <i class="fa-solid fa-plus text-[10px]"></i> Add Role
-                </button>
-              </div>
-              <div id="verify-roles-container" class="space-y-2"></div>
-              <p class="text-[10px] text-orca-muted">Select as many roles as you want granted to members immediately after successful verification.</p>
-            </div>
-
-            <!-- Panel Embed Customization -->
-            <div class="space-y-3 border-t border-white/5 pt-3">
-              <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Verification Panel Embed Content</h4>
-
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Title</label>
-                <input type="text" id="verify-panel-title" value="🛡️ MEMBER VERIFICATION PORTAL" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
-                <textarea id="verify-panel-desc" rows="3" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none">Click the button below to complete member verification and unlock server access!</textarea>
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Text</label>
-                <input type="text" id="verify-button-label" value="✅ Verify Access" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-              </div>
-            </div>
-
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
-              <button id="btn-deploy-verify" onclick="deployVerificationPanel(this)" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow glow-green flex items-center justify-center gap-2">
-                <i class="fa-solid fa-cloud-arrow-up"></i> Deploy Verification Panel
-              </button>
-              <button id="btn-save-verify" onclick="saveVerificationConfig(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-6 py-3 rounded-xl text-xs shadow glow-blue flex items-center justify-center gap-2">
-                <i class="fa-solid fa-floppy-disk"></i> Save Verification Config
-              </button>
-            </div>
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Verification Log Channel</label>
+            <select id="verify-log-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
           </div>
         </div>
 
-        <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
-          <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
-            <i class="fa-brands fa-discord text-emerald-400 text-sm"></i> Verification Embed Live Preview
-          </h3>
-          <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner text-white">
-            <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-emerald-500 space-y-2">
-              <p class="font-bold text-xs sm:text-sm text-white" id="sim-verify-title">🛡️ MEMBER VERIFICATION PORTAL</p>
-              <p class="text-xs text-[#dbdee1] leading-relaxed" id="sim-verify-desc">Click the button below to complete member verification and unlock server access!</p>
-              <button class="bg-[#23a55a] text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 shadow">
-                <i class="fa-solid fa-user-check"></i> <span id="sim-verify-button">Verify Access</span>
-              </button>
-            </div>
+        <div class="space-y-2 pt-2 border-t border-white/5">
+          <div class="flex items-center justify-between">
+            <label class="block text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest">
+              <i class="fa-solid fa-tags"></i> Assigned Roles Upon Verification
+            </label>
+            <button onclick="addVerificationRoleDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Add Role
+            </button>
           </div>
+          <div id="verify-roles-container" class="space-y-2"></div>
+        </div>
+
+        <div class="space-y-3 border-t border-white/5 pt-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Title</label>
+            <input type="text" id="verify-panel-title" value="🛡️ MEMBER VERIFICATION PORTAL" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
+            <textarea id="verify-panel-desc" rows="2" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none">Click the button below to complete member verification and unlock server access!</textarea>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Text</label>
+            <input type="text" id="verify-button-label" value="✅ Verify Access" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
+          <button id="btn-deploy-verify" onclick="deployVerificationPanel(this)" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow glow-green flex items-center justify-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Deploy Verification Panel
+          </button>
+          <button id="btn-save-verify" onclick="saveVerificationConfig(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-6 py-3 rounded-xl text-xs shadow glow-blue flex items-center justify-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Save Verification Config
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- TAB 4: MAINTENANCE & SAFETY -->
+    <!-- NEW TAB 4: CUSTOM ROLES STUDIO & STAFF CONFIGURATION -->
+    <section id="tab-custom-roles" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Custom Roles Studio & Staff Configuration</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Configure client custom role channel creation, organizational role dividers, and staff management.</p>
+        </div>
+        <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Role Studio
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        
+        <!-- Custom Role Creator Studio Config -->
+        <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+          <h3 class="text-xs font-extrabold uppercase tracking-widest text-amber-400 flex items-center gap-2 border-b border-white/5 pb-2.5">
+            <i class="fa-solid fa-palette"></i> Client Custom Role Creator Studio
+          </h3>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Custom Role Creator Channel</label>
+            <select id="custom-role-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+            <p class="text-[10px] text-orca-muted mt-1">Users given access to this channel can click a button to create their custom role (Name & Hex Color).</p>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-amber-400 uppercase tracking-widest mb-1">
+              <i class="fa-solid fa-folder-tree"></i> Organizational Custom Role Header Role
+            </label>
+            <select id="custom-role-header-id" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+            <p class="text-[10px] text-orca-muted mt-1">Select your server's organizational role divider (e.g. <code>———— CUSTOM ROLE ————</code>). New client roles will be positioned directly under this role!</p>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
+            <button id="btn-deploy-custom-role" onclick="deployCustomRolePanel(this)" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-500 text-white font-extrabold px-5 py-3 rounded-xl text-xs shadow flex items-center justify-center gap-2">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Deploy Role Creator Panel
+            </button>
+            <button id="btn-save-custom-role" onclick="saveCustomRoleConfig(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-5 py-3 rounded-xl text-xs shadow glow-blue flex items-center justify-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Save Role Studio Settings
+            </button>
+          </div>
+        </div>
+
+        <!-- Staff Organization Management Config -->
+        <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+          <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-accent flex items-center gap-2 border-b border-white/5 pb-2.5">
+            <i class="fa-solid fa-user-gear"></i> Staff Organization Settings (/add-staff & /remove-staff)
+          </h3>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-accent uppercase tracking-widest mb-1">
+              <i class="fa-solid fa-folder-tree"></i> Organizational Staff Header Role
+            </label>
+            <select id="staff-header-role-id" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+            <p class="text-[10px] text-orca-muted mt-1">Select your server's staff divider role (e.g. <code>———— STAFF ————</code>). Executing <code>/add-staff</code> will grant the specific role AND this organizational role!</p>
+          </div>
+
+          <div class="p-3 bg-orca-surface border border-white/5 rounded-xl space-y-2">
+            <p class="text-xs font-bold text-white"><i class="fa-solid fa-terminal text-orca-accent"></i> Staff Commands Reference:</p>
+            <ul class="text-[11px] text-orca-muted space-y-1 font-mono">
+              <li>• <code>/add-staff [user] [role]</code> — Gives the chosen staff role + Staff Header Role.</li>
+              <li>• <code>/remove-staff [user]</code> — Strips staff role & Staff Header Role.</li>
+            </ul>
+          </div>
+
+          <div class="pt-3 border-t border-white/5 flex justify-end">
+            <button id="btn-save-staff-config" onclick="saveStaffConfig(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow glow-green flex items-center justify-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Save Staff Settings
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 5: MAINTENANCE & SAFETY -->
     <section id="tab-maintenance" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Maintenance & Safety Protocol</h2>
@@ -643,8 +684,8 @@
     let serverDiscordCategories = [];
     let serverDiscordRoles = [];
     let selectedVerificationRoleIds = [];
-
     let ticketCategoryMap = {};
+    let chartInstance = null;
 
     function setBtnLoading(btn, isLoading, originalHtml) {
       if (!btn) return;
@@ -661,8 +702,9 @@
     }
 
     function initChart() {
-      const ctx = document.getElementById('uptimeChart').getContext('2d');
-      chartInstance = new Chart(ctx, {
+      const ctx = document.getElementById('uptimeChart');
+      if (!ctx) return;
+      chartInstance = new Chart(ctx.getContext('2d'), {
         type: 'line',
         data: {
           labels: ['9s ago', '8s ago', '7s ago', '6s ago', '5s ago', '4s ago', '3s ago', '2s ago', '1s ago', 'Now'],
@@ -699,6 +741,17 @@
           selectedVerificationRoleIds = v.roles || [];
         }
 
+        if (gData.custom_role_config) {
+          const cr = gData.custom_role_config;
+          document.getElementById('custom-role-channel-id').value = cr.channel_id || '';
+          document.getElementById('custom-role-header-id').value = cr.header_role_id || '';
+        }
+
+        if (gData.staff_config) {
+          const sc = gData.staff_config;
+          document.getElementById('staff-header-role-id').value = sc.staff_header_role_id || '';
+        }
+
         renderHierarchicalChannelDropdowns();
         renderVerificationRoleDropdowns();
         renderOpenedCategoryDropdown();
@@ -709,7 +762,7 @@
     }
 
     function switchTab(tabKey) {
-      const allTabs = ['overview', 'ticket-engine', 'verification-engine', 'maintenance'];
+      const allTabs = ['overview', 'ticket-engine', 'verification-engine', 'custom-roles', 'maintenance'];
 
       allTabs.forEach(t => {
         const sec = document.getElementById(`tab-${t}`);
@@ -762,8 +815,76 @@
       }
     }
 
+    async function saveCustomRoleConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        channel_id: document.getElementById('custom-role-channel-id').value,
+        header_role_id: document.getElementById('custom-role-header-id').value
+      };
+
+      try {
+        const res = await fetch('/api/save-custom-role-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("Custom Role Studio settings saved!");
+      } catch (e) {
+        showToast("Error saving Custom Role config", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function deployCustomRolePanel(btn) {
+      setBtnLoading(btn, true);
+      await saveCustomRoleConfig(null);
+
+      const chId = document.getElementById('custom-role-channel-id').value;
+      if (!chId) {
+        showToast("Select a Target Role Creator Channel first!", true);
+        setBtnLoading(btn, false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/deploy-custom-role-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel_id: chId })
+        });
+        const data = await res.json();
+        if (data.success) showToast("Deployed Custom Role Creator Panel!");
+      } catch (e) {
+        showToast("Deployment error", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveStaffConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        staff_header_role_id: document.getElementById('staff-header-role-id').value
+      };
+
+      try {
+        const res = await fetch('/api/save-staff-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("Staff Organization settings saved!");
+      } catch (e) {
+        showToast("Error saving Staff config", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
     function renderVerificationRoleDropdowns() {
       const container = document.getElementById('verify-roles-container');
+      if (!container) return;
       container.innerHTML = '';
 
       if (selectedVerificationRoleIds.length === 0) {
