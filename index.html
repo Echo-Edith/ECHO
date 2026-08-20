@@ -134,12 +134,12 @@
   <header class="md:hidden glass-panel p-3.5 sticky top-0 z-40 flex items-center justify-between border-b border-orca-border shadow-2xl">
     <div class="flex items-center gap-2.5">
       <div class="relative">
-        <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-8 h-8 rounded-xl border border-white/10 shadow object-cover">
+        <img id="bot-avatar-mobile" src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-8 h-8 rounded-xl border border-white/10 shadow object-cover">
         <span class="w-2 h-2 bg-orca-success border-2 border-orca-surface rounded-full absolute -bottom-0.5 -right-0.5"></span>
       </div>
       <div>
         <div class="flex items-center gap-1.5">
-          <h1 class="font-extrabold text-white text-xs sm:text-sm tracking-tight">𝐎𝐑𝐂A AUTOMATION</h1>
+          <h1 class="font-extrabold text-white text-xs sm:text-sm tracking-tight" id="bot-name-mobile">𝐎𝐑𝐂A AUTOMATION</h1>
           <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-[9px] px-1.5 py-0.2 rounded font-extrabold">STUDIO</span>
         </div>
       </div>
@@ -183,12 +183,12 @@
     <div>
       <div class="flex items-center gap-3.5 p-3 rounded-2xl bg-orca-card/90 border border-white/10 mb-6 shadow-xl">
         <div class="relative shrink-0">
-          <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-12 h-12 rounded-xl border border-white/10 shadow object-cover">
+          <img id="bot-avatar-desktop" src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-12 h-12 rounded-xl border border-white/10 shadow object-cover">
           <span class="w-3.5 h-3.5 bg-orca-success border-2 border-orca-surface rounded-full absolute -bottom-1 -right-1"></span>
         </div>
         <div class="overflow-hidden">
           <div class="flex items-center gap-2">
-            <h1 class="font-extrabold text-white text-base tracking-tight truncate">𝐎𝐑𝐂A</h1>
+            <h1 class="font-extrabold text-white text-base tracking-tight truncate" id="bot-name-desktop">𝐎𝐑𝐂A</h1>
             <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-[10px] px-1.5 py-0.5 rounded-md font-extrabold">STUDIO</span>
           </div>
           <p class="text-[11px] text-orca-muted font-medium flex items-center gap-1.5 mt-0.5">
@@ -212,7 +212,7 @@
 
     <div class="pt-4 border-t border-white/5 text-[11px] text-orca-muted flex items-center justify-between font-mono">
       <span class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-orca-success"></span> Shard #0 Connected
+        <span class="w-2 h-2 rounded-full bg-orca-success"></span> Connected to Guild
       </span>
       <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v18.2</span>
     </div>
@@ -226,7 +226,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">/system-stats Live Telemetry</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Accurate real-time bot infrastructure health, RAM usage, ping, and shard performance.</p>
+          <p class="text-xs text-orca-muted mt-0.5">Accurate real-time bot infrastructure health, RAM usage, ping, and database performance.</p>
         </div>
         <button onclick="loadAllData(true, this)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
           <i class="fa-solid fa-arrows-rotate text-orca-accent" id="refresh-icon"></i> Refresh /stats
@@ -241,7 +241,7 @@
           </div>
           <div>
             <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Websocket Ping</p>
-            <p class="text-xl font-black text-white font-mono mt-0.5" id="stat-ping">16 ms</p>
+            <p class="text-xl font-black text-white font-mono mt-0.5" id="stat-ping">-- ms</p>
           </div>
         </div>
 
@@ -252,7 +252,7 @@
           </div>
           <div>
             <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Bot Uptime</p>
-            <p class="text-xs sm:text-sm font-black text-white font-mono mt-1" id="stat-uptime">04d 12h 18m 22s</p>
+            <p class="text-xs sm:text-sm font-black text-white font-mono mt-1" id="stat-uptime">00d 00h 00m 00s</p>
           </div>
         </div>
 
@@ -262,8 +262,8 @@
             <i class="fa-solid fa-memory"></i>
           </div>
           <div>
-            <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Memory RSS / Heap</p>
-            <p class="text-base font-black text-white font-mono mt-0.5" id="stat-ram">48.2 MB / 512 MB</p>
+            <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Process RAM RSS</p>
+            <p class="text-base font-black text-white font-mono mt-0.5" id="stat-ram">-- MB</p>
           </div>
         </div>
 
@@ -274,7 +274,7 @@
           </div>
           <div>
             <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">CPU Core Load</p>
-            <p class="text-xl font-black text-white font-mono mt-0.5" id="stat-cpu">1.8%</p>
+            <p class="text-xl font-black text-white font-mono mt-0.5" id="stat-cpu">-- %</p>
           </div>
         </div>
       </div>
@@ -283,15 +283,15 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
           <span class="text-xs text-orca-muted font-semibold">Active Ticket Categories</span>
-          <span class="font-mono font-bold text-white text-sm" id="stat-categories-total">3 Categories</span>
+          <span class="font-mono font-bold text-white text-sm" id="stat-categories-total">0 Categories</span>
         </div>
         <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
-          <span class="text-xs text-orca-muted font-semibold">MongoDB Atlas Database</span>
-          <span class="font-mono font-bold text-emerald-400 text-sm">Connected (0.42 MB)</span>
+          <span class="text-xs text-orca-muted font-semibold">MongoDB Atlas Storage</span>
+          <span class="font-mono font-bold text-emerald-400 text-sm" id="stat-db-usage">Connected</span>
         </div>
         <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
-          <span class="text-xs text-orca-muted font-semibold">Discord Shard Status</span>
-          <span class="font-mono font-bold text-orca-success text-sm">Shard 0/0 (Healthy)</span>
+          <span class="text-xs text-orca-muted font-semibold">Discord Server Target</span>
+          <span class="font-mono font-bold text-orca-success text-sm" id="stat-guild-name">Connected</span>
         </div>
       </div>
 
@@ -301,7 +301,7 @@
             <i class="fa-solid fa-chart-area text-orca-accent"></i>
             <h3 class="text-xs font-extrabold uppercase tracking-widest text-white">Live API Latency Trend (/system-stats)</h3>
           </div>
-          <span class="text-[10px] font-mono text-orca-muted bg-orca-base px-2 py-0.5 rounded border border-white/5">Polling 1s</span>
+          <span class="text-[10px] font-mono text-orca-muted bg-orca-base px-2 py-0.5 rounded border border-white/5">Polling Live</span>
         </div>
         <div class="h-48 sm:h-64 w-full">
           <canvas id="uptimeChart"></canvas>
@@ -309,7 +309,7 @@
       </div>
     </section>
 
-    <!-- TAB 2: UNIFIED TICKET ENGINE (WITH REAL SERVER CHANNELS & ROLES) -->
+    <!-- TAB 2: UNIFIED TICKET ENGINE -->
     <section id="tab-ticket-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -453,9 +453,6 @@
                   <button onclick="deployTicketPanel(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
                     <i class="fa-solid fa-cloud-arrow-up"></i> Upload Panel
                   </button>
-                  <button onclick="updateTicketPanelUI(this)" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow">
-                    <i class="fa-solid fa-arrows-rotate"></i> Update Live Embed
-                  </button>
                 </div>
               </div>
 
@@ -488,7 +485,7 @@
                   Click the button below to open a private commission ticket channel!
                 </p>
                 <div class="pt-1">
-                  <button onclick="simOpenTicket('bayat')" class="bg-[#23a55a] hover:bg-emerald-600 text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow cursor-pointer">
+                  <button onclick="simOpenTicket('client')" class="bg-[#23a55a] hover:bg-emerald-600 text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow cursor-pointer">
                     <i class="fa-solid fa-ticket"></i> <span id="sim-button-label">Open Ticket</span>
                   </button>
                 </div>
@@ -497,7 +494,7 @@
               <!-- Opened Ticket Channel Area -->
               <div id="sim-ticket-container" class="hidden pt-3 border-t border-[#3f4147] space-y-3">
                 <div class="flex items-center justify-between bg-[#1e1f22] p-2 rounded border border-white/5 text-xs font-mono">
-                  <span id="sim-ticket-name" class="text-indigo-400 font-bold">#ticket-bayat-4829</span>
+                  <span id="sim-ticket-name" class="text-indigo-400 font-bold">#ticket-client-4829</span>
                   <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">Active Ticket</span>
                 </div>
 
@@ -638,104 +635,29 @@
     let activeTicketCategory = "";
     let editingQuestionIdx = null;
     let simTicketId = null;
+    let realDiscordCategories = [];
+    let realDiscordRoles = [];
 
-    // REAL EXISTING SERVER CHANNELS & ROLES (Matching exact Discord order)
-    let realDiscordCategories = [
-      {
-        name: "📁 INFORMATION",
-        channels: [
-          { id: "c-101", name: "rules-and-info", icon: "fa-hashtag" },
-          { id: "c-102", name: "announcements", icon: "fa-bullhorn" }
-        ]
-      },
-      {
-        name: "📁 FORMS & TICKETS",
-        channels: [
-          { id: "c-201", name: "commission-form", icon: "fa-hashtag" },
-          { id: "c-202", name: "partnership-form", icon: "fa-hashtag" },
-          { id: "c-203", name: "suggestions", icon: "fa-hashtag" },
-          { id: "c-204", name: "bug-reports", icon: "fa-hashtag" }
-        ]
-      },
-      {
-        name: "📁 MODERATION & LOGS",
-        channels: [
-          { id: "c-301", name: "commission-logs", icon: "fa-hashtag" },
-          { id: "c-302", name: "ticket-transcripts", icon: "fa-hashtag" }
-        ]
-      },
-      {
-        name: "📁 GENERAL CHANNELS",
-        channels: [
-          { id: "c-401", name: "general", icon: "fa-hashtag" },
-          { id: "c-402", name: "bot-commands", icon: "fa-robot" },
-          { id: "c-403", name: "Lounge (Voice)", icon: "fa-volume-high" }
-        ]
-      }
-    ];
-
-    let realDiscordRoles = [
-      { id: "r-00", name: "@everyone" },
-      { id: "r-01", name: "@Buyer" },
-      { id: "r-02", name: "@Client" },
-      { id: "r-03", name: "@Commission-Team" },
-      { id: "r-04", name: "@Support" },
-      { id: "r-05", name: "@Moderator" },
-      { id: "r-06", name: "@Administrator" },
-      { id: "r-07", name: "@Owner" }
-    ];
-
-    // INFINITE TICKET CATEGORIES STORAGE MAP
     let ticketCategoryMap = {
       "Custom Bot Commission": {
-        panelChannel: "c-201",
-        logChannel: "c-301",
-        buyerRole: "r-01",
-        staffRole: "r-03",
+        panelChannel: "",
+        logChannel: "",
+        buyerRole: "",
+        staffRole: "",
         panelTitle: "🤖 CUSTOM BOT COMMISSION PANEL",
         panelDesc: "Click the button below to open a private commission ticket channel!",
         buttonLabel: "Open Commission Ticket",
         welcomeTitle: "🐬 Custom Bot Commission Request Created",
-        welcomeDesc: "Welcome to your private commission channel! Please detail your bot requirements. Our team will assist you shortly. Type 'close' at any time to finish.",
+        welcomeDesc: "Welcome to your private commission channel! Please detail your bot requirements.",
         questions: [
           { label: "What is your Discord username?", placeholder: "e.g. user#0000" },
           { label: "Detailed bot commands & features", placeholder: "Explain all features in detail..." },
           { label: "Estimated budget ($ USD)", placeholder: "e.g. $50 - $150" }
         ]
-      },
-      "Partnership Application": {
-        panelChannel: "c-202",
-        logChannel: "c-302",
-        buyerRole: "r-02",
-        staffRole: "r-04",
-        panelTitle: "🤝 PARTNERSHIP APPLICATION PANEL",
-        panelDesc: "Interested in forming a server partnership? Click below to apply!",
-        buttonLabel: "Apply for Partnership",
-        welcomeTitle: "🤝 Partnership Ticket Created",
-        welcomeDesc: "Welcome! Please provide your server invite link and member count.",
-        questions: [
-          { label: "Server Invite Link", placeholder: "https://discord.gg/..." },
-          { label: "Why do you want to partner?", placeholder: "Explain mutual benefits..." }
-        ]
-      },
-      "Bug Reports & Support": {
-        panelChannel: "c-204",
-        logChannel: "c-302",
-        buyerRole: "r-01",
-        staffRole: "r-04",
-        panelTitle: "🐛 BUG REPORTS & SUPPORT",
-        panelDesc: "Found a bug in our bot? Click below to open a ticket.",
-        buttonLabel: "Report a Bug",
-        welcomeTitle: "🐛 Support Ticket Opened",
-        welcomeDesc: "Please describe the error and steps to reproduce.",
-        questions: [
-          { label: "Bug Summary", placeholder: "Short summary..." },
-          { label: "Steps to Reproduce", placeholder: "1. Type command..." }
-        ]
       }
     };
 
-    let rawUptimeSeconds = 14820;
+    let rawUptimeSeconds = 0;
     let telemetryInterval = null;
     let chartInstance = null;
     const pingHistory = [15, 18, 16, 17, 19, 16, 18, 16, 17, 16];
@@ -770,9 +692,64 @@
       });
     }
 
-    /**
-     * POPULATE REAL SERVER CHANNELS & ROLES INTO DROPDOWNS
-     */
+    async function loadAllData(manualSync = false) {
+      try {
+        const [guildRes, statsRes] = await Promise.all([
+          fetch('/api/guild-data'),
+          fetch('/api/stats')
+        ]);
+
+        if (guildRes.ok) {
+          const gData = await guildRes.json();
+          realDiscordCategories = gData.categories || [];
+          realDiscordRoles = gData.roles || [];
+
+          if (gData.bot_avatar) {
+            document.getElementById('bot-avatar-desktop').src = gData.bot_avatar;
+            document.getElementById('bot-avatar-mobile').src = gData.bot_avatar;
+          }
+          if (gData.bot_name) {
+            document.getElementById('bot-name-desktop').innerText = gData.bot_name;
+            document.getElementById('bot-name-mobile').innerText = gData.bot_name;
+          }
+
+          document.getElementById('stat-guild-name').innerText = gData.guild_name || 'Connected';
+          document.getElementById('maintenance-toggle-tab').checked = !!gData.maintenance;
+          document.getElementById('total-lockdown-toggle').checked = !!gData.lockdown;
+
+          if (gData.category_configs && Object.keys(gData.category_configs).length > 0) {
+            ticketCategoryMap = gData.category_configs;
+          }
+
+          renderHierarchicalChannelDropdowns();
+          renderCategorySelectorDropdown();
+        }
+
+        if (statsRes.ok) {
+          const sData = await statsRes.json();
+          document.getElementById('stat-ping').innerText = `${sData.ping || 0} ms`;
+          document.getElementById('stat-ram').innerText = sData.ram || '0 MB';
+          document.getElementById('stat-cpu').innerText = sData.cpu || '0%';
+          document.getElementById('stat-db-usage').innerText = sData.db_usage?.display || '0 MB';
+          
+          rawUptimeSeconds = sData.uptime_seconds || 0;
+          document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
+
+          if (chartInstance && sData.ping) {
+            pingHistory.shift();
+            pingHistory.push(sData.ping);
+            chartInstance.data.datasets[0].data = pingHistory;
+            chartInstance.update('none');
+          }
+        }
+
+        if (manualSync) showToast("Live server & telemetry synchronized!");
+      } catch (e) {
+        console.error("Telemetry sync error:", e);
+        if (manualSync) showToast("Could not contact bot server API", true);
+      }
+    }
+
     function renderHierarchicalChannelDropdowns() {
       const channelSelects = document.querySelectorAll('.hierarchy-channel-select');
       
@@ -782,12 +759,12 @@
 
         realDiscordCategories.forEach(cat => {
           const optGroup = document.createElement('optgroup');
-          optGroup.label = cat.name;
+          optGroup.label = `📁 ${cat.name}`;
 
           cat.channels.forEach(ch => {
             const opt = document.createElement('option');
             opt.value = ch.id;
-            opt.innerText = (ch.icon === 'fa-volume-high' ? '🔊 ' : '# ') + ch.name;
+            opt.innerText = `# ${ch.name}`;
             optGroup.appendChild(opt);
           });
 
@@ -797,7 +774,6 @@
         if (currentVal) select.value = currentVal;
       });
 
-      // Role Dropdowns
       const roleSelects = document.querySelectorAll('.hierarchy-role-select');
       roleSelects.forEach(select => {
         const currentVal = select.value;
@@ -807,10 +783,6 @@
           const opt = document.createElement('option');
           opt.value = role.id;
           opt.innerText = role.name;
-          roleSelects.forEach(s => s.appendChild ? s.appendChild : null);
-          roleSelects.forEach(s => {
-            // avoid duplication
-          });
           select.appendChild(opt);
         });
 
@@ -820,9 +792,6 @@
       document.getElementById('stat-categories-total').innerText = `${Object.keys(ticketCategoryMap).length} Categories`;
     }
 
-    /**
-     * CATEGORY SELECTOR & WORKSPACE SWITCHER
-     */
     function renderCategorySelectorDropdown() {
       const select = document.getElementById("ticket-category-select");
       const curVal = select.value;
@@ -839,18 +808,17 @@
     }
 
     function createNewTicketCategoryPrompt() {
-      const name = prompt("Enter new Ticket Category Name (e.g. Staff Application, VIP Support):");
+      const name = prompt("Enter new Ticket Category Name (e.g. VIP Commission, Partnership Application):");
       if (!name || !name.trim()) return;
 
       const clean = name.trim();
       if (!ticketCategoryMap[clean]) {
-        // Pristine Default Setup for New Category
         ticketCategoryMap[clean] = {
-          panelChannel: "c-201",
-          logChannel: "c-301",
-          buyerRole: "r-01",
-          staffRole: "r-03",
-          panelTitle: `📋 ${clean.toUpperCase()} TICKET PANEL`,
+          panelChannel: "",
+          logChannel: "",
+          buyerRole: "",
+          staffRole: "",
+          panelTitle: `📋 ${clean.toUpperCase()} PANEL`,
           panelDesc: `Click the button below to open a private ${clean} ticket channel!`,
           buttonLabel: "Open Ticket",
           welcomeTitle: `🐬 ${clean} Ticket Created`,
@@ -864,7 +832,7 @@
       renderCategorySelectorDropdown();
       document.getElementById("ticket-category-select").value = clean;
       switchActiveTicketCategory();
-      showToast(`Created fresh ticket category "${clean}"!`);
+      showToast(`Created ticket category "${clean}"!`);
     }
 
     function switchActiveTicketCategory() {
@@ -884,7 +852,6 @@
 
       const catData = ticketCategoryMap[activeTicketCategory];
 
-      // Populate Inputs with Isolated Category Data
       document.getElementById("ticket-panel-channel").value = catData.panelChannel || "";
       document.getElementById("ticket-log-channel").value = catData.logChannel || "";
       document.getElementById("ticket-buyer-role").value = catData.buyerRole || "";
@@ -904,9 +871,6 @@
       updateBuyerRoleTag();
     }
 
-    /**
-     * QUESTION BUILDER (CLEAN ISOLATE PER CATEGORY)
-     */
     function renderTicketQuestions() {
       const container = document.getElementById("ticket-questions-container");
       container.innerHTML = "";
@@ -955,7 +919,6 @@
         title.innerText = `Edit Question #${idx + 1}`;
         btn.innerText = "Update Question";
       } else {
-        // EXPLICIT CLEAN RESET INPUTS
         document.getElementById("q-label-input").value = "";
         document.getElementById("q-placeholder-input").value = "";
         title.innerText = "Add Question Field";
@@ -1000,10 +963,7 @@
       showToast("Question removed!");
     }
 
-    /**
-     * UNIFIED SAVE EVERYTHING AT THE VERY LAST
-     */
-    function saveCategoryData(btn = null) {
+    async function saveCategoryData(btn = null) {
       if (!activeTicketCategory) return;
 
       const panelCh = document.getElementById("ticket-panel-channel").value;
@@ -1018,8 +978,7 @@
       const wTitle = document.getElementById("ticket-welcome-title").value;
       const wDesc = document.getElementById("ticket-welcome-desc").value;
 
-      ticketCategoryMap[activeTicketCategory] = {
-        ...ticketCategoryMap[activeTicketCategory],
+      const configData = {
         panelChannel: panelCh,
         logChannel: logCh,
         buyerRole: buyerR,
@@ -1028,23 +987,54 @@
         panelDesc: pDesc,
         buttonLabel: bLabel,
         welcomeTitle: wTitle,
-        welcomeDesc: wDesc
+        welcomeDesc: wDesc,
+        questions: ticketCategoryMap[activeTicketCategory].questions || []
       };
 
-      updateLiveTicketPreview();
-      showToast(`Saved EVERYTHING for category "${activeTicketCategory}"!`);
+      ticketCategoryMap[activeTicketCategory] = configData;
+
+      try {
+        const res = await fetch('/api/save-category', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category_name: activeTicketCategory, config: configData })
+        });
+        if (res.ok) {
+          updateLiveTicketPreview();
+          showToast(`Saved category "${activeTicketCategory}"!`);
+        } else {
+          showToast("Failed to save category configuration", true);
+        }
+      } catch (err) {
+        showToast("Error connecting to server", true);
+      }
     }
 
-    function deployTicketPanel(btn) {
+    async function deployTicketPanel(btn) {
       if (!activeTicketCategory) return;
-      saveCategoryData();
-      showToast(`Uploaded new ticket embed panel to channel!`);
-    }
+      await saveCategoryData();
 
-    function updateTicketPanelUI(btn) {
-      if (!activeTicketCategory) return;
-      saveCategoryData();
-      showToast(`Updated live Discord UI embed in real-time!`);
+      const panelCh = document.getElementById("ticket-panel-channel").value;
+      if (!panelCh) {
+        showToast("Select a Target Panel Channel first!", true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/deploy-form-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel_id: panelCh, category: activeTicketCategory })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Uploaded new ticket embed panel to channel!`);
+        } else {
+          showToast(`Deploy error: ${data.error}`, true);
+        }
+      } catch (err) {
+        showToast("Failed to deploy panel", true);
+      }
     }
 
     function updateLiveTicketPreview() {
@@ -1063,7 +1053,6 @@
       document.getElementById("modal-role-badge").innerText = found ? found.name : "@Buyer";
     }
 
-    // DISCORD SIMULATOR TICKET CHANNEL
     function simOpenTicket(username) {
       const rand = Math.floor(1000 + Math.random() * 9000);
       simTicketId = `ticket-${username}-${rand}`;
@@ -1086,7 +1075,7 @@
       const log = document.getElementById("sim-chat-log");
       log.innerHTML += `
         <div class="text-xs bg-[#1e1f22] p-1.5 rounded flex justify-between">
-          <span>@bayat: ${val}</span>
+          <span>@client: ${val}</span>
           <span class="text-[9px] text-[#80848e]">now</span>
         </div>
       `;
@@ -1125,7 +1114,6 @@
       simTicketId = null;
     }
 
-    // GENERAL NAVIGATION & HELPERS
     function switchTab(tab) {
       ['overview', 'ticket-engine', 'maintenance'].forEach(t => {
         const tabEl = document.getElementById(`tab-${t}`);
@@ -1171,26 +1159,36 @@
       telemetryInterval = setInterval(() => {
         rawUptimeSeconds += 1;
         document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
-        // Live slight fluctuations in ping & CPU for realism
-        const currentPing = 16 + Math.floor(Math.random() * 5);
-        document.getElementById('stat-ping').innerText = `${currentPing} ms`;
-        if (chartInstance) {
-          pingHistory.shift();
-          pingHistory.push(currentPing);
-          chartInstance.data.datasets[0].data = pingHistory;
-          chartInstance.update('none');
-        }
       }, 1000);
     }
 
-    function loadAllData(manualSync = false) {
-      renderHierarchicalChannelDropdowns();
-      renderCategorySelectorDropdown();
-      if (manualSync) showToast("Live /system-stats synchronized!");
+    async function toggleMaintenanceMode() {
+      const checked = document.getElementById('maintenance-toggle-tab').checked;
+      try {
+        await fetch('/api/maintenance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ maintenance: checked })
+        });
+        showToast(`Maintenance mode ${checked ? 'enabled' : 'disabled'}`);
+      } catch (e) {
+        showToast("Failed to update maintenance setting", true);
+      }
     }
 
-    function toggleMaintenanceMode() { showToast("Maintenance setting toggled!"); }
-    function toggleTotalLockdown() { showToast("Lockdown setting toggled!"); }
+    async function toggleTotalLockdown() {
+      const checked = document.getElementById('total-lockdown-toggle').checked;
+      try {
+        await fetch('/api/lockdown', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lockdown: checked })
+        });
+        showToast(`Total lockdown ${checked ? 'activated' : 'deactivated'}`);
+      } catch (e) {
+        showToast("Failed to update lockdown setting", true);
+      }
+    }
 
     function showToast(msg, isError = false) {
       const toast = document.getElementById("toast");
