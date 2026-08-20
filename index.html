@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>𝐎𝐑𝐂A Automation Command Center • Discord Ticket Engine</title>
+  <title>𝐎𝐑𝐂A Automation Command Center • Discord Ticket & Verification Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -130,7 +130,7 @@
 </head>
 <body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-orca-accent selection:text-white pb-20 md:pb-0">
 
-  <!-- Mobile Header -->
+  <!-- Mobile Top Header Bar -->
   <header class="md:hidden glass-panel p-3.5 sticky top-0 z-40 flex items-center justify-between border-b border-orca-border shadow-2xl">
     <div class="flex items-center gap-2.5">
       <div class="relative">
@@ -144,41 +144,49 @@
         </div>
       </div>
     </div>
-    <button onclick="toggleMobileMenu()" class="bg-orca-card text-white w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center">
+    <!-- Top Hamburger Menu Button -->
+    <button onclick="toggleMobileMenu()" class="bg-orca-card active:scale-95 text-white w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center transition shadow">
       <i class="fa-solid fa-bars text-sm" id="menu-icon"></i>
     </button>
   </header>
 
-  <!-- Mobile Menu Overlay (3 Tabs) -->
+  <!-- Mobile Menu Overlay Dropdown (Top Header Toggle) -->
   <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl">
-    <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent">
+    <button onclick="switchTab('overview'); toggleMobileMenu()" id="m-top-nav-overview" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent transition">
       <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview (/system-stats)
     </button>
-    <button onclick="switchTab('ticket-engine'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
+    <button onclick="switchTab('ticket-engine'); toggleMobileMenu()" id="m-top-nav-ticket-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets Engine
     </button>
-    <button onclick="switchTab('maintenance'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
+    <button onclick="switchTab('verification-engine'); toggleMobileMenu()" id="m-top-nav-verification-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-user-check w-4 text-center"></i> Verification Engine (/verify)
+    </button>
+    <button onclick="switchTab('maintenance'); toggleMobileMenu()" id="m-top-nav-maintenance" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-shield-halved w-4 text-center"></i> Safety & Maintenance
     </button>
   </div>
 
-  <!-- Mobile Bottom Nav (3 Tabs) -->
+  <!-- Mobile Bottom Navigation Bar (4 Touch Buttons) -->
   <nav class="md:hidden fixed bottom-0 inset-x-0 glass-panel border-t border-orca-border z-40 px-2 py-2 flex items-center justify-around">
-    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-accent">
+    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-accent">
       <i class="fa-solid fa-chart-pie text-base"></i>
-      <span class="text-[10px] font-bold">Stats</span>
+      <span class="text-[10px] font-extrabold tracking-tight">Stats</span>
     </button>
-    <button onclick="switchTab('ticket-engine')" id="m-nav-ticket-engine" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
+    <button onclick="switchTab('ticket-engine')" id="m-nav-ticket-engine" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
       <i class="fa-solid fa-ticket text-base"></i>
-      <span class="text-[10px] font-bold">Tickets</span>
+      <span class="text-[10px] font-extrabold tracking-tight">Tickets</span>
     </button>
-    <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
+    <button onclick="switchTab('verification-engine')" id="m-nav-verification-engine" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
+      <i class="fa-solid fa-user-check text-base"></i>
+      <span class="text-[10px] font-extrabold tracking-tight">Verify</span>
+    </button>
+    <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
       <i class="fa-solid fa-shield-halved text-base"></i>
-      <span class="text-[10px] font-bold">Safety</span>
+      <span class="text-[10px] font-extrabold tracking-tight">Safety</span>
     </button>
   </nav>
 
-  <!-- Desktop Sidebar Navigation (3 Tabs) -->
+  <!-- Desktop Sidebar Navigation -->
   <aside class="hidden md:flex w-72 glass-panel p-5 flex-col justify-between border-r border-orca-border shrink-0 z-30">
     <div>
       <div class="flex items-center gap-3.5 p-3 rounded-2xl bg-orca-card/90 border border-white/10 mb-6 shadow-xl">
@@ -203,6 +211,9 @@
         </button>
         <button onclick="switchTab('ticket-engine')" id="nav-ticket-engine" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-ticket w-4 text-center text-orca-accent"></i> Tickets Engine
+        </button>
+        <button onclick="switchTab('verification-engine')" id="nav-verification-engine" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-user-check w-4 text-center text-emerald-400"></i> Verification Engine
         </button>
         <button onclick="switchTab('maintenance')" id="nav-maintenance" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-shield-halved w-4 text-center text-rose-400"></i> Maintenance & Safety
@@ -234,7 +245,6 @@
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
-        <!-- Ping -->
         <div class="glass-card p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xl">
           <div class="w-10 h-10 rounded-xl bg-orca-accent/10 text-orca-accent flex items-center justify-center text-lg shrink-0 border border-orca-accent/20">
             <i class="fa-solid fa-bolt"></i>
@@ -245,7 +255,6 @@
           </div>
         </div>
 
-        <!-- Uptime -->
         <div class="glass-card p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xl">
           <div class="w-10 h-10 rounded-xl bg-orca-warning/10 text-orca-warning flex items-center justify-center text-lg shrink-0 border border-orca-warning/20">
             <i class="fa-solid fa-stopwatch"></i>
@@ -256,7 +265,6 @@
           </div>
         </div>
 
-        <!-- RAM Usage -->
         <div class="glass-card p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xl">
           <div class="w-10 h-10 rounded-xl bg-orca-success/10 text-orca-success flex items-center justify-center text-lg shrink-0 border border-orca-success/20">
             <i class="fa-solid fa-memory"></i>
@@ -267,7 +275,6 @@
           </div>
         </div>
 
-        <!-- CPU Load -->
         <div class="glass-card p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xl">
           <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-lg shrink-0 border border-indigo-500/20">
             <i class="fa-solid fa-microchip"></i>
@@ -279,7 +286,6 @@
         </div>
       </div>
 
-      <!-- Additional Stats Bar -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
           <span class="text-xs text-orca-muted font-semibold">Active Ticket Categories</span>
@@ -321,7 +327,6 @@
         </span>
       </div>
 
-      <!-- MANDATORY CATEGORY SELECTOR GATEWAY (STEP 1) -->
       <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl border-2 border-orca-accent/40">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="flex items-center gap-3.5">
@@ -345,26 +350,20 @@
         </div>
       </div>
 
-      <!-- PLACEHOLDER SHOWN UNTIL CATEGORY IS SELECTED -->
       <div id="ticket-category-placeholder" class="glass-card p-8 sm:p-12 rounded-2xl md:rounded-3xl text-center space-y-3 shadow-2xl border border-dashed border-white/10">
         <div class="w-14 h-14 rounded-2xl bg-orca-card border border-white/10 mx-auto flex items-center justify-center text-orca-muted text-2xl">
           <i class="fa-solid fa-hand-pointer"></i>
         </div>
         <h3 class="text-sm sm:text-base font-bold text-white">No Ticket Category Selected</h3>
-        <p class="text-xs text-orca-muted max-w-md mx-auto">Please select a ticket category from the dropdown above (or click "+ New Ticket Category") to unlock its panel layout and ticket question builder.</p>
+        <p class="text-xs text-orca-muted max-w-md mx-auto">Please select a ticket category from the dropdown above to unlock its panel layout and question builder.</p>
       </div>
 
-      <!-- CATEGORY CONTENT WORKSPACE -->
       <div id="ticket-category-workspace" class="space-y-5 hidden">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-8">
-          
-          <!-- Left Column: Settings, Embeds, and Questions -->
           <div class="lg:col-span-7 space-y-5">
-            
-            <!-- Server Channels, Roles, and Target Ticket Category Selectors -->
             <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3.5 shadow-2xl">
               <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-2.5">
-                <i class="fa-solid fa-sliders text-orca-accent"></i> Server Channels & Roles Configuration: <span class="active-cat-display text-white font-bold">--</span>
+                <i class="fa-solid fa-sliders text-orca-accent"></i> Channels & Roles Configuration: <span class="active-cat-display text-white font-bold">--</span>
               </h3>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -379,21 +378,19 @@
                 </div>
               </div>
 
-              <!-- Target Server Category Where Opened Ticket Channels Are Created -->
               <div>
                 <label class="block text-[10px] font-extrabold text-orca-accent uppercase tracking-widest mb-1">
-                  <i class="fa-solid fa-folder-tree"></i> Opened Ticket Target Category (Discord Category)
+                  <i class="fa-solid fa-folder-tree"></i> Opened Ticket Target Category
                 </label>
                 <select id="ticket-opened-category" class="hierarchy-category-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
                   <option value="">-- Created Uncategorized or Under Selected Category --</option>
                 </select>
-                <p class="text-[10px] text-orca-muted mt-1">When a user opens a ticket in this category, its private channel will be automatically created inside this Discord server category.</p>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                 <div>
                   <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Buyer Role (Given on Close)</label>
-                  <select id="ticket-buyer-role" onchange="updateBuyerRoleTag()" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></select>
+                  <select id="ticket-buyer-role" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></select>
                 </div>
 
                 <div>
@@ -402,43 +399,23 @@
                 </div>
               </div>
 
-              <!-- Embed Panel Text Customization -->
               <div class="space-y-3 border-t border-white/5 pt-3">
                 <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Ticket Panel Message Embed</h4>
-
                 <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Embed Title</label>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Title</label>
                   <input type="text" id="ticket-panel-title" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
                 </div>
-
                 <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Embed Description</label>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
                   <textarea id="ticket-panel-desc" rows="2" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
                 </div>
-
                 <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Ticket Button Label</label>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Label</label>
                   <input type="text" id="ticket-button-label" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-                </div>
-              </div>
-
-              <!-- Welcome Embed Text in Ticket Channel -->
-              <div class="space-y-3 border-t border-white/5 pt-3">
-                <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Opened Ticket Channel Welcome Embed</h4>
-
-                <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Welcome Embed Title</label>
-                  <input type="text" id="ticket-welcome-title" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-                </div>
-
-                <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Welcome Embed Description</label>
-                  <textarea id="ticket-welcome-desc" rows="2" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
                 </div>
               </div>
             </div>
 
-            <!-- Question Builder Card (Isolated Per Category) -->
             <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
               <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
                 <div class="flex items-center gap-2">
@@ -446,90 +423,44 @@
                   <h3 class="text-xs font-extrabold uppercase tracking-widest text-white">Ticket Questions for <span class="active-cat-display text-orca-accent">--</span></h3>
                 </div>
                 <button onclick="openAddQuestionModal()" class="bg-orca-success hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1.5 shadow">
-                  <i class="fa-solid fa-plus text-[10px]"></i> Add Ticket Question
+                  <i class="fa-solid fa-plus text-[10px]"></i> Add Question
                 </button>
               </div>
 
               <div id="ticket-questions-container" class="space-y-2.5 pt-1"></div>
             </div>
 
-            <!-- Panel Live Deploy Buttons & Single Unified Save Button at Bottom -->
             <div class="glass-card p-5 rounded-2xl md:rounded-3xl shadow-2xl space-y-4">
-              <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-white/5 pb-4">
-                <div>
-                  <h4 class="font-bold text-xs text-white">Discord Ticket Panel Action</h4>
-                  <p class="text-[11px] text-orca-muted">Upload this ticket panel message into the target channel.</p>
-                </div>
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                  <button id="btn-deploy-panel" onclick="deployTicketPanel(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Ticket Panel
-                  </button>
-                </div>
-              </div>
-
-              <!-- UNIFIED SAVE BUTTON AT THE VERY END -->
-              <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div>
                   <h4 class="font-bold text-xs text-white">Save All Ticket Settings</h4>
-                  <p class="text-[11px] text-orca-muted">Saves channels, category placement, roles, embed text, and questions for <span class="active-cat-display font-bold text-white">--</span>.</p>
+                  <p class="text-[11px] text-orca-muted">Saves settings for <span class="active-cat-display font-bold text-white">--</span>.</p>
                 </div>
-                <button id="btn-save-category" onclick="saveCategoryData(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-3.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
-                  <i class="fa-solid fa-floppy-disk text-sm"></i> Save Everything into Category
-                </button>
+                <div class="flex gap-2 w-full sm:w-auto">
+                  <button id="btn-deploy-panel" onclick="deployTicketPanel(this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-3 rounded-xl text-xs shadow glow-blue">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Deploy Panel
+                  </button>
+                  <button id="btn-save-category" onclick="saveCategoryData(this)" class="bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow glow-green">
+                    <i class="fa-solid fa-floppy-disk text-sm"></i> Save Settings
+                  </button>
+                </div>
               </div>
             </div>
 
           </div>
 
-          <!-- Right Column: Discord Live Interactive Simulator -->
           <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
             <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
-              <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Ticket Panel Live Preview
+              <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Live Simulator Preview
             </h3>
-
             <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner text-white">
-              
-              <!-- Panel Embed -->
               <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-orca-accent space-y-2">
                 <p class="font-bold text-xs sm:text-sm text-white" id="sim-panel-title">🤖 CUSTOM BOT COMMISSION TICKET PANEL</p>
-                <p class="text-xs text-[#dbdee1] leading-relaxed" id="sim-panel-desc">
-                  Click the button below to open a private commission ticket channel!
-                </p>
-                <div class="pt-1">
-                  <button onclick="simOpenTicket('client')" class="bg-[#23a55a] hover:bg-emerald-600 text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow cursor-pointer">
-                    <i class="fa-solid fa-ticket"></i> <span id="sim-button-label">Open Ticket</span>
-                  </button>
-                </div>
+                <p class="text-xs text-[#dbdee1] leading-relaxed" id="sim-panel-desc">Click below to open a ticket!</p>
+                <button class="bg-[#23a55a] text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 shadow">
+                  <i class="fa-solid fa-ticket"></i> <span id="sim-button-label">Open Ticket</span>
+                </button>
               </div>
-
-              <!-- Opened Ticket Channel Area -->
-              <div id="sim-ticket-container" class="hidden pt-3 border-t border-[#3f4147] space-y-3">
-                <div class="flex items-center justify-between bg-[#1e1f22] p-2 rounded border border-white/5 text-xs font-mono">
-                  <span id="sim-ticket-name" class="text-indigo-400 font-bold">#ticket-client-1</span>
-                  <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">Active Ticket Channel</span>
-                </div>
-
-                <!-- Welcome Embed inside channel -->
-                <div class="bg-[#2b2d31] p-3 rounded-lg border-l-4 border-emerald-500 space-y-1.5">
-                  <p class="font-bold text-xs text-white" id="sim-embed-title">🐬 Custom Bot Commission Request Created</p>
-                  <p class="text-[11px] text-[#dbdee1] leading-relaxed" id="sim-embed-desc">Welcome to your private commission channel! Type `/close` or click below to finish.</p>
-                  <div class="pt-1">
-                    <button onclick="triggerCloseModal()" class="bg-[#f23f43] hover:bg-rose-600 text-white px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1 transition">
-                      <i class="fa-solid fa-lock"></i> Close Ticket (/close)
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Chat log -->
-                <div id="sim-chat-log" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
-
-                <!-- User chat input -->
-                <div class="flex gap-2 pt-1">
-                  <input type="text" id="sim-user-input" placeholder="Type '/close' or chat here..." class="flex-1 bg-[#1e1f22] border border-[#3f4147] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-[#5865f2]">
-                  <button onclick="simSendMessage()" class="bg-[#5865f2] hover:bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold">Send</button>
-                </div>
-              </div>
-
             </div>
           </div>
 
@@ -537,7 +468,100 @@
       </div>
     </section>
 
-    <!-- TAB 3: MAINTENANCE & SAFETY -->
+    <!-- TAB 3: BLOXLINK-STYLE VERIFICATION ENGINE -->
+    <section id="tab-verification-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Bloxlink-Style Verification Engine</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Customizable member verification system with 1-to-Infinity automatic role granting upon completion.</p>
+        </div>
+        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-user-shield"></i> Security Module
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-8">
+        <div class="lg:col-span-7 space-y-5">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-2.5">
+              <i class="fa-solid fa-sliders text-emerald-400"></i> Verification Channel & Logging
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Verification Channel</label>
+                <select id="verify-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Verification Log Channel</label>
+                <select id="verify-log-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+              </div>
+            </div>
+
+            <!-- INFINITE MULTI-ROLE SELECTOR -->
+            <div class="space-y-2 pt-2 border-t border-white/5">
+              <div class="flex items-center justify-between">
+                <label class="block text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest">
+                  <i class="fa-solid fa-tags"></i> Assigned Roles Upon Verification (1 to ∞ Roles)
+                </label>
+                <button onclick="addVerificationRoleDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+                  <i class="fa-solid fa-plus text-[10px]"></i> Add Role
+                </button>
+              </div>
+              <div id="verify-roles-container" class="space-y-2"></div>
+              <p class="text-[10px] text-orca-muted">Select as many roles as you want granted to members immediately after successful verification.</p>
+            </div>
+
+            <!-- Panel Embed Customization -->
+            <div class="space-y-3 border-t border-white/5 pt-3">
+              <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Verification Panel Embed Content</h4>
+
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Title</label>
+                <input type="text" id="verify-panel-title" value="🛡️ MEMBER VERIFICATION PORTAL" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
+                <textarea id="verify-panel-desc" rows="3" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none">Click the button below to complete member verification and unlock server access!</textarea>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Text</label>
+                <input type="text" id="verify-button-label" value="✅ Verify Access" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
+              <button id="btn-deploy-verify" onclick="deployVerificationPanel(this)" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow glow-green flex items-center justify-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Deploy Verification Panel
+              </button>
+              <button id="btn-save-verify" onclick="saveVerificationConfig(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-6 py-3 rounded-xl text-xs shadow glow-blue flex items-center justify-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> Save Verification Config
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
+          <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
+            <i class="fa-brands fa-discord text-emerald-400 text-sm"></i> Verification Embed Live Preview
+          </h3>
+          <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner text-white">
+            <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-emerald-500 space-y-2">
+              <p class="font-bold text-xs sm:text-sm text-white" id="sim-verify-title">🛡️ MEMBER VERIFICATION PORTAL</p>
+              <p class="text-xs text-[#dbdee1] leading-relaxed" id="sim-verify-desc">Click the button below to complete member verification and unlock server access!</p>
+              <button class="bg-[#23a55a] text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 shadow">
+                <i class="fa-solid fa-user-check"></i> <span id="sim-verify-button">Verify Access</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: MAINTENANCE & SAFETY -->
     <section id="tab-maintenance" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Maintenance & Safety Protocol</h2>
@@ -607,35 +631,6 @@
     </div>
   </div>
 
-  <!-- CLOSE TICKET CONTROL PANEL MODAL -->
-  <div id="close-ticket-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
-    <div class="bg-[#313338] text-white w-full max-w-md rounded-2xl border border-[#1f2023] p-5 space-y-4 shadow-2xl animate-fade-in">
-      <div class="flex items-center justify-between border-b border-[#3f4147] pb-3">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
-          <h3 class="font-extrabold text-sm text-white">Ticket Closing Control Panel (/close)</h3>
-        </div>
-        <button onclick="closeTicketModal()" class="text-[#949ba4] hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <p class="text-xs text-[#dbdee1] leading-relaxed">
-        Execute `/close` command. Grant buyer role or finalize transcript logging below:
-      </p>
-
-      <div class="space-y-2.5 pt-1">
-        <button onclick="simGiveBuyerRole()" class="w-full bg-[#248046] hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-between transition shadow">
-          <span class="flex items-center gap-2"><i class="fa-solid fa-user-check"></i> Give Buyer Role (Role: Yes)</span>
-          <span class="text-[10px] bg-emerald-950 px-2 py-0.5 rounded font-mono text-emerald-300" id="modal-role-badge">@Buyer</span>
-        </button>
-
-        <button onclick="simFinalizeClose()" class="w-full bg-[#da373c] hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-between transition shadow">
-          <span class="flex items-center gap-2"><i class="fa-solid fa-box-archive"></i> Close Ticket & Send Logs</span>
-          <span class="text-[10px] text-rose-200">Deletes Channel</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast Notification System -->
   <div id="toast" class="fixed bottom-16 md:bottom-6 right-3 sm:right-6 glass-panel text-white px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl shadow-2xl text-xs font-semibold transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4 flex items-center gap-2.5 z-50 border border-white/10 max-w-[90vw]">
     <i class="fa-solid fa-circle-check text-orca-success text-sm sm:text-base shrink-0" id="toast-icon"></i>
@@ -645,35 +640,11 @@
   <script>
     let activeTicketCategory = "";
     let editingQuestionIdx = null;
-    let simTicketId = null;
-
     let serverDiscordCategories = [];
     let serverDiscordRoles = [];
+    let selectedVerificationRoleIds = [];
 
-    let ticketCategoryMap = {
-      "Custom Bot Commission": {
-        panelChannel: "",
-        logChannel: "",
-        openedCategory: "",
-        buyerRole: "",
-        staffRole: "",
-        panelTitle: "🤖 CUSTOM BOT COMMISSION TICKET PANEL",
-        panelDesc: "Click the button below to open a private commission ticket channel!",
-        buttonLabel: "Open Commission Ticket",
-        welcomeTitle: "🐬 Custom Bot Commission Ticket Created",
-        welcomeDesc: "Welcome to your private commission channel! Please detail your bot requirements.",
-        questions: [
-          { label: "What is your Discord username?", placeholder: "e.g. user#0000" },
-          { label: "Detailed bot commands & features", placeholder: "Explain all features in detail..." },
-          { label: "Estimated budget ($ USD)", placeholder: "e.g. $50 - $150" }
-        ]
-      }
-    };
-
-    let rawUptimeSeconds = 0;
-    let telemetryPollInterval = null;
-    let chartInstance = null;
-    let pingHistory = [15, 18, 16, 17, 19, 16, 18, 16, 17, 16];
+    let ticketCategoryMap = {};
 
     function setBtnLoading(btn, isLoading, originalHtml) {
       if (!btn) return;
@@ -697,519 +668,94 @@
           labels: ['9s ago', '8s ago', '7s ago', '6s ago', '5s ago', '4s ago', '3s ago', '2s ago', '1s ago', 'Now'],
           datasets: [{
             label: 'WebSocket Ping (ms)',
-            data: pingHistory,
+            data: [15, 18, 16, 17, 19, 16, 18, 16, 17, 16],
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59, 130, 246, 0.15)',
             borderWidth: 2,
             fill: true,
-            tension: 0.4,
-            pointRadius: 2.5,
-            pointBackgroundColor: '#3b82f6'
+            tension: 0.4
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#80848e', font: { size: 9 } } },
-            y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#80848e', font: { size: 9 } } }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
     }
 
-    async function loadAllData(manualSync = false) {
-      await fetchGuildStructure();
-      await fetchTelemetryStats(manualSync);
-    }
-
-    async function fetchGuildStructure() {
+    async function loadAllData() {
       try {
         const res = await fetch('/api/guild-data');
         if (!res.ok) return;
-
         const gData = await res.json();
         serverDiscordCategories = gData.categories || [];
         serverDiscordRoles = gData.roles || [];
+        ticketCategoryMap = gData.category_configs || {};
 
-        if (gData.bot_avatar) {
-          document.getElementById('bot-avatar-desktop').src = gData.bot_avatar;
-          document.getElementById('bot-avatar-mobile').src = gData.bot_avatar;
-        }
-        if (gData.bot_name) {
-          document.getElementById('bot-name-desktop').innerText = gData.bot_name;
-          document.getElementById('bot-name-mobile').innerText = gData.bot_name;
-        }
-
-        document.getElementById('stat-guild-name').innerText = gData.guild_name || 'Connected';
-        document.getElementById('maintenance-toggle-tab').checked = !!gData.maintenance;
-        document.getElementById('total-lockdown-toggle').checked = !!gData.lockdown;
-
-        if (gData.category_configs && Object.keys(gData.category_configs).length > 0) {
-          ticketCategoryMap = gData.category_configs;
+        if (gData.verification_config) {
+          const v = gData.verification_config;
+          document.getElementById('verify-channel-id').value = v.channel_id || '';
+          document.getElementById('verify-log-channel-id').value = v.log_channel_id || '';
+          document.getElementById('verify-panel-title').value = v.title || '🛡️ MEMBER VERIFICATION PORTAL';
+          document.getElementById('verify-panel-desc').value = v.description || 'Click the button below to complete verification!';
+          document.getElementById('verify-button-label').value = v.button_label || '✅ Verify Access';
+          selectedVerificationRoleIds = v.roles || [];
         }
 
         renderHierarchicalChannelDropdowns();
+        renderVerificationRoleDropdowns();
         renderOpenedCategoryDropdown();
         renderCategorySelectorDropdown();
       } catch (e) {
-        console.error("Guild structure load error:", e);
+        console.error("Guild data load error:", e);
       }
     }
 
-    async function fetchTelemetryStats(manualSync = false) {
-      const btn = document.getElementById("btn-sync-stats");
-      if (manualSync) setBtnLoading(btn, true);
+    // Dynamic Tab Navigation System (Desktop Sidebar + Mobile Top Overlay Menu + Mobile Bottom Nav)
+    function switchTab(tabKey) {
+      const allTabs = ['overview', 'ticket-engine', 'verification-engine', 'maintenance'];
 
-      try {
-        const res = await fetch('/api/stats');
-        if (!res.ok) throw new Error("API Offline");
+      allTabs.forEach(t => {
+        // Hide Section
+        const sec = document.getElementById(`tab-${t}`);
+        if (sec) sec.classList.add('hidden');
 
-        const sData = await res.json();
-        const pingVal = sData.ping || 0;
-        document.getElementById('stat-ping').innerText = `${pingVal} ms`;
-        document.getElementById('stat-ram').innerText = sData.ram || '0 MB';
-        document.getElementById('stat-cpu').innerText = sData.cpu || '0%';
-        document.getElementById('stat-db-usage').innerText = sData.db_usage?.display || '0 MB';
-        
-        rawUptimeSeconds = sData.uptime_seconds || 0;
-        document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
-
-        if (chartInstance) {
-          pingHistory.shift();
-          pingHistory.push(pingVal);
-          chartInstance.data.datasets[0].data = pingHistory;
-          chartInstance.update('none');
+        // Reset Desktop Nav
+        const dBtn = document.getElementById(`nav-${t}`);
+        if (dBtn) {
+          dBtn.className = "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all";
         }
 
-        if (manualSync) showToast("Live /system-stats synchronized!");
-      } catch (e) {
-        if (manualSync) showToast("Could not contact bot telemetry API", true);
-      } finally {
-        if (manualSync) setBtnLoading(btn, false);
-      }
-    }
-
-    function startLiveTelemetryPolling() {
-      if (telemetryPollInterval) clearInterval(telemetryPollInterval);
-      telemetryPollInterval = setInterval(() => {
-        rawUptimeSeconds += 1;
-        document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
-        fetchTelemetryStats(false);
-      }, 1000);
-    }
-
-    function renderHierarchicalChannelDropdowns() {
-      const channelSelects = document.querySelectorAll('.hierarchy-channel-select');
-      
-      channelSelects.forEach(select => {
-        const currentVal = select.value;
-        select.innerHTML = `<option value="">-- Select Server Channel --</option>`;
-
-        serverDiscordCategories.forEach(cat => {
-          const optGroup = document.createElement('optgroup');
-          optGroup.label = `📁 ${cat.name}`;
-
-          cat.channels.forEach(ch => {
-            const opt = document.createElement('option');
-            opt.value = ch.id;
-            opt.innerText = `# ${ch.name}`;
-            optGroup.appendChild(opt);
-          });
-
-          select.appendChild(optGroup);
-        });
-
-        if (currentVal) select.value = currentVal;
-      });
-
-      const roleSelects = document.querySelectorAll('.hierarchy-role-select');
-      roleSelects.forEach(select => {
-        const currentVal = select.value;
-        select.innerHTML = `<option value="">-- Select Role --</option>`;
-
-        serverDiscordRoles.forEach(role => {
-          const opt = document.createElement('option');
-          opt.value = role.id;
-          opt.innerText = role.name;
-          select.appendChild(opt);
-        });
-
-        if (currentVal) select.value = currentVal;
-      });
-
-      document.getElementById('stat-categories-total').innerText = `${Object.keys(ticketCategoryMap).length} Categories`;
-    }
-
-    function renderOpenedCategoryDropdown() {
-      const select = document.getElementById("ticket-opened-category");
-      const currentVal = select.value;
-      select.innerHTML = `<option value="">-- Created Uncategorized or Under Selected Category --</option>`;
-
-      serverDiscordCategories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat.id || cat.name;
-        opt.innerText = `📁 ${cat.name}`;
-        select.appendChild(opt);
-      });
-
-      if (currentVal) select.value = currentVal;
-    }
-
-    function renderCategorySelectorDropdown() {
-      const select = document.getElementById("ticket-category-select");
-      const curVal = select.value;
-      select.innerHTML = `<option value="">-- Choose Ticket Category First --</option>`;
-
-      Object.keys(ticketCategoryMap).forEach(catName => {
-        const opt = document.createElement("option");
-        opt.value = catName;
-        opt.innerText = `📁 ${catName}`;
-        select.appendChild(opt);
-      });
-
-      select.value = activeTicketCategory || curVal;
-    }
-
-    function createNewTicketCategoryPrompt() {
-      const name = prompt("Enter new Ticket Category Name (e.g. VIP Support, Partnership Application):");
-      if (!name || !name.trim()) return;
-
-      const clean = name.trim();
-      if (!ticketCategoryMap[clean]) {
-        ticketCategoryMap[clean] = {
-          panelChannel: "",
-          logChannel: "",
-          openedCategory: "",
-          buyerRole: "",
-          staffRole: "",
-          panelTitle: `📋 ${clean.toUpperCase()} TICKET PANEL`,
-          panelDesc: `Click the button below to open a private ${clean} ticket channel!`,
-          buttonLabel: "Open Ticket",
-          welcomeTitle: `🐬 ${clean} Ticket Created`,
-          welcomeDesc: "Welcome to your private ticket channel! Please detail your request here.",
-          questions: [
-            { label: "Please describe your ticket details", placeholder: "Type your request here..." }
-          ]
-        };
-      }
-
-      renderCategorySelectorDropdown();
-      document.getElementById("ticket-category-select").value = clean;
-      switchActiveTicketCategory();
-      showToast(`Created ticket category "${clean}"!`);
-    }
-
-    function switchActiveTicketCategory() {
-      activeTicketCategory = document.getElementById("ticket-category-select").value;
-
-      const placeholder = document.getElementById("ticket-category-placeholder");
-      const workspace = document.getElementById("ticket-category-workspace");
-
-      if (!activeTicketCategory) {
-        placeholder.classList.remove("hidden");
-        workspace.classList.add("hidden");
-        return;
-      }
-
-      placeholder.classList.add("hidden");
-      workspace.classList.remove("hidden");
-
-      const catData = ticketCategoryMap[activeTicketCategory];
-
-      document.getElementById("ticket-panel-channel").value = catData.panelChannel || "";
-      document.getElementById("ticket-log-channel").value = catData.logChannel || "";
-      document.getElementById("ticket-opened-category").value = catData.openedCategory || "";
-      document.getElementById("ticket-buyer-role").value = catData.buyerRole || "";
-      document.getElementById("ticket-staff-role").value = catData.staffRole || "";
-
-      document.getElementById("ticket-panel-title").value = catData.panelTitle || "";
-      document.getElementById("ticket-panel-desc").value = catData.panelDesc || "";
-      document.getElementById("ticket-button-label").value = catData.buttonLabel || "Open Ticket";
-
-      document.getElementById("ticket-welcome-title").value = catData.welcomeTitle || "";
-      document.getElementById("ticket-welcome-desc").value = catData.welcomeDesc || "";
-
-      document.querySelectorAll(".active-cat-display").forEach(el => el.innerText = activeTicketCategory);
-
-      renderTicketQuestions();
-      updateLiveTicketPreview();
-      updateBuyerRoleTag();
-    }
-
-    function renderTicketQuestions() {
-      const container = document.getElementById("ticket-questions-container");
-      container.innerHTML = "";
-
-      const questions = (ticketCategoryMap[activeTicketCategory] && ticketCategoryMap[activeTicketCategory].questions) || [];
-
-      if (questions.length === 0) {
-        container.innerHTML = `<div class="p-4 text-center text-orca-muted glass-card rounded-xl text-xs">No ticket questions configured for "${escapeHtml(activeTicketCategory)}". Click "+ Add Ticket Question" to add fields.</div>`;
-        return;
-      }
-
-      questions.forEach((q, idx) => {
-        container.innerHTML += `
-          <div class="glass-card p-3.5 rounded-xl flex items-center justify-between shadow-md hover:border-white/10 transition animate-fade-in gap-2">
-            <div class="min-w-0 flex-1">
-              <p class="font-bold text-white text-xs sm:text-sm truncate">Q${idx + 1}: ${escapeHtml(q.label)}</p>
-              <p class="text-[11px] text-orca-muted mt-0.5 truncate">Placeholder: "${escapeHtml(q.placeholder || 'None')}"</p>
-            </div>
-            <div class="flex items-center gap-1">
-              <button onclick="openAddQuestionModal(${idx})" class="text-orca-accent hover:bg-orca-accent/10 p-2 rounded-lg transition text-xs shrink-0" title="Edit Question">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-              <button onclick="removeTicketQuestion(${idx})" class="text-orca-danger hover:bg-orca-danger/10 p-2 rounded-lg transition text-xs shrink-0" title="Delete Question">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      });
-    }
-
-    function openAddQuestionModal(idx = null) {
-      if (!activeTicketCategory) {
-        showToast("Select a category first!", true);
-        return;
-      }
-
-      editingQuestionIdx = idx;
-      const title = document.getElementById("modal-question-title");
-      const btn = document.getElementById("modal-save-question-btn");
-
-      if (idx !== null && ticketCategoryMap[activeTicketCategory].questions[idx]) {
-        const q = ticketCategoryMap[activeTicketCategory].questions[idx];
-        document.getElementById("q-label-input").value = q.label;
-        document.getElementById("q-placeholder-input").value = q.placeholder || "";
-        title.innerText = `Edit Question #${idx + 1}`;
-        btn.innerText = "Update Question";
-      } else {
-        document.getElementById("q-label-input").value = "";
-        document.getElementById("q-placeholder-input").value = "";
-        title.innerText = "Add Ticket Question Field";
-        btn.innerText = "Save Question";
-      }
-
-      document.getElementById("question-modal").classList.remove("hidden");
-    }
-
-    function closeAddQuestionModal() {
-      document.getElementById("question-modal").classList.add("hidden");
-      editingQuestionIdx = null;
-    }
-
-    function addFormQuestion() {
-      const label = document.getElementById("q-label-input").value.trim();
-      const placeholder = document.getElementById("q-placeholder-input").value.trim();
-
-      if (!label) {
-        showToast("Question prompt is required!", true);
-        return;
-      }
-
-      if (!ticketCategoryMap[activeTicketCategory].questions) {
-        ticketCategoryMap[activeTicketCategory].questions = [];
-      }
-
-      if (editingQuestionIdx !== null) {
-        ticketCategoryMap[activeTicketCategory].questions[editingQuestionIdx] = { label, placeholder };
-      } else {
-        ticketCategoryMap[activeTicketCategory].questions.push({ label, placeholder });
-      }
-
-      renderTicketQuestions();
-      closeAddQuestionModal();
-      showToast(`Question saved for category "${activeTicketCategory}"!`);
-    }
-
-    function removeTicketQuestion(idx) {
-      ticketCategoryMap[activeTicketCategory].questions.splice(idx, 1);
-      renderTicketQuestions();
-      showToast("Question removed!");
-    }
-
-    async function saveCategoryData(btn = null) {
-      if (!activeTicketCategory) return;
-      const saveBtn = btn || document.getElementById("btn-save-category");
-      setBtnLoading(saveBtn, true);
-
-      const panelCh = document.getElementById("ticket-panel-channel").value;
-      const logCh = document.getElementById("ticket-log-channel").value;
-      const openCat = document.getElementById("ticket-opened-category").value;
-      const buyerR = document.getElementById("ticket-buyer-role").value;
-      const staffR = document.getElementById("ticket-staff-role").value;
-
-      const pTitle = document.getElementById("ticket-panel-title").value;
-      const pDesc = document.getElementById("ticket-panel-desc").value;
-      const bLabel = document.getElementById("ticket-button-label").value;
-
-      const wTitle = document.getElementById("ticket-welcome-title").value;
-      const wDesc = document.getElementById("ticket-welcome-desc").value;
-
-      const configData = {
-        panelChannel: panelCh,
-        logChannel: logCh,
-        openedCategory: openCat,
-        buyerRole: buyerR,
-        staffRole: staffR,
-        panelTitle: pTitle,
-        panelDesc: pDesc,
-        buttonLabel: bLabel,
-        welcomeTitle: wTitle,
-        welcomeDesc: wDesc,
-        questions: ticketCategoryMap[activeTicketCategory].questions || []
-      };
-
-      ticketCategoryMap[activeTicketCategory] = configData;
-
-      try {
-        const res = await fetch('/api/save-category', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ category_name: activeTicketCategory, config: configData })
-        });
-        if (res.ok) {
-          updateLiveTicketPreview();
-          showToast(`Saved category "${activeTicketCategory}"!`);
-        } else {
-          showToast("Failed to save category configuration", true);
+        // Reset Mobile Top Overlay Nav
+        const mTopBtn = document.getElementById(`m-top-nav-${t}`);
+        if (mTopBtn) {
+          mTopBtn.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition";
         }
-      } catch (err) {
-        showToast("Error connecting to server", true);
-      } finally {
-        setBtnLoading(saveBtn, false);
-      }
-    }
 
-    async function deployTicketPanel(btn = null) {
-      if (!activeTicketCategory) return;
-      const deployBtn = btn || document.getElementById("btn-deploy-panel");
-      setBtnLoading(deployBtn, true);
-
-      await saveCategoryData();
-
-      const panelCh = document.getElementById("ticket-panel-channel").value;
-      if (!panelCh) {
-        showToast("Select a Target Panel Channel first!", true);
-        setBtnLoading(deployBtn, false);
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/deploy-form-panel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel_id: panelCh, category: activeTicketCategory })
-        });
-        const data = await res.json();
-        if (data.success) {
-          showToast(`Uploaded new ticket embed panel to channel!`);
-        } else {
-          showToast(`Deploy error: ${data.error}`, true);
-        }
-      } catch (err) {
-        showToast("Failed to deploy panel", true);
-      } finally {
-        setBtnLoading(deployBtn, false);
-      }
-    }
-
-    function updateLiveTicketPreview() {
-      if (!activeTicketCategory) return;
-      document.getElementById("sim-panel-title").innerText = document.getElementById("ticket-panel-title").value || activeTicketCategory;
-      document.getElementById("sim-panel-desc").innerText = document.getElementById("ticket-panel-desc").value || "Click below to open a ticket!";
-      document.getElementById("sim-button-label").innerText = document.getElementById("ticket-button-label").value || "Open Ticket";
-
-      document.getElementById("sim-embed-title").innerText = document.getElementById("ticket-welcome-title").value || "Ticket Created";
-      document.getElementById("sim-embed-desc").innerText = document.getElementById("ticket-welcome-desc").value || "Welcome!";
-    }
-
-    function updateBuyerRoleTag() {
-      const roleId = document.getElementById("ticket-buyer-role").value;
-      const found = serverDiscordRoles.find(r => r.id === roleId);
-      document.getElementById("modal-role-badge").innerText = found ? found.name : "@Buyer";
-    }
-
-    function simOpenTicket(username) {
-      const rand = Math.floor(1 + Math.random() * 50);
-      simTicketId = `ticket-${username}-${rand}`;
-
-      document.getElementById("sim-ticket-name").innerText = `#${simTicketId}`;
-      document.getElementById("sim-ticket-container").classList.remove("hidden");
-      document.getElementById("sim-chat-log").innerHTML = `
-        <div class="text-[10px] text-emerald-400 font-mono bg-emerald-950/40 p-1.5 rounded border border-emerald-500/20">
-          [System]: Private ticket channel #${simTicketId} opened for @${username}.
-        </div>
-      `;
-      showToast(`Opened channel #${simTicketId}`);
-    }
-
-    function simSendMessage() {
-      const input = document.getElementById("sim-user-input");
-      const val = input.value.trim();
-      if (!val) return;
-
-      const log = document.getElementById("sim-chat-log");
-      log.innerHTML += `
-        <div class="text-xs bg-[#1e1f22] p-1.5 rounded flex justify-between">
-          <span>@client: ${val}</span>
-          <span class="text-[9px] text-[#80848e]">now</span>
-        </div>
-      `;
-
-      input.value = "";
-
-      if (val.toLowerCase() === "/close" || val.toLowerCase() === "close") {
-        triggerCloseModal();
-      }
-    }
-
-    function triggerCloseModal() {
-      document.getElementById("close-ticket-modal").classList.remove("hidden");
-    }
-
-    function closeTicketModal() {
-      document.getElementById("close-ticket-modal").classList.add("hidden");
-    }
-
-    function simGiveBuyerRole() {
-      const roleBadge = document.getElementById("modal-role-badge").innerText;
-      const log = document.getElementById("sim-chat-log");
-      log.innerHTML += `
-        <div class="text-[10px] text-indigo-300 font-mono bg-indigo-950/40 p-1.5 rounded border border-indigo-500/30">
-          [System]: Executed /close (Role: Yes). User granted role ${roleBadge}!
-        </div>
-      `;
-      closeTicketModal();
-      showToast(`Granted ${roleBadge} to user & prepared close!`);
-    }
-
-    function simFinalizeClose() {
-      closeTicketModal();
-      document.getElementById("sim-ticket-container").classList.add("hidden");
-      showToast(`Ticket #${simTicketId} closed, receipt DMed to user, and log sent!`);
-      simTicketId = null;
-    }
-
-    function switchTab(tab) {
-      ['overview', 'ticket-engine', 'maintenance'].forEach(t => {
-        const tabEl = document.getElementById(`tab-${t}`);
-        if (tabEl) tabEl.classList.add('hidden');
-        
-        const desktopNav = document.getElementById(`nav-${t}`);
-        if (desktopNav) {
-          desktopNav.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all';
+        // Reset Mobile Bottom Nav
+        const mNavBtn = document.getElementById(`m-nav-${t}`);
+        if (mNavBtn) {
+          mNavBtn.className = "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted";
         }
       });
 
-      const target = document.getElementById(`tab-${tab}`);
-      if (target) target.classList.remove('hidden');
+      // Show Target Tab Section
+      const targetSec = document.getElementById(`tab-${tabKey}`);
+      if (targetSec) targetSec.classList.remove('hidden');
 
-      const activeDesktop = document.getElementById(`nav-${tab}`);
+      // Highlight Active Desktop Nav
+      const activeDesktop = document.getElementById(`nav-${tabKey}`);
       if (activeDesktop) {
-        activeDesktop.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all';
+        activeDesktop.className = "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all";
+      }
+
+      // Highlight Active Mobile Top Dropdown Nav
+      const activeMobileTop = document.getElementById(`m-top-nav-${tabKey}`);
+      if (activeMobileTop) {
+        activeMobileTop.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent transition";
+      }
+
+      // Highlight Active Mobile Bottom Nav
+      const activeMobileBottom = document.getElementById(`m-nav-${tabKey}`);
+      if (activeMobileBottom) {
+        activeMobileBottom.className = "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-accent";
       }
     }
 
@@ -1225,69 +771,172 @@
       }
     }
 
-    function formatUptime(seconds) {
-      const d = Math.floor(seconds / (3600*24));
-      const h = Math.floor((seconds % (3600*24)) / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = Math.floor(seconds % 60);
-      return `${String(d).padStart(2, '0')}d ${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+    function renderVerificationRoleDropdowns() {
+      const container = document.getElementById('verify-roles-container');
+      container.innerHTML = '';
+
+      if (selectedVerificationRoleIds.length === 0) {
+        selectedVerificationRoleIds = [''];
+      }
+
+      selectedVerificationRoleIds.forEach((roleId, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+
+        let optionsHtml = `<option value="">-- Select Granted Role #${index + 1} --</option>`;
+        serverDiscordRoles.forEach(r => {
+          optionsHtml += `<option value="${r.id}" ${r.id === roleId ? 'selected' : ''}>${r.name}</option>`;
+        });
+
+        div.innerHTML = `
+          <select onchange="updateVerificationRoleSelection(${index}, this.value)" class="hierarchy-role-select flex-1 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            ${optionsHtml}
+          </select>
+          ${selectedVerificationRoleIds.length > 1 ? `
+            <button onclick="removeVerificationRoleDropdown(${index})" class="text-orca-danger hover:bg-orca-danger/10 p-2 rounded-lg text-xs">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          ` : ''}
+        `;
+        container.appendChild(div);
+      });
     }
 
-    async function toggleMaintenanceMode() {
-      const checked = document.getElementById('maintenance-toggle-tab').checked;
+    function addVerificationRoleDropdown() {
+      selectedVerificationRoleIds.push('');
+      renderVerificationRoleDropdowns();
+    }
+
+    function removeVerificationRoleDropdown(index) {
+      selectedVerificationRoleIds.splice(index, 1);
+      renderVerificationRoleDropdowns();
+    }
+
+    function updateVerificationRoleSelection(index, value) {
+      selectedVerificationRoleIds[index] = value;
+    }
+
+    async function saveVerificationConfig(btn) {
+      setBtnLoading(btn, true);
+      const roles = selectedVerificationRoleIds.filter(r => r.trim() !== '');
+
+      const payload = {
+        channel_id: document.getElementById('verify-channel-id').value,
+        log_channel_id: document.getElementById('verify-log-channel-id').value,
+        roles: roles,
+        title: document.getElementById('verify-panel-title').value,
+        description: document.getElementById('verify-panel-desc').value,
+        button_label: document.getElementById('verify-button-label').value
+      };
+
       try {
-        await fetch('/api/maintenance', {
+        const res = await fetch('/api/save-verification-config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ maintenance: checked })
+          body: JSON.stringify(payload)
         });
-        showToast(`Maintenance mode ${checked ? 'enabled' : 'disabled'}`);
+        if (res.ok) showToast("Verification settings saved!");
       } catch (e) {
-        showToast("Failed to update maintenance setting", true);
+        showToast("Error saving verification settings", true);
+      } finally {
+        setBtnLoading(btn, false);
       }
     }
 
-    async function toggleTotalLockdown() {
-      const checked = document.getElementById('total-lockdown-toggle').checked;
+    async function deployVerificationPanel(btn) {
+      setBtnLoading(btn, true);
+      await saveVerificationConfig(null);
+
+      const chId = document.getElementById('verify-channel-id').value;
+      if (!chId) {
+        showToast("Select a Target Verification Channel first!", true);
+        setBtnLoading(btn, false);
+        return;
+      }
+
       try {
-        await fetch('/api/lockdown', {
+        const res = await fetch('/api/deploy-verification-panel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lockdown: checked })
+          body: JSON.stringify({ channel_id: chId })
         });
-        showToast(`Total lockdown ${checked ? 'activated' : 'deactivated'}`);
+        const data = await res.json();
+        if (data.success) showToast("Deployed Verification Panel to channel!");
       } catch (e) {
-        showToast("Failed to update lockdown setting", true);
+        showToast("Deployment error", true);
+      } finally {
+        setBtnLoading(btn, false);
       }
+    }
+
+    function renderHierarchicalChannelDropdowns() {
+      const channelSelects = document.querySelectorAll('.hierarchy-channel-select');
+      channelSelects.forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = `<option value="">-- Select Server Channel --</option>`;
+        serverDiscordCategories.forEach(cat => {
+          const optGroup = document.createElement('optgroup');
+          optGroup.label = `📁 ${cat.name}`;
+          cat.channels.forEach(ch => {
+            const opt = document.createElement('option');
+            opt.value = ch.id;
+            opt.innerText = `# ${ch.name}`;
+            optGroup.appendChild(opt);
+          });
+          select.appendChild(optGroup);
+        });
+        if (currentVal) select.value = currentVal;
+      });
+
+      const roleSelects = document.querySelectorAll('.hierarchy-role-select');
+      roleSelects.forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = `<option value="">-- Select Role --</option>`;
+        serverDiscordRoles.forEach(role => {
+          const opt = document.createElement('option');
+          opt.value = role.id;
+          opt.innerText = role.name;
+          select.appendChild(opt);
+        });
+        if (currentVal) select.value = currentVal;
+      });
+    }
+
+    function renderOpenedCategoryDropdown() {
+      const select = document.getElementById("ticket-opened-category");
+      if (!select) return;
+      select.innerHTML = `<option value="">-- Created Uncategorized or Under Selected Category --</option>`;
+      serverDiscordCategories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id || cat.name;
+        opt.innerText = `📁 ${cat.name}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderCategorySelectorDropdown() {
+      const select = document.getElementById("ticket-category-select");
+      if (!select) return;
+      select.innerHTML = `<option value="">-- Choose Ticket Category First --</option>`;
+      Object.keys(ticketCategoryMap).forEach(catName => {
+        const opt = document.createElement("option");
+        opt.value = catName;
+        opt.innerText = `📁 ${catName}`;
+        select.appendChild(opt);
+      });
     }
 
     function showToast(msg, isError = false) {
       const toast = document.getElementById("toast");
       const icon = document.getElementById("toast-icon");
       const message = document.getElementById("toast-message");
-
       message.innerText = msg;
-      if (isError) {
-        toast.classList.replace("bg-orca-accent", "bg-orca-danger");
-        icon.className = "fa-solid fa-circle-xmark text-white text-sm sm:text-base shrink-0";
-      } else {
-        toast.classList.replace("bg-orca-danger", "bg-orca-accent");
-        icon.className = "fa-solid fa-circle-check text-orca-success text-sm sm:text-base shrink-0";
-      }
-
       toast.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
-      setTimeout(() => {
-        toast.classList.add("opacity-0", "translate-y-4", "pointer-events-none");
-      }, 3000);
-    }
-
-    function escapeHtml(str) {
-      return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      setTimeout(() => toast.classList.add("opacity-0", "translate-y-4", "pointer-events-none"), 3000);
     }
 
     initChart();
     loadAllData();
-    startLiveTelemetryPolling();
   </script>
 </body>
 </html>
