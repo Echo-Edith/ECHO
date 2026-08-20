@@ -153,7 +153,7 @@ class ChainedCustomModal(discord.ui.Modal):
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             })
 
-        log_channel_id = cat_data.get("log_channel_id") or config.get("log_channel_id")
+        log_channel_id = cat_data.get("logChannel") or cat_data.get("log_channel_id") or config.get("log_channel_id")
         if log_channel_id and interaction.guild:
             log_ch = interaction.guild.get_channel(int(log_channel_id))
             if log_ch:
@@ -167,7 +167,7 @@ class ChainedCustomModal(discord.ui.Modal):
                     embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
 
                 ping_text = ""
-                ping_role_id = cat_data.get("ping_role_id") or config.get("ping_role_id")
+                ping_role_id = cat_data.get("staffRole") or cat_data.get("ping_role_id") or config.get("ping_role_id")
                 if ping_role_id:
                     role = interaction.guild.get_role(int(ping_role_id))
                     if role:
@@ -202,24 +202,24 @@ class FormPanelView(discord.ui.View):
         self.add_item(btn)
 
     async def open_form_callback(self, interaction: discord.Interaction):
-        if is_lockdown_active(interaction.guild.id, interaction.user.id):
+        guild_id = interaction.guild.id if interaction.guild else 0
+        if is_lockdown_active(guild_id, interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown mode. Only owner access permitted."), ephemeral=True)
 
         if is_blacklisted(interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("You are blacklisted from submitting forms."), ephemeral=True)
 
-        if is_maintenance(interaction.guild.id, interaction.user.id, interaction.guild):
+        if is_maintenance(guild_id, interaction.user.id, interaction.guild):
             return await interaction.response.send_message(embed=error_embed("The system is currently undergoing maintenance. Please try again later!"), ephemeral=True)
 
         db = get_db()
-        config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
+        config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
         
         cat_configs = config.get("category_configs", {}) if config else {}
         cat_data = cat_configs.get(self.category, {})
 
         questions = cat_data.get("questions", [])
         if not questions:
-            # Fallback to category_questions schema if present
             questions = config.get("category_questions", {}).get(self.category, [])
 
         if not questions:
@@ -227,7 +227,7 @@ class FormPanelView(discord.ui.View):
                 {"label": "Please explain your request details", "placeholder": "Type your request here...", "style": "paragraph", "required": True}
             ]
 
-        title = cat_data.get("title") or f"📋 {self.category.upper()}"
+        title = cat_data.get("panelTitle") or cat_data.get("title") or f"📋 {self.category.upper()}"
 
         first_chunk = questions[:5]
         modal = ChainedCustomModal(
@@ -258,9 +258,6 @@ class Orca(commands.Cog):
                     cat_configs = doc.get("category_configs", {})
                     for cat in cat_configs.keys():
                         registered_cats.add(cat)
-                    cat_map = doc.get("category_questions", {})
-                    for cat in cat_map.keys():
-                        registered_cats.add(cat)
             except Exception:
                 pass
         
@@ -268,7 +265,8 @@ class Orca(commands.Cog):
             self.bot.add_view(FormPanelView(category=cat))
 
     async def cog_check(self, ctx: commands.Context) -> bool:
-        if is_lockdown_active(ctx.guild.id if ctx.guild else 0, ctx.author.id):
+        guild_id = ctx.guild.id if ctx.guild else 0
+        if is_lockdown_active(guild_id, ctx.author.id):
             await ctx.send(embed=error_embed("System is in Total Lockdown mode."))
             return False
 
@@ -278,11 +276,12 @@ class Orca(commands.Cog):
         return True
 
     # ====================================================================
-    # Commands
+    # Slash Commands
     # ====================================================================
     @app_commands.command(name="system-stats", description="Shows bot ping and uptime.")
     async def system_stats(self, interaction: discord.Interaction):
-        if is_lockdown_active(interaction.guild.id if interaction.guild else 0, interaction.user.id):
+        guild_id = interaction.guild.id if interaction.guild else 0
+        if is_lockdown_active(guild_id, interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown."), ephemeral=True)
 
         if is_blacklisted(interaction.user.id):
@@ -420,16 +419,19 @@ class Orca(commands.Cog):
     async def deploy_form_panel_from_web(self, channel_id: int, category: str = "Custom Bot Commission"):
         channel = self.bot.get_channel(channel_id)
         if channel is None:
-            raise Exception(f"Channel ID {channel_id} not found.")
+            try:
+                channel = await self.bot.fetch_channel(channel_id)
+            except Exception:
+                raise Exception(f"Channel ID {channel_id} not found.")
 
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": channel.guild.id}) if db is not None else {}
         cat_configs = config.get("category_configs", {}) if config else {}
         cat_data = cat_configs.get(category, {})
 
-        title = cat_data.get("title") or f"📋 {category.upper()}"
-        desc = cat_data.get("description") or f"Click the button below to submit a {category} request."
-        button_label = cat_data.get("button_label") or "📝 Fill Out Form"
+        title = cat_data.get("panelTitle") or cat_data.get("title") or f"📋 {category.upper()}"
+        desc = cat_data.get("panelDesc") or cat_data.get("description") or f"Click the button below to submit a {category} request."
+        button_label = cat_data.get("buttonLabel") or cat_data.get("button_label") or "📝 Fill Out Form"
 
         embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
         view = FormPanelView(category=category, button_label=button_label)
@@ -444,31 +446,6 @@ class Orca(commands.Cog):
                 {"guild_id": channel.guild.id},
                 {"$set": {"category_configs": cat_configs}}
             )
-
-    async def update_form_panel_from_web(self, category: str = "Custom Bot Commission"):
-        db = get_db()
-        guild_id = self.bot.guilds[0].id if self.bot.guilds else 0
-        config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
-        cat_configs = config.get("category_configs", {}) if config else {}
-        cat_data = cat_configs.get(category, {})
-
-        msg_id = cat_data.get("last_form_msg_id") or config.get("last_form_msg_id")
-        channel_id = cat_data.get("channel_id") or config.get("channel_id")
-        if not msg_id or not channel_id:
-            raise Exception("No active form panel message stored for this category.")
-
-        channel = self.bot.get_channel(channel_id)
-        if not channel:
-            raise Exception("Form channel not found.")
-
-        msg = await channel.fetch_message(msg_id)
-        title = cat_data.get("title") or f"📋 {category.upper()}"
-        desc = cat_data.get("description") or f"Click the button below to submit a {category} request."
-        button_label = cat_data.get("button_label") or "📝 Fill Out Form"
-
-        embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
-        view = FormPanelView(category=category, button_label=button_label)
-        await msg.edit(embed=embed, view=view)
 
 
 async def setup(bot: commands.Bot):
