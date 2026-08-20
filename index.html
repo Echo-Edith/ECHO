@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>𝐎𝐑𝐂A Automation Command Center • Discord Hierarchy</title>
+  <title>𝐎𝐑𝐂A Automation Command Center • Ticket Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -149,43 +149,43 @@
     </button>
   </header>
 
-  <!-- Mobile Menu Overlay -->
+  <!-- Mobile Menu Overlay (Exactly 4 Tabs) -->
   <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl">
     <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent">
       <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview
     </button>
-    <button onclick="switchTab('ticket-config'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
-      <i class="fa-solid fa-ticket w-4 text-center"></i> Ticket Setup
-    </button>
-    <button onclick="switchTab('formpanel'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
-      <i class="fa-solid fa-rectangle-list w-4 text-center"></i> Form Engine
+    <button onclick="switchTab('ticket-engine'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
+      <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets
     </button>
     <button onclick="switchTab('channels-manager'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
-      <i class="fa-solid fa-sitemap w-4 text-center"></i> Channel Order
+      <i class="fa-solid fa-sitemap w-4 text-center"></i> Channels & Roles
+    </button>
+    <button onclick="switchTab('maintenance'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
+      <i class="fa-solid fa-shield-halved w-4 text-center"></i> Maintenance
     </button>
   </div>
 
-  <!-- Mobile Bottom Nav -->
+  <!-- Mobile Bottom Nav (Exactly 4 Tabs) -->
   <nav class="md:hidden fixed bottom-0 inset-x-0 glass-panel border-t border-orca-border z-40 px-2 py-2 flex items-center justify-around">
     <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-accent">
       <i class="fa-solid fa-chart-pie text-base"></i>
       <span class="text-[10px] font-bold">Overview</span>
     </button>
-    <button onclick="switchTab('ticket-config')" id="m-nav-ticket-config" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
+    <button onclick="switchTab('ticket-engine')" id="m-nav-ticket-engine" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
       <i class="fa-solid fa-ticket text-base"></i>
       <span class="text-[10px] font-bold">Tickets</span>
-    </button>
-    <button onclick="switchTab('formpanel')" id="m-nav-formpanel" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
-      <i class="fa-solid fa-rectangle-list text-base"></i>
-      <span class="text-[10px] font-bold">Forms</span>
     </button>
     <button onclick="switchTab('channels-manager')" id="m-nav-channels-manager" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
       <i class="fa-solid fa-sitemap text-base"></i>
       <span class="text-[10px] font-bold">Channels</span>
     </button>
+    <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
+      <i class="fa-solid fa-shield-halved text-base"></i>
+      <span class="text-[10px] font-bold">Safety</span>
+    </button>
   </nav>
 
-  <!-- Desktop Sidebar Navigation -->
+  <!-- Desktop Sidebar Navigation (4 Tabs) -->
   <aside class="hidden md:flex w-72 glass-panel p-5 flex-col justify-between border-r border-orca-border shrink-0 z-30">
     <div>
       <div class="flex items-center gap-3.5 p-3 rounded-2xl bg-orca-card/90 border border-white/10 mb-6 shadow-xl">
@@ -199,23 +199,23 @@
             <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-[10px] px-1.5 py-0.5 rounded-md font-extrabold">STUDIO</span>
           </div>
           <p class="text-[11px] text-orca-muted font-medium flex items-center gap-1.5 mt-0.5">
-            <span class="w-2 h-2 rounded-full bg-orca-success animate-pulse"></span> Discord Sync Connected
+            <span class="w-2 h-2 rounded-full bg-orca-success animate-pulse"></span> Ticket Engine Active
           </p>
         </div>
       </div>
 
       <nav class="space-y-1.5">
         <button onclick="switchTab('overview')" id="nav-overview" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all">
-          <i class="fa-solid fa-chart-line w-4 text-center"></i> Telemetry & Overview
+          <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview
         </button>
-        <button onclick="switchTab('ticket-config')" id="nav-ticket-config" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-ticket w-4 text-center text-orca-accent"></i> Ticket Configuration
-        </button>
-        <button onclick="switchTab('formpanel')" id="nav-formpanel" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-rectangle-list w-4 text-center text-orca-success"></i> Form Engine
+        <button onclick="switchTab('ticket-engine')" id="nav-ticket-engine" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-ticket w-4 text-center text-orca-accent"></i> Tickets Engine
         </button>
         <button onclick="switchTab('channels-manager')" id="nav-channels-manager" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-sitemap w-4 text-center text-amber-400"></i> Channel Order & Layout
+          <i class="fa-solid fa-sitemap w-4 text-center text-amber-400"></i> Channels & Roles
+        </button>
+        <button onclick="switchTab('maintenance')" id="nav-maintenance" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-shield-halved w-4 text-center text-rose-400"></i> Maintenance
         </button>
       </nav>
     </div>
@@ -224,7 +224,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Structure Verified
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v16.8</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v17.0</span>
     </div>
   </aside>
 
@@ -268,16 +268,16 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <i class="fa-solid fa-sitemap text-orca-success text-xs sm:text-sm"></i>
-              <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Channel Groups</p>
+              <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Active Categories</p>
             </div>
-            <span class="text-xs font-mono font-bold text-orca-success" id="stat-category-count">4 Categories</span>
+            <span class="text-xs font-mono font-bold text-orca-success" id="stat-category-count">3 Categories</span>
           </div>
           <div class="w-full bg-orca-base h-2 rounded-full overflow-hidden border border-white/5 mt-1">
             <div class="bg-orca-success h-full transition-all duration-500 rounded-full" style="width: 100%;"></div>
           </div>
           <p class="text-[10px] text-orca-muted font-mono flex justify-between">
-            <span>Discord Hierarchy</span>
-            <span>Sorted Match</span>
+            <span>Ticket Channels</span>
+            <span>Infinite Storage</span>
           </p>
         </div>
       </div>
@@ -296,156 +296,19 @@
       </div>
     </section>
 
-    <!-- TAB 2: TICKET CONFIGURATION (DISCORD HIERARCHY DROPDOWNS) -->
-    <section id="tab-ticket-config" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+    <!-- TAB 2: UNIFIED TICKET ENGINE (FORCE CATEGORY SELECTION FIRST) -->
+    <section id="tab-ticket-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Custom Bot Commission Ticket Engine</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Channels are ordered in the exact category structure matching your Discord server.</p>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Unified Ticket Command Engine</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Select a category below to unlock its isolated ticket embed, question builder, and channel settings.</p>
         </div>
         <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
-          <i class="fa-solid fa-shield-halved"></i> Discord Hierarchy Enabled
+          <i class="fa-solid fa-shield-halved"></i> Admin Protected
         </span>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-8">
-        
-        <!-- Left Column: Settings Panel -->
-        <div class="lg:col-span-7 space-y-5">
-          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
-            <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-2.5">
-              <i class="fa-solid fa-sliders text-orca-accent"></i> Organized Channel Selectors
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">
-                  Target Panel Channel
-                </label>
-                <!-- Grouped Dropdown -->
-                <select id="ticket-panel-channel" class="hierarchy-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-                  <!-- Generated dynamically via JS to maintain exact order -->
-                </select>
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">
-                  Log Channel (Transcripts)
-                </label>
-                <!-- Grouped Dropdown -->
-                <select id="ticket-log-channel" class="hierarchy-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-                  <!-- Generated dynamically via JS -->
-                </select>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Buyer Role (Given on Close)</label>
-                <select id="ticket-buyer-role" onchange="updateBuyerRoleTag()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-                  <option value="@Buyer">@Buyer</option>
-                  <option value="@Client">@Client</option>
-                  <option value="@Customer">@Customer</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Staff Ping Role</label>
-                <select id="ticket-staff-role" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-                  <option value="@Commission-Team">@Commission-Team</option>
-                  <option value="@Support">@Support</option>
-                  <option value="@Moderator">@Moderator</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="space-y-3 border-t border-white/5 pt-3">
-              <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Ticket Welcome Embed Config</h4>
-
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Welcome Embed Title</label>
-                <input type="text" id="ticket-welcome-title" value="🐬 Custom Bot Commission Request Created" oninput="updateTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Welcome Embed Description</label>
-                <textarea id="ticket-welcome-desc" rows="3" oninput="updateTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition resize-none">Welcome to your private commission channel! Please detail your bot specifications, commands, and budget. Our team will assist you shortly. Type "close" at any time to finish the commission.</textarea>
-              </div>
-            </div>
-
-            <div class="pt-2 flex justify-end">
-              <button onclick="saveTicketSettings(this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-5 py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
-                <i class="fa-solid fa-floppy-disk"></i> Save Ticket Config
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column: Discord Interactive Simulator -->
-        <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
-          <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
-            <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Discord Live Simulator
-          </h3>
-
-          <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner text-white">
-            
-            <!-- Panel Embed -->
-            <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-orca-accent space-y-2">
-              <p class="font-bold text-xs sm:text-sm text-white">🤖 CUSTOM BOT COMMISSION PANEL</p>
-              <p class="text-xs text-[#dbdee1] leading-relaxed">
-                Click the button below to open a private commission ticket channel!
-              </p>
-              <div class="pt-1">
-                <button onclick="simOpenTicket('bayat')" class="bg-[#23a55a] hover:bg-emerald-600 text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow cursor-pointer">
-                  <i class="fa-solid fa-ticket"></i> Open Commission Ticket
-                </button>
-              </div>
-            </div>
-
-            <!-- Opened Private Ticket Channel Area -->
-            <div id="sim-ticket-container" class="hidden pt-3 border-t border-[#3f4147] space-y-3">
-              <div class="flex items-center justify-between bg-[#1e1f22] p-2 rounded border border-white/5 text-xs font-mono">
-                <span id="sim-ticket-name" class="text-indigo-400 font-bold">#ticket-bayat-4829</span>
-                <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">Active Ticket</span>
-              </div>
-
-              <!-- Ticket Welcome Embed -->
-              <div class="bg-[#2b2d31] p-3 rounded-lg border-l-4 border-emerald-500 space-y-1.5">
-                <p class="font-bold text-xs text-white" id="sim-embed-title">🐬 Custom Bot Commission Request Created</p>
-                <p class="text-[11px] text-[#dbdee1] leading-relaxed" id="sim-embed-desc">Welcome to your private commission channel! Type "close" to finish.</p>
-                <div class="pt-1">
-                  <button onclick="triggerCloseModal()" class="bg-[#f23f43] hover:bg-rose-600 text-white px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1 transition">
-                    <i class="fa-solid fa-lock"></i> Close Ticket
-                  </button>
-                </div>
-              </div>
-
-              <!-- Chat feed for close command -->
-              <div id="sim-chat-log" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
-
-              <!-- User chat input -->
-              <div class="flex gap-2 pt-1">
-                <input type="text" id="sim-user-input" placeholder="Type 'close' or chat here..." class="flex-1 bg-[#1e1f22] border border-[#3f4147] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-[#5865f2]">
-                <button onclick="simSendMessage()" class="bg-[#5865f2] hover:bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold">Send</button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- TAB 3: FORM WORKSPACE -->
-    <section id="tab-formpanel" class="space-y-4 md:space-y-6 hidden animate-fade-in">
-      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Unified Form Command Engine</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Select a category below to unlock its isolated panel settings and questions.</p>
-        </div>
-      </div>
-
-      <!-- CATEGORY SELECTOR GATEWAY -->
+      <!-- MANDATORY CATEGORY SELECTOR GATEWAY (STEP 1) -->
       <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl border-2 border-orca-accent/40">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="flex items-center gap-3.5">
@@ -453,72 +316,105 @@
               <i class="fa-solid fa-folder-open"></i>
             </div>
             <div>
-              <span class="text-[10px] font-extrabold uppercase tracking-widest text-orca-accent">Step 1: Select Category Workspace</span>
-              <h3 class="text-sm sm:text-base font-extrabold text-white">Choose Category to Edit</h3>
+              <span class="text-[10px] font-extrabold uppercase tracking-widest text-orca-accent">Step 1: Select Ticket Workspace</span>
+              <h3 class="text-sm sm:text-base font-extrabold text-white">Choose Ticket Category to Customize</h3>
             </div>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-            <select id="form-category-select" onchange="switchActiveCategory()" class="bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-bold focus:outline-none focus:border-orca-accent w-full sm:w-64 shadow">
-              <option value="">-- Choose Category First --</option>
-              <option value="Jailbreak Suggestions">💡 Jailbreak Suggestions</option>
-              <option value="Jailbreak Bug Reports">🐛 Jailbreak Bug Reports</option>
+            <select id="ticket-category-select" onchange="switchActiveTicketCategory()" class="bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-bold focus:outline-none focus:border-orca-accent w-full sm:w-72 shadow">
+              <option value="">-- Choose Ticket Category First --</option>
             </select>
-            <button onclick="createNewFormPanelPrompt()" class="bg-orca-accent hover:bg-orca-accent/80 text-white text-xs font-bold px-4 py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue shrink-0">
+            <button onclick="createNewTicketCategoryPrompt()" class="bg-orca-accent hover:bg-orca-accent/80 text-white text-xs font-bold px-4 py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue shrink-0">
               <i class="fa-solid fa-plus"></i> New Category
             </button>
           </div>
         </div>
       </div>
 
-      <!-- PLACEHOLDER SHOWN WHEN NO CATEGORY IS CHOSEN -->
-      <div id="category-placeholder" class="glass-card p-8 sm:p-12 rounded-2xl md:rounded-3xl text-center space-y-3 shadow-2xl border border-dashed border-white/10">
+      <!-- PLACEHOLDER SHOWN UNTIL CATEGORY IS SELECTED -->
+      <div id="ticket-category-placeholder" class="glass-card p-8 sm:p-12 rounded-2xl md:rounded-3xl text-center space-y-3 shadow-2xl border border-dashed border-white/10">
         <div class="w-14 h-14 rounded-2xl bg-orca-card border border-white/10 mx-auto flex items-center justify-center text-orca-muted text-2xl">
           <i class="fa-solid fa-hand-pointer"></i>
         </div>
-        <h3 class="text-sm sm:text-base font-bold text-white">No Category Selected</h3>
-        <p class="text-xs text-orca-muted max-w-md mx-auto">Please select a category from the dropdown above (or click "+ New Category") to edit its isolated embed panel and questions.</p>
+        <h3 class="text-sm sm:text-base font-bold text-white">No Ticket Category Selected</h3>
+        <p class="text-xs text-orca-muted max-w-md mx-auto">Please select a ticket category from the dropdown above (or click "+ New Category") to unlock its isolated panel configuration and question builder.</p>
       </div>
 
-      <!-- CATEGORY CONTENT WORKSPACE -->
-      <div id="category-workspace" class="space-y-5 hidden">
+      <!-- CATEGORY CONTENT WORKSPACE (UNLOCKED ONLY WHEN SELECTED) -->
+      <div id="ticket-category-workspace" class="space-y-5 hidden">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-8">
-          <!-- Left Column: Settings & Questions -->
+          
+          <!-- Left Column: Settings, Embeds, and Questions -->
           <div class="lg:col-span-7 space-y-5">
-            <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3.5 md:space-y-4 shadow-2xl">
-              <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
-                <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
-                  <i class="fa-solid fa-sliders text-orca-accent"></i> Isolated Settings: <span class="active-cat-display text-white font-bold">--</span>
-                </h3>
+            
+            <!-- Embed & Channel Settings -->
+            <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3.5 shadow-2xl">
+              <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-2.5">
+                <i class="fa-solid fa-sliders text-orca-accent"></i> Isolated Ticket Settings: <span class="active-cat-display text-white font-bold">--</span>
+              </h3>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Panel Channel</label>
+                  <select id="ticket-panel-channel" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></select>
+                </div>
+
+                <div>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Log Channel (Transcripts)</label>
+                  <select id="ticket-log-channel" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></select>
+                </div>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Category Name</label>
-                  <input type="text" id="cfg-category-input" readonly class="w-full bg-orca-base/60 border border-orca-border/60 text-orca-muted text-xs font-semibold rounded-xl p-2.5 cursor-not-allowed">
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Buyer Role (Given on Close)</label>
+                  <select id="ticket-buyer-role" onchange="updateBuyerRoleTag()" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></select>
                 </div>
 
                 <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Target Channel</label>
-                  <!-- Grouped Dropdown -->
-                  <select id="form-channel-select" class="hierarchy-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-                    <!-- Dynamic -->
-                  </select>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Staff Ping Role</label>
+                  <select id="ticket-staff-role" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></select>
                 </div>
               </div>
 
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Embed Title</label>
-                <input type="text" id="form-panel-title" oninput="updateFormPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+              <!-- Embed Panel Text Customization -->
+              <div class="space-y-3 border-t border-white/5 pt-3">
+                <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Channel Opener Embed Text</h4>
+
+                <div>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Embed Title</label>
+                  <input type="text" id="ticket-panel-title" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+                </div>
+
+                <div>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Embed Description</label>
+                  <textarea id="ticket-panel-desc" rows="2" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Label</label>
+                  <input type="text" id="ticket-button-label" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+                </div>
               </div>
 
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Form Open Button Label</label>
-                <input type="text" id="form-button-label" oninput="updateFormPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+              <!-- Welcome Embed Text in Ticket Channel -->
+              <div class="space-y-3 border-t border-white/5 pt-3">
+                <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Opened Ticket Channel Welcome Embed</h4>
+
+                <div>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Welcome Embed Title</label>
+                  <input type="text" id="ticket-welcome-title" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+                </div>
+
+                <div>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Welcome Embed Description</label>
+                  <textarea id="ticket-welcome-desc" rows="2" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+                </div>
               </div>
             </div>
 
-            <!-- Question Builder Card -->
+            <!-- Question Builder Card (Isolated Per Category) -->
             <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
               <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
                 <div class="flex items-center gap-2">
@@ -530,88 +426,199 @@
                 </button>
               </div>
 
-              <div id="form-questions-container" class="space-y-2.5 pt-1"></div>
+              <div id="ticket-questions-container" class="space-y-2.5 pt-1"></div>
             </div>
 
-            <div class="glass-card p-4 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div>
-                <h4 class="font-bold text-xs text-white">Save Category Setup</h4>
-                <p class="text-[11px] text-orca-muted">Saves settings and questions for <span class="active-cat-display font-bold text-white">--</span>.</p>
-              </div>
-              <button onclick="saveFormPanelSettings(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-bold px-5 py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
-                <i class="fa-solid fa-floppy-disk"></i> Save Category Data
-              </button>
-            </div>
-          </div>
-
-          <!-- Right Column: Discord Simulator Preview -->
-          <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 h-fit shadow-2xl">
-            <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
-              <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Form Panel Preview
-            </h3>
-            
-            <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-2.5 font-sans shadow-inner">
-              <div class="bg-[#2b2d31] p-3 rounded-lg border-l-4 border-orca-accent space-y-1.5">
-                <p class="font-bold text-white text-xs sm:text-sm" id="preview-form-title">💡 JAILBREAK SUGGESTIONS</p>
-                <p class="text-xs text-[#dbdee1] leading-relaxed">Please follow server rules when making your form submission.</p>
+            <!-- Panel Live Deploy Buttons & Single Unified Save Button at Bottom -->
+            <div class="glass-card p-5 rounded-2xl md:rounded-3xl shadow-2xl space-y-4">
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-white/5 pb-4">
+                <div>
+                  <h4 class="font-bold text-xs text-white">Live Discord Embed Actions</h4>
+                  <p class="text-[11px] text-orca-muted">Upload a new embed panel to the channel or update an existing message.</p>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                  <button onclick="deployTicketPanel(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload New Panel
+                  </button>
+                  <button onclick="updateTicketPanelUI(this)" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow">
+                    <i class="fa-solid fa-arrows-rotate"></i> Update Live Embed
+                  </button>
+                </div>
               </div>
 
-              <div class="pt-1">
-                <button class="bg-[#23a55a] text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 cursor-default shadow">
-                  <i class="fa-solid fa-file-pen text-[10px]"></i> <span id="preview-button-label">Open Suggestions Form</span>
+              <!-- UNIFIED SAVE BUTTON AT THE VERY END -->
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                <div>
+                  <h4 class="font-bold text-xs text-white">Save All Settings</h4>
+                  <p class="text-[11px] text-orca-muted">Saves channels, roles, embed texts, and questions into <span class="active-cat-display font-bold text-white">--</span>.</p>
+                </div>
+                <button onclick="saveCategoryData(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-3.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
+                  <i class="fa-solid fa-floppy-disk text-sm"></i> Save Everything into Category
                 </button>
               </div>
             </div>
+
           </div>
+
+          <!-- Right Column: Discord Live Interactive Simulator -->
+          <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
+              <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Live Simulator Preview
+            </h3>
+
+            <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner text-white">
+              
+              <!-- Panel Embed -->
+              <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-orca-accent space-y-2">
+                <p class="font-bold text-xs sm:text-sm text-white" id="sim-panel-title">🤖 CUSTOM BOT COMMISSION PANEL</p>
+                <p class="text-xs text-[#dbdee1] leading-relaxed" id="sim-panel-desc">
+                  Click the button below to open a private commission ticket channel!
+                </p>
+                <div class="pt-1">
+                  <button onclick="simOpenTicket('bayat')" class="bg-[#23a55a] hover:bg-emerald-600 text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow cursor-pointer">
+                    <i class="fa-solid fa-ticket"></i> <span id="sim-button-label">Open Ticket</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Opened Ticket Channel Area -->
+              <div id="sim-ticket-container" class="hidden pt-3 border-t border-[#3f4147] space-y-3">
+                <div class="flex items-center justify-between bg-[#1e1f22] p-2 rounded border border-white/5 text-xs font-mono">
+                  <span id="sim-ticket-name" class="text-indigo-400 font-bold">#ticket-bayat-4829</span>
+                  <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">Active Ticket</span>
+                </div>
+
+                <!-- Welcome Embed inside channel -->
+                <div class="bg-[#2b2d31] p-3 rounded-lg border-l-4 border-emerald-500 space-y-1.5">
+                  <p class="font-bold text-xs text-white" id="sim-embed-title">🐬 Custom Bot Commission Request Created</p>
+                  <p class="text-[11px] text-[#dbdee1] leading-relaxed" id="sim-embed-desc">Welcome to your private commission channel! Type "close" to finish.</p>
+                  <div class="pt-1">
+                    <button onclick="triggerCloseModal()" class="bg-[#f23f43] hover:bg-rose-600 text-white px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1 transition">
+                      <i class="fa-solid fa-lock"></i> Close Ticket
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Chat log -->
+                <div id="sim-chat-log" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
+
+                <!-- User chat input -->
+                <div class="flex gap-2 pt-1">
+                  <input type="text" id="sim-user-input" placeholder="Type 'close' or chat here..." class="flex-1 bg-[#1e1f22] border border-[#3f4147] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-[#5865f2]">
+                  <button onclick="simSendMessage()" class="bg-[#5865f2] hover:bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold">Send</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
 
-    <!-- TAB 4: DISCORD CHANNEL STRUCTURE MANAGER (NEW FEATURE) -->
+    <!-- TAB 3: CHANNELS & ROLES STRUCTURE MANAGER -->
     <section id="tab-channels-manager" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Discord Channel Order & Category Layout</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Customize category ordering to mirror your Discord server's exact sidebar order.</p>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Discord Server Hierarchy & Roles</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Customize categories, channels, and role lists available across all ticket dropdowns.</p>
         </div>
-        <button onclick="promptCreateCategory()" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center gap-2 shadow glow-blue">
-          <i class="fa-solid fa-folder-plus"></i> Add Category
-        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="promptCreateRole()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">
+            + Add Role
+          </button>
+          <button onclick="promptCreateCategory()" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition shadow glow-blue">
+            + Add Category
+          </button>
+        </div>
       </div>
 
-      <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
-        <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center justify-between border-b border-white/5 pb-3">
-          <span><i class="fa-solid fa-sitemap text-amber-400"></i> Server Channel Hierarchy</span>
-          <span class="text-[10px] text-orca-muted">Reflects in all dropdowns</span>
-        </h3>
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <!-- Channel Structure Editor -->
+        <div class="md:col-span-8 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+          <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted border-b border-white/5 pb-3 flex items-center justify-between">
+            <span><i class="fa-solid fa-sitemap text-amber-400"></i> Server Channels Layout</span>
+            <span class="text-[10px] text-orca-muted">Matches Discord Sidebar</span>
+          </h3>
+          <div id="discord-structure-editor" class="space-y-4"></div>
+        </div>
 
-        <!-- Interactive Visual Discord Structure List -->
-        <div id="discord-structure-editor" class="space-y-4">
-          <!-- Dynamically Populated from discordCategories structure -->
+        <!-- Role Structure Editor -->
+        <div class="md:col-span-4 glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl h-fit">
+          <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted border-b border-white/5 pb-3">
+            <i class="fa-solid fa-user-shield text-indigo-400"></i> Available Server Roles
+          </h3>
+          <div id="discord-roles-list" class="space-y-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: MAINTENANCE & SAFETY -->
+    <section id="tab-maintenance" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
+        <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Maintenance & Safety Protocol</h2>
+        <p class="text-xs text-orca-muted mt-0.5">Manage global emergency lockouts, total lockdown switches, and security flags.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
+          <div class="flex items-center justify-between border-b border-white/5 pb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-orca-warning/10 text-orca-warning flex items-center justify-center text-base shrink-0 border border-orca-warning/20">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div>
+                <h3 class="text-xs sm:text-sm font-bold text-white">Standard Maintenance</h3>
+                <p class="text-[10px] text-orca-muted">Disables ticket submissions for regular members.</p>
+              </div>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="maintenance-toggle-tab" onchange="toggleMaintenanceMode()" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl border border-orca-danger/30">
+          <div class="flex items-center justify-between border-b border-white/5 pb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-orca-danger/10 text-orca-danger flex items-center justify-center text-base shrink-0 border border-orca-danger/20">
+                <i class="fa-solid fa-lock"></i>
+              </div>
+              <div>
+                <h3 class="text-xs sm:text-sm font-bold text-white">Total Lockdown Mode</h3>
+                <p class="text-[10px] text-orca-danger font-bold">Hardcoded Owner Access Only (1219266886143967245)</p>
+              </div>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="total-lockdown-toggle" onchange="toggleTotalLockdown()" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- Modal: Add Question Field -->
+  <!-- Modal: Add / Edit Question Field -->
   <div id="question-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden z-50">
     <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-3.5 shadow-2xl animate-fade-in">
       <div class="flex items-center justify-between border-b border-white/10 pb-2">
-        <h3 class="text-base sm:text-lg font-extrabold text-white">Add Question Field</h3>
+        <h3 class="text-base sm:text-lg font-extrabold text-white" id="modal-question-title">Add Question Field</h3>
         <button onclick="closeAddQuestionModal()" class="text-orca-muted hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div>
         <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Question Prompt</label>
-        <input type="text" id="q-label-input" placeholder="e.g. What is your suggestion?" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+        <input type="text" id="q-label-input" placeholder="e.g. Describe your request in detail" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
       </div>
       <div>
         <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Placeholder Text</label>
-        <input type="text" id="q-placeholder-input" placeholder="e.g. Type details..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+        <input type="text" id="q-placeholder-input" placeholder="e.g. Type your details here..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
       </div>
       <div class="flex justify-end gap-2.5 pt-2 border-t border-white/5">
         <button onclick="closeAddQuestionModal()" class="px-3.5 py-2 text-xs font-bold text-orca-muted hover:text-white transition">Cancel</button>
-        <button onclick="addFormQuestion()" class="px-4 py-2 text-xs bg-orca-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Save Question</button>
+        <button onclick="addFormQuestion()" class="px-4 py-2 text-xs bg-orca-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow" id="modal-save-question-btn">Save Question</button>
       </div>
     </div>
   </div>
@@ -652,10 +659,11 @@
   </div>
 
   <script>
-    let activeCategory = "";
+    let activeTicketCategory = "";
+    let editingQuestionIdx = null;
     let simTicketId = null;
 
-    // Discord Hierarchical Category & Channel Structure (Strict Order Matching Discord Sidebar)
+    // Discord Hierarchical Channels & Roles List
     let discordCategories = [
       {
         id: "cat-info",
@@ -680,31 +688,66 @@
         name: "📁 MODERATION & LOGS",
         channels: [
           { id: "c-301", name: "commission-logs", icon: "fa-hashtag" },
-          { id: "c-302", name: "form-transcripts", icon: "fa-hashtag" },
-          { id: "c-303", name: "audit-log", icon: "fa-shield" }
-        ]
-      },
-      {
-        id: "cat-general",
-        name: "📁 GENERAL CHANNELS",
-        channels: [
-          { id: "c-401", name: "general", icon: "fa-hashtag" },
-          { id: "c-402", name: "bot-commands", icon: "fa-robot" },
-          { id: "c-403", name: "Lounge (Voice)", icon: "fa-volume-high" }
+          { id: "c-302", name: "ticket-transcripts", icon: "fa-hashtag" }
         ]
       }
     ];
 
-    let categoryMap = {
-      "Jailbreak Suggestions": {
-        title: "💡 JAILBREAK SUGGESTIONS",
-        button_label: "Open Suggestions Form",
-        questions: [{ label: "Your Suggestion", placeholder: "Explain your idea..." }]
+    let discordRoles = [
+      { id: "r-01", name: "@Buyer", color: "text-emerald-400" },
+      { id: "r-02", name: "@Client", color: "text-emerald-400" },
+      { id: "r-03", name: "@Commission-Team", color: "text-indigo-400" },
+      { id: "r-04", name: "@Support", color: "text-indigo-400" },
+      { id: "r-05", name: "@Moderator", color: "text-amber-400" }
+    ];
+
+    // INFINITE TICKET CATEGORIES STORAGE MAP
+    let ticketCategoryMap = {
+      "Custom Bot Commission": {
+        panelChannel: "c-201",
+        logChannel: "c-301",
+        buyerRole: "r-01",
+        staffRole: "r-03",
+        panelTitle: "🤖 CUSTOM BOT COMMISSION PANEL",
+        panelDesc: "Click the button below to open a private commission ticket channel!",
+        buttonLabel: "Open Commission Ticket",
+        welcomeTitle: "🐬 Custom Bot Commission Request Created",
+        welcomeDesc: "Welcome to your private commission channel! Please detail your bot requirements. Our team will assist you shortly. Type 'close' at any time to finish.",
+        questions: [
+          { label: "What is your Discord username?", placeholder: "e.g. user#0000" },
+          { label: "Detailed bot commands & features", placeholder: "Explain all features in detail..." },
+          { label: "Estimated budget ($ USD)", placeholder: "e.g. $50 - $150" }
+        ]
       },
-      "Jailbreak Bug Reports": {
-        title: "🐛 JAILBREAK BUG REPORTS",
-        button_label: "Open Bug Reports Form",
-        questions: [{ label: "Bug Details", placeholder: "Explain steps to reproduce..." }]
+      "Partnership Application": {
+        panelChannel: "c-202",
+        logChannel: "c-302",
+        buyerRole: "r-02",
+        staffRole: "r-04",
+        panelTitle: "🤝 PARTNERSHIP APPLICATION PANEL",
+        panelDesc: "Interested in forming a server partnership? Click below to apply!",
+        buttonLabel: "Apply for Partnership",
+        welcomeTitle: "🤝 Partnership Ticket Created",
+        welcomeDesc: "Welcome! Please provide your server invite link and member count.",
+        questions: [
+          { label: "Server Invite Link", placeholder: "https://discord.gg/..." },
+          { label: "Why do you want to partner?", placeholder: "Explain mutual benefits..." }
+        ]
+      },
+      "Bug Reports & Support": {
+        panelChannel: "c-204",
+        logChannel: "c-302",
+        buyerRole: "r-01",
+        staffRole: "r-04",
+        panelTitle: "🐛 BUG REPORTS & SUPPORT",
+        panelDesc: "Found a bug in our bot? Click below to open a ticket.",
+        buttonLabel: "Report a Bug",
+        welcomeTitle: "🐛 Support Ticket Opened",
+        welcomeDesc: "Please describe the error and steps to reproduce.",
+        questions: [
+          { label: "Bug Summary", placeholder: "Short summary..." },
+          { label: "Steps to Reproduce", placeholder: "1. Type command..." }
+        ]
       }
     };
 
@@ -744,15 +787,14 @@
     }
 
     /**
-     * RENDER DISCORD-STYLE GROUPED CHANNEL SELECTORS
-     * Produces <optgroup> elements in exact category order!
+     * RENDER CHANNEL DROPDOWNS WITH GROUPED CATEGORIES
      */
     function renderHierarchicalChannelDropdowns() {
-      const selects = document.querySelectorAll('.hierarchy-select');
+      const channelSelects = document.querySelectorAll('.hierarchy-channel-select');
       
-      selects.forEach(select => {
-        const selectedVal = select.value;
-        select.innerHTML = `<option value="">-- Select Discord Channel --</option>`;
+      channelSelects.forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = `<option value="">-- Select Channel --</option>`;
 
         discordCategories.forEach(cat => {
           const optGroup = document.createElement('optgroup');
@@ -768,15 +810,30 @@
           select.appendChild(optGroup);
         });
 
-        if (selectedVal) select.value = selectedVal;
+        if (currentVal) select.value = currentVal;
       });
 
-      const totalChannels = discordCategories.reduce((acc, cat) => acc + cat.channels.length, 0);
-      document.getElementById('stat-category-count').innerText = `${discordCategories.length} Categories (${totalChannels} Chs)`;
+      // Role Dropdowns
+      const roleSelects = document.querySelectorAll('.hierarchy-role-select');
+      roleSelects.forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = `<option value="">-- Select Role --</option>`;
+
+        discordRoles.forEach(role => {
+          const opt = document.createElement('option');
+          opt.value = role.id;
+          opt.innerText = role.name;
+          select.appendChild(opt);
+        });
+
+        if (currentVal) select.value = currentVal;
+      });
+
+      document.getElementById('stat-category-count').innerText = `${Object.keys(ticketCategoryMap).length} Categories`;
     }
 
     /**
-     * RENDER DISCORD CHANNEL STRUCTURE EDITOR MANAGER
+     * RENDER DISCORD CATEGORIES & ROLES LIST IN SETTINGS
      */
     function renderStructureEditor() {
       const container = document.getElementById("discord-structure-editor");
@@ -818,12 +875,25 @@
           </div>
         `;
       });
+
+      // Render Roles Editor List
+      const rolesContainer = document.getElementById("discord-roles-list");
+      if (rolesContainer) {
+        rolesContainer.innerHTML = "";
+        discordRoles.forEach((role, idx) => {
+          rolesContainer.innerHTML += `
+            <div class="flex items-center justify-between bg-orca-base p-2.5 rounded-xl border border-white/5 text-xs">
+              <span class="font-bold ${role.color}">${role.name}</span>
+              <button onclick="deleteRole(${idx})" class="text-rose-400 hover:bg-rose-950/60 px-2 py-1 rounded text-[10px]">Delete</button>
+            </div>
+          `;
+        });
+      }
     }
 
     function moveChannel(catIdx, chIdx, direction) {
       const targetIdx = chIdx + direction;
       if (targetIdx < 0 || targetIdx >= discordCategories[catIdx].channels.length) return;
-
       const channels = discordCategories[catIdx].channels;
       const temp = channels[chIdx];
       channels[chIdx] = channels[targetIdx];
@@ -831,14 +901,21 @@
 
       renderStructureEditor();
       renderHierarchicalChannelDropdowns();
-      showToast("Channel re-ordered!");
+      showToast("Channel order updated!");
     }
 
     function deleteChannel(catIdx, chIdx) {
       discordCategories[catIdx].channels.splice(chIdx, 1);
       renderStructureEditor();
       renderHierarchicalChannelDropdowns();
-      showToast("Channel removed from structure.");
+      showToast("Channel removed.");
+    }
+
+    function deleteRole(idx) {
+      discordCategories.splice(idx, 1);
+      renderStructureEditor();
+      renderHierarchicalChannelDropdowns();
+      showToast("Role removed.");
     }
 
     function promptAddChannel(catIdx) {
@@ -854,11 +931,11 @@
 
       renderStructureEditor();
       renderHierarchicalChannelDropdowns();
-      showToast(`Added #${cleanName} to category!`);
+      showToast(`Added #${cleanName}!`);
     }
 
     function promptCreateCategory() {
-      const catName = prompt("Enter new Category Name (e.g. TICKET CATEGORY):");
+      const catName = prompt("Enter new Category Name (e.g. SUPPORT TICKETS):");
       if (!catName || !catName.trim()) return;
 
       discordCategories.push({
@@ -869,76 +946,270 @@
 
       renderStructureEditor();
       renderHierarchicalChannelDropdowns();
-      showToast(`Created new category: ${catName}`);
+      showToast(`Category created!`);
     }
 
-    function toggleMobileMenu() {
-      const menu = document.getElementById('mobile-menu');
-      const icon = document.getElementById('menu-icon');
-      if (menu.classList.contains('hidden')) {
-        menu.classList.remove('hidden');
-        icon.className = 'fa-solid fa-xmark text-sm';
-      } else {
-        menu.classList.add('hidden');
-        icon.className = 'fa-solid fa-bars text-sm';
-      }
+    function promptCreateRole() {
+      const roleName = prompt("Enter Role Name (e.g. @VIP-Customer):");
+      if (!roleName || !roleName.trim()) return;
+
+      const formatted = roleName.startsWith('@') ? roleName.trim() : `@${roleName.trim()}`;
+      discordRoles.push({ id: `r-${Date.now()}`, name: formatted, color: 'text-indigo-400' });
+
+      renderStructureEditor();
+      renderHierarchicalChannelDropdowns();
+      showToast(`Added role ${formatted}!`);
     }
 
-    function formatUptime(seconds) {
-      const d = Math.floor(seconds / (3600*24));
-      const h = Math.floor((seconds % (3600*24)) / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = Math.floor(seconds % 60);
-      return `${String(d).padStart(2, '0')}d ${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
-    }
+    /**
+     * CATEGORY SELECTOR & WORKSPACE SWITCHER
+     */
+    function renderCategorySelectorDropdown() {
+      const select = document.getElementById("ticket-category-select");
+      const curVal = select.value;
+      select.innerHTML = `<option value="">-- Choose Ticket Category First --</option>`;
 
-    function start1SecondTicks() {
-      if (telemetryInterval) clearInterval(telemetryInterval);
-      telemetryInterval = setInterval(() => {
-        rawUptimeSeconds += 1;
-        document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
-      }, 1000);
-    }
-
-    function switchTab(tab) {
-      const tabs = ['overview', 'ticket-config', 'formpanel', 'channels-manager'];
-      tabs.forEach(t => {
-        const tabEl = document.getElementById(`tab-${t}`);
-        if (tabEl) tabEl.classList.add('hidden');
-        
-        const desktopNav = document.getElementById(`nav-${t}`);
-        if (desktopNav) {
-          desktopNav.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all';
-        }
+      Object.keys(ticketCategoryMap).forEach(catName => {
+        const opt = document.createElement("option");
+        opt.value = catName;
+        opt.innerText = `📁 ${catName}`;
+        select.appendChild(opt);
       });
 
-      const target = document.getElementById(`tab-${tab}`);
-      if (target) target.classList.remove('hidden');
-
-      const activeDesktop = document.getElementById(`nav-${tab}`);
-      if (activeDesktop) {
-        activeDesktop.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all';
-      }
+      select.value = activeTicketCategory || curVal;
     }
 
-    // TICKET ENGINE LOGIC
-    function saveTicketSettings(btn) {
-      showToast("Ticket configuration saved with channel hierarchy!");
+    function createNewTicketCategoryPrompt() {
+      const name = prompt("Enter new Ticket Category Name (e.g. Staff Application, VIP Support):");
+      if (!name || !name.trim()) return;
+
+      const clean = name.trim();
+      if (!ticketCategoryMap[clean]) {
+        // Pristine Default Setup for New Category
+        ticketCategoryMap[clean] = {
+          panelChannel: "c-201",
+          logChannel: "c-301",
+          buyerRole: "r-01",
+          staffRole: "r-03",
+          panelTitle: `📋 ${clean.toUpperCase()} TICKET PANEL`,
+          panelDesc: `Click the button below to open a private ${clean} ticket channel!`,
+          buttonLabel: "Open Ticket",
+          welcomeTitle: `🐬 ${clean} Ticket Created`,
+          welcomeDesc: "Welcome to your private ticket channel! Please detail your request here.",
+          questions: [
+            { label: "Please describe your request details", placeholder: "Type your message here..." }
+          ]
+        };
+      }
+
+      renderCategorySelectorDropdown();
+      document.getElementById("ticket-category-select").value = clean;
+      switchActiveTicketCategory();
+      showToast(`Created fresh ticket category "${clean}"!`);
+    }
+
+    function switchActiveTicketCategory() {
+      activeTicketCategory = document.getElementById("ticket-category-select").value;
+
+      const placeholder = document.getElementById("ticket-category-placeholder");
+      const workspace = document.getElementById("ticket-category-workspace");
+
+      if (!activeTicketCategory) {
+        placeholder.classList.remove("hidden");
+        workspace.classList.add("hidden");
+        return;
+      }
+
+      placeholder.classList.add("hidden");
+      workspace.classList.remove("hidden");
+
+      const catData = ticketCategoryMap[activeTicketCategory];
+
+      // Populate Inputs with Isolated Category Data
+      document.getElementById("ticket-panel-channel").value = catData.panelChannel || "";
+      document.getElementById("ticket-log-channel").value = catData.logChannel || "";
+      document.getElementById("ticket-buyer-role").value = catData.buyerRole || "";
+      document.getElementById("ticket-staff-role").value = catData.staffRole || "";
+
+      document.getElementById("ticket-panel-title").value = catData.panelTitle || "";
+      document.getElementById("ticket-panel-desc").value = catData.panelDesc || "";
+      document.getElementById("ticket-button-label").value = catData.buttonLabel || "Open Ticket";
+
+      document.getElementById("ticket-welcome-title").value = catData.welcomeTitle || "";
+      document.getElementById("ticket-welcome-desc").value = catData.welcomeDesc || "";
+
+      document.querySelectorAll(".active-cat-display").forEach(el => el.innerText = activeTicketCategory);
+
+      renderTicketQuestions();
+      updateLiveTicketPreview();
+      updateBuyerRoleTag();
+    }
+
+    /**
+     * QUESTION BUILDER (CLEAN ISOLATE PER CATEGORY)
+     */
+    function renderTicketQuestions() {
+      const container = document.getElementById("ticket-questions-container");
+      container.innerHTML = "";
+
+      const questions = (ticketCategoryMap[activeTicketCategory] && ticketCategoryMap[activeTicketCategory].questions) || [];
+
+      if (questions.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-orca-muted glass-card rounded-xl text-xs">No questions configured for "${escapeHtml(activeTicketCategory)}". Click "+ Add Question" to add fields.</div>`;
+        return;
+      }
+
+      questions.forEach((q, idx) => {
+        container.innerHTML += `
+          <div class="glass-card p-3.5 rounded-xl flex items-center justify-between shadow-md hover:border-white/10 transition animate-fade-in gap-2">
+            <div class="min-w-0 flex-1">
+              <p class="font-bold text-white text-xs sm:text-sm truncate">Q${idx + 1}: ${escapeHtml(q.label)}</p>
+              <p class="text-[11px] text-orca-muted mt-0.5 truncate">Placeholder: "${escapeHtml(q.placeholder || 'None')}"</p>
+            </div>
+            <div class="flex items-center gap-1">
+              <button onclick="openAddQuestionModal(${idx})" class="text-orca-accent hover:bg-orca-accent/10 p-2 rounded-lg transition text-xs shrink-0" title="Edit Question">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button onclick="removeTicketQuestion(${idx})" class="text-orca-danger hover:bg-orca-danger/10 p-2 rounded-lg transition text-xs shrink-0" title="Delete Question">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function openAddQuestionModal(idx = null) {
+      if (!activeTicketCategory) {
+        showToast("Select a category first!", true);
+        return;
+      }
+
+      editingQuestionIdx = idx;
+      const title = document.getElementById("modal-question-title");
+      const btn = document.getElementById("modal-save-question-btn");
+
+      if (idx !== null && ticketCategoryMap[activeTicketCategory].questions[idx]) {
+        const q = ticketCategoryMap[activeTicketCategory].questions[idx];
+        document.getElementById("q-label-input").value = q.label;
+        document.getElementById("q-placeholder-input").value = q.placeholder || "";
+        title.innerText = `Edit Question #${idx + 1}`;
+        btn.innerText = "Update Question";
+      } else {
+        // EXPLICIT CLEAN RESET INPUTS
+        document.getElementById("q-label-input").value = "";
+        document.getElementById("q-placeholder-input").value = "";
+        title.innerText = "Add Question Field";
+        btn.innerText = "Save Question";
+      }
+
+      document.getElementById("question-modal").classList.remove("hidden");
+    }
+
+    function closeAddQuestionModal() {
+      document.getElementById("question-modal").classList.add("hidden");
+      editingQuestionIdx = null;
+    }
+
+    function addFormQuestion() {
+      const label = document.getElementById("q-label-input").value.trim();
+      const placeholder = document.getElementById("q-placeholder-input").value.trim();
+
+      if (!label) {
+        showToast("Question prompt is required!", true);
+        return;
+      }
+
+      if (!ticketCategoryMap[activeTicketCategory].questions) {
+        ticketCategoryMap[activeTicketCategory].questions = [];
+      }
+
+      if (editingQuestionIdx !== null) {
+        ticketCategoryMap[activeTicketCategory].questions[editingQuestionIdx] = { label, placeholder };
+      } else {
+        ticketCategoryMap[activeTicketCategory].questions.push({ label, placeholder });
+      }
+
+      renderTicketQuestions();
+      closeAddQuestionModal();
+      showToast(`Question saved for category "${activeTicketCategory}"!`);
+    }
+
+    function removeTicketQuestion(idx) {
+      ticketCategoryMap[activeTicketCategory].questions.splice(idx, 1);
+      renderTicketQuestions();
+      showToast("Question removed!");
+    }
+
+    /**
+     * UNIFIED SAVE EVERYTHING AT THE VERY LAST
+     */
+    function saveCategoryData(btn = null) {
+      if (!activeTicketCategory) return;
+
+      const panelCh = document.getElementById("ticket-panel-channel").value;
+      const logCh = document.getElementById("ticket-log-channel").value;
+      const buyerR = document.getElementById("ticket-buyer-role").value;
+      const staffR = document.getElementById("ticket-staff-role").value;
+
+      const pTitle = document.getElementById("ticket-panel-title").value;
+      const pDesc = document.getElementById("ticket-panel-desc").value;
+      const bLabel = document.getElementById("ticket-button-label").value;
+
+      const wTitle = document.getElementById("ticket-welcome-title").value;
+      const wDesc = document.getElementById("ticket-welcome-desc").value;
+
+      ticketCategoryMap[activeTicketCategory] = {
+        ...ticketCategoryMap[activeTicketCategory],
+        panelChannel: panelCh,
+        logChannel: logCh,
+        buyerRole: buyerR,
+        staffRole: staffR,
+        panelTitle: pTitle,
+        panelDesc: pDesc,
+        buttonLabel: bLabel,
+        welcomeTitle: wTitle,
+        welcomeDesc: wDesc
+      };
+
+      updateLiveTicketPreview();
+      showToast(`Saved EVERYTHING for category "${activeTicketCategory}"!`);
+    }
+
+    function deployTicketPanel(btn) {
+      if (!activeTicketCategory) return;
+      saveCategoryData();
+      showToast(`Uploaded new ticket embed panel to channel!`);
+    }
+
+    function updateTicketPanelUI(btn) {
+      if (!activeTicketCategory) return;
+      saveCategoryData();
+      showToast(`Updated live Discord UI embed in real-time!`);
+    }
+
+    function updateLiveTicketPreview() {
+      if (!activeTicketCategory) return;
+      document.getElementById("sim-panel-title").innerText = document.getElementById("ticket-panel-title").value || activeTicketCategory;
+      document.getElementById("sim-panel-desc").innerText = document.getElementById("ticket-panel-desc").value || "Click below to open a ticket!";
+      document.getElementById("sim-button-label").innerText = document.getElementById("ticket-button-label").value || "Open Ticket";
+
+      document.getElementById("sim-embed-title").innerText = document.getElementById("ticket-welcome-title").value || "Ticket Created";
+      document.getElementById("sim-embed-desc").innerText = document.getElementById("ticket-welcome-desc").value || "Welcome!";
     }
 
     function updateBuyerRoleTag() {
-      const val = document.getElementById("ticket-buyer-role").value;
-      document.getElementById("modal-role-badge").innerText = val;
+      const roleId = document.getElementById("ticket-buyer-role").value;
+      const found = discordRoles.find(r => r.id === roleId);
+      document.getElementById("modal-role-badge").innerText = found ? found.name : "@Buyer";
     }
 
+    // DISCORD SIMULATOR TICKET CHANNEL
     function simOpenTicket(username) {
       const rand = Math.floor(1000 + Math.random() * 9000);
       simTicketId = `ticket-${username}-${rand}`;
 
       document.getElementById("sim-ticket-name").innerText = `#${simTicketId}`;
-      document.getElementById("sim-embed-title").innerText = document.getElementById("ticket-welcome-title").value;
-      document.getElementById("sim-embed-desc").innerText = document.getElementById("ticket-welcome-desc").value;
-
       document.getElementById("sim-ticket-container").classList.remove("hidden");
       document.getElementById("sim-chat-log").innerHTML = `
         <div class="text-[10px] text-emerald-400 font-mono bg-emerald-950/40 p-1.5 rounded border border-emerald-500/20">
@@ -977,15 +1248,15 @@
     }
 
     function simGiveBuyerRole() {
-      const role = document.getElementById("ticket-buyer-role").value;
+      const roleBadge = document.getElementById("modal-role-badge").innerText;
       const log = document.getElementById("sim-chat-log");
       log.innerHTML += `
         <div class="text-[10px] text-indigo-300 font-mono bg-indigo-950/40 p-1.5 rounded border border-indigo-500/30">
-          [System]: User granted role ${role}! Review invite active.
+          [System]: User granted role ${roleBadge}! Review invite active.
         </div>
       `;
       closeTicketModal();
-      showToast(`Role ${role} granted to buyer!`);
+      showToast(`Granted ${roleBadge} to user!`);
     }
 
     function simFinalizeClose() {
@@ -995,101 +1266,88 @@
       simTicketId = null;
     }
 
-    // FORM ENGINE CATEGORY LOGIC
-    function switchActiveCategory() {
-      activeCategory = document.getElementById("form-category-select").value;
-      const placeholder = document.getElementById("category-placeholder");
-      const workspace = document.getElementById("category-workspace");
-
-      if (!activeCategory) {
-        placeholder.classList.remove("hidden");
-        workspace.classList.add("hidden");
-        return;
-      }
-
-      placeholder.classList.add("hidden");
-      workspace.classList.remove("hidden");
-
-      const data = categoryMap[activeCategory] || { title: activeCategory, button_label: "Open Form", questions: [] };
-      document.getElementById("cfg-category-input").value = activeCategory;
-      document.getElementById("form-panel-title").value = data.title;
-      document.getElementById("form-button-label").value = data.button_label;
-
-      document.querySelectorAll(".active-cat-display").forEach(el => el.innerText = activeCategory);
-      renderFormQuestions();
-      updateFormPreview();
-    }
-
-    function renderFormQuestions() {
-      const container = document.getElementById("form-questions-container");
-      container.innerHTML = "";
-      const questions = (categoryMap[activeCategory] && categoryMap[activeCategory].questions) || [];
-
-      questions.forEach((q, idx) => {
-        container.innerHTML += `
-          <div class="glass-card p-3 rounded-xl flex items-center justify-between text-xs">
-            <div>
-              <span class="font-bold text-white">Q${idx + 1}: ${q.label}</span>
-            </div>
-            <button onclick="removeQuestion(${idx})" class="text-orca-danger hover:bg-orca-danger/10 p-1.5 rounded">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </div>
-        `;
+    // GENERAL NAVIGATION & HELPERS
+    function switchTab(tab) {
+      const tabs = ['overview', 'ticket-engine', 'channels-manager', 'maintenance'];
+      tabs.forEach(t => {
+        const tabEl = document.getElementById(`tab-${t}`);
+        if (tabEl) tabEl.classList.add('hidden');
+        
+        const desktopNav = document.getElementById(`nav-${t}`);
+        if (desktopNav) {
+          desktopNav.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all';
+        }
       });
+
+      const target = document.getElementById(`tab-${tab}`);
+      if (target) target.classList.remove('hidden');
+
+      const activeDesktop = document.getElementById(`nav-${tab}`);
+      if (activeDesktop) {
+        activeDesktop.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all';
+      }
     }
 
-    function openAddQuestionModal() {
-      document.getElementById("q-label-input").value = "";
-      document.getElementById("q-placeholder-input").value = "";
-      document.getElementById("question-modal").classList.remove("hidden");
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      const icon = document.getElementById('menu-icon');
+      if (menu.classList.contains('hidden')) {
+        menu.classList.remove('hidden');
+        icon.className = 'fa-solid fa-xmark text-sm';
+      } else {
+        menu.classList.add('hidden');
+        icon.className = 'fa-solid fa-bars text-sm';
+      }
     }
 
-    function closeAddQuestionModal() {
-      document.getElementById("question-modal").classList.add("hidden");
+    function formatUptime(seconds) {
+      const d = Math.floor(seconds / (3600*24));
+      const h = Math.floor((seconds % (3600*24)) / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+      return `${String(d).padStart(2, '0')}d ${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
     }
 
-    function addFormQuestion() {
-      const label = document.getElementById("q-label-input").value.trim();
-      const placeholder = document.getElementById("q-placeholder-input").value.trim();
-      if (!label) return;
-
-      if (!categoryMap[activeCategory].questions) categoryMap[activeCategory].questions = [];
-      categoryMap[activeCategory].questions.push({ label, placeholder });
-      renderFormQuestions();
-      closeAddQuestionModal();
-      showToast("Question added to category!");
-    }
-
-    function removeQuestion(idx) {
-      categoryMap[activeCategory].questions.splice(idx, 1);
-      renderFormQuestions();
-      showToast("Question deleted.");
-    }
-
-    function updateFormPreview() {
-      if (!activeCategory) return;
-      document.getElementById("preview-form-title").innerText = document.getElementById("form-panel-title").value || activeCategory;
-      document.getElementById("preview-button-label").innerText = document.getElementById("form-button-label").value || "Open Form";
-    }
-
-    function saveFormPanelSettings() {
-      showToast(`Category settings for "${activeCategory}" saved!`);
+    function start1SecondTicks() {
+      if (telemetryInterval) clearInterval(telemetryInterval);
+      telemetryInterval = setInterval(() => {
+        rawUptimeSeconds += 1;
+        document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
+      }, 1000);
     }
 
     function loadAllData(manualSync = false) {
       renderHierarchicalChannelDropdowns();
       renderStructureEditor();
-      if (manualSync) showToast("Channel structure & telemetry synced!");
+      renderCategorySelectorDropdown();
+      if (manualSync) showToast("Telemetry & structure synced!");
     }
 
-    function showToast(msg) {
+    function toggleMaintenanceMode() { showToast("Maintenance setting toggled!"); }
+    function toggleTotalLockdown() { showToast("Lockdown setting toggled!"); }
+
+    function showToast(msg, isError = false) {
       const toast = document.getElementById("toast");
-      document.getElementById("toast-message").innerText = msg;
+      const icon = document.getElementById("toast-icon");
+      const message = document.getElementById("toast-message");
+
+      message.innerText = msg;
+      if (isError) {
+        toast.classList.replace("bg-orca-accent", "bg-orca-danger");
+        icon.className = "fa-solid fa-circle-xmark text-white text-sm sm:text-base shrink-0";
+      } else {
+        toast.classList.replace("bg-orca-danger", "bg-orca-accent");
+        icon.className = "fa-solid fa-circle-check text-orca-success text-sm sm:text-base shrink-0";
+      }
+
       toast.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
       setTimeout(() => {
         toast.classList.add("opacity-0", "translate-y-4", "pointer-events-none");
       }, 3000);
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
 
     initChart();
