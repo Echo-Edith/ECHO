@@ -140,6 +140,9 @@ class ChainedCustomModal(discord.ui.Modal):
             if db is not None:
                 db["guild_config"].update_one({"guild_id": interaction.guild.id}, {"$set": {"submission_counter": counter}})
 
+        cat_configs = config.get("category_configs", {}) if config else {}
+        cat_data = cat_configs.get(self.category, {})
+
         if db is not None:
             db["form_submissions"].insert_one({
                 "number": counter,
@@ -150,7 +153,7 @@ class ChainedCustomModal(discord.ui.Modal):
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             })
 
-        log_channel_id = config.get("log_channel_id")
+        log_channel_id = cat_data.get("log_channel_id") or config.get("log_channel_id")
         if log_channel_id and interaction.guild:
             log_ch = interaction.guild.get_channel(int(log_channel_id))
             if log_ch:
@@ -164,9 +167,8 @@ class ChainedCustomModal(discord.ui.Modal):
                     embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
 
                 ping_text = ""
-                ping_toggle = config.get("ping_toggle", True)
-                ping_role_id = config.get("ping_role_id")
-                if ping_toggle and ping_role_id:
+                ping_role_id = cat_data.get("ping_role_id") or config.get("ping_role_id")
+                if ping_role_id:
                     role = interaction.guild.get_role(int(ping_role_id))
                     if role:
                         ping_text = role.mention
@@ -212,15 +214,20 @@ class FormPanelView(discord.ui.View):
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
         
-        cat_map = config.get("category_questions", {}) if config else {}
-        questions = cat_map.get(self.category, [])
+        cat_configs = config.get("category_configs", {}) if config else {}
+        cat_data = cat_configs.get(self.category, {})
+
+        questions = cat_data.get("questions", [])
+        if not questions:
+            # Fallback to category_questions schema if present
+            questions = config.get("category_questions", {}).get(self.category, [])
 
         if not questions:
             questions = [
                 {"label": "Please explain your request details", "placeholder": "Type your request here...", "style": "paragraph", "required": True}
             ]
 
-        title = config.get("title") or self.category
+        title = cat_data.get("title") or f"📋 {self.category.upper()}"
 
         first_chunk = questions[:5]
         modal = ChainedCustomModal(
@@ -248,6 +255,9 @@ class Orca(commands.Cog):
         if db is not None:
             try:
                 for doc in db["guild_config"].find():
+                    cat_configs = doc.get("category_configs", {})
+                    for cat in cat_configs.keys():
+                        registered_cats.add(cat)
                     cat_map = doc.get("category_questions", {})
                     for cat in cat_map.keys():
                         registered_cats.add(cat)
@@ -302,13 +312,13 @@ class Orca(commands.Cog):
 
         guild_id = interaction.guild.id
         doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-        cat_map = doc.get("category_questions", {})
+        cat_configs = doc.get("category_configs", {})
 
-        if old_name.strip() in cat_map:
-            cat_map[new_name.strip()] = cat_map.pop(old_name.strip())
+        if old_name.strip() in cat_configs:
+            cat_configs[new_name.strip()] = cat_configs.pop(old_name.strip())
             db["guild_config"].update_one(
                 {"guild_id": guild_id},
-                {"$set": {"category_questions": cat_map}},
+                {"$set": {"category_configs": cat_configs}},
                 upsert=True
             )
             await interaction.response.send_message(embed=info_embed("✏️ Category Renamed!", f"Renamed category **\"{old_name.strip()}\"** to **\"{new_name.strip()}\"**."), ephemeral=True)
@@ -326,16 +336,16 @@ class Orca(commands.Cog):
 
         guild_id = interaction.guild.id
         doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-        cat_map = doc.get("category_questions", {})
+        cat_configs = doc.get("category_configs", {})
 
-        if name.strip() in cat_map:
-            cat_map.pop(name.strip())
+        if name.strip() in cat_configs:
+            cat_configs.pop(name.strip())
             db["guild_config"].update_one(
                 {"guild_id": guild_id},
-                {"$set": {"category_questions": cat_map}},
+                {"$set": {"category_configs": cat_configs}},
                 upsert=True
             )
-            await interaction.response.send_message(embed=info_embed("🗑️ Category Deleted!", f"Deleted category **\"{name.strip()}\"** and its questions."), ephemeral=True)
+            await interaction.response.send_message(embed=info_embed("🗑️ Category Deleted!", f"Deleted category **\"{name.strip()}\"** and its configuration."), ephemeral=True)
         else:
             await interaction.response.send_message(embed=error_embed(f"Category **\"{name.strip()}\"** not found."), ephemeral=True)
 
@@ -405,7 +415,7 @@ class Orca(commands.Cog):
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     # ====================================================================
-    # Web Handlers: Unified Embed + Button Deployment
+    # Web Handlers: Category Deployment
     # ====================================================================
     async def deploy_form_panel_from_web(self, channel_id: int, category: str = "Custom Bot Commission"):
         channel = self.bot.get_channel(channel_id)
@@ -414,43 +424,47 @@ class Orca(commands.Cog):
 
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": channel.guild.id}) if db is not None else {}
+        cat_configs = config.get("category_configs", {}) if config else {}
+        cat_data = cat_configs.get(category, {})
 
-        title = config.get("title") or f"📋 {category.upper()}"
-        desc = config.get("description") or f"Click the button below to submit a {category} request."
-        button_label = config.get("button_label") or "📝 Fill Out Form"
+        title = cat_data.get("title") or f"📋 {category.upper()}"
+        desc = cat_data.get("description") or f"Click the button below to submit a {category} request."
+        button_label = cat_data.get("button_label") or "📝 Fill Out Form"
 
         embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
         view = FormPanelView(category=category, button_label=button_label)
         msg = await channel.send(embed=embed, view=view)
 
         if db is not None:
+            cat_data["last_form_msg_id"] = msg.id
+            cat_data["channel_id"] = channel.id
+            cat_configs[category] = cat_data
+
             db["guild_config"].update_one(
                 {"guild_id": channel.guild.id},
-                {"$set": {
-                    "last_form_msg_id": msg.id,
-                    "channel_id": channel.id,
-                    "category": category
-                }}
+                {"$set": {"category_configs": cat_configs}}
             )
 
     async def update_form_panel_from_web(self, category: str = "Custom Bot Commission"):
         db = get_db()
         guild_id = self.bot.guilds[0].id if self.bot.guilds else 0
         config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
+        cat_configs = config.get("category_configs", {}) if config else {}
+        cat_data = cat_configs.get(category, {})
 
-        msg_id = config.get("last_form_msg_id")
-        channel_id = config.get("channel_id")
+        msg_id = cat_data.get("last_form_msg_id") or config.get("last_form_msg_id")
+        channel_id = cat_data.get("channel_id") or config.get("channel_id")
         if not msg_id or not channel_id:
-            raise Exception("No active form panel message stored.")
+            raise Exception("No active form panel message stored for this category.")
 
         channel = self.bot.get_channel(channel_id)
         if not channel:
             raise Exception("Form channel not found.")
 
         msg = await channel.fetch_message(msg_id)
-        title = config.get("title") or f"📋 {category.upper()}"
-        desc = config.get("description") or f"Click the button below to submit a {category} request."
-        button_label = config.get("button_label") or "📝 Fill Out Form"
+        title = cat_data.get("title") or f"📋 {category.upper()}"
+        desc = cat_data.get("description") or f"Click the button below to submit a {category} request."
+        button_label = cat_data.get("button_label") or "📝 Fill Out Form"
 
         embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
         view = FormPanelView(category=category, button_label=button_label)
