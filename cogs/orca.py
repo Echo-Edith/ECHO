@@ -39,17 +39,29 @@ def get_db():
         return None
 
 
-def sanitize_custom_id(category: str) -> str:
-    clean = re.sub(r'[^a-zA-Z0-9_]', '_', category.lower())
-    return f"orca_form_{clean}"[:100]
-
-
 def error_embed(message: str) -> discord.Embed:
     return discord.Embed(title="❌ Error", description=message, color=ERROR_COLOR)
 
 
 def info_embed(title: str, description: str = None) -> discord.Embed:
     return discord.Embed(title=title, description=description, color=EMBED_COLOR)
+
+
+def parse_color(color_str: str) -> discord.Color:
+    clean = color_str.strip().lstrip('#')
+    try:
+        return discord.Color(int(clean, 16))
+    except Exception:
+        named_colors = {
+            "blue": discord.Color.blue(),
+            "red": discord.Color.red(),
+            "green": discord.Color.green(),
+            "purple": discord.Color.purple(),
+            "gold": discord.Color.gold(),
+            "orange": discord.Color.orange(),
+            "cyan": discord.Color.dark_teal()
+        }
+        return named_colors.get(color_str.lower(), discord.Color.blurple())
 
 
 def is_owner(user_id: int) -> bool:
@@ -243,6 +255,83 @@ class VerificationView(discord.ui.View):
                         pass
         else:
             await interaction.followup.send(embed=error_embed("Could not assign verification roles. Please inform an Administrator."), ephemeral=True)
+
+
+# ----------------------------------------------------------------------
+# Custom Client Role Creation Modal & View
+# ----------------------------------------------------------------------
+class CustomRoleModal(discord.ui.Modal):
+    def __init__(self):
+        super().__init__(title="🎨 Create Custom Client Role")
+
+        self.name_input = discord.ui.TextInput(
+            label="Role Name",
+            style=discord.TextStyle.short,
+            placeholder="e.g. VIP Client, Bot Architect",
+            required=True,
+            max_length=32
+        )
+        self.add_item(self.name_input)
+
+        self.color_input = discord.ui.TextInput(
+            label="Role Color (Hex Code or Name)",
+            style=discord.TextStyle.short,
+            placeholder="e.g. #FF5733, #3498DB, or Blue",
+            required=True,
+            default="#3B82F6",
+            max_length=20
+        )
+        self.add_item(self.color_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild
+        if not guild:
+            return
+
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
+        cr_config = config.get("custom_role_config", {})
+
+        role_name = self.name_input.value.strip()
+        role_color = parse_color(self.color_input.value)
+
+        header_role_id = cr_config.get("header_role_id")
+        header_role = guild.get_role(int(header_role_id)) if header_role_id else None
+
+        try:
+            new_role = await guild.create_role(
+                name=role_name,
+                color=role_color,
+                reason=f"ORCA Custom Buyer Role created by {interaction.user}"
+            )
+
+            await interaction.user.add_roles(new_role, reason="Custom Role Studio Creation")
+
+            if header_role and header_role.position > 1:
+                try:
+                    await new_role.edit(position=max(1, header_role.position - 1))
+                except Exception:
+                    pass
+
+            embed = discord.Embed(
+                title="🎨 Custom Role Created & Assigned!",
+                description=f"Your new role {new_role.mention} has been created and assigned to your profile!",
+                color=role_color
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        except Exception as e:
+            await interaction.followup.send(embed=error_embed(f"Failed to create role: {e}"), ephemeral=True)
+
+
+class CustomRolePanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="🎨 Create Custom Role", style=discord.ButtonStyle.blurple, custom_id="orca_custom_role_btn")
+    async def create_role_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(CustomRoleModal())
 
 
 # ----------------------------------------------------------------------
@@ -452,6 +541,7 @@ class Orca(commands.Cog):
 
     async def cog_load(self):
         self.bot.add_view(VerificationView())
+        self.bot.add_view(CustomRolePanelView())
         db = get_db()
         registered_cats = set(["Custom Bot Commission", "Partnership Application"])
         if db is not None:
@@ -581,6 +671,127 @@ class Orca(commands.Cog):
     # ====================================================================
     # Commands
     # ====================================================================
+    @app_commands.command(name="add-staff", description="Add a staff member (Grants chosen role + Organizational Staff Header Role).")
+    @app_commands.describe(user="User to promote to staff", role="Specific staff role to grant")
+    async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
+        if not interaction.guild or not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(embed=error_embed("Administrator permissions required."), ephemeral=True)
+
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild
+
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
+        staff_config = config.get("staff_config", {})
+
+        staff_header_id = staff_config.get("staff_header_role_id")
+        header_role = guild.get_role(int(staff_header_id)) if staff_header_id else None
+
+        roles_to_add = [role]
+        if header_role:
+            roles_to_add.append(header_role)
+
+        try:
+            await user.add_roles(*roles_to_add, reason=f"ORCA Staff Promotion by {interaction.user}")
+            embed = discord.Embed(
+                title="✅ Staff Member Promoted",
+                description=f"Successfully promoted {user.mention}! Granted {role.mention}" + (f" and organizational header {header_role.mention}" if header_role else ""),
+                color=SUCCESS_COLOR
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(embed=error_embed(f"Failed to assign staff roles: {e}"), ephemeral=True)
+
+    @app_commands.command(name="remove-staff", description="Remove a staff member (Strips staff role and Staff Header Role).")
+    @app_commands.describe(user="User to demote from staff")
+    async def remove_staff_cmd(self, interaction: discord.Interaction, user: discord.Member):
+        if not interaction.guild or not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(embed=error_embed("Administrator permissions required."), ephemeral=True)
+
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild
+
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
+        staff_config = config.get("staff_config", {})
+
+        staff_header_id = staff_config.get("staff_header_role_id")
+        header_role = guild.get_role(int(staff_header_id)) if staff_header_id else None
+
+        try:
+            if header_role and header_role in user.roles:
+                await user.remove_roles(header_role, reason=f"ORCA Staff Demotion by {interaction.user}")
+
+            embed = discord.Embed(
+                title="⛔ Staff Member Removed",
+                description=f"Successfully demoted {user.mention} and updated staff permissions.",
+                color=ERROR_COLOR
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(embed=error_embed(f"Failed to demote staff: {e}"), ephemeral=True)
+
+    @app_commands.command(name="staff-list", description="Display all staff members and their roles in a clean list.")
+    async def staff_list_cmd(self, interaction: discord.Interaction):
+        if not interaction.guild:
+            return await interaction.response.send_message(embed=error_embed("Command must be run inside a server."), ephemeral=True)
+
+        await interaction.response.defer()
+        guild = interaction.guild
+
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
+        staff_config = config.get("staff_config", {})
+        cat_configs = config.get("category_configs", {})
+
+        header_id = staff_config.get("staff_header_role_id")
+        header_id_int = int(header_id) if header_id and str(header_id).isdigit() else None
+
+        staff_role_ids = set()
+        if header_id_int:
+            staff_role_ids.add(header_id_int)
+
+        for cat, cat_data in cat_configs.items():
+            sr_id = cat_data.get("staffRole")
+            if sr_id and str(sr_id).isdigit():
+                staff_role_ids.add(int(sr_id))
+
+        staff_entries = []
+        seen_user_ids = set()
+
+        for member in guild.members:
+            if member.bot or member.id in seen_user_ids:
+                continue
+
+            # Check specific staff roles
+            specific_roles = [r for r in member.roles if r.id in staff_role_ids and r.id != header_id_int]
+            if specific_roles:
+                top_role = max(specific_roles, key=lambda r: r.position)
+                staff_entries.append(f"{member.mention} — {top_role.mention}")
+                seen_user_ids.add(member.id)
+            elif header_id_int and header_id_int in [r.id for r in member.roles]:
+                h_role = guild.get_role(header_id_int)
+                role_disp = h_role.mention if h_role else "Staff"
+                staff_entries.append(f"{member.mention} — {role_disp}")
+                seen_user_ids.add(member.id)
+
+        # Fallback to Administrators if no specific staff roles found
+        if not staff_entries:
+            for member in guild.members:
+                if not member.bot and (member.guild_permissions.administrator or is_owner(member.id)):
+                    top_role = member.top_role
+                    role_disp = top_role.mention if top_role and top_role.name != "@everyone" else "Admin"
+                    staff_entries.append(f"{member.mention} — {role_disp}")
+
+        embed = discord.Embed(
+            title="🛡️ ORCA Studio Staff Directory",
+            description="\n".join(staff_entries) if staff_entries else "*(No staff members found)*",
+            color=EMBED_COLOR,
+            timestamp=discord.utils.utcnow()
+        )
+        embed.set_footer(text=f"Total Active Staff: {len(staff_entries)}")
+        await interaction.followup.send(embed=embed)
+
     @app_commands.command(name="verify", description="Verification command to claim configured server access roles.")
     async def verify_slash_cmd(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
