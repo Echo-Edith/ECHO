@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>𝐎𝐑𝐂A Automation Command Center • Discord Studio Suite</title>
+  <title>𝐎𝐑𝐂A Automation Command Center • Studio Suite</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -158,7 +158,7 @@
       <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets Engine
     </button>
     <button onclick="switchTab('verification-engine'); toggleMobileMenu()" id="m-top-nav-verification-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-user-check w-4 text-center"></i> Verification Engine
+      <i class="fa-solid fa-user-check w-4 text-center"></i> Verification
     </button>
     <button onclick="switchTab('custom-roles'); toggleMobileMenu()" id="m-top-nav-custom-roles" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-wand-magic-sparkles w-4 text-center"></i> Custom Roles & Staff
@@ -170,25 +170,25 @@
 
   <!-- Mobile Bottom Navigation Bar -->
   <nav class="md:hidden fixed bottom-0 inset-x-0 glass-panel border-t border-orca-border z-40 px-2 py-2 flex items-center justify-around">
-    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-accent">
-      <i class="fa-solid fa-chart-pie text-base"></i>
-      <span class="text-[10px] font-extrabold tracking-tight">Stats</span>
+    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition text-orca-accent">
+      <i class="fa-solid fa-chart-pie text-sm"></i>
+      <span class="text-[9px] font-extrabold tracking-tight">Stats</span>
     </button>
-    <button onclick="switchTab('ticket-engine')" id="m-nav-ticket-engine" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-ticket text-base"></i>
-      <span class="text-[10px] font-extrabold tracking-tight">Tickets</span>
+    <button onclick="switchTab('ticket-engine')" id="m-nav-ticket-engine" class="flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition text-orca-muted">
+      <i class="fa-solid fa-ticket text-sm"></i>
+      <span class="text-[9px] font-extrabold tracking-tight">Tickets</span>
     </button>
-    <button onclick="switchTab('verification-engine')" id="m-nav-verification-engine" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-user-check text-base"></i>
-      <span class="text-[10px] font-extrabold tracking-tight">Verify</span>
+    <button onclick="switchTab('verification-engine')" id="m-nav-verification-engine" class="flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition text-orca-muted">
+      <i class="fa-solid fa-user-check text-sm"></i>
+      <span class="text-[9px] font-extrabold tracking-tight">Verify</span>
     </button>
-    <button onclick="switchTab('custom-roles')" id="m-nav-custom-roles" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-wand-magic-sparkles text-base"></i>
-      <span class="text-[10px] font-extrabold tracking-tight">Roles</span>
+    <button onclick="switchTab('custom-roles')" id="m-nav-custom-roles" class="flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition text-orca-muted">
+      <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+      <span class="text-[9px] font-extrabold tracking-tight">Roles</span>
     </button>
-    <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-shield-halved text-base"></i>
-      <span class="text-[10px] font-extrabold tracking-tight">Safety</span>
+    <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition text-orca-muted">
+      <i class="fa-solid fa-shield-halved text-sm"></i>
+      <span class="text-[9px] font-extrabold tracking-tight">Safety</span>
     </button>
   </nav>
 
@@ -526,7 +526,7 @@
       </div>
     </section>
 
-    <!-- NEW TAB 4: CUSTOM ROLES STUDIO & STAFF CONFIGURATION -->
+    <!-- TAB 4: CUSTOM ROLES STUDIO & STAFF CONFIGURATION -->
     <section id="tab-custom-roles" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -780,7 +780,7 @@
 
         const mNavBtn = document.getElementById(`m-nav-${t}`);
         if (mNavBtn) {
-          mNavBtn.className = "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted";
+          mNavBtn.className = "flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition text-orca-muted";
         }
       });
 
@@ -799,7 +799,7 @@
 
       const activeMobileBottom = document.getElementById(`m-nav-${tabKey}`);
       if (activeMobileBottom) {
-        activeMobileBottom.className = "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-accent";
+        activeMobileBottom.className = "flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition text-orca-accent";
       }
     }
 
