@@ -203,7 +203,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Sync Ticking
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v16.4</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v16.5</span>
     </div>
   </aside>
 
@@ -275,12 +275,12 @@
       </div>
     </section>
 
-    <!-- TAB 2: FORM WORKSPACE (CATEGORY SELECTION GATE) -->
+    <!-- TAB 2: FORM WORKSPACE (STRICT CATEGORY ISOLATION) -->
     <section id="tab-formpanel" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Unified Form Command Engine</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Select a category below to unlock and configure its form panel, button, and questions.</p>
+          <p class="text-xs text-orca-muted mt-0.5">Select a category below to unlock its isolated panel settings and questions.</p>
         </div>
       </div>
 
@@ -292,7 +292,7 @@
               <i class="fa-solid fa-folder-open"></i>
             </div>
             <div>
-              <span class="text-[10px] font-extrabold uppercase tracking-widest text-orca-accent">Step 1: Required Category Selection</span>
+              <span class="text-[10px] font-extrabold uppercase tracking-widest text-orca-accent">Step 1: Select Category Workspace</span>
               <h3 class="text-sm sm:text-base font-extrabold text-white">Choose Category to Edit</h3>
             </div>
           </div>
@@ -316,7 +316,7 @@
           <i class="fa-solid fa-hand-pointer"></i>
         </div>
         <h3 class="text-sm sm:text-base font-bold text-white">No Category Selected</h3>
-        <p class="text-xs text-orca-muted max-w-md mx-auto">Please pick a category from the dropdown above (or click "+ New Category") to load its panel details and question builder.</p>
+        <p class="text-xs text-orca-muted max-w-md mx-auto">Please select a category from the dropdown above (or click "+ New Category") to edit its isolated embed panel and questions.</p>
       </div>
 
       <!-- CATEGORY CONTENT WORKSPACE (HIDDEN UNTIL CATEGORY IS SELECTED) -->
@@ -329,13 +329,13 @@
             <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3.5 md:space-y-4 shadow-2xl">
               <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
                 <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
-                  <i class="fa-solid fa-sliders text-orca-accent"></i> Category Panel Setup: <span class="active-cat-display text-white font-bold">--</span>
+                  <i class="fa-solid fa-sliders text-orca-accent"></i> Isolated Settings: <span class="active-cat-display text-white font-bold">--</span>
                 </h3>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Category Identifier</label>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Category Name</label>
                   <input type="text" id="cfg-category-input" readonly class="w-full bg-orca-base/60 border border-orca-border/60 text-orca-muted text-xs font-semibold rounded-xl p-2.5 cursor-not-allowed">
                 </div>
 
@@ -365,17 +365,17 @@
 
               <div>
                 <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Embed Title</label>
-                <input type="text" id="form-panel-title" oninput="updateFormPreview()" value="🤖 REQUEST CUSTOM BOT COMMISSION" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                <input type="text" id="form-panel-title" oninput="updateFormPreview()" placeholder="e.g. 🤖 REQUEST CUSTOM BOT COMMISSION" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
               </div>
 
               <div>
                 <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
-                <textarea id="form-panel-desc" oninput="updateFormPreview()" rows="3" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!</textarea>
+                <textarea id="form-panel-desc" oninput="updateFormPreview()" rows="3" placeholder="Want a custom bot built specifically for your server? Click the button below..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></textarea>
               </div>
 
               <div>
                 <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Form Open Button Label</label>
-                <input type="text" id="form-button-label" oninput="updateFormPreview()" value="📝 Fill Out Form" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                <input type="text" id="form-button-label" oninput="updateFormPreview()" placeholder="📝 Fill Out Form" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
               </div>
             </div>
 
@@ -400,7 +400,7 @@
             <div class="glass-card p-4 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
                 <h4 class="font-bold text-xs text-white">Save Entire Category Setup</h4>
-                <p class="text-[11px] text-orca-muted">Saves embed details, button label, log channels, and question fields together.</p>
+                <p class="text-[11px] text-orca-muted">Saves embed details, button label, log channels, and question fields together under <span class="active-cat-display font-bold text-white">--</span>.</p>
               </div>
               <div class="flex items-center gap-2 w-full sm:w-auto">
                 <button onclick="saveFormPanelSettings(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-bold px-5 py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
@@ -549,11 +549,15 @@
     let roles = [];
     let activeCategory = "";
     
+    // Per-Category Isolated Map
     let categoryMap = {
       "Custom Bot Commission": {
         title: "🤖 REQUEST CUSTOM BOT COMMISSION",
         description: "Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!",
         button_label: "📝 Fill Out Form",
+        channel_id: "",
+        log_channel_id: "",
+        ping_role_id: "",
         questions: [
           { label: "What is your Discord Username?", placeholder: "e.g. user#0000", style: "short", required: true },
           { label: "Detailed Bot Requirements", placeholder: "Explain commands and features needed...", style: "paragraph", required: true }
@@ -563,6 +567,9 @@
         title: "🤝 PARTNERSHIP APPLICATION",
         description: "Interested in forming a server partnership with our community? Click below to apply!",
         button_label: "🤝 Apply for Partner",
+        channel_id: "",
+        log_channel_id: "",
+        ping_role_id: "",
         questions: [
           { label: "Server Invite Link", placeholder: "https://discord.gg/...", style: "short", required: true },
           { label: "Why do you want to partner?", placeholder: "Tell us about your community...", style: "paragraph", required: true }
@@ -570,7 +577,6 @@
       }
     };
 
-    let savedFormConfig = {};
     let rawUptimeSeconds = 0;
     let telemetryInterval = null;
     let chartInstance = null;
@@ -652,11 +658,9 @@
       const fillSelect = (elemId, list, defaultLabel) => {
         const elem = document.getElementById(elemId);
         if (!elem) return;
-        const currentVal = elem.value || (savedFormConfig ? savedFormConfig[elemId === 'form-channel-select' ? 'channel_id' : 'log_channel_id'] : '');
         elem.innerHTML = `<option value="">${defaultLabel}</option>`;
         list.forEach(item => {
-          const selected = (String(currentVal) === String(item.id)) ? 'selected' : '';
-          elem.innerHTML += `<option value="${item.id}" ${selected}># ${item.name}</option>`;
+          elem.innerHTML += `<option value="${item.id}"># ${item.name}</option>`;
         });
       };
 
@@ -665,11 +669,9 @@
 
       const roleSelect = document.getElementById('form-role-select');
       if (roleSelect) {
-        const currentVal = roleSelect.value || (savedFormConfig ? savedFormConfig.ping_role_id : '');
         roleSelect.innerHTML = `<option value="">-- Select Role (Optional) --</option>`;
         roles.forEach(r => {
-          const selected = (String(currentVal) === String(r.id)) ? 'selected' : '';
-          roleSelect.innerHTML += `<option value="${r.id}" ${selected}>@ ${r.name}</option>`;
+          roleSelect.innerHTML += `<option value="${r.id}">@ ${r.name}</option>`;
         });
       }
     }
@@ -680,10 +682,14 @@
 
       const cleanCat = newCatName.trim();
       if (!categoryMap[cleanCat]) {
+        // Complete Fresh Reset for New Category
         categoryMap[cleanCat] = {
           title: `📋 ${cleanCat.toUpperCase()}`,
           description: `Click the button below to submit a ${cleanCat} request.`,
           button_label: "📝 Fill Out Form",
+          channel_id: "",
+          log_channel_id: "",
+          ping_role_id: "",
           questions: [
             { label: "Please explain your request details", placeholder: "Type your request here...", style: "paragraph", required: true }
           ]
@@ -693,7 +699,7 @@
       renderCategoryDropdown();
       document.getElementById("form-category-select").value = cleanCat;
       switchActiveCategory();
-      showToast(`Created custom category "${cleanCat}"!`);
+      showToast(`Created fresh category "${cleanCat}"!`);
     }
 
     function renderCategoryDropdown() {
@@ -724,16 +730,24 @@
       workspace.classList.remove("hidden");
 
       const catData = categoryMap[activeCategory] || {
-        title: `📋 ${activeCategory}`,
-        description: "Click below to complete the form.",
+        title: `📋 ${activeCategory.toUpperCase()}`,
+        description: `Click below to complete the ${activeCategory} form.`,
         button_label: "📝 Fill Out Form",
+        channel_id: "",
+        log_channel_id: "",
+        ping_role_id: "",
         questions: []
       };
 
+      // Populate Inputs strictly from this category's isolated data
       document.getElementById("cfg-category-input").value = activeCategory;
-      document.getElementById("form-panel-title").value = catData.title || `📋 ${activeCategory}`;
+      document.getElementById("form-panel-title").value = catData.title || `📋 ${activeCategory.toUpperCase()}`;
       document.getElementById("form-panel-desc").value = catData.description || `Click below to submit your ${activeCategory} form.`;
       document.getElementById("form-button-label").value = catData.button_label || "📝 Fill Out Form";
+
+      document.getElementById("form-channel-select").value = catData.channel_id || "";
+      document.getElementById("log-channel-select").value = catData.log_channel_id || "";
+      document.getElementById("form-role-select").value = catData.ping_role_id || "";
 
       document.querySelectorAll(".active-cat-display").forEach(el => el.innerText = activeCategory);
 
@@ -793,15 +807,15 @@
       renderFormQuestions();
       closeAddQuestionModal();
 
-      showToast(`Saving questions for category "${activeCategory}"...`);
+      showToast(`Saving question for category "${activeCategory}"...`);
       try {
         const res = await fetch('/api/form-questions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ category: activeCategory, questions: categoryMap[activeCategory].questions })
         });
-        if (res.ok) showToast("Questions saved!");
-      } catch (e) { showToast("Error saving questions.", true); }
+        if (res.ok) showToast("Question saved!");
+      } catch (e) { showToast("Error saving question.", true); }
       finally { stopLoading(); }
     }
 
@@ -908,8 +922,8 @@
     function updateFormPreview() {
       if (!activeCategory || !categoryMap[activeCategory]) return;
 
-      const title = document.getElementById("form-panel-title").value || "🤖 REQUEST CUSTOM BOT COMMISSION";
-      const desc = document.getElementById("form-panel-desc").value || "Click below to complete our quick form!";
+      const title = document.getElementById("form-panel-title").value || `📋 ${activeCategory.toUpperCase()}`;
+      const desc = document.getElementById("form-panel-desc").value || `Click below to complete our quick ${activeCategory} form!`;
       const btnLabel = document.getElementById("form-button-label").value || "📝 Fill Out Form";
 
       categoryMap[activeCategory].title = title;
@@ -951,26 +965,35 @@
     async function saveFormPanelSettings(btn = null) {
       if (!activeCategory) return;
       const stopLoading = startBtnLoading(btn, "Saving...");
+      
+      const chId = document.getElementById("form-channel-select").value;
+      const logChId = document.getElementById("log-channel-select").value;
+      const pingRoleId = document.getElementById("form-role-select").value;
+
+      categoryMap[activeCategory].channel_id = chId;
+      categoryMap[activeCategory].log_channel_id = logChId;
+      categoryMap[activeCategory].ping_role_id = pingRoleId;
+
       const payload = {
         category: activeCategory,
         title: document.getElementById("form-panel-title").value,
         description: document.getElementById("form-panel-desc").value,
         button_label: document.getElementById("form-button-label").value,
-        channel_id: document.getElementById("form-channel-select").value,
-        log_channel_id: document.getElementById("log-channel-select").value,
-        ping_role_id: document.getElementById("form-role-select").value,
+        channel_id: chId,
+        log_channel_id: logChId,
+        ping_role_id: pingRoleId,
         questions: categoryMap[activeCategory].questions
       };
 
       updateFormPreview();
-      showToast(`Saving ${activeCategory}...`);
+      showToast(`Saving category "${activeCategory}"...`);
       try {
         const res = await fetch('/api/save-form-config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (res.ok) showToast(`All setup saved for "${activeCategory}"!`);
+        if (res.ok) showToast(`Saved all settings for "${activeCategory}"!`);
         else showToast("Failed to save settings.", true);
       } catch (e) { showToast("Backend connection error.", true); }
       finally { stopLoading(); }
@@ -992,7 +1015,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channel_id: channelId, category: activeCategory })
         });
-        if (res.ok) showToast(`Form panel deployed for ${activeCategory}!`);
+        if (res.ok) showToast(`Form panel deployed for "${activeCategory}"!`);
         else showToast("Error deploying panel.", true);
       } catch (e) { showToast("Failed to deploy panel.", true); }
       finally { stopLoading(); }
