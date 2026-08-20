@@ -2,16 +2,25 @@ import os
 import time
 import logging
 import asyncio
-import psutil
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
+try:
+    import resource
+except ImportError:
+    resource = None
 
 try:
     import pymongo
 except ImportError:
     pymongo = None
 
-# Suppress verbose Flask / Werkzeug HTTP request logs to keep logs clean
+# Suppress verbose Flask / Werkzeug HTTP request logs to keep terminal/cron output clean
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -48,15 +57,28 @@ def home():
 @app.route('/health')
 @app.route('/cron')
 def cron_ping():
-    # Silent return for uptime monitors and cron jobs to prevent terminal output clutter
+    # Silent 200 OK response for uptime monitors and cron jobs
     return jsonify({"status": "ok"}), 200
 
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
-    process = psutil.Process()
-    ram_mb = round(process.memory_info().rss / (1024 * 1024), 1)
-    cpu_pct = psutil.cpu_percent(interval=None)
+    ram_mb = 0.0
+    cpu_pct = "0%"
+
+    if psutil:
+        try:
+            process = psutil.Process()
+            ram_mb = round(process.memory_info().rss / (1024 * 1024), 1)
+            cpu_pct = f"{round(psutil.cpu_percent(interval=None), 1)}%"
+        except Exception:
+            pass
+    elif resource:
+        try:
+            max_rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            ram_mb = round(max_rss_kb / 1024, 1)
+        except Exception:
+            pass
 
     cog = _bot_ref.get_cog("Orca") if _bot_ref else None
     uptime_sec = int(time.time() - cog.start_time) if cog else 0
@@ -80,7 +102,7 @@ def get_stats():
         "ping": latency_ms,
         "uptime_seconds": uptime_sec,
         "ram": f"{ram_mb} MB",
-        "cpu": f"{cpu_pct}%",
+        "cpu": cpu_pct,
         "db_usage": {"display": db_usage_str}
     })
 
@@ -96,28 +118,29 @@ def get_guild_data():
             guild = _bot_ref.guilds[0]
             guild_name = guild.name
 
-            # Preserve full category and channel hierarchy from Discord server
+            # Preserve category hierarchy and text channel placement
             for cat in guild.categories:
                 cat_channels = []
                 for ch in cat.text_channels:
                     cat_channels.append({"id": str(ch.id), "name": ch.name})
-                categories.append({"name": cat.name, "channels": cat_channels})
+                categories.append({"id": str(cat.id), "name": cat.name, "channels": cat_channels})
 
-            # Add uncategorized channels if any exist
+            # Handle uncategorized channels if present
             uncategorized = [ch for ch in guild.text_channels if ch.category is None]
             if uncategorized:
                 categories.insert(0, {
+                    "id": "uncategorized",
                     "name": "General Channels",
                     "channels": [{"id": str(ch.id), "name": ch.name} for ch in uncategorized]
                 })
 
-            # Real server roles sorted by hierarchy position
+            # Server roles ordered by hierarchy position
             sorted_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
             for r in sorted_roles:
                 if not r.is_default():
                     roles.append({"id": str(r.id), "name": r.name})
 
-        except Exception as e:
+        except Exception:
             pass
 
     db = get_db()
@@ -179,7 +202,6 @@ def deploy_form_panel():
     if not cog or not channel_id:
         return jsonify({"error": "Invalid channel or Orca cog not initialized"}), 400
 
-    # Thread-safe thread execution into Discord asyncio event loop
     future = asyncio.run_coroutine_threadsafe(
         cog.deploy_form_panel_from_web(int(channel_id), category),
         _bot_ref.loop
