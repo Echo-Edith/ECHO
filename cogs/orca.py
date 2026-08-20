@@ -83,6 +83,29 @@ def is_maintenance(guild_id: int, user_id: int, guild: Optional[discord.Guild]) 
     return config.get("maintenance", False)
 
 
+def can_user_close_ticket(member: discord.Member, category: str, guild: discord.Guild) -> bool:
+    """Verify if user has permission to close: Must have Staff Ping Role or Admin/Owner permissions."""
+    if is_owner(member.id) or member.id == guild.owner_id or member.guild_permissions.administrator:
+        return True
+
+    db = get_db()
+    if db is None:
+        return member.guild_permissions.manage_channels
+
+    config = db["guild_config"].find_one({"guild_id": guild.id}) or {}
+    cat_configs = config.get("category_configs", {})
+    cat_data = cat_configs.get(category, {})
+
+    staff_role_id = cat_data.get("staffRole") or config.get("ping_role_id")
+    if staff_role_id:
+        staff_role = guild.get_role(int(staff_role_id))
+        if staff_role and staff_role in member.roles:
+            return True
+
+    # Fallback to manage channels if no specific staff role is configured
+    return member.guild_permissions.manage_channels
+
+
 # ----------------------------------------------------------------------
 # Close Ticket Modal Interface
 # ----------------------------------------------------------------------
@@ -112,6 +135,12 @@ class CloseTicketModal(discord.ui.Modal):
         self.add_item(self.buyer_role_input)
 
     async def on_submit(self, interaction: discord.Interaction):
+        if not can_user_close_ticket(interaction.user, self.category, interaction.guild):
+            return await interaction.response.send_message(
+                embed=error_embed("Only staff members with the designated Staff Role or Administrators can close this ticket."),
+                ephemeral=True
+            )
+
         await interaction.response.defer(ephemeral=True)
         reason = self.reason_input.value.strip() or "No reason provided"
         give_role = self.buyer_role_input.value.strip().lower() in ["yes", "y", "true", "1"]
@@ -139,6 +168,12 @@ class TicketChannelControlView(discord.ui.View):
 
     @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="orca_ticket_close_btn")
     async def close_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not can_user_close_ticket(interaction.user, self.category, interaction.guild):
+            return await interaction.response.send_message(
+                embed=error_embed("Only staff members with the designated Staff Role or Administrators can close this ticket."),
+                ephemeral=True
+            )
+
         await interaction.response.send_modal(CloseTicketModal(self.category, self.ticket_data))
 
 
@@ -376,7 +411,7 @@ class Orca(commands.Cog):
         return True
 
     # ====================================================================
-    # Execute Ticket Close, Buyer Role Grant, DM Receipt & Transcript Log
+    # Execute Ticket Close, Post-Close Buyer Role Grant, DM Receipt & Transcript Log
     # ====================================================================
     async def execute_ticket_close(self, interaction: discord.Interaction, channel: discord.TextChannel, category: str, ticket_data: dict, reason: str, give_role: bool):
         guild = interaction.guild
@@ -388,7 +423,7 @@ class Orca(commands.Cog):
         cat_configs = config.get("category_configs", {}) if config else {}
         cat_data = cat_configs.get(category, {})
 
-        # Extract opener ID from topic or dataset
+        # Extract opener ID from dataset or topic
         opener_id = ticket_data.get("user_id")
         if not opener_id and channel.topic:
             match = re.search(r"Opener ID:\s*(\d+)", channel.topic)
@@ -396,8 +431,13 @@ class Orca(commands.Cog):
                 opener_id = match.group(1)
 
         opener_member = guild.get_member(int(opener_id)) if opener_id else None
+        if not opener_member and opener_id:
+            try:
+                opener_member = await guild.fetch_member(int(opener_id))
+            except Exception:
+                pass
 
-        # 1. Optionally grant Buyer Role
+        # 1. Grant Buyer Role upon ticket close if give_role is Yes
         role_granted_status = "No"
         if give_role and opener_member:
             buyer_role_id = cat_data.get("buyerRole")
@@ -405,10 +445,10 @@ class Orca(commands.Cog):
                 buyer_role = guild.get_role(int(buyer_role_id))
                 if buyer_role:
                     try:
-                        await opener_member.add_roles(buyer_role, reason=f"ORCA Ticket #{ticket_data.get('number', '')} closed")
+                        await opener_member.add_roles(buyer_role, reason=f"ORCA Ticket #{ticket_data.get('number', '')} closed by {interaction.user}")
                         role_granted_status = f"Yes ({buyer_role.mention})"
-                    except Exception:
-                        role_granted_status = "Failed (Missing Permissions)"
+                    except Exception as e:
+                        role_granted_status = f"Failed to assign role: {e}"
 
         # 2. Gather Channel Messages for Public Log Transcript
         messages = []
@@ -420,7 +460,7 @@ class Orca(commands.Cog):
             pass
         transcript_text = "\n".join(messages)
 
-        # 3. Log to Transcript Log Channel (Only upon Close)
+        # 3. Log to Transcript Log Channel (Only triggered after ticket close)
         log_channel_id = cat_data.get("logChannel") or cat_data.get("log_channel_id") or config.get("log_channel_id")
         if log_channel_id:
             log_ch = guild.get_channel(int(log_channel_id))
@@ -431,7 +471,7 @@ class Orca(commands.Cog):
                     timestamp=discord.utils.utcnow()
                 )
                 l_embed.add_field(name="Ticket Opener", value=f"<@{opener_id}> (`{opener_id}`)" if opener_id else "Unknown", inline=True)
-                l_embed.add_field(name="Closed By", value=f"{interaction.user.mention}", inline=True)
+                l_embed.add_field(name="Closed By Staff", value=f"{interaction.user.mention}", inline=True)
                 l_embed.add_field(name="Buyer Role Granted", value=role_granted_status, inline=True)
                 l_embed.add_field(name="Close Reason", value=f"*{reason}*", inline=False)
 
@@ -446,7 +486,7 @@ class Orca(commands.Cog):
                 except Exception:
                     pass
 
-        # 4. DM Notification Receipt to Ticket Opener
+        # 4. Send DM Notification Receipt to Ticket Opener
         if opener_member:
             dm_embed = discord.Embed(
                 title=f"🧾 ORCA Studio Ticket Receipt #{ticket_data.get('number', '')}",
@@ -482,7 +522,7 @@ class Orca(commands.Cog):
     # ====================================================================
     # Commands
     # ====================================================================
-    @app_commands.command(name="close", description="Close the current ticket channel with reason and optional buyer role grant.")
+    @app_commands.command(name="close", description="Close current ticket channel (Staff only). Option to grant buyer role & supply reason.")
     @app_commands.describe(reason="Reason for closing this ticket", give_buyer_role="Grant configured Buyer Role to ticket opener?")
     @app_commands.choices(give_buyer_role=[
         app_commands.Choice(name="Yes (Grant Buyer Role)", value="yes"),
@@ -492,8 +532,6 @@ class Orca(commands.Cog):
         if not interaction.guild or not isinstance(interaction.channel, discord.TextChannel) or not interaction.channel.name.startswith("ticket-"):
             return await interaction.response.send_message(embed=error_embed("This command can only be executed inside an active ticket channel."), ephemeral=True)
 
-        await interaction.response.defer(ephemeral=True)
-        
         category = "Custom Bot Commission"
         ticket_data = {"number": "N/A"}
 
@@ -507,6 +545,14 @@ class Orca(commands.Cog):
                     ticket_data = found
                     category = found.get("category", "Custom Bot Commission")
 
+        # Security permission check: Only Staff with role or Admins can close
+        if not can_user_close_ticket(interaction.user, category, interaction.guild):
+            return await interaction.response.send_message(
+                embed=error_embed("Only staff members with the designated Staff Role or Administrators can close this ticket."),
+                ephemeral=True
+            )
+
+        await interaction.response.defer(ephemeral=True)
         give_role = give_buyer_role.value == "yes" if give_buyer_role else False
 
         await self.execute_ticket_close(
