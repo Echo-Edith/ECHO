@@ -96,7 +96,6 @@ def is_maintenance(guild_id: int, user_id: int, guild: Optional[discord.Guild]) 
 
 
 def can_user_close_ticket(member: discord.Member, category: str, guild: discord.Guild) -> bool:
-    """Verify if user has permission to close: Must have Staff Ping Role or Admin/Owner permissions."""
     if is_owner(member.id) or member.id == guild.owner_id or member.guild_permissions.administrator:
         return True
 
@@ -168,9 +167,6 @@ class CloseTicketModal(discord.ui.Modal):
             )
 
 
-# ----------------------------------------------------------------------
-# Ticket Control Panel Inside Active Channel
-# ----------------------------------------------------------------------
 class TicketChannelControlView(discord.ui.View):
     def __init__(self, category: str, ticket_data: dict):
         super().__init__(timeout=None)
@@ -188,9 +184,6 @@ class TicketChannelControlView(discord.ui.View):
         await interaction.response.send_modal(CloseTicketModal(self.category, self.ticket_data))
 
 
-# ----------------------------------------------------------------------
-# Persistent Verification View
-# ----------------------------------------------------------------------
 class VerificationView(discord.ui.View):
     def __init__(self, button_label: str = "✅ Verify Access"):
         super().__init__(timeout=None)
@@ -217,8 +210,6 @@ class VerificationView(discord.ui.View):
             return await interaction.followup.send(embed=error_embed("No verification roles are currently configured."), ephemeral=True)
 
         added_roles = []
-        failed_roles = []
-
         for rid in role_ids:
             if rid:
                 role = guild.get_role(int(rid))
@@ -227,7 +218,7 @@ class VerificationView(discord.ui.View):
                         await interaction.user.add_roles(role, reason="ORCA Studio Member Verification")
                         added_roles.append(role.mention)
                     except Exception:
-                        failed_roles.append(role.name)
+                        pass
 
         if added_roles:
             role_str = ", ".join(added_roles)
@@ -237,29 +228,10 @@ class VerificationView(discord.ui.View):
                 color=SUCCESS_COLOR
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
-
-            log_ch_id = v_config.get("log_channel_id")
-            if log_ch_id:
-                log_ch = guild.get_channel(int(log_ch_id))
-                if log_ch:
-                    l_embed = discord.Embed(
-                        title="🛡️ Member Verified",
-                        description=f"{interaction.user.mention} (`{interaction.user.id}`) completed verification.",
-                        color=SUCCESS_COLOR,
-                        timestamp=discord.utils.utcnow()
-                    )
-                    l_embed.add_field(name="Granted Roles", value=role_str, inline=False)
-                    try:
-                        await log_ch.send(embed=l_embed)
-                    except Exception:
-                        pass
         else:
-            await interaction.followup.send(embed=error_embed("Could not assign verification roles. Please inform an Administrator."), ephemeral=True)
+            await interaction.followup.send(embed=error_embed("Could not assign verification roles."), ephemeral=True)
 
 
-# ----------------------------------------------------------------------
-# Custom Client Role Creation Modal & View
-# ----------------------------------------------------------------------
 class CustomRoleModal(discord.ui.Modal):
     def __init__(self):
         super().__init__(title="🎨 Create Custom Client Role")
@@ -334,9 +306,6 @@ class CustomRolePanelView(discord.ui.View):
         await interaction.response.send_modal(CustomRoleModal())
 
 
-# ----------------------------------------------------------------------
-# Dynamic Multi-Part Chained Modals for Intake
-# ----------------------------------------------------------------------
 class ChainedCustomModal(discord.ui.Modal):
     def __init__(self, title: str, category: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict]):
         modal_title = f"{title} (Part {current_index // 5 + 1})" if len(all_questions) > 5 else title
@@ -467,26 +436,20 @@ class ChainedCustomModal(discord.ui.Modal):
             except Exception:
                 pass
 
-        response_text = f"Thank you! Your ticket channel has been created: {ticket_channel.mention}" if ticket_channel else "Thank you for submitting your ticket details! Our team has received your submission."
-        await interaction.followup.send(
-            embed=info_embed("✅ Ticket Opened!", response_text),
-            ephemeral=True
-        )
+        response_text = f"Thank you! Your ticket channel has been created: {ticket_channel.mention}" if ticket_channel else "Thank you for submitting your ticket details!"
+        await interaction.followup.send(embed=info_embed("✅ Ticket Opened!", response_text), ephemeral=True)
 
 
-# ----------------------------------------------------------------------
-# Dynamic Category Button View
-# ----------------------------------------------------------------------
 class FormPanelView(discord.ui.View):
     def __init__(self, category: str = "Custom Bot Commission", button_label: str = "📝 Open Ticket"):
         super().__init__(timeout=None)
         self.category = category
-        custom_id = sanitize_custom_id(category)
+        custom_id = re.sub(r'[^a-zA-Z0-9_]', '_', category.lower())[:100]
 
         btn = discord.ui.Button(
             label=button_label[:80],
             style=discord.ButtonStyle.blurple,
-            custom_id=custom_id
+            custom_id=f"orca_form_{custom_id}"
         )
         btn.callback = self.open_form_callback
         self.add_item(btn)
@@ -494,13 +457,13 @@ class FormPanelView(discord.ui.View):
     async def open_form_callback(self, interaction: discord.Interaction):
         guild_id = interaction.guild.id if interaction.guild else 0
         if is_lockdown_active(guild_id, interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown mode. Only owner access permitted."), ephemeral=True)
+            return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown mode."), ephemeral=True)
 
         if is_blacklisted(interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("You are blacklisted from submitting tickets."), ephemeral=True)
 
         if is_maintenance(guild_id, interaction.user.id, interaction.guild):
-            return await interaction.response.send_message(embed=error_embed("The ticket system is currently undergoing maintenance. Please try again later!"), ephemeral=True)
+            return await interaction.response.send_message(embed=error_embed("The ticket system is currently undergoing maintenance."), ephemeral=True)
 
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
@@ -510,20 +473,15 @@ class FormPanelView(discord.ui.View):
 
         questions = cat_data.get("questions", [])
         if not questions:
-            questions = config.get("category_questions", {}).get(self.category, [])
-
-        if not questions:
             questions = [
                 {"label": "Please explain your ticket details", "placeholder": "Type your details here...", "style": "paragraph", "required": True}
             ]
 
-        title = cat_data.get("panelTitle") or cat_data.get("title") or f"📋 {self.category.upper()}"
-
-        first_chunk = questions[:5]
+        title = cat_data.get("panelTitle") or f"📋 {self.category.upper()}"
         modal = ChainedCustomModal(
             title=title,
             category=self.category,
-            questions_chunk=first_chunk,
+            questions_chunk=questions[:5],
             all_questions=questions,
             current_index=0,
             previous_answers=[]
@@ -561,15 +519,11 @@ class Orca(commands.Cog):
         if is_lockdown_active(guild_id, ctx.author.id):
             await ctx.send(embed=error_embed("System is in Total Lockdown mode."))
             return False
-
         if is_blacklisted(ctx.author.id):
-            await ctx.send(embed=error_embed("You are blacklisted from using 𝐎𝐑𝐂𝐀 commands."))
+            await ctx.send(embed=error_embed("You are blacklisted."))
             return False
         return True
 
-    # ====================================================================
-    # Execute Ticket Close, Post-Close Buyer Role Grant, DM Receipt & Transcript Log
-    # ====================================================================
     async def execute_ticket_close(self, interaction: discord.Interaction, channel: discord.TextChannel, category: str, ticket_data: dict, reason: str, give_role: bool):
         guild = interaction.guild
         if not guild or not isinstance(channel, discord.TextChannel):
@@ -600,10 +554,23 @@ class Orca(commands.Cog):
                 buyer_role = guild.get_role(int(buyer_role_id))
                 if buyer_role:
                     try:
-                        await opener_member.add_roles(buyer_role, reason=f"ORCA Ticket #{ticket_data.get('number', '')} closed by {interaction.user}")
+                        await opener_member.add_roles(buyer_role, reason=f"ORCA Ticket closed by {interaction.user}")
                         role_granted_status = f"Yes ({buyer_role.mention})"
+
+                        # DM client channel link and instructions to make their custom role
+                        cr_config = config.get("custom_role_config", {})
+                        cr_channel_id = cr_config.get("channel_id")
+                        cr_channel = guild.get_channel(int(cr_channel_id)) if cr_channel_id else None
+
+                        dm_embed = discord.Embed(
+                            title="🎨 Your Custom Role is Ready to Create!",
+                            description=f"Your ticket in **{guild.name}** has been closed and your Buyer role has been granted!\n\n" +
+                                        (f"You can now head over to {cr_channel.mention} to create your custom role!" if cr_channel else "Head over to the custom role channel in our server to create your custom role!"),
+                            color=SUCCESS_COLOR
+                        )
+                        await opener_member.send(embed=dm_embed)
                     except Exception as e:
-                        role_granted_status = f"Failed to assign role: {e}"
+                        role_granted_status = f"Failed: {e}"
 
         messages = []
         try:
@@ -614,7 +581,7 @@ class Orca(commands.Cog):
             pass
         transcript_text = "\n".join(messages)
 
-        log_channel_id = cat_data.get("logChannel") or cat_data.get("log_channel_id") or config.get("log_channel_id")
+        log_channel_id = cat_data.get("logChannel") or config.get("log_channel_id")
         if log_channel_id:
             log_ch = guild.get_channel(int(log_channel_id))
             if log_ch:
@@ -623,13 +590,12 @@ class Orca(commands.Cog):
                     color=ERROR_COLOR,
                     timestamp=discord.utils.utcnow()
                 )
-                l_embed.add_field(name="Ticket Opener", value=f"<@{opener_id}> (`{opener_id}`)" if opener_id else "Unknown", inline=True)
-                l_embed.add_field(name="Closed By Staff", value=f"{interaction.user.mention}", inline=True)
+                l_embed.add_field(name="Opener", value=f"<@{opener_id}>" if opener_id else "Unknown", inline=True)
+                l_embed.add_field(name="Closed By", value=f"{interaction.user.mention}", inline=True)
                 l_embed.add_field(name="Buyer Role Granted", value=role_granted_status, inline=True)
-                l_embed.add_field(name="Close Reason", value=f"*{reason}*", inline=False)
+                l_embed.add_field(name="Reason", value=f"*{reason}*", inline=False)
 
-                answers = ticket_data.get("answers", [])
-                for ans in answers:
+                for ans in ticket_data.get("answers", []):
                     l_embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
 
                 file = discord.File(io.BytesIO(transcript_text.encode('utf-8')), filename=f"transcript-{channel.name}.txt") if transcript_text else None
@@ -638,54 +604,28 @@ class Orca(commands.Cog):
                 except Exception:
                     pass
 
-        if opener_member:
-            dm_embed = discord.Embed(
-                title=f"🧾 ORCA Studio Ticket Receipt #{ticket_data.get('number', '')}",
-                description=f"Your ticket in **{guild.name}** under **{category}** has been finalized and closed.",
-                color=EMBED_COLOR,
-                timestamp=discord.utils.utcnow()
-            )
-            dm_embed.add_field(name="Status", value="Closed & Archived", inline=True)
-            dm_embed.add_field(name="Reason", value=reason, inline=True)
-            dm_embed.add_field(name="Buyer Role", value="Granted" if "Yes" in role_granted_status else "Not Applicable", inline=True)
-            dm_embed.set_footer(text="Thank you for choosing ORCA Automation Studio!")
-
-            try:
-                await opener_member.send(embed=dm_embed)
-            except Exception:
-                pass
-
-        if db is not None:
-            db["form_submissions"].update_one(
-                {"number": ticket_data.get("number")},
-                {"$set": {"closed": True, "closed_by": str(interaction.user), "close_reason": reason}}
-            )
-
         try:
-            await interaction.followup.send(embed=info_embed("🔒 Closing Ticket", "This channel will be archived and deleted in 5 seconds..."), ephemeral=True)
+            await interaction.followup.send(embed=info_embed("🔒 Closing Ticket", "Archiving and deleting channel in 5 seconds..."), ephemeral=True)
             await asyncio.sleep(5)
             await channel.delete(reason=f"ORCA Ticket Closed by {interaction.user}")
         except Exception:
             pass
 
     # ====================================================================
-    # Commands
+    # Slash Commands
     # ====================================================================
-    @app_commands.command(name="add-staff", description="Add a staff member (Grants chosen role + Organizational Staff Header Role).")
-    @app_commands.describe(user="User to promote to staff", role="Specific staff role to grant")
+    @app_commands.command(name="add-staff", description="Add a staff member (Grants role + Staff Header Role).")
+    @app_commands.describe(user="User to promote", role="Specific staff role")
     async def add_staff_cmd(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
         if not interaction.guild or not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Administrator permissions required."), ephemeral=True)
 
         await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
-
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
         staff_config = config.get("staff_config", {})
-
-        staff_header_id = staff_config.get("staff_header_role_id")
-        header_role = guild.get_role(int(staff_header_id)) if staff_header_id else None
+        header_role = guild.get_role(int(staff_config.get("staff_header_role_id", 0))) if staff_config.get("staff_header_role_id") else None
 
         roles_to_add = [role]
         if header_role:
@@ -693,155 +633,110 @@ class Orca(commands.Cog):
 
         try:
             await user.add_roles(*roles_to_add, reason=f"ORCA Staff Promotion by {interaction.user}")
-            embed = discord.Embed(
-                title="✅ Staff Member Promoted",
-                description=f"Successfully promoted {user.mention}! Granted {role.mention}" + (f" and organizational header {header_role.mention}" if header_role else ""),
-                color=SUCCESS_COLOR
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=discord.Embed(title="✅ Staff Promoted", description=f"Granted {role.mention}" + (f" and {header_role.mention}" if header_role else ""), color=SUCCESS_COLOR), ephemeral=True)
         except Exception as e:
-            await interaction.followup.send(embed=error_embed(f"Failed to assign staff roles: {e}"), ephemeral=True)
+            await interaction.followup.send(embed=error_embed(f"Failed: {e}"), ephemeral=True)
 
-    @app_commands.command(name="remove-staff", description="Remove a staff member (Strips staff role and Staff Header Role).")
-    @app_commands.describe(user="User to demote from staff")
+    @app_commands.command(name="remove-staff", description="Remove staff role and Staff Header Role.")
+    @app_commands.describe(user="User to demote")
     async def remove_staff_cmd(self, interaction: discord.Interaction, user: discord.Member):
         if not interaction.guild or not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Administrator permissions required."), ephemeral=True)
 
         await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
-
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
         staff_config = config.get("staff_config", {})
-
-        staff_header_id = staff_config.get("staff_header_role_id")
-        header_role = guild.get_role(int(staff_header_id)) if staff_header_id else None
+        header_role = guild.get_role(int(staff_config.get("staff_header_role_id", 0))) if staff_config.get("staff_header_role_id") else None
 
         try:
             if header_role and header_role in user.roles:
                 await user.remove_roles(header_role, reason=f"ORCA Staff Demotion by {interaction.user}")
-
-            embed = discord.Embed(
-                title="⛔ Staff Member Removed",
-                description=f"Successfully demoted {user.mention} and updated staff permissions.",
-                color=ERROR_COLOR
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=discord.Embed(title="⛔ Staff Demoted", description=f"Successfully updated staff status for {user.mention}.", color=ERROR_COLOR), ephemeral=True)
         except Exception as e:
-            await interaction.followup.send(embed=error_embed(f"Failed to demote staff: {e}"), ephemeral=True)
+            await interaction.followup.send(embed=error_embed(f"Failed: {e}"), ephemeral=True)
 
-    @app_commands.command(name="staff-list", description="Display all staff members and their roles in a clean list.")
+    @app_commands.command(name="staff-list", description="Display all staff members in a clean list.")
     async def staff_list_cmd(self, interaction: discord.Interaction):
         if not interaction.guild:
-            return await interaction.response.send_message(embed=error_embed("Command must be run inside a server."), ephemeral=True)
+            return await interaction.response.send_message(embed=error_embed("Server only."), ephemeral=True)
 
         await interaction.response.defer()
         guild = interaction.guild
-
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
         staff_config = config.get("staff_config", {})
-        cat_configs = config.get("category_configs", {})
-
         header_id = staff_config.get("staff_header_role_id")
         header_id_int = int(header_id) if header_id and str(header_id).isdigit() else None
 
-        staff_role_ids = set()
-        if header_id_int:
-            staff_role_ids.add(header_id_int)
-
-        for cat, cat_data in cat_configs.items():
-            sr_id = cat_data.get("staffRole")
-            if sr_id and str(sr_id).isdigit():
-                staff_role_ids.add(int(sr_id))
-
         staff_entries = []
-        seen_user_ids = set()
-
         for member in guild.members:
-            if member.bot or member.id in seen_user_ids:
+            if member.bot:
                 continue
-
-            # Check specific staff roles
-            specific_roles = [r for r in member.roles if r.id in staff_role_ids and r.id != header_id_int]
-            if specific_roles:
-                top_role = max(specific_roles, key=lambda r: r.position)
-                staff_entries.append(f"{member.mention} — {top_role.mention}")
-                seen_user_ids.add(member.id)
-            elif header_id_int and header_id_int in [r.id for r in member.roles]:
+            if header_id_int and header_id_int in [r.id for r in member.roles]:
                 h_role = guild.get_role(header_id_int)
-                role_disp = h_role.mention if h_role else "Staff"
-                staff_entries.append(f"{member.mention} — {role_disp}")
-                seen_user_ids.add(member.id)
+                staff_entries.append(f"{member.mention} — {h_role.mention if h_role else 'Staff'}")
+            elif member.guild_permissions.administrator:
+                staff_entries.append(f"{member.mention} — Admin")
 
-        # Fallback to Administrators if no specific staff roles found
-        if not staff_entries:
-            for member in guild.members:
-                if not member.bot and (member.guild_permissions.administrator or is_owner(member.id)):
-                    top_role = member.top_role
-                    role_disp = top_role.mention if top_role and top_role.name != "@everyone" else "Admin"
-                    staff_entries.append(f"{member.mention} — {role_disp}")
-
-        embed = discord.Embed(
-            title="🛡️ ORCA Studio Staff Directory",
-            description="\n".join(staff_entries) if staff_entries else "*(No staff members found)*",
-            color=EMBED_COLOR,
-            timestamp=discord.utils.utcnow()
-        )
-        embed.set_footer(text=f"Total Active Staff: {len(staff_entries)}")
+        embed = discord.Embed(title="🛡️ ORCA Studio Staff Directory", description="\n".join(staff_entries) if staff_entries else "*(No staff found)*", color=EMBED_COLOR)
+        embed.set_footer(text=f"Total Staff: {len(staff_entries)}")
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="verify", description="Verification command to claim configured server access roles.")
+    @app_commands.command(name="role-list", description="Display server roles in hierarchical order.")
+    async def role_list_cmd(self, interaction: discord.Interaction):
+        if not interaction.guild:
+            return await interaction.response.send_message(embed=error_embed("Server only."), ephemeral=True)
+
+        await interaction.response.defer()
+        guild = interaction.guild
+        sorted_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
+        role_lines = [f"`{r.position}` — {r.mention} (`{len(r.members)} members`)" for r in sorted_roles if r.name != "@everyone"]
+
+        embed = discord.Embed(title="📜 Server Role Hierarchy Order", description="\n".join(role_lines[:40]) if role_lines else "*(No roles)*", color=EMBED_COLOR)
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="verify", description="Claim configured server access roles.")
     async def verify_slash_cmd(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
         if not guild:
-            return await interaction.followup.send(embed=error_embed("Command must be run inside a server."), ephemeral=True)
+            return
 
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
         v_config = config.get("verification_config", {})
-
         role_ids = v_config.get("roles", [])
-        if not role_ids:
-            return await interaction.followup.send(embed=error_embed("No verification roles are currently configured in dashboard."), ephemeral=True)
 
-        added_roles = []
+        added = []
         for rid in role_ids:
             if rid:
                 role = guild.get_role(int(rid))
                 if role:
                     try:
-                        await interaction.user.add_roles(role, reason="ORCA /verify command executed")
-                        added_roles.append(role.mention)
+                        await interaction.user.add_roles(role, reason="ORCA Verification")
+                        added.append(role.mention)
                     except Exception:
                         pass
 
-        if added_roles:
-            role_str = ", ".join(added_roles)
-            embed = discord.Embed(
-                title="✅ Verification Success!",
-                description=f"Your account has been verified in **{guild.name}**! Granted roles:\n\n{role_str}",
-                color=SUCCESS_COLOR
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+        if added:
+            await interaction.followup.send(embed=discord.Embed(title="✅ Verified!", description=f"Granted: {', '.join(added)}", color=SUCCESS_COLOR), ephemeral=True)
         else:
-            await interaction.followup.send(embed=error_embed("Failed to assign verification roles."), ephemeral=True)
+            await interaction.followup.send(embed=error_embed("Verification failed."), ephemeral=True)
 
-    @app_commands.command(name="close", description="Close current ticket channel (Staff only). Option to grant buyer role & supply reason.")
-    @app_commands.describe(reason="Reason for closing this ticket", give_buyer_role="Grant configured Buyer Role to ticket opener?")
+    @app_commands.command(name="close", description="Close current ticket channel (Staff only).")
+    @app_commands.describe(reason="Reason for closing", give_buyer_role="Grant Buyer Role?")
     @app_commands.choices(give_buyer_role=[
-        app_commands.Choice(name="Yes (Grant Buyer Role)", value="yes"),
-        app_commands.Choice(name="No (Do Not Grant Role)", value="no")
+        app_commands.Choice(name="Yes (Grant Buyer Role & DM Custom Role Link)", value="yes"),
+        app_commands.Choice(name="No", value="no")
     ])
     async def close_slash_cmd(self, interaction: discord.Interaction, reason: Optional[str] = "No reason provided", give_buyer_role: app_commands.Choice[str] = None):
         if not interaction.guild or not isinstance(interaction.channel, discord.TextChannel) or not interaction.channel.name.startswith("ticket-"):
-            return await interaction.response.send_message(embed=error_embed("This command can only be executed inside an active ticket channel."), ephemeral=True)
+            return await interaction.response.send_message(embed=error_embed("Execute inside an active ticket channel."), ephemeral=True)
 
         category = "Custom Bot Commission"
         ticket_data = {"number": "N/A"}
-
         db = get_db()
         if db is not None and interaction.channel.topic:
             match = re.search(r"ORCA Ticket #(\d+)", interaction.channel.topic)
@@ -853,208 +748,37 @@ class Orca(commands.Cog):
                     category = found.get("category", "Custom Bot Commission")
 
         if not can_user_close_ticket(interaction.user, category, interaction.guild):
-            return await interaction.response.send_message(
-                embed=error_embed("Only staff members with the designated Staff Role or Administrators can close this ticket."),
-                ephemeral=True
-            )
+            return await interaction.response.send_message(embed=error_embed("Staff permission required."), ephemeral=True)
 
         await interaction.response.defer(ephemeral=True)
         give_role = give_buyer_role.value == "yes" if give_buyer_role else False
 
-        await self.execute_ticket_close(
-            interaction=interaction,
-            channel=interaction.channel,
-            category=category,
-            ticket_data=ticket_data,
-            reason=reason,
-            give_role=give_role
-        )
+        await self.execute_ticket_close(interaction, interaction.channel, category, ticket_data, reason, give_role)
 
     @app_commands.command(name="system-stats", description="Shows bot ping and uptime.")
     async def system_stats(self, interaction: discord.Interaction):
-        guild_id = interaction.guild.id if interaction.guild else 0
-        if is_lockdown_active(guild_id, interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown."), ephemeral=True)
+        latency = round(self.bot.latency * 1000)
+        uptime = int(time.time() - self.start_time)
+        h, rem = divmod(uptime, 3600)
+        m, s = divmod(rem, 60)
+        await interaction.response.send_message(embed=discord.Embed(title="⚙️ ORCA System Stats", description=f"Ping: `{latency}ms`\nUptime: `{h}h {m}m {s}s`", color=EMBED_COLOR), ephemeral=True)
 
-        if is_blacklisted(interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("You are blacklisted."), ephemeral=True)
-
-        await interaction.response.defer(ephemeral=True)
-
-        latency_ms = round(self.bot.latency * 1000)
-        uptime_seconds = int(time.time() - self.start_time)
-        hours, remainder = divmod(uptime_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        uptime_str = f"{hours}h {minutes}m {seconds}s"
-
-        embed = discord.Embed(title="⚙️ 𝐎𝐑𝐂𝐀 System Stats", color=EMBED_COLOR)
-        embed.add_field(name="📶 Ping", value=f"`{latency_ms}ms`", inline=True)
-        embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-    @app_commands.command(name="rename-category", description="Rename an existing ticket category (Admins Only).")
-    async def rename_category_cmd(self, interaction: discord.Interaction, old_name: str, new_name: str):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        guild_id = interaction.guild.id
-        doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-        cat_configs = doc.get("category_configs", {})
-
-        if old_name.strip() in cat_configs:
-            cat_configs[new_name.strip()] = cat_configs.pop(old_name.strip())
-            db["guild_config"].update_one(
-                {"guild_id": guild_id},
-                {"$set": {"category_configs": cat_configs}},
-                upsert=True
-            )
-            await interaction.response.send_message(embed=info_embed("✏️ Ticket Category Renamed!", f"Renamed ticket category **\"{old_name.strip()}\"** to **\"{new_name.strip()}\"**."), ephemeral=True)
-        else:
-            await interaction.response.send_message(embed=error_embed(f"Ticket Category **\"{old_name.strip()}\"** not found."), ephemeral=True)
-
-    @app_commands.command(name="delete-category", description="Delete an existing ticket category and its questions (Admins Only).")
-    async def delete_category_cmd(self, interaction: discord.Interaction, name: str):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        guild_id = interaction.guild.id
-        doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-        cat_configs = doc.get("category_configs", {})
-
-        if name.strip() in cat_configs:
-            cat_configs.pop(name.strip())
-            db["guild_config"].update_one(
-                {"guild_id": guild_id},
-                {"$set": {"category_configs": cat_configs}},
-                upsert=True
-            )
-            await interaction.response.send_message(embed=info_embed("🗑️ Ticket Category Deleted!", f"Deleted ticket category **\"{name.strip()}\"** and its configuration."), ephemeral=True)
-        else:
-            await interaction.response.send_message(embed=error_embed(f"Ticket Category **\"{name.strip()}\"** not found."), ephemeral=True)
-
-    @app_commands.command(name="blacklisted-list", description="Display all blacklisted users (Clean Embed).")
-    async def blacklisted_list_cmd(self, interaction: discord.Interaction):
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        cursor = db["blacklist"].find()
-        bl_lines = []
-        for doc in cursor:
-            uid = doc.get("user_id")
-            reason = doc.get("reason", "No reason provided")
-            bl_lines.append(f"<@{uid}> (ID: `{uid}`) — *{reason}*")
-
-        embed = discord.Embed(
-            title="⛔ Blacklisted Users Log",
-            description="\n".join(bl_lines) if bl_lines else "*(No blacklisted users)*",
-            color=ERROR_COLOR
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    @app_commands.command(name="blacklist", description="Add a user to the bot blacklist (Admins Only).")
-    async def blacklist_cmd(self, interaction: discord.Interaction, user: discord.User, reason: Optional[str] = "No reason provided"):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        db["blacklist"].update_one(
-            {"user_id": str(user.id)},
-            {"$set": {"user_id": str(user.id), "username": str(user), "reason": reason}},
-            upsert=True
-        )
-        await interaction.response.send_message(embed=info_embed(f"⛔ Blacklisted {user.mention}. Reason: {reason}"), ephemeral=True)
-
-    @app_commands.command(name="unblacklist", description="Remove a user from the bot blacklist (Admins Only).")
-    async def unblacklist_cmd(self, interaction: discord.Interaction, user: discord.User):
-        if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
-
-        db = get_db()
-        if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
-
-        result = db["blacklist"].delete_one({"user_id": str(user.id)})
-        if result.deleted_count > 0:
-            await interaction.response.send_message(embed=info_embed(f"✅ Successfully unblacklisted {user.mention} (`{user.id}`)."), ephemeral=True)
-        else:
-            await interaction.response.send_message(embed=error_embed(f"User {user.mention} was not found on the blacklist."), ephemeral=True)
-
-    @app_commands.command(name="dashboard", description="Get the link to access the 𝐎𝐑𝐂𝐀 Web Control Dashboard.")
-    async def dashboard(self, interaction: discord.Interaction):
-        if not is_owner(interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("Only the Bot Owner (1219266886143967245) can access the Web Control Dashboard."), ephemeral=True)
-
-        dashboard_url = os.getenv("DASHBOARD_URL", "https://echo-dashboard.duckdns.org").strip()
-        if not dashboard_url.startswith(("http://", "https://")):
-            dashboard_url = f"https://{dashboard_url}"
-
-        embed = discord.Embed(title="🌐 𝐎𝐑𝐂𝐀 Web Dashboard", description="Build custom ticket categories, manage questions, and review system telemetry.", color=EMBED_COLOR)
-        view = discord.ui.View()
-        view.add_item(discord.ui.Button(label="Open Web Control Panel", url=dashboard_url, style=discord.ButtonStyle.link, emoji="🎛️"))
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-    # ====================================================================
-    # Web Handlers: Category & Verification Deployment
-    # ====================================================================
     async def deploy_verification_panel_from_web(self, channel_id: int):
-        channel = self.bot.get_channel(channel_id)
-        if channel is None:
-            channel = await self.bot.fetch_channel(channel_id)
-
+        channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
         db = get_db()
-        config = db["guild_config"].find_one({"guild_id": channel.guild.id}) if db is not None else {}
-        v_config = config.get("verification_config", {})
+        v_config = db["guild_config"].find_one({"guild_id": channel.guild.id}).get("verification_config", {}) if db else {}
+        embed = discord.Embed(title=v_config.get("title", "🛡️ MEMBER VERIFICATION PORTAL"), description=v_config.get("description", "Click below to verify!"), color=EMBED_COLOR)
+        await channel.send(embed=embed, view=VerificationView(v_config.get("button_label", "✅ Verify Access")))
 
-        title = v_config.get("title") or "🛡️ MEMBER VERIFICATION PORTAL"
-        desc = v_config.get("description") or "Click the button below to complete verification!"
-        button_label = v_config.get("button_label") or "✅ Verify Access"
-
-        embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
-        view = VerificationView(button_label=button_label)
-        await channel.send(embed=embed, view=view)
+    async def deploy_custom_role_panel_from_web(self, channel_id: int):
+        channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
+        embed = discord.Embed(title="🎨 CLIENT CUSTOM ROLE CREATOR STUDIO", description="Click the button below to create your custom role!", color=EMBED_COLOR)
+        await channel.send(embed=embed, view=CustomRolePanelView())
 
     async def deploy_form_panel_from_web(self, channel_id: int, category: str = "Custom Bot Commission"):
-        channel = self.bot.get_channel(channel_id)
-        if channel is None:
-            try:
-                channel = await self.bot.fetch_channel(channel_id)
-            except Exception:
-                raise Exception(f"Channel ID {channel_id} not found.")
-
-        db = get_db()
-        config = db["guild_config"].find_one({"guild_id": channel.guild.id}) if db is not None else {}
-        cat_configs = config.get("category_configs", {}) if config else {}
-        cat_data = cat_configs.get(category, {})
-
-        title = cat_data.get("panelTitle") or cat_data.get("title") or f"📋 {category.upper()} TICKET PANEL"
-        desc = cat_data.get("panelDesc") or cat_data.get("description") or f"Click the button below to submit a {category} ticket request."
-        button_label = cat_data.get("buttonLabel") or cat_data.get("button_label") or "📝 Open Ticket"
-
-        embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
-        view = FormPanelView(category=category, button_label=button_label)
-        msg = await channel.send(embed=embed, view=view)
-
-        if db is not None:
-            cat_data["last_form_msg_id"] = msg.id
-            cat_data["channel_id"] = channel.id
-            cat_configs[category] = cat_data
-
-            db["guild_config"].update_one(
-                {"guild_id": channel.guild.id},
-                {"$set": {"category_configs": cat_configs}}
-            )
+        channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
+        embed = discord.Embed(title=f"📋 {category.upper()} TICKET PANEL", description="Click below to open a ticket!", color=EMBED_COLOR)
+        await channel.send(embed=embed, view=FormPanelView(category=category))
 
 
 async def setup(bot: commands.Bot):
