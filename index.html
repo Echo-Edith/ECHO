@@ -228,7 +228,7 @@
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">/system-stats Live Telemetry</h2>
           <p class="text-xs text-orca-muted mt-0.5">Accurate real-time bot infrastructure health, RAM usage, ping, and database performance.</p>
         </div>
-        <button onclick="fetchTelemetryStats(true)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
+        <button id="btn-sync-stats" onclick="fetchTelemetryStats(true)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
           <i class="fa-solid fa-arrows-rotate text-orca-accent" id="refresh-icon"></i> Sync /stats
         </button>
       </div>
@@ -461,7 +461,7 @@
                   <p class="text-[11px] text-orca-muted">Upload this ticket panel message into the target channel.</p>
                 </div>
                 <div class="flex items-center gap-2 w-full sm:w-auto">
-                  <button onclick="deployTicketPanel(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
+                  <button id="btn-deploy-panel" onclick="deployTicketPanel(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
                     <i class="fa-solid fa-cloud-arrow-up"></i> Upload Ticket Panel
                   </button>
                 </div>
@@ -473,7 +473,7 @@
                   <h4 class="font-bold text-xs text-white">Save All Ticket Settings</h4>
                   <p class="text-[11px] text-orca-muted">Saves channels, category placement, roles, embed text, and questions for <span class="active-cat-display font-bold text-white">--</span>.</p>
                 </div>
-                <button onclick="saveCategoryData(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-3.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
+                <button id="btn-save-category" onclick="saveCategoryData(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-3.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
                   <i class="fa-solid fa-floppy-disk text-sm"></i> Save Everything into Category
                 </button>
               </div>
@@ -505,17 +505,17 @@
               <!-- Opened Ticket Channel Area -->
               <div id="sim-ticket-container" class="hidden pt-3 border-t border-[#3f4147] space-y-3">
                 <div class="flex items-center justify-between bg-[#1e1f22] p-2 rounded border border-white/5 text-xs font-mono">
-                  <span id="sim-ticket-name" class="text-indigo-400 font-bold">#ticket-client-4829</span>
+                  <span id="sim-ticket-name" class="text-indigo-400 font-bold">#ticket-client-1</span>
                   <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">Active Ticket Channel</span>
                 </div>
 
                 <!-- Welcome Embed inside channel -->
                 <div class="bg-[#2b2d31] p-3 rounded-lg border-l-4 border-emerald-500 space-y-1.5">
                   <p class="font-bold text-xs text-white" id="sim-embed-title">🐬 Custom Bot Commission Request Created</p>
-                  <p class="text-[11px] text-[#dbdee1] leading-relaxed" id="sim-embed-desc">Welcome to your private commission channel! Type "close" to finish.</p>
+                  <p class="text-[11px] text-[#dbdee1] leading-relaxed" id="sim-embed-desc">Welcome to your private commission channel! Type `/close` or click below to finish.</p>
                   <div class="pt-1">
                     <button onclick="triggerCloseModal()" class="bg-[#f23f43] hover:bg-rose-600 text-white px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1 transition">
-                      <i class="fa-solid fa-lock"></i> Close Ticket
+                      <i class="fa-solid fa-lock"></i> Close Ticket (/close)
                     </button>
                   </div>
                 </div>
@@ -525,7 +525,7 @@
 
                 <!-- User chat input -->
                 <div class="flex gap-2 pt-1">
-                  <input type="text" id="sim-user-input" placeholder="Type 'close' or chat here..." class="flex-1 bg-[#1e1f22] border border-[#3f4147] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-[#5865f2]">
+                  <input type="text" id="sim-user-input" placeholder="Type '/close' or chat here..." class="flex-1 bg-[#1e1f22] border border-[#3f4147] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-[#5865f2]">
                   <button onclick="simSendMessage()" class="bg-[#5865f2] hover:bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold">Send</button>
                 </div>
               </div>
@@ -613,23 +613,23 @@
       <div class="flex items-center justify-between border-b border-[#3f4147] pb-3">
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
-          <h3 class="font-extrabold text-sm text-white">Ticket Closing Control Panel</h3>
+          <h3 class="font-extrabold text-sm text-white">Ticket Closing Control Panel (/close)</h3>
         </div>
         <button onclick="closeTicketModal()" class="text-[#949ba4] hover:text-white"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <p class="text-xs text-[#dbdee1] leading-relaxed">
-        Ticket close triggered. Grant buyer role or finalize transcript logging below:
+        Execute `/close` command. Grant buyer role or finalize transcript logging below:
       </p>
 
       <div class="space-y-2.5 pt-1">
         <button onclick="simGiveBuyerRole()" class="w-full bg-[#248046] hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-between transition shadow">
-          <span class="flex items-center gap-2"><i class="fa-solid fa-user-check"></i> Give Buyer Role</span>
+          <span class="flex items-center gap-2"><i class="fa-solid fa-user-check"></i> Give Buyer Role (Role: Yes)</span>
           <span class="text-[10px] bg-emerald-950 px-2 py-0.5 rounded font-mono text-emerald-300" id="modal-role-badge">@Buyer</span>
         </button>
 
         <button onclick="simFinalizeClose()" class="w-full bg-[#da373c] hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-between transition shadow">
-          <span class="flex items-center gap-2"><i class="fa-solid fa-box-archive"></i> Close & Save Transcript</span>
+          <span class="flex items-center gap-2"><i class="fa-solid fa-box-archive"></i> Close Ticket & Send Logs</span>
           <span class="text-[10px] text-rose-200">Deletes Channel</span>
         </button>
       </div>
@@ -674,6 +674,20 @@
     let telemetryPollInterval = null;
     let chartInstance = null;
     let pingHistory = [15, 18, 16, 17, 19, 16, 18, 16, 17, 16];
+
+    function setBtnLoading(btn, isLoading, originalHtml) {
+      if (!btn) return;
+      if (isLoading) {
+        btn.dataset.originalContent = originalHtml || btn.innerHTML;
+        btn.disabled = true;
+        btn.classList.add("opacity-75", "cursor-not-allowed");
+        btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Processing...`;
+      } else {
+        btn.disabled = false;
+        btn.classList.remove("opacity-75", "cursor-not-allowed");
+        btn.innerHTML = btn.dataset.originalContent || originalHtml;
+      }
+    }
 
     function initChart() {
       const ctx = document.getElementById('uptimeChart').getContext('2d');
@@ -745,9 +759,12 @@
     }
 
     async function fetchTelemetryStats(manualSync = false) {
+      const btn = document.getElementById("btn-sync-stats");
+      if (manualSync) setBtnLoading(btn, true);
+
       try {
         const res = await fetch('/api/stats');
-        if (!res.ok) return;
+        if (!res.ok) throw new Error("API Offline");
 
         const sData = await res.json();
         const pingVal = sData.ping || 0;
@@ -769,12 +786,13 @@
         if (manualSync) showToast("Live /system-stats synchronized!");
       } catch (e) {
         if (manualSync) showToast("Could not contact bot telemetry API", true);
+      } finally {
+        if (manualSync) setBtnLoading(btn, false);
       }
     }
 
     function startLiveTelemetryPolling() {
       if (telemetryPollInterval) clearInterval(telemetryPollInterval);
-      // Poll live API telemetry every 1 second
       telemetryPollInterval = setInterval(() => {
         rawUptimeSeconds += 1;
         document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
@@ -1014,6 +1032,8 @@
 
     async function saveCategoryData(btn = null) {
       if (!activeTicketCategory) return;
+      const saveBtn = btn || document.getElementById("btn-save-category");
+      setBtnLoading(saveBtn, true);
 
       const panelCh = document.getElementById("ticket-panel-channel").value;
       const logCh = document.getElementById("ticket-log-channel").value;
@@ -1058,16 +1078,22 @@
         }
       } catch (err) {
         showToast("Error connecting to server", true);
+      } finally {
+        setBtnLoading(saveBtn, false);
       }
     }
 
-    async function deployTicketPanel(btn) {
+    async function deployTicketPanel(btn = null) {
       if (!activeTicketCategory) return;
+      const deployBtn = btn || document.getElementById("btn-deploy-panel");
+      setBtnLoading(deployBtn, true);
+
       await saveCategoryData();
 
       const panelCh = document.getElementById("ticket-panel-channel").value;
       if (!panelCh) {
         showToast("Select a Target Panel Channel first!", true);
+        setBtnLoading(deployBtn, false);
         return;
       }
 
@@ -1085,6 +1111,8 @@
         }
       } catch (err) {
         showToast("Failed to deploy panel", true);
+      } finally {
+        setBtnLoading(deployBtn, false);
       }
     }
 
@@ -1105,14 +1133,14 @@
     }
 
     function simOpenTicket(username) {
-      const rand = Math.floor(1000 + Math.random() * 9000);
+      const rand = Math.floor(1 + Math.random() * 50);
       simTicketId = `ticket-${username}-${rand}`;
 
       document.getElementById("sim-ticket-name").innerText = `#${simTicketId}`;
       document.getElementById("sim-ticket-container").classList.remove("hidden");
       document.getElementById("sim-chat-log").innerHTML = `
         <div class="text-[10px] text-emerald-400 font-mono bg-emerald-950/40 p-1.5 rounded border border-emerald-500/20">
-          [System]: Private channel #${simTicketId} opened for @${username}.
+          [System]: Private ticket channel #${simTicketId} opened for @${username}.
         </div>
       `;
       showToast(`Opened channel #${simTicketId}`);
@@ -1133,7 +1161,7 @@
 
       input.value = "";
 
-      if (val.toLowerCase() === "close") {
+      if (val.toLowerCase() === "/close" || val.toLowerCase() === "close") {
         triggerCloseModal();
       }
     }
@@ -1151,17 +1179,17 @@
       const log = document.getElementById("sim-chat-log");
       log.innerHTML += `
         <div class="text-[10px] text-indigo-300 font-mono bg-indigo-950/40 p-1.5 rounded border border-indigo-500/30">
-          [System]: User granted role ${roleBadge}! Review invite active.
+          [System]: Executed /close (Role: Yes). User granted role ${roleBadge}!
         </div>
       `;
       closeTicketModal();
-      showToast(`Granted ${roleBadge} to user!`);
+      showToast(`Granted ${roleBadge} to user & prepared close!`);
     }
 
     function simFinalizeClose() {
       closeTicketModal();
       document.getElementById("sim-ticket-container").classList.add("hidden");
-      showToast(`Ticket #${simTicketId} closed and transcript archived!`);
+      showToast(`Ticket #${simTicketId} closed, receipt DMed to user, and log sent!`);
       simTicketId = null;
     }
 
