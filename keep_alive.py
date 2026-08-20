@@ -201,6 +201,40 @@ def deploy_form_panel():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/maintenance', methods=['POST'])
+def handle_maintenance():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"guild_id": guild_id, "maintenance": bool(data.get("maintenance"))}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
+@app.route('/api/lockdown', methods=['POST'])
+def handle_lockdown():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"guild_id": guild_id, "lockdown": bool(data.get("lockdown"))}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
 def run():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
