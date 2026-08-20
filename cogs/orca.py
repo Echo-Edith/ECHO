@@ -102,7 +102,6 @@ def can_user_close_ticket(member: discord.Member, category: str, guild: discord.
         if staff_role and staff_role in member.roles:
             return True
 
-    # Fallback to manage channels if no specific staff role is configured
     return member.guild_permissions.manage_channels
 
 
@@ -229,7 +228,7 @@ class ChainedCustomModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
         db = get_db()
 
-        # Strict 1-to-Infinity Incremental Sequential Counter per Server
+        # Incremental Sequential Counter per Server
         counter = 1
         config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
         if config:
@@ -253,7 +252,7 @@ class ChainedCustomModal(discord.ui.Modal):
         if db is not None:
             db["form_submissions"].insert_one(ticket_record)
 
-        # Check target category placement on Discord
+        # Target Discord Category placement
         target_category_ref = cat_data.get("openedCategory")
         target_discord_category = None
         if target_category_ref and interaction.guild:
@@ -262,11 +261,15 @@ class ChainedCustomModal(discord.ui.Modal):
             if not target_discord_category:
                 target_discord_category = discord.utils.get(interaction.guild.categories, name=target_category_ref)
 
-        # Create private ticket channel
+        # Create private ticket channel formatted as ticket-(category)-user
         ticket_channel = None
         if interaction.guild:
+            clean_category = re.sub(r'[^a-zA-Z0-9]', '', self.category.lower()) or "support"
             clean_username = re.sub(r'[^a-zA-Z0-9]', '', interaction.user.name.lower()) or "user"
-            channel_name = f"ticket-{clean_username}-{counter}"
+            
+            # Format: ticket-(category)-user
+            channel_name = f"ticket-{clean_category}-{clean_username}"[:100]
+
             overwrites = {
                 interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
                 interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, attach_files=True),
@@ -460,7 +463,7 @@ class Orca(commands.Cog):
             pass
         transcript_text = "\n".join(messages)
 
-        # 3. Log to Transcript Log Channel (Only triggered after ticket close)
+        # 3. Log to Transcript Log Channel
         log_channel_id = cat_data.get("logChannel") or cat_data.get("log_channel_id") or config.get("log_channel_id")
         if log_channel_id:
             log_ch = guild.get_channel(int(log_channel_id))
@@ -475,7 +478,6 @@ class Orca(commands.Cog):
                 l_embed.add_field(name="Buyer Role Granted", value=role_granted_status, inline=True)
                 l_embed.add_field(name="Close Reason", value=f"*{reason}*", inline=False)
 
-                # Append answered form questions
                 answers = ticket_data.get("answers", [])
                 for ans in answers:
                     l_embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
@@ -486,7 +488,7 @@ class Orca(commands.Cog):
                 except Exception:
                     pass
 
-        # 4. Send DM Notification Receipt to Ticket Opener
+        # 4. DM Notification Receipt to Ticket Opener
         if opener_member:
             dm_embed = discord.Embed(
                 title=f"🧾 ORCA Studio Ticket Receipt #{ticket_data.get('number', '')}",
@@ -504,14 +506,12 @@ class Orca(commands.Cog):
             except Exception:
                 pass
 
-        # Update database document
         if db is not None:
             db["form_submissions"].update_one(
                 {"number": ticket_data.get("number")},
                 {"$set": {"closed": True, "closed_by": str(interaction.user), "close_reason": reason}}
             )
 
-        # Final deletion of ticket channel
         try:
             await interaction.followup.send(embed=info_embed("🔒 Closing Ticket", "This channel will be archived and deleted in 5 seconds..."), ephemeral=True)
             await asyncio.sleep(5)
@@ -536,8 +536,8 @@ class Orca(commands.Cog):
         ticket_data = {"number": "N/A"}
 
         db = get_db()
-        if db is not None:
-            match = re.search(r"ticket-.*?(\d+)$", interaction.channel.name)
+        if db is not None and interaction.channel.topic:
+            match = re.search(r"ORCA Ticket #(\d+)", interaction.channel.topic)
             if match:
                 num = int(match.group(1))
                 found = db["form_submissions"].find_one({"number": num})
@@ -545,7 +545,6 @@ class Orca(commands.Cog):
                     ticket_data = found
                     category = found.get("category", "Custom Bot Commission")
 
-        # Security permission check: Only Staff with role or Admins can close
         if not can_user_close_ticket(interaction.user, category, interaction.guild):
             return await interaction.response.send_message(
                 embed=error_embed("Only staff members with the designated Staff Role or Administrators can close this ticket."),
