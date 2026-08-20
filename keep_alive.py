@@ -113,8 +113,67 @@ def get_guild_data():
         "bot_avatar": _bot_ref.user.display_avatar.url if (_bot_ref and _bot_ref.user) else "",
         "bot_name": _bot_ref.user.name if (_bot_ref and _bot_ref.user) else "ORCA",
         "category_configs": config.get("category_configs", {}),
-        "verification_config": config.get("verification_config", {})
+        "verification_config": config.get("verification_config", {}),
+        "custom_role_config": config.get("custom_role_config", {}),
+        "staff_config": config.get("staff_config", {})
     })
+
+
+@app.route('/api/save-custom-role-config', methods=['POST'])
+def save_custom_role_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"custom_role_config": data}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
+@app.route('/api/deploy-custom-role-panel', methods=['POST'])
+def deploy_custom_role_panel():
+    if _bot_ref is None or not _bot_ref.is_ready():
+        return jsonify({"error": "Bot not ready"}), 500
+
+    data = request.json or {}
+    channel_id = data.get("channel_id")
+    cog = _bot_ref.get_cog("Orca")
+
+    if not cog or not channel_id:
+        return jsonify({"error": "Invalid request"}), 400
+
+    future = asyncio.run_coroutine_threadsafe(
+        cog.deploy_custom_role_panel_from_web(int(channel_id)),
+        _bot_ref.loop
+    )
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/save-staff-config', methods=['POST'])
+def save_staff_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"staff_config": data}},
+        upsert=True
+    )
+    return jsonify({"success": True})
 
 
 @app.route('/api/save-verification-config', methods=['POST'])
@@ -199,40 +258,6 @@ def deploy_form_panel():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/maintenance', methods=['POST'])
-def handle_maintenance():
-    db = get_db()
-    if db is None:
-        return jsonify({"error": "Database unavailable"}), 500
-
-    data = request.json or {}
-    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-
-    db["guild_config"].update_one(
-        {"guild_id": guild_id},
-        {"$set": {"guild_id": guild_id, "maintenance": bool(data.get("maintenance"))}},
-        upsert=True
-    )
-    return jsonify({"success": True})
-
-
-@app.route('/api/lockdown', methods=['POST'])
-def handle_lockdown():
-    db = get_db()
-    if db is None:
-        return jsonify({"error": "Database unavailable"}), 500
-
-    data = request.json or {}
-    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-
-    db["guild_config"].update_one(
-        {"guild_id": guild_id},
-        {"$set": {"guild_id": guild_id, "lockdown": bool(data.get("lockdown"))}},
-        upsert=True
-    )
-    return jsonify({"success": True})
 
 
 def run():
