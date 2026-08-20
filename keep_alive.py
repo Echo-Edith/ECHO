@@ -20,7 +20,7 @@ try:
 except ImportError:
     pymongo = None
 
-# Suppress verbose Flask / Werkzeug HTTP request logs to keep terminal/cron output clean
+# Suppress verbose Flask / Werkzeug HTTP request logs to keep terminal logs clean
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -57,7 +57,6 @@ def home():
 @app.route('/health')
 @app.route('/cron')
 def cron_ping():
-    # Silent 200 OK response for uptime monitors and cron jobs
     return jsonify({"status": "ok"}), 200
 
 
@@ -118,14 +117,12 @@ def get_guild_data():
             guild = _bot_ref.guilds[0]
             guild_name = guild.name
 
-            # Preserve category hierarchy and text channel placement
             for cat in guild.categories:
                 cat_channels = []
                 for ch in cat.text_channels:
                     cat_channels.append({"id": str(ch.id), "name": ch.name})
                 categories.append({"id": str(cat.id), "name": cat.name, "channels": cat_channels})
 
-            # Handle uncategorized channels if present
             uncategorized = [ch for ch in guild.text_channels if ch.category is None]
             if uncategorized:
                 categories.insert(0, {
@@ -134,7 +131,6 @@ def get_guild_data():
                     "channels": [{"id": str(ch.id), "name": ch.name} for ch in uncategorized]
                 })
 
-            # Server roles ordered by hierarchy position
             sorted_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
             for r in sorted_roles:
                 if not r.is_default():
