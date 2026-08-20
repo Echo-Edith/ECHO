@@ -1,4 +1,5 @@
 discord.py
-Flask
+flask
 pymongo
 dnspython
+psutil
