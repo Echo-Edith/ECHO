@@ -150,7 +150,7 @@
     </button>
   </header>
 
-  <!-- Mobile Menu Overlay Dropdown (Top Header Toggle) -->
+  <!-- Mobile Menu Overlay Dropdown -->
   <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl">
     <button onclick="switchTab('overview'); toggleMobileMenu()" id="m-top-nav-overview" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent transition">
       <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview (/system-stats)
@@ -159,14 +159,14 @@
       <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets Engine
     </button>
     <button onclick="switchTab('verification-engine'); toggleMobileMenu()" id="m-top-nav-verification-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-user-check w-4 text-center"></i> Verification Engine (/verify)
+      <i class="fa-solid fa-user-check w-4 text-center"></i> Verification Engine
     </button>
     <button onclick="switchTab('maintenance'); toggleMobileMenu()" id="m-top-nav-maintenance" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-shield-halved w-4 text-center"></i> Safety & Maintenance
     </button>
   </div>
 
-  <!-- Mobile Bottom Navigation Bar (4 Touch Buttons) -->
+  <!-- Mobile Bottom Navigation Bar -->
   <nav class="md:hidden fixed bottom-0 inset-x-0 glass-panel border-t border-orca-border z-40 px-2 py-2 flex items-center justify-around">
     <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-accent">
       <i class="fa-solid fa-chart-pie text-base"></i>
@@ -468,12 +468,12 @@
       </div>
     </section>
 
-    <!-- TAB 3: BLOXLINK-STYLE VERIFICATION ENGINE -->
+    <!-- TAB 3: VERIFICATION ENGINE -->
     <section id="tab-verification-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Bloxlink-Style Verification Engine</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Customizable member verification system with 1-to-Infinity automatic role granting upon completion.</p>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Verification Engine</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Customizable member verification system with automatic role granting upon completion.</p>
         </div>
         <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
           <i class="fa-solid fa-user-shield"></i> Security Module
@@ -499,11 +499,11 @@
               </div>
             </div>
 
-            <!-- INFINITE MULTI-ROLE SELECTOR -->
+            <!-- MULTI-ROLE SELECTOR -->
             <div class="space-y-2 pt-2 border-t border-white/5">
               <div class="flex items-center justify-between">
                 <label class="block text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest">
-                  <i class="fa-solid fa-tags"></i> Assigned Roles Upon Verification (1 to ∞ Roles)
+                  <i class="fa-solid fa-tags"></i> Assigned Roles Upon Verification
                 </label>
                 <button onclick="addVerificationRoleDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
                   <i class="fa-solid fa-plus text-[10px]"></i> Add Role
@@ -708,51 +708,42 @@
       }
     }
 
-    // Dynamic Tab Navigation System (Desktop Sidebar + Mobile Top Overlay Menu + Mobile Bottom Nav)
     function switchTab(tabKey) {
       const allTabs = ['overview', 'ticket-engine', 'verification-engine', 'maintenance'];
 
       allTabs.forEach(t => {
-        // Hide Section
         const sec = document.getElementById(`tab-${t}`);
         if (sec) sec.classList.add('hidden');
 
-        // Reset Desktop Nav
         const dBtn = document.getElementById(`nav-${t}`);
         if (dBtn) {
           dBtn.className = "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all";
         }
 
-        // Reset Mobile Top Overlay Nav
         const mTopBtn = document.getElementById(`m-top-nav-${t}`);
         if (mTopBtn) {
           mTopBtn.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition";
         }
 
-        // Reset Mobile Bottom Nav
         const mNavBtn = document.getElementById(`m-nav-${t}`);
         if (mNavBtn) {
           mNavBtn.className = "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-muted";
         }
       });
 
-      // Show Target Tab Section
       const targetSec = document.getElementById(`tab-${tabKey}`);
       if (targetSec) targetSec.classList.remove('hidden');
 
-      // Highlight Active Desktop Nav
       const activeDesktop = document.getElementById(`nav-${tabKey}`);
       if (activeDesktop) {
         activeDesktop.className = "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all";
       }
 
-      // Highlight Active Mobile Top Dropdown Nav
       const activeMobileTop = document.getElementById(`m-top-nav-${tabKey}`);
       if (activeMobileTop) {
         activeMobileTop.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent transition";
       }
 
-      // Highlight Active Mobile Bottom Nav
       const activeMobileBottom = document.getElementById(`m-nav-${tabKey}`);
       if (activeMobileBottom) {
         activeMobileBottom.className = "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition text-orca-accent";
