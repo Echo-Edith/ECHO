@@ -100,7 +100,7 @@ class ChainedCustomModal(discord.ui.Modal):
             is_paragraph = q.get("style") == "paragraph"
             input_style = discord.TextStyle.paragraph if is_paragraph else discord.TextStyle.short
             field_input = discord.ui.TextInput(
-                label=q.get("label", "Question")[:45],
+                label=q.get("label", "Question Prompt")[:45],
                 style=input_style,
                 placeholder=q.get("placeholder", "")[:100],
                 required=q.get("required", True),
@@ -153,33 +153,86 @@ class ChainedCustomModal(discord.ui.Modal):
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             })
 
+        # Check for designated Opened Ticket Target Category on Discord
+        target_category_ref = cat_data.get("openedCategory")
+        target_discord_category = None
+        if target_category_ref and interaction.guild:
+            if str(target_category_ref).isdigit():
+                target_discord_category = interaction.guild.get_channel(int(target_category_ref))
+            if not target_discord_category:
+                target_discord_category = discord.utils.get(interaction.guild.categories, name=target_category_ref)
+
+        # Create private ticket channel for the user
+        ticket_channel = None
+        if interaction.guild:
+            channel_name = f"ticket-{interaction.user.name}-{counter}"
+            overwrites = {
+                interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            }
+
+            staff_role_id = cat_data.get("staffRole") or config.get("ping_role_id")
+            if staff_role_id:
+                staff_role = interaction.guild.get_role(int(staff_role_id))
+                if staff_role:
+                    overwrites[staff_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+
+            try:
+                ticket_channel = await interaction.guild.create_text_channel(
+                    name=channel_name,
+                    category=target_discord_category if isinstance(target_discord_category, discord.CategoryChannel) else None,
+                    overwrites=overwrites,
+                    reason=f"ORCA Ticket #{counter} opened by {interaction.user}"
+                )
+            except Exception:
+                pass
+
+        # Send Welcome Embed into the newly created ticket channel
+        if ticket_channel:
+            welcome_title = cat_data.get("welcomeTitle") or f"🐬 {self.category} Ticket Created"
+            welcome_desc = cat_data.get("welcomeDesc") or "Welcome to your private ticket channel! A staff member will assist you shortly."
+            
+            w_embed = discord.Embed(title=welcome_title, description=welcome_desc, color=discord.Color.green())
+            w_embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
+            for ans in current_answers:
+                w_embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
+
+            ping_text = interaction.user.mention
+            if staff_role_id:
+                role = interaction.guild.get_role(int(staff_role_id))
+                if role:
+                    ping_text += f" {role.mention}"
+
+            try:
+                await ticket_channel.send(content=ping_text, embed=w_embed)
+            except Exception:
+                pass
+
+        # Send transcript log to log channel if configured
         log_channel_id = cat_data.get("logChannel") or cat_data.get("log_channel_id") or config.get("log_channel_id")
         if log_channel_id and interaction.guild:
             log_ch = interaction.guild.get_channel(int(log_channel_id))
             if log_ch:
-                embed = discord.Embed(
-                    title=f"📥 New Inquiry #{counter} [{self.category}]",
-                    color=discord.Color.green(),
+                l_embed = discord.Embed(
+                    title=f"📥 New Ticket #{counter} [{self.category}]",
+                    color=discord.Color.blue(),
                     timestamp=discord.utils.utcnow()
                 )
-                embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
+                l_embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
+                if ticket_channel:
+                    l_embed.add_field(name="Ticket Channel", value=ticket_channel.mention, inline=False)
                 for ans in current_answers:
-                    embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
-
-                ping_text = ""
-                ping_role_id = cat_data.get("staffRole") or cat_data.get("ping_role_id") or config.get("ping_role_id")
-                if ping_role_id:
-                    role = interaction.guild.get_role(int(ping_role_id))
-                    if role:
-                        ping_text = role.mention
+                    l_embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
 
                 try:
-                    await log_ch.send(content=ping_text if ping_text else None, embed=embed)
+                    await log_ch.send(embed=l_embed)
                 except Exception:
                     pass
 
+        response_text = f"Thank you! Your ticket channel has been created: {ticket_channel.mention}" if ticket_channel else "Thank you for submitting your ticket details! Our team has received your submission."
         await interaction.followup.send(
-            embed=info_embed("✅ Submission Received!", f"Thank you for filling out the **{self.category}** form. Our team has received your submission and will review it shortly!"),
+            embed=info_embed("✅ Ticket Opened!", response_text),
             ephemeral=True
         )
 
@@ -188,7 +241,7 @@ class ChainedCustomModal(discord.ui.Modal):
 # Dynamic Category Button View
 # ----------------------------------------------------------------------
 class FormPanelView(discord.ui.View):
-    def __init__(self, category: str = "Custom Bot Commission", button_label: str = "📝 Fill Out Form"):
+    def __init__(self, category: str = "Custom Bot Commission", button_label: str = "📝 Open Ticket"):
         super().__init__(timeout=None)
         self.category = category
         custom_id = sanitize_custom_id(category)
@@ -207,10 +260,10 @@ class FormPanelView(discord.ui.View):
             return await interaction.response.send_message(embed=error_embed("System is in Total Lockdown mode. Only owner access permitted."), ephemeral=True)
 
         if is_blacklisted(interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("You are blacklisted from submitting forms."), ephemeral=True)
+            return await interaction.response.send_message(embed=error_embed("You are blacklisted from submitting tickets."), ephemeral=True)
 
         if is_maintenance(guild_id, interaction.user.id, interaction.guild):
-            return await interaction.response.send_message(embed=error_embed("The system is currently undergoing maintenance. Please try again later!"), ephemeral=True)
+            return await interaction.response.send_message(embed=error_embed("The ticket system is currently undergoing maintenance. Please try again later!"), ephemeral=True)
 
         db = get_db()
         config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
@@ -224,7 +277,7 @@ class FormPanelView(discord.ui.View):
 
         if not questions:
             questions = [
-                {"label": "Please explain your request details", "placeholder": "Type your request here...", "style": "paragraph", "required": True}
+                {"label": "Please explain your ticket details", "placeholder": "Type your details here...", "style": "paragraph", "required": True}
             ]
 
         title = cat_data.get("panelTitle") or cat_data.get("title") or f"📋 {self.category.upper()}"
@@ -300,7 +353,7 @@ class Orca(commands.Cog):
         embed.add_field(name="⏱️ Uptime", value=f"`{uptime_str}`", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="rename-category", description="Rename an existing form panel category (Admins Only).")
+    @app_commands.command(name="rename-category", description="Rename an existing ticket category (Admins Only).")
     async def rename_category_cmd(self, interaction: discord.Interaction, old_name: str, new_name: str):
         if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
@@ -320,11 +373,11 @@ class Orca(commands.Cog):
                 {"$set": {"category_configs": cat_configs}},
                 upsert=True
             )
-            await interaction.response.send_message(embed=info_embed("✏️ Category Renamed!", f"Renamed category **\"{old_name.strip()}\"** to **\"{new_name.strip()}\"**."), ephemeral=True)
+            await interaction.response.send_message(embed=info_embed("✏️ Ticket Category Renamed!", f"Renamed ticket category **\"{old_name.strip()}\"** to **\"{new_name.strip()}\"**."), ephemeral=True)
         else:
-            await interaction.response.send_message(embed=error_embed(f"Category **\"{old_name.strip()}\"** not found."), ephemeral=True)
+            await interaction.response.send_message(embed=error_embed(f"Ticket Category **\"{old_name.strip()}\"** not found."), ephemeral=True)
 
-    @app_commands.command(name="delete-category", description="Delete an existing form panel category and its questions (Admins Only).")
+    @app_commands.command(name="delete-category", description="Delete an existing ticket category and its questions (Admins Only).")
     async def delete_category_cmd(self, interaction: discord.Interaction, name: str):
         if not is_owner(interaction.user.id) and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(embed=error_embed("Admin permission required."), ephemeral=True)
@@ -344,9 +397,9 @@ class Orca(commands.Cog):
                 {"$set": {"category_configs": cat_configs}},
                 upsert=True
             )
-            await interaction.response.send_message(embed=info_embed("🗑️ Category Deleted!", f"Deleted category **\"{name.strip()}\"** and its configuration."), ephemeral=True)
+            await interaction.response.send_message(embed=info_embed("🗑️ Ticket Category Deleted!", f"Deleted ticket category **\"{name.strip()}\"** and its configuration."), ephemeral=True)
         else:
-            await interaction.response.send_message(embed=error_embed(f"Category **\"{name.strip()}\"** not found."), ephemeral=True)
+            await interaction.response.send_message(embed=error_embed(f"Ticket Category **\"{name.strip()}\"** not found."), ephemeral=True)
 
     @app_commands.command(name="blacklisted-list", description="Display all blacklisted users (Clean Embed).")
     async def blacklisted_list_cmd(self, interaction: discord.Interaction):
@@ -408,7 +461,7 @@ class Orca(commands.Cog):
         if not dashboard_url.startswith(("http://", "https://")):
             dashboard_url = f"https://{dashboard_url}"
 
-        embed = discord.Embed(title="🌐 𝐎𝐑𝐂𝐀 Web Dashboard", description="Build custom forms, manage questions, and review system telemetry.", color=EMBED_COLOR)
+        embed = discord.Embed(title="🌐 𝐎𝐑𝐂𝐀 Web Dashboard", description="Build custom ticket categories, manage questions, and review system telemetry.", color=EMBED_COLOR)
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Open Web Control Panel", url=dashboard_url, style=discord.ButtonStyle.link, emoji="🎛️"))
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -429,9 +482,9 @@ class Orca(commands.Cog):
         cat_configs = config.get("category_configs", {}) if config else {}
         cat_data = cat_configs.get(category, {})
 
-        title = cat_data.get("panelTitle") or cat_data.get("title") or f"📋 {category.upper()}"
-        desc = cat_data.get("panelDesc") or cat_data.get("description") or f"Click the button below to submit a {category} request."
-        button_label = cat_data.get("buttonLabel") or cat_data.get("button_label") or "📝 Fill Out Form"
+        title = cat_data.get("panelTitle") or cat_data.get("title") or f"📋 {category.upper()} TICKET PANEL"
+        desc = cat_data.get("panelDesc") or cat_data.get("description") or f"Click the button below to submit a {category} ticket request."
+        button_label = cat_data.get("buttonLabel") or cat_data.get("button_label") or "📝 Open Ticket"
 
         embed = discord.Embed(title=title, description=desc, color=EMBED_COLOR)
         view = FormPanelView(category=category, button_label=button_label)
