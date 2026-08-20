@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import asyncio
+import psutil
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
 
@@ -10,7 +11,7 @@ try:
 except ImportError:
     pymongo = None
 
-# Suppress verbose Flask / Werkzeug HTTP request logs
+# Suppress verbose Flask / Werkzeug HTTP request logs to keep logs clean
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -40,47 +41,29 @@ def home():
                 return render_template_string(f.read())
         except Exception as e:
             return f"Error loading dashboard: {e}", 500
-    return "<h1>ORCA Dashboard Active!</h1>", 200
+    return "<h1>ORCA Automation Studio Engine Active!</h1>", 200
 
 
 @app.route('/ping')
 @app.route('/health')
 @app.route('/cron')
 def cron_ping():
+    # Silent return for uptime monitors and cron jobs to prevent terminal output clutter
     return jsonify({"status": "ok"}), 200
 
 
-@app.route('/api/guild-data', methods=['GET'])
-def get_guild_data():
-    channels = []
-    roles = []
-    categories = []
-
-    if _bot_ref and _bot_ref.guilds:
-        try:
-            for guild in _bot_ref.guilds:
-                for ch in guild.channels:
-                    if str(ch.type) == "text":
-                        channels.append({"id": str(ch.id), "name": ch.name, "type": "text"})
-                    elif str(ch.type) == "category":
-                        categories.append({"id": str(ch.id), "name": ch.name})
-
-                for r in guild.roles:
-                    if not r.is_default():
-                        roles.append({"id": str(r.id), "name": r.name})
-                break
-        except Exception:
-            pass
-
-    db = get_db()
-    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-    config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    process = psutil.Process()
+    ram_mb = round(process.memory_info().rss / (1024 * 1024), 1)
+    cpu_pct = psutil.cpu_percent(interval=None)
 
     cog = _bot_ref.get_cog("Orca") if _bot_ref else None
     uptime_sec = int(time.time() - cog.start_time) if cog else 0
+    latency_ms = round(_bot_ref.latency * 1000) if (_bot_ref and _bot_ref.is_ready()) else 0
 
+    db = get_db()
     db_usage_str = "0.01 MB"
-    percent_val = 1
     if db is not None:
         try:
             stats = db.command("dbStats")
@@ -90,190 +73,117 @@ def get_guild_data():
                 db_usage_str = f"{round(data_bytes / 1024, 2)} KB"
             else:
                 db_usage_str = f"{data_mb} MB"
-            percent_val = max(1, min(100, int((data_mb / 512.0) * 100)))
         except Exception:
             pass
 
+    return jsonify({
+        "ping": latency_ms,
+        "uptime_seconds": uptime_sec,
+        "ram": f"{ram_mb} MB",
+        "cpu": f"{cpu_pct}%",
+        "db_usage": {"display": db_usage_str}
+    })
+
+
+@app.route('/api/guild-data', methods=['GET'])
+def get_guild_data():
+    categories = []
+    roles = []
+    guild_name = "Connected Server"
+
+    if _bot_ref and _bot_ref.guilds:
+        try:
+            guild = _bot_ref.guilds[0]
+            guild_name = guild.name
+
+            # Preserve full category and channel hierarchy from Discord server
+            for cat in guild.categories:
+                cat_channels = []
+                for ch in cat.text_channels:
+                    cat_channels.append({"id": str(ch.id), "name": ch.name})
+                categories.append({"name": cat.name, "channels": cat_channels})
+
+            # Add uncategorized channels if any exist
+            uncategorized = [ch for ch in guild.text_channels if ch.category is None]
+            if uncategorized:
+                categories.insert(0, {
+                    "name": "General Channels",
+                    "channels": [{"id": str(ch.id), "name": ch.name} for ch in uncategorized]
+                })
+
+            # Real server roles sorted by hierarchy position
+            sorted_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
+            for r in sorted_roles:
+                if not r.is_default():
+                    roles.append({"id": str(r.id), "name": r.name})
+
+        except Exception as e:
+            pass
+
+    db = get_db()
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+    config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
+
     avatar_url = _bot_ref.user.display_avatar.url if (_bot_ref and _bot_ref.user) else "https://cdn.discordapp.com/embed/avatars/0.png"
     bot_name = _bot_ref.user.name if (_bot_ref and _bot_ref.user) else "ORCA"
-    latency_ms = round(_bot_ref.latency * 1000) if _bot_ref else 0
 
     return jsonify({
-        "channels": channels,
-        "roles": roles,
+        "guild_name": guild_name,
         "categories": categories,
-        "latency": latency_ms,
+        "roles": roles,
         "bot_avatar": avatar_url,
         "bot_name": bot_name,
         "maintenance": config.get("maintenance", False),
         "lockdown": config.get("lockdown", False),
-        "uptime_seconds": uptime_sec,
-        "db_usage": {"display": db_usage_str, "percent": percent_val}
+        "category_configs": config.get("category_configs", {})
     })
 
 
-@app.route('/api/form-config', methods=['GET'])
-def get_form_config():
+@app.route('/api/save-category', methods=['POST'])
+def save_category():
     db = get_db()
     if db is None:
-        return jsonify({})
-
-    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-    doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-    return jsonify({
-        "title": doc.get("title", ""),
-        "description": doc.get("description", ""),
-        "button_label": doc.get("button_label", ""),
-        "category": doc.get("category", "Custom Bot Commission"),
-        "channel_id": doc.get("channel_id"),
-        "log_channel_id": doc.get("log_channel_id"),
-        "ping_role_id": doc.get("ping_role_id"),
-        "ping_toggle": doc.get("ping_toggle", True)
-    })
-
-
-@app.route('/api/save-form-config', methods=['POST'])
-def save_form_config():
-    db = get_db()
-    if db is None:
-        return jsonify({"error": "No database"}), 500
+        return jsonify({"error": "Database unavailable"}), 500
 
     data = request.json or {}
+    category_name = data.get("category_name")
+    category_config = data.get("config", {})
+
+    if not category_name:
+        return jsonify({"error": "Category name required"}), 400
+
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
 
-    channel_id = int(data["channel_id"]) if data.get("channel_id") else None
-    log_channel_id = int(data["log_channel_id"]) if data.get("log_channel_id") else None
-    ping_role_id = int(data["ping_role_id"]) if data.get("ping_role_id") else None
+    doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+    cat_configs = doc.get("category_configs", {})
+    cat_configs[category_name] = category_config
 
     db["guild_config"].update_one(
         {"guild_id": guild_id},
-        {
-            "$set": {
-                "guild_id": guild_id,
-                "title": data.get("title"),
-                "description": data.get("description"),
-                "button_label": data.get("button_label"),
-                "category": data.get("category", "Custom Bot Commission"),
-                "channel_id": channel_id,
-                "log_channel_id": log_channel_id,
-                "ping_role_id": ping_role_id,
-                "ping_toggle": bool(data.get("ping_toggle", True))
-            }
-        },
+        {"$set": {"guild_id": guild_id, "category_configs": cat_configs}},
         upsert=True
     )
     return jsonify({"success": True})
 
 
-@app.route('/api/all-form-questions', methods=['GET'])
-def get_all_form_questions():
-    db = get_db()
-    if db is None:
-        return jsonify({})
-
-    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-    doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-    categories_map = doc.get("category_questions", {})
-
-    if not categories_map and doc.get("questions"):
-        main_cat = doc.get("category", "Custom Bot Commission")
-        categories_map = {main_cat: doc.get("questions", [])}
-
-    return jsonify(categories_map)
-
-
-@app.route('/api/form-questions', methods=['GET', 'POST'])
-def handle_form_questions():
-    db = get_db()
-    if db is None:
-        return jsonify([])
-
-    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-
-    if request.method == 'POST':
-        data = request.json or {}
-        category = data.get("category", "Custom Bot Commission")
-        questions = data.get("questions", [])
-
-        doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-        cat_map = doc.get("category_questions", {})
-        cat_map[category] = questions
-
-        db["guild_config"].update_one(
-            {"guild_id": guild_id},
-            {"$set": {"category_questions": cat_map, "questions": cat_map.get(doc.get("category", "Custom Bot Commission"), [])}},
-            upsert=True
-        )
-        return jsonify({"success": True})
-
-    doc = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-    return jsonify(doc.get("questions", []))
-
-
-@app.route('/api/form-presets', methods=['GET', 'POST'])
-def handle_form_presets():
-    db = get_db()
-    if db is None:
-        return jsonify([])
-
-    if request.method == 'POST':
-        data = request.json or {}
-        preset_name = str(data.get("name", "")).strip()
-        if preset_name:
-            db["form_presets"].update_one(
-                {"name": preset_name},
-                {"$set": {
-                    "name": preset_name,
-                    "title": data.get("title"),
-                    "description": data.get("description"),
-                    "button_label": data.get("button_label"),
-                    "channel_id": data.get("channel_id")
-                }},
-                upsert=True
-            )
-        return jsonify({"success": True})
-
-    cursor = db["form_presets"].find()
-    presets = [{
-        "name": doc.get("name"),
-        "title": doc.get("title"),
-        "description": doc.get("description"),
-        "button_label": doc.get("button_label"),
-        "channel_id": doc.get("channel_id")
-    } for doc in cursor]
-
-    return jsonify(presets)
-
-
 @app.route('/api/deploy-form-panel', methods=['POST'])
 def deploy_form_panel():
     if _bot_ref is None or not _bot_ref.is_ready():
-        return jsonify({"error": "Bot not ready"}), 500
+        return jsonify({"error": "Bot is currently offline or reconnecting"}), 500
 
     data = request.json or {}
     channel_id = data.get("channel_id")
+    category = data.get("category", "Custom Bot Commission")
+
     cog = _bot_ref.get_cog("Orca")
     if not cog or not channel_id:
-        return jsonify({"error": "Invalid request"}), 400
+        return jsonify({"error": "Invalid channel or Orca cog not initialized"}), 400
 
-    future = asyncio.run_coroutine_threadsafe(cog.deploy_form_panel_from_web(int(channel_id)), _bot_ref.loop)
-    try:
-        future.result(timeout=10)
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/update-form-panel', methods=['POST'])
-def update_form_panel():
-    if _bot_ref is None or not _bot_ref.is_ready():
-        return jsonify({"error": "Bot not ready"}), 500
-
-    cog = _bot_ref.get_cog("Orca")
-    if not cog:
-        return jsonify({"error": "Cog not loaded"}), 500
-
-    future = asyncio.run_coroutine_threadsafe(cog.update_form_panel_from_web(), _bot_ref.loop)
+    # Thread-safe thread execution into Discord asyncio event loop
+    future = asyncio.run_coroutine_threadsafe(
+        cog.deploy_form_panel_from_web(int(channel_id), category),
+        _bot_ref.loop
+    )
     try:
         future.result(timeout=10)
         return jsonify({"success": True})
@@ -285,13 +195,14 @@ def update_form_panel():
 def handle_maintenance():
     db = get_db()
     if db is None:
-        return jsonify({"error": "No database"}), 500
+        return jsonify({"error": "Database unavailable"}), 500
 
     data = request.json or {}
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
     db["guild_config"].update_one(
         {"guild_id": guild_id},
-        {"$set": {"maintenance": bool(data.get("maintenance"))}},
+        {"$set": {"guild_id": guild_id, "maintenance": bool(data.get("maintenance"))}},
         upsert=True
     )
     return jsonify({"success": True})
@@ -301,13 +212,14 @@ def handle_maintenance():
 def handle_lockdown():
     db = get_db()
     if db is None:
-        return jsonify({"error": "No database"}), 500
+        return jsonify({"error": "Database unavailable"}), 500
 
     data = request.json or {}
     guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
     db["guild_config"].update_one(
         {"guild_id": guild_id},
-        {"$set": {"lockdown": bool(data.get("lockdown"))}},
+        {"$set": {"guild_id": guild_id, "lockdown": bool(data.get("lockdown"))}},
         upsert=True
     )
     return jsonify({"success": True})
