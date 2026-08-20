@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>𝐎𝐑𝐂A Automation Command Center • Accurate Discord Engine</title>
+  <title>𝐎𝐑𝐂A Automation Command Center • Discord Ticket Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -212,7 +212,7 @@
 
     <div class="pt-4 border-t border-white/5 text-[11px] text-orca-muted flex items-center justify-between font-mono">
       <span class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-orca-success"></span> Connected to Guild
+        <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Server Sync
       </span>
       <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v18.2</span>
     </div>
@@ -228,8 +228,8 @@
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">/system-stats Live Telemetry</h2>
           <p class="text-xs text-orca-muted mt-0.5">Accurate real-time bot infrastructure health, RAM usage, ping, and database performance.</p>
         </div>
-        <button onclick="loadAllData(true, this)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
-          <i class="fa-solid fa-arrows-rotate text-orca-accent" id="refresh-icon"></i> Refresh /stats
+        <button onclick="fetchTelemetryStats(true)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
+          <i class="fa-solid fa-arrows-rotate text-orca-accent" id="refresh-icon"></i> Sync /stats
         </button>
       </div>
 
@@ -301,7 +301,7 @@
             <i class="fa-solid fa-chart-area text-orca-accent"></i>
             <h3 class="text-xs font-extrabold uppercase tracking-widest text-white">Live API Latency Trend (/system-stats)</h3>
           </div>
-          <span class="text-[10px] font-mono text-orca-muted bg-orca-base px-2 py-0.5 rounded border border-white/5">Polling Live</span>
+          <span class="text-[10px] font-mono text-orca-muted bg-orca-base px-2 py-0.5 rounded border border-white/5">Polling 1s Live</span>
         </div>
         <div class="h-48 sm:h-64 w-full">
           <canvas id="uptimeChart"></canvas>
@@ -314,7 +314,7 @@
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Infinite Ticket Command Engine</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Select a category below to configure its real existing server channels, roles, and questions.</p>
+          <p class="text-xs text-orca-muted mt-0.5">Select a ticket category below to configure its server channels, roles, opened category layout, and ticket questions.</p>
         </div>
         <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
           <i class="fa-solid fa-shield-halved"></i> Admin Protected
@@ -339,7 +339,7 @@
               <option value="">-- Choose Ticket Category First --</option>
             </select>
             <button onclick="createNewTicketCategoryPrompt()" class="bg-orca-accent hover:bg-orca-accent/80 text-white text-xs font-bold px-4 py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue shrink-0">
-              <i class="fa-solid fa-plus"></i> New Category
+              <i class="fa-solid fa-plus"></i> New Ticket Category
             </button>
           </div>
         </div>
@@ -351,7 +351,7 @@
           <i class="fa-solid fa-hand-pointer"></i>
         </div>
         <h3 class="text-sm sm:text-base font-bold text-white">No Ticket Category Selected</h3>
-        <p class="text-xs text-orca-muted max-w-md mx-auto">Please select a ticket category from the dropdown above (or click "+ New Category") to unlock its isolated panel configuration and question builder.</p>
+        <p class="text-xs text-orca-muted max-w-md mx-auto">Please select a ticket category from the dropdown above (or click "+ New Ticket Category") to unlock its panel layout and ticket question builder.</p>
       </div>
 
       <!-- CATEGORY CONTENT WORKSPACE -->
@@ -361,10 +361,10 @@
           <!-- Left Column: Settings, Embeds, and Questions -->
           <div class="lg:col-span-7 space-y-5">
             
-            <!-- Real Existing Channels & Roles Selectors -->
+            <!-- Server Channels, Roles, and Target Ticket Category Selectors -->
             <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3.5 shadow-2xl">
               <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-2.5">
-                <i class="fa-solid fa-sliders text-orca-accent"></i> Real Server Channels & Roles: <span class="active-cat-display text-white font-bold">--</span>
+                <i class="fa-solid fa-sliders text-orca-accent"></i> Server Channels & Roles Configuration: <span class="active-cat-display text-white font-bold">--</span>
               </h3>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -379,7 +379,18 @@
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Target Server Category Where Opened Ticket Channels Are Created -->
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-accent uppercase tracking-widest mb-1">
+                  <i class="fa-solid fa-folder-tree"></i> Opened Ticket Target Category (Discord Category)
+                </label>
+                <select id="ticket-opened-category" class="hierarchy-category-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                  <option value="">-- Created Uncategorized or Under Selected Category --</option>
+                </select>
+                <p class="text-[10px] text-orca-muted mt-1">When a user opens a ticket in this category, its private channel will be automatically created inside this Discord server category.</p>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                 <div>
                   <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Buyer Role (Given on Close)</label>
                   <select id="ticket-buyer-role" onchange="updateBuyerRoleTag()" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></select>
@@ -393,7 +404,7 @@
 
               <!-- Embed Panel Text Customization -->
               <div class="space-y-3 border-t border-white/5 pt-3">
-                <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Channel Opener Embed Text</h4>
+                <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Ticket Panel Message Embed</h4>
 
                 <div>
                   <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Embed Title</label>
@@ -406,7 +417,7 @@
                 </div>
 
                 <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Label</label>
+                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Ticket Button Label</label>
                   <input type="text" id="ticket-button-label" oninput="updateLiveTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
                 </div>
               </div>
@@ -432,10 +443,10 @@
               <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
                 <div class="flex items-center gap-2">
                   <i class="fa-solid fa-list-check text-orca-success"></i>
-                  <h3 class="text-xs font-extrabold uppercase tracking-widest text-white">Questions for <span class="active-cat-display text-orca-accent">--</span></h3>
+                  <h3 class="text-xs font-extrabold uppercase tracking-widest text-white">Ticket Questions for <span class="active-cat-display text-orca-accent">--</span></h3>
                 </div>
                 <button onclick="openAddQuestionModal()" class="bg-orca-success hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1.5 shadow">
-                  <i class="fa-solid fa-plus text-[10px]"></i> Add Question
+                  <i class="fa-solid fa-plus text-[10px]"></i> Add Ticket Question
                 </button>
               </div>
 
@@ -446,12 +457,12 @@
             <div class="glass-card p-5 rounded-2xl md:rounded-3xl shadow-2xl space-y-4">
               <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-white/5 pb-4">
                 <div>
-                  <h4 class="font-bold text-xs text-white">Live Discord Embed Actions</h4>
-                  <p class="text-[11px] text-orca-muted">Upload a new embed panel to the channel or update an existing message.</p>
+                  <h4 class="font-bold text-xs text-white">Discord Ticket Panel Action</h4>
+                  <p class="text-[11px] text-orca-muted">Upload this ticket panel message into the target channel.</p>
                 </div>
                 <div class="flex items-center gap-2 w-full sm:w-auto">
                   <button onclick="deployTicketPanel(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Panel
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Ticket Panel
                   </button>
                 </div>
               </div>
@@ -459,8 +470,8 @@
               <!-- UNIFIED SAVE BUTTON AT THE VERY END -->
               <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
                 <div>
-                  <h4 class="font-bold text-xs text-white">Save All Settings</h4>
-                  <p class="text-[11px] text-orca-muted">Saves channels, roles, embed texts, and questions into <span class="active-cat-display font-bold text-white">--</span>.</p>
+                  <h4 class="font-bold text-xs text-white">Save All Ticket Settings</h4>
+                  <p class="text-[11px] text-orca-muted">Saves channels, category placement, roles, embed text, and questions for <span class="active-cat-display font-bold text-white">--</span>.</p>
                 </div>
                 <button onclick="saveCategoryData(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-3.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
                   <i class="fa-solid fa-floppy-disk text-sm"></i> Save Everything into Category
@@ -473,14 +484,14 @@
           <!-- Right Column: Discord Live Interactive Simulator -->
           <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
             <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
-              <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Live Simulator Preview
+              <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Ticket Panel Live Preview
             </h3>
 
             <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner text-white">
               
               <!-- Panel Embed -->
               <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-orca-accent space-y-2">
-                <p class="font-bold text-xs sm:text-sm text-white" id="sim-panel-title">🤖 CUSTOM BOT COMMISSION PANEL</p>
+                <p class="font-bold text-xs sm:text-sm text-white" id="sim-panel-title">🤖 CUSTOM BOT COMMISSION TICKET PANEL</p>
                 <p class="text-xs text-[#dbdee1] leading-relaxed" id="sim-panel-desc">
                   Click the button below to open a private commission ticket channel!
                 </p>
@@ -495,7 +506,7 @@
               <div id="sim-ticket-container" class="hidden pt-3 border-t border-[#3f4147] space-y-3">
                 <div class="flex items-center justify-between bg-[#1e1f22] p-2 rounded border border-white/5 text-xs font-mono">
                   <span id="sim-ticket-name" class="text-indigo-400 font-bold">#ticket-client-4829</span>
-                  <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">Active Ticket</span>
+                  <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">Active Ticket Channel</span>
                 </div>
 
                 <!-- Welcome Embed inside channel -->
@@ -541,8 +552,8 @@
                 <i class="fa-solid fa-triangle-exclamation"></i>
               </div>
               <div>
-                <h3 class="text-xs sm:text-sm font-bold text-white">Standard Maintenance</h3>
-                <p class="text-[10px] text-orca-muted">Disables ticket submissions for regular members.</p>
+                <h3 class="text-xs sm:text-sm font-bold text-white">Standard Maintenance Mode</h3>
+                <p class="text-[10px] text-orca-muted">Disables opening new tickets for regular server members.</p>
               </div>
             </div>
             <label class="cursor-pointer inline-flex items-center">
@@ -578,12 +589,12 @@
   <div id="question-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden z-50">
     <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-3.5 shadow-2xl animate-fade-in">
       <div class="flex items-center justify-between border-b border-white/10 pb-2">
-        <h3 class="text-base sm:text-lg font-extrabold text-white" id="modal-question-title">Add Question Field</h3>
+        <h3 class="text-base sm:text-lg font-extrabold text-white" id="modal-question-title">Add Ticket Question Field</h3>
         <button onclick="closeAddQuestionModal()" class="text-orca-muted hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div>
         <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Question Prompt</label>
-        <input type="text" id="q-label-input" placeholder="e.g. Describe your request in detail" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+        <input type="text" id="q-label-input" placeholder="e.g. Describe your commission requirements in detail" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
       </div>
       <div>
         <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Placeholder Text</label>
@@ -635,19 +646,21 @@
     let activeTicketCategory = "";
     let editingQuestionIdx = null;
     let simTicketId = null;
-    let realDiscordCategories = [];
-    let realDiscordRoles = [];
+
+    let serverDiscordCategories = [];
+    let serverDiscordRoles = [];
 
     let ticketCategoryMap = {
       "Custom Bot Commission": {
         panelChannel: "",
         logChannel: "",
+        openedCategory: "",
         buyerRole: "",
         staffRole: "",
-        panelTitle: "🤖 CUSTOM BOT COMMISSION PANEL",
+        panelTitle: "🤖 CUSTOM BOT COMMISSION TICKET PANEL",
         panelDesc: "Click the button below to open a private commission ticket channel!",
         buttonLabel: "Open Commission Ticket",
-        welcomeTitle: "🐬 Custom Bot Commission Request Created",
+        welcomeTitle: "🐬 Custom Bot Commission Ticket Created",
         welcomeDesc: "Welcome to your private commission channel! Please detail your bot requirements.",
         questions: [
           { label: "What is your Discord username?", placeholder: "e.g. user#0000" },
@@ -658,18 +671,18 @@
     };
 
     let rawUptimeSeconds = 0;
-    let telemetryInterval = null;
+    let telemetryPollInterval = null;
     let chartInstance = null;
-    const pingHistory = [15, 18, 16, 17, 19, 16, 18, 16, 17, 16];
+    let pingHistory = [15, 18, 16, 17, 19, 16, 18, 16, 17, 16];
 
     function initChart() {
       const ctx = document.getElementById('uptimeChart').getContext('2d');
       chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: ['10s ago', '9s ago', '8s ago', '7s ago', '6s ago', '5s ago', '4s ago', '3s ago', '2s ago', 'Now'],
+          labels: ['9s ago', '8s ago', '7s ago', '6s ago', '5s ago', '4s ago', '3s ago', '2s ago', '1s ago', 'Now'],
           datasets: [{
-            label: 'API Ping (ms)',
+            label: 'WebSocket Ping (ms)',
             data: pingHistory,
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59, 130, 246, 0.15)',
@@ -693,61 +706,80 @@
     }
 
     async function loadAllData(manualSync = false) {
+      await fetchGuildStructure();
+      await fetchTelemetryStats(manualSync);
+    }
+
+    async function fetchGuildStructure() {
       try {
-        const [guildRes, statsRes] = await Promise.all([
-          fetch('/api/guild-data'),
-          fetch('/api/stats')
-        ]);
+        const res = await fetch('/api/guild-data');
+        if (!res.ok) return;
 
-        if (guildRes.ok) {
-          const gData = await guildRes.json();
-          realDiscordCategories = gData.categories || [];
-          realDiscordRoles = gData.roles || [];
+        const gData = await res.json();
+        serverDiscordCategories = gData.categories || [];
+        serverDiscordRoles = gData.roles || [];
 
-          if (gData.bot_avatar) {
-            document.getElementById('bot-avatar-desktop').src = gData.bot_avatar;
-            document.getElementById('bot-avatar-mobile').src = gData.bot_avatar;
-          }
-          if (gData.bot_name) {
-            document.getElementById('bot-name-desktop').innerText = gData.bot_name;
-            document.getElementById('bot-name-mobile').innerText = gData.bot_name;
-          }
-
-          document.getElementById('stat-guild-name').innerText = gData.guild_name || 'Connected';
-          document.getElementById('maintenance-toggle-tab').checked = !!gData.maintenance;
-          document.getElementById('total-lockdown-toggle').checked = !!gData.lockdown;
-
-          if (gData.category_configs && Object.keys(gData.category_configs).length > 0) {
-            ticketCategoryMap = gData.category_configs;
-          }
-
-          renderHierarchicalChannelDropdowns();
-          renderCategorySelectorDropdown();
+        if (gData.bot_avatar) {
+          document.getElementById('bot-avatar-desktop').src = gData.bot_avatar;
+          document.getElementById('bot-avatar-mobile').src = gData.bot_avatar;
+        }
+        if (gData.bot_name) {
+          document.getElementById('bot-name-desktop').innerText = gData.bot_name;
+          document.getElementById('bot-name-mobile').innerText = gData.bot_name;
         }
 
-        if (statsRes.ok) {
-          const sData = await statsRes.json();
-          document.getElementById('stat-ping').innerText = `${sData.ping || 0} ms`;
-          document.getElementById('stat-ram').innerText = sData.ram || '0 MB';
-          document.getElementById('stat-cpu').innerText = sData.cpu || '0%';
-          document.getElementById('stat-db-usage').innerText = sData.db_usage?.display || '0 MB';
-          
-          rawUptimeSeconds = sData.uptime_seconds || 0;
-          document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
+        document.getElementById('stat-guild-name').innerText = gData.guild_name || 'Connected';
+        document.getElementById('maintenance-toggle-tab').checked = !!gData.maintenance;
+        document.getElementById('total-lockdown-toggle').checked = !!gData.lockdown;
 
-          if (chartInstance && sData.ping) {
-            pingHistory.shift();
-            pingHistory.push(sData.ping);
-            chartInstance.data.datasets[0].data = pingHistory;
-            chartInstance.update('none');
-          }
+        if (gData.category_configs && Object.keys(gData.category_configs).length > 0) {
+          ticketCategoryMap = gData.category_configs;
         }
 
-        if (manualSync) showToast("Live server & telemetry synchronized!");
+        renderHierarchicalChannelDropdowns();
+        renderOpenedCategoryDropdown();
+        renderCategorySelectorDropdown();
       } catch (e) {
-        console.error("Telemetry sync error:", e);
-        if (manualSync) showToast("Could not contact bot server API", true);
+        console.error("Guild structure load error:", e);
       }
+    }
+
+    async function fetchTelemetryStats(manualSync = false) {
+      try {
+        const res = await fetch('/api/stats');
+        if (!res.ok) return;
+
+        const sData = await res.json();
+        const pingVal = sData.ping || 0;
+        document.getElementById('stat-ping').innerText = `${pingVal} ms`;
+        document.getElementById('stat-ram').innerText = sData.ram || '0 MB';
+        document.getElementById('stat-cpu').innerText = sData.cpu || '0%';
+        document.getElementById('stat-db-usage').innerText = sData.db_usage?.display || '0 MB';
+        
+        rawUptimeSeconds = sData.uptime_seconds || 0;
+        document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
+
+        if (chartInstance) {
+          pingHistory.shift();
+          pingHistory.push(pingVal);
+          chartInstance.data.datasets[0].data = pingHistory;
+          chartInstance.update('none');
+        }
+
+        if (manualSync) showToast("Live /system-stats synchronized!");
+      } catch (e) {
+        if (manualSync) showToast("Could not contact bot telemetry API", true);
+      }
+    }
+
+    function startLiveTelemetryPolling() {
+      if (telemetryPollInterval) clearInterval(telemetryPollInterval);
+      // Poll live API telemetry every 1 second
+      telemetryPollInterval = setInterval(() => {
+        rawUptimeSeconds += 1;
+        document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
+        fetchTelemetryStats(false);
+      }, 1000);
     }
 
     function renderHierarchicalChannelDropdowns() {
@@ -755,9 +787,9 @@
       
       channelSelects.forEach(select => {
         const currentVal = select.value;
-        select.innerHTML = `<option value="">-- Select Real Server Channel --</option>`;
+        select.innerHTML = `<option value="">-- Select Server Channel --</option>`;
 
-        realDiscordCategories.forEach(cat => {
+        serverDiscordCategories.forEach(cat => {
           const optGroup = document.createElement('optgroup');
           optGroup.label = `📁 ${cat.name}`;
 
@@ -777,9 +809,9 @@
       const roleSelects = document.querySelectorAll('.hierarchy-role-select');
       roleSelects.forEach(select => {
         const currentVal = select.value;
-        select.innerHTML = `<option value="">-- Select Real Role --</option>`;
+        select.innerHTML = `<option value="">-- Select Role --</option>`;
 
-        realDiscordRoles.forEach(role => {
+        serverDiscordRoles.forEach(role => {
           const opt = document.createElement('option');
           opt.value = role.id;
           opt.innerText = role.name;
@@ -790,6 +822,21 @@
       });
 
       document.getElementById('stat-categories-total').innerText = `${Object.keys(ticketCategoryMap).length} Categories`;
+    }
+
+    function renderOpenedCategoryDropdown() {
+      const select = document.getElementById("ticket-opened-category");
+      const currentVal = select.value;
+      select.innerHTML = `<option value="">-- Created Uncategorized or Under Selected Category --</option>`;
+
+      serverDiscordCategories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id || cat.name;
+        opt.innerText = `📁 ${cat.name}`;
+        select.appendChild(opt);
+      });
+
+      if (currentVal) select.value = currentVal;
     }
 
     function renderCategorySelectorDropdown() {
@@ -808,7 +855,7 @@
     }
 
     function createNewTicketCategoryPrompt() {
-      const name = prompt("Enter new Ticket Category Name (e.g. VIP Commission, Partnership Application):");
+      const name = prompt("Enter new Ticket Category Name (e.g. VIP Support, Partnership Application):");
       if (!name || !name.trim()) return;
 
       const clean = name.trim();
@@ -816,15 +863,16 @@
         ticketCategoryMap[clean] = {
           panelChannel: "",
           logChannel: "",
+          openedCategory: "",
           buyerRole: "",
           staffRole: "",
-          panelTitle: `📋 ${clean.toUpperCase()} PANEL`,
+          panelTitle: `📋 ${clean.toUpperCase()} TICKET PANEL`,
           panelDesc: `Click the button below to open a private ${clean} ticket channel!`,
           buttonLabel: "Open Ticket",
           welcomeTitle: `🐬 ${clean} Ticket Created`,
           welcomeDesc: "Welcome to your private ticket channel! Please detail your request here.",
           questions: [
-            { label: "Please describe your request details", placeholder: "Type your message here..." }
+            { label: "Please describe your ticket details", placeholder: "Type your request here..." }
           ]
         };
       }
@@ -854,6 +902,7 @@
 
       document.getElementById("ticket-panel-channel").value = catData.panelChannel || "";
       document.getElementById("ticket-log-channel").value = catData.logChannel || "";
+      document.getElementById("ticket-opened-category").value = catData.openedCategory || "";
       document.getElementById("ticket-buyer-role").value = catData.buyerRole || "";
       document.getElementById("ticket-staff-role").value = catData.staffRole || "";
 
@@ -878,7 +927,7 @@
       const questions = (ticketCategoryMap[activeTicketCategory] && ticketCategoryMap[activeTicketCategory].questions) || [];
 
       if (questions.length === 0) {
-        container.innerHTML = `<div class="p-4 text-center text-orca-muted glass-card rounded-xl text-xs">No questions configured for "${escapeHtml(activeTicketCategory)}". Click "+ Add Question" to add fields.</div>`;
+        container.innerHTML = `<div class="p-4 text-center text-orca-muted glass-card rounded-xl text-xs">No ticket questions configured for "${escapeHtml(activeTicketCategory)}". Click "+ Add Ticket Question" to add fields.</div>`;
         return;
       }
 
@@ -921,7 +970,7 @@
       } else {
         document.getElementById("q-label-input").value = "";
         document.getElementById("q-placeholder-input").value = "";
-        title.innerText = "Add Question Field";
+        title.innerText = "Add Ticket Question Field";
         btn.innerText = "Save Question";
       }
 
@@ -968,6 +1017,7 @@
 
       const panelCh = document.getElementById("ticket-panel-channel").value;
       const logCh = document.getElementById("ticket-log-channel").value;
+      const openCat = document.getElementById("ticket-opened-category").value;
       const buyerR = document.getElementById("ticket-buyer-role").value;
       const staffR = document.getElementById("ticket-staff-role").value;
 
@@ -981,6 +1031,7 @@
       const configData = {
         panelChannel: panelCh,
         logChannel: logCh,
+        openedCategory: openCat,
         buyerRole: buyerR,
         staffRole: staffR,
         panelTitle: pTitle,
@@ -1049,7 +1100,7 @@
 
     function updateBuyerRoleTag() {
       const roleId = document.getElementById("ticket-buyer-role").value;
-      const found = realDiscordRoles.find(r => r.id === roleId);
+      const found = serverDiscordRoles.find(r => r.id === roleId);
       document.getElementById("modal-role-badge").innerText = found ? found.name : "@Buyer";
     }
 
@@ -1154,14 +1205,6 @@
       return `${String(d).padStart(2, '0')}d ${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
     }
 
-    function start1SecondTicks() {
-      if (telemetryInterval) clearInterval(telemetryInterval);
-      telemetryInterval = setInterval(() => {
-        rawUptimeSeconds += 1;
-        document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
-      }, 1000);
-    }
-
     async function toggleMaintenanceMode() {
       const checked = document.getElementById('maintenance-toggle-tab').checked;
       try {
@@ -1215,8 +1258,8 @@
     }
 
     initChart();
-    start1SecondTicks();
     loadAllData();
+    startLiveTelemetryPolling();
   </script>
 </body>
 </html>
