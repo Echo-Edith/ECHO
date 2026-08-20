@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>𝐎𝐑𝐂A Automation Command Center</title>
+  <title>𝐎𝐑𝐂A Automation Command Center • Discord Hierarchy</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -75,12 +75,27 @@
     }
     .animate-fade-in { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #090a0f; }
     ::-webkit-scrollbar-thumb { background: #232838; border-radius: 9999px; }
 
     .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.25); }
     .glow-green { box-shadow: 0 0 20px rgba(35, 165, 90, 0.25); }
+
+    optgroup {
+      background-color: #0f1118;
+      color: #3b82f6;
+      font-weight: 800;
+      font-size: 11px;
+      text-transform: uppercase;
+      padding: 6px 0;
+    }
+    optgroup option {
+      background-color: #161923;
+      color: #ffffff;
+      font-weight: 600;
+      padding: 4px 10px;
+    }
 
     .switch-track {
       width: 48px;
@@ -115,54 +130,58 @@
 </head>
 <body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-orca-accent selection:text-white pb-20 md:pb-0">
 
-  <!-- Mobile Top Header -->
+  <!-- Mobile Header -->
   <header class="md:hidden glass-panel p-3.5 sticky top-0 z-40 flex items-center justify-between border-b border-orca-border shadow-2xl">
     <div class="flex items-center gap-2.5">
       <div class="relative">
-        <img id="bot-avatar-img-mobile" src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-8 h-8 rounded-xl border border-white/10 shadow object-cover">
+        <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-8 h-8 rounded-xl border border-white/10 shadow object-cover">
         <span class="w-2 h-2 bg-orca-success border-2 border-orca-surface rounded-full absolute -bottom-0.5 -right-0.5"></span>
       </div>
       <div>
         <div class="flex items-center gap-1.5">
-          <h1 class="font-extrabold text-white text-xs sm:text-sm tracking-tight" id="bot-name-display-mobile">𝐎𝐑𝐂A AUTOMATION</h1>
+          <h1 class="font-extrabold text-white text-xs sm:text-sm tracking-tight">𝐎𝐑𝐂A AUTOMATION</h1>
           <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-[9px] px-1.5 py-0.2 rounded font-extrabold">STUDIO</span>
         </div>
-        <p class="text-[10px] text-orca-muted font-mono flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-orca-success animate-pulse"></span> Cloud Online
-        </p>
       </div>
     </div>
-    <button onclick="toggleMobileMenu()" class="bg-orca-card hover:bg-orca-border text-white w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center transition active:scale-95">
+    <button onclick="toggleMobileMenu()" class="bg-orca-card text-white w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center">
       <i class="fa-solid fa-bars text-sm" id="menu-icon"></i>
     </button>
   </header>
 
   <!-- Mobile Menu Overlay -->
   <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl">
-    <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent shadow-md">
+    <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent">
       <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview
     </button>
-    <button onclick="switchTab('formpanel'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
+    <button onclick="switchTab('ticket-config'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
+      <i class="fa-solid fa-ticket w-4 text-center"></i> Ticket Setup
+    </button>
+    <button onclick="switchTab('formpanel'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
       <i class="fa-solid fa-rectangle-list w-4 text-center"></i> Form Engine
     </button>
-    <button onclick="switchTab('maintenance'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:bg-white/5 hover:text-white">
-      <i class="fa-solid fa-shield-halved w-4 text-center"></i> Maintenance
+    <button onclick="switchTab('channels-manager'); toggleMobileMenu()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white">
+      <i class="fa-solid fa-sitemap w-4 text-center"></i> Channel Order
     </button>
   </div>
 
-  <!-- Mobile Bottom Navigation Bar -->
+  <!-- Mobile Bottom Nav -->
   <nav class="md:hidden fixed bottom-0 inset-x-0 glass-panel border-t border-orca-border z-40 px-2 py-2 flex items-center justify-around">
-    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-0.5 px-4 py-1 text-orca-accent">
+    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-accent">
       <i class="fa-solid fa-chart-pie text-base"></i>
       <span class="text-[10px] font-bold">Overview</span>
     </button>
-    <button onclick="switchTab('formpanel')" id="m-nav-formpanel" class="flex flex-col items-center gap-0.5 px-4 py-1 text-orca-muted">
-      <i class="fa-solid fa-rectangle-list text-base"></i>
-      <span class="text-[10px] font-bold">Form</span>
+    <button onclick="switchTab('ticket-config')" id="m-nav-ticket-config" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
+      <i class="fa-solid fa-ticket text-base"></i>
+      <span class="text-[10px] font-bold">Tickets</span>
     </button>
-    <button onclick="switchTab('maintenance')" id="m-nav-maintenance" class="flex flex-col items-center gap-0.5 px-4 py-1 text-orca-muted">
-      <i class="fa-solid fa-shield-halved text-base"></i>
-      <span class="text-[10px] font-bold">Safety</span>
+    <button onclick="switchTab('formpanel')" id="m-nav-formpanel" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
+      <i class="fa-solid fa-rectangle-list text-base"></i>
+      <span class="text-[10px] font-bold">Forms</span>
+    </button>
+    <button onclick="switchTab('channels-manager')" id="m-nav-channels-manager" class="flex flex-col items-center gap-0.5 px-3 py-1 text-orca-muted">
+      <i class="fa-solid fa-sitemap text-base"></i>
+      <span class="text-[10px] font-bold">Channels</span>
     </button>
   </nav>
 
@@ -171,38 +190,41 @@
     <div>
       <div class="flex items-center gap-3.5 p-3 rounded-2xl bg-orca-card/90 border border-white/10 mb-6 shadow-xl">
         <div class="relative shrink-0">
-          <img id="bot-avatar-img" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar" class="w-12 h-12 rounded-xl border border-white/10 shadow object-cover">
-          <span class="w-3.5 h-3.5 bg-orca-success border-2 border-orca-surface rounded-full absolute -bottom-1 -right-1 shadow"></span>
+          <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-12 h-12 rounded-xl border border-white/10 shadow object-cover">
+          <span class="w-3.5 h-3.5 bg-orca-success border-2 border-orca-surface rounded-full absolute -bottom-1 -right-1"></span>
         </div>
         <div class="overflow-hidden">
           <div class="flex items-center gap-2">
-            <h1 class="font-extrabold text-white text-base tracking-tight truncate" id="bot-name-display">𝐎𝐑𝐂A</h1>
-            <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-[10px] px-1.5 py-0.5 rounded-md font-extrabold uppercase tracking-widest">STUDIO</span>
+            <h1 class="font-extrabold text-white text-base tracking-tight truncate">𝐎𝐑𝐂A</h1>
+            <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-[10px] px-1.5 py-0.5 rounded-md font-extrabold">STUDIO</span>
           </div>
           <p class="text-[11px] text-orca-muted font-medium flex items-center gap-1.5 mt-0.5">
-            <span class="w-2 h-2 rounded-full bg-orca-success animate-pulse"></span> Cloud Online
+            <span class="w-2 h-2 rounded-full bg-orca-success animate-pulse"></span> Discord Sync Connected
           </p>
         </div>
       </div>
 
       <nav class="space-y-1.5">
-        <button onclick="switchTab('overview')" id="nav-overview" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all duration-200">
-          <i class="fa-solid fa-chart-line w-4 text-center text-sm"></i> Telemetry & Overview
+        <button onclick="switchTab('overview')" id="nav-overview" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all">
+          <i class="fa-solid fa-chart-line w-4 text-center"></i> Telemetry & Overview
         </button>
-        <button onclick="switchTab('formpanel')" id="nav-formpanel" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-rectangle-list w-4 text-center text-sm"></i> Form Engine
+        <button onclick="switchTab('ticket-config')" id="nav-ticket-config" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-ticket w-4 text-center text-orca-accent"></i> Ticket Configuration
         </button>
-        <button onclick="switchTab('maintenance')" id="nav-maintenance" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200">
-          <i class="fa-solid fa-shield-halved w-4 text-center text-sm"></i> Maintenance & Safety
+        <button onclick="switchTab('formpanel')" id="nav-formpanel" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-rectangle-list w-4 text-center text-orca-success"></i> Form Engine
+        </button>
+        <button onclick="switchTab('channels-manager')" id="nav-channels-manager" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-sitemap w-4 text-center text-amber-400"></i> Channel Order & Layout
         </button>
       </nav>
     </div>
 
     <div class="pt-4 border-t border-white/5 text-[11px] text-orca-muted flex items-center justify-between font-mono">
       <span class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Sync Ticking
+        <span class="w-2 h-2 rounded-full bg-orca-success"></span> Structure Verified
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v16.5</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v16.8</span>
     </div>
   </aside>
 
@@ -214,7 +236,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">System Command & Telemetry</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Real-time infrastructure health, memory analytics, and latency graphing.</p>
+          <p class="text-xs text-orca-muted mt-0.5">Real-time infrastructure health, channel sync, and latency graphing.</p>
         </div>
         <button onclick="loadAllData(true, this)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
           <i class="fa-solid fa-arrows-rotate text-orca-accent" id="refresh-icon"></i> Refresh Telemetry
@@ -223,7 +245,7 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
         <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl flex items-center gap-3.5 shadow-2xl">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-orca-accent/10 text-orca-accent flex items-center justify-center text-lg sm:text-xl shrink-0 border border-orca-accent/20">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orca-accent/10 text-orca-accent flex items-center justify-center text-lg sm:text-xl shrink-0 border border-orca-accent/20">
             <i class="fa-solid fa-bolt"></i>
           </div>
           <div>
@@ -233,7 +255,7 @@
         </div>
 
         <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl flex items-center gap-3.5 shadow-2xl">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-orca-warning/10 text-orca-warning flex items-center justify-center text-lg sm:text-xl shrink-0 border border-orca-warning/20">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orca-warning/10 text-orca-warning flex items-center justify-center text-lg sm:text-xl shrink-0 border border-orca-warning/20">
             <i class="fa-solid fa-stopwatch"></i>
           </div>
           <div>
@@ -245,17 +267,17 @@
         <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl flex flex-col justify-center gap-1.5 shadow-2xl">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <i class="fa-solid fa-database text-orca-success text-xs sm:text-sm"></i>
-              <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Cloud Database</p>
+              <i class="fa-solid fa-sitemap text-orca-success text-xs sm:text-sm"></i>
+              <p class="text-[10px] font-extrabold text-orca-muted uppercase tracking-widest">Channel Groups</p>
             </div>
-            <span class="text-xs font-mono font-bold text-orca-success" id="stat-db-usage">0.24 MB</span>
+            <span class="text-xs font-mono font-bold text-orca-success" id="stat-category-count">4 Categories</span>
           </div>
           <div class="w-full bg-orca-base h-2 rounded-full overflow-hidden border border-white/5 mt-1">
-            <div id="db-progress-bar" class="bg-orca-success h-full transition-all duration-500 rounded-full" style="width: 5%;"></div>
+            <div class="bg-orca-success h-full transition-all duration-500 rounded-full" style="width: 100%;"></div>
           </div>
           <p class="text-[10px] text-orca-muted font-mono flex justify-between">
-            <span>MongoDB Atlas</span>
-            <span>511.76 MB Free</span>
+            <span>Discord Hierarchy</span>
+            <span>Sorted Match</span>
           </p>
         </div>
       </div>
@@ -266,7 +288,7 @@
             <i class="fa-solid fa-chart-area text-orca-accent"></i>
             <h3 class="text-xs font-extrabold uppercase tracking-widest text-white">System Telemetry Trends</h3>
           </div>
-          <span class="text-[10px] font-mono text-orca-muted bg-orca-base px-2 py-0.5 rounded border border-white/5">Sampling</span>
+          <span class="text-[10px] font-mono text-orca-muted bg-orca-base px-2 py-0.5 rounded border border-white/5">Live Chart</span>
         </div>
         <div class="h-48 sm:h-64 w-full">
           <canvas id="uptimeChart"></canvas>
@@ -274,7 +296,147 @@
       </div>
     </section>
 
-    <!-- TAB 2: FORM WORKSPACE (STRICT CATEGORY ISOLATION) -->
+    <!-- TAB 2: TICKET CONFIGURATION (DISCORD HIERARCHY DROPDOWNS) -->
+    <section id="tab-ticket-config" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Custom Bot Commission Ticket Engine</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Channels are ordered in the exact category structure matching your Discord server.</p>
+        </div>
+        <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-shield-halved"></i> Discord Hierarchy Enabled
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-8">
+        
+        <!-- Left Column: Settings Panel -->
+        <div class="lg:col-span-7 space-y-5">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-2.5">
+              <i class="fa-solid fa-sliders text-orca-accent"></i> Organized Channel Selectors
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">
+                  Target Panel Channel
+                </label>
+                <!-- Grouped Dropdown -->
+                <select id="ticket-panel-channel" class="hierarchy-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                  <!-- Generated dynamically via JS to maintain exact order -->
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">
+                  Log Channel (Transcripts)
+                </label>
+                <!-- Grouped Dropdown -->
+                <select id="ticket-log-channel" class="hierarchy-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                  <!-- Generated dynamically via JS -->
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Buyer Role (Given on Close)</label>
+                <select id="ticket-buyer-role" onchange="updateBuyerRoleTag()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                  <option value="@Buyer">@Buyer</option>
+                  <option value="@Client">@Client</option>
+                  <option value="@Customer">@Customer</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Staff Ping Role</label>
+                <select id="ticket-staff-role" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                  <option value="@Commission-Team">@Commission-Team</option>
+                  <option value="@Support">@Support</option>
+                  <option value="@Moderator">@Moderator</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="space-y-3 border-t border-white/5 pt-3">
+              <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Ticket Welcome Embed Config</h4>
+
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Welcome Embed Title</label>
+                <input type="text" id="ticket-welcome-title" value="🐬 Custom Bot Commission Request Created" oninput="updateTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Welcome Embed Description</label>
+                <textarea id="ticket-welcome-desc" rows="3" oninput="updateTicketPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition resize-none">Welcome to your private commission channel! Please detail your bot specifications, commands, and budget. Our team will assist you shortly. Type "close" at any time to finish the commission.</textarea>
+              </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+              <button onclick="saveTicketSettings(this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-5 py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
+                <i class="fa-solid fa-floppy-disk"></i> Save Ticket Config
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Discord Interactive Simulator -->
+        <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 h-fit shadow-2xl">
+          <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
+            <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Discord Live Simulator
+          </h3>
+
+          <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-3 font-sans shadow-inner text-white">
+            
+            <!-- Panel Embed -->
+            <div class="bg-[#2b2d31] p-3.5 rounded-lg border-l-4 border-orca-accent space-y-2">
+              <p class="font-bold text-xs sm:text-sm text-white">🤖 CUSTOM BOT COMMISSION PANEL</p>
+              <p class="text-xs text-[#dbdee1] leading-relaxed">
+                Click the button below to open a private commission ticket channel!
+              </p>
+              <div class="pt-1">
+                <button onclick="simOpenTicket('bayat')" class="bg-[#23a55a] hover:bg-emerald-600 text-white px-3.5 py-2 rounded text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow cursor-pointer">
+                  <i class="fa-solid fa-ticket"></i> Open Commission Ticket
+                </button>
+              </div>
+            </div>
+
+            <!-- Opened Private Ticket Channel Area -->
+            <div id="sim-ticket-container" class="hidden pt-3 border-t border-[#3f4147] space-y-3">
+              <div class="flex items-center justify-between bg-[#1e1f22] p-2 rounded border border-white/5 text-xs font-mono">
+                <span id="sim-ticket-name" class="text-indigo-400 font-bold">#ticket-bayat-4829</span>
+                <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">Active Ticket</span>
+              </div>
+
+              <!-- Ticket Welcome Embed -->
+              <div class="bg-[#2b2d31] p-3 rounded-lg border-l-4 border-emerald-500 space-y-1.5">
+                <p class="font-bold text-xs text-white" id="sim-embed-title">🐬 Custom Bot Commission Request Created</p>
+                <p class="text-[11px] text-[#dbdee1] leading-relaxed" id="sim-embed-desc">Welcome to your private commission channel! Type "close" to finish.</p>
+                <div class="pt-1">
+                  <button onclick="triggerCloseModal()" class="bg-[#f23f43] hover:bg-rose-600 text-white px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1 transition">
+                    <i class="fa-solid fa-lock"></i> Close Ticket
+                  </button>
+                </div>
+              </div>
+
+              <!-- Chat feed for close command -->
+              <div id="sim-chat-log" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
+
+              <!-- User chat input -->
+              <div class="flex gap-2 pt-1">
+                <input type="text" id="sim-user-input" placeholder="Type 'close' or chat here..." class="flex-1 bg-[#1e1f22] border border-[#3f4147] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-[#5865f2]">
+                <button onclick="simSendMessage()" class="bg-[#5865f2] hover:bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold">Send</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: FORM WORKSPACE -->
     <section id="tab-formpanel" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -299,8 +461,8 @@
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
             <select id="form-category-select" onchange="switchActiveCategory()" class="bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-bold focus:outline-none focus:border-orca-accent w-full sm:w-64 shadow">
               <option value="">-- Choose Category First --</option>
-              <option value="Custom Bot Commission">🤖 Custom Bot Commission</option>
-              <option value="Partnership Application">🤝 Partnership Application</option>
+              <option value="Jailbreak Suggestions">💡 Jailbreak Suggestions</option>
+              <option value="Jailbreak Bug Reports">🐛 Jailbreak Bug Reports</option>
             </select>
             <button onclick="createNewFormPanelPrompt()" class="bg-orca-accent hover:bg-orca-accent/80 text-white text-xs font-bold px-4 py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue shrink-0">
               <i class="fa-solid fa-plus"></i> New Category
@@ -318,13 +480,11 @@
         <p class="text-xs text-orca-muted max-w-md mx-auto">Please select a category from the dropdown above (or click "+ New Category") to edit its isolated embed panel and questions.</p>
       </div>
 
-      <!-- CATEGORY CONTENT WORKSPACE (HIDDEN UNTIL CATEGORY IS SELECTED) -->
+      <!-- CATEGORY CONTENT WORKSPACE -->
       <div id="category-workspace" class="space-y-5 hidden">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-8">
-          <!-- Left Column: Embed & Question Settings -->
+          <!-- Left Column: Settings & Questions -->
           <div class="lg:col-span-7 space-y-5">
-            
-            <!-- Embed & Channel Settings Card -->
             <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3.5 md:space-y-4 shadow-2xl">
               <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
                 <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
@@ -340,45 +500,25 @@
 
                 <div>
                   <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Target Channel</label>
-                  <select id="form-channel-select" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-                    <option value="">-- Select Button Channel --</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Submission Log Channel</label>
-                  <select id="log-channel-select" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-                    <option value="">-- Select Log Channel --</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Notification Ping Role</label>
-                  <select id="form-role-select" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-                    <option value="">-- Select Role (Optional) --</option>
+                  <!-- Grouped Dropdown -->
+                  <select id="form-channel-select" class="hierarchy-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                    <!-- Dynamic -->
                   </select>
                 </div>
               </div>
 
               <div>
                 <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Embed Title</label>
-                <input type="text" id="form-panel-title" oninput="updateFormPreview()" placeholder="e.g. 🤖 REQUEST CUSTOM BOT COMMISSION" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
-                <textarea id="form-panel-desc" oninput="updateFormPreview()" rows="3" placeholder="Want a custom bot built specifically for your server? Click the button below..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></textarea>
+                <input type="text" id="form-panel-title" oninput="updateFormPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
               </div>
 
               <div>
                 <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Form Open Button Label</label>
-                <input type="text" id="form-button-label" oninput="updateFormPreview()" placeholder="📝 Fill Out Form" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+                <input type="text" id="form-button-label" oninput="updateFormPreview()" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
               </div>
             </div>
 
-            <!-- Question Builder Card for Selected Category -->
+            <!-- Question Builder Card -->
             <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
               <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
                 <div class="flex items-center gap-2">
@@ -390,55 +530,35 @@
                 </button>
               </div>
 
-              <div id="form-questions-container" class="space-y-2.5 pt-1">
-                <!-- Dynamically populated -->
-              </div>
+              <div id="form-questions-container" class="space-y-2.5 pt-1"></div>
             </div>
 
-            <!-- Unified Save Category Button -->
             <div class="glass-card p-4 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
                 <h4 class="font-bold text-xs text-white">Save Category Setup</h4>
-                <p class="text-[11px] text-orca-muted">Saves embed details, button label, log channels, and question fields under <span class="active-cat-display font-bold text-white">--</span>.</p>
+                <p class="text-[11px] text-orca-muted">Saves settings and questions for <span class="active-cat-display font-bold text-white">--</span>.</p>
               </div>
-              <div class="flex items-center gap-2 w-full sm:w-auto">
-                <button onclick="saveFormPanelSettings(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-bold px-5 py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
-                  <i class="fa-solid fa-floppy-disk"></i> Save Category Data
-                </button>
-                <button onclick="deployFormPanel(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-5 py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-blue">
-                  <i class="fa-solid fa-paper-plane"></i> Deploy Panel
-                </button>
-              </div>
+              <button onclick="saveFormPanelSettings(this)" class="w-full sm:w-auto bg-orca-success hover:bg-emerald-600 text-white font-bold px-5 py-3 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2 shadow glow-green">
+                <i class="fa-solid fa-floppy-disk"></i> Save Category Data
+              </button>
             </div>
-
           </div>
 
-          <!-- Right Column: Discord Interactive Simulator -->
+          <!-- Right Column: Discord Simulator Preview -->
           <div class="lg:col-span-5 glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 h-fit shadow-2xl">
             <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2">
-              <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Discord UI Live Simulator
+              <i class="fa-brands fa-discord text-orca-accent text-sm"></i> Form Panel Preview
             </h3>
             
             <div class="bg-[#313338] p-3.5 rounded-2xl border border-white/5 space-y-2.5 font-sans shadow-inner">
-              <div class="flex items-center gap-2.5">
-                <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-7 h-7 rounded-full">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-white text-xs">𝐎𝐑𝐂A Bot</span>
-                  <span class="bg-[#3b82f6] text-white text-[9px] px-1 py-0.2 rounded font-bold uppercase">BOT</span>
-                </div>
-              </div>
-
               <div class="bg-[#2b2d31] p-3 rounded-lg border-l-4 border-orca-accent space-y-1.5">
-                <p class="font-bold text-white text-xs sm:text-sm" id="preview-form-title">🤖 REQUEST CUSTOM BOT COMMISSION</p>
-                <p class="text-xs text-[#dbdee1] whitespace-pre-wrap leading-relaxed" id="preview-form-desc">Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!</p>
-                <div class="pt-1 text-[10px] text-gray-400">
-                  Category: <span id="preview-category-badge" class="font-mono text-indigo-400 font-bold">--</span>
-                </div>
+                <p class="font-bold text-white text-xs sm:text-sm" id="preview-form-title">💡 JAILBREAK SUGGESTIONS</p>
+                <p class="text-xs text-[#dbdee1] leading-relaxed">Please follow server rules when making your form submission.</p>
               </div>
 
               <div class="pt-1">
-                <button onclick="testOpenDiscordModal()" class="bg-[#3b82f6] hover:bg-blue-600 text-white px-3.5 py-2 rounded text-xs font-medium flex items-center gap-1.5 transition active:scale-95 shadow cursor-pointer">
-                  <i class="fa-solid fa-file-pen text-[10px]"></i> <span id="preview-button-label">📝 Fill Out Form</span>
+                <button class="bg-[#23a55a] text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 cursor-default shadow">
+                  <i class="fa-solid fa-file-pen text-[10px]"></i> <span id="preview-button-label">Open Suggestions Form</span>
                 </button>
               </div>
             </div>
@@ -447,120 +567,80 @@
       </div>
     </section>
 
-    <!-- TAB 3: MAINTENANCE & SAFETY -->
-    <section id="tab-maintenance" class="space-y-4 md:space-y-6 hidden animate-fade-in">
-      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
-        <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Maintenance & Safety Protocol</h2>
-        <p class="text-xs text-orca-muted mt-0.5">Manage global emergency lockouts, total lockdown switches, and security flags.</p>
+    <!-- TAB 4: DISCORD CHANNEL STRUCTURE MANAGER (NEW FEATURE) -->
+    <section id="tab-channels-manager" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Discord Channel Order & Category Layout</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Customize category ordering to mirror your Discord server's exact sidebar order.</p>
+        </div>
+        <button onclick="promptCreateCategory()" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center gap-2 shadow glow-blue">
+          <i class="fa-solid fa-folder-plus"></i> Add Category
+        </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <!-- Standard Maintenance Protocol -->
-        <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
-          <div class="flex items-center justify-between border-b border-white/5 pb-3">
-            <div class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-xl bg-orca-warning/10 text-orca-warning flex items-center justify-center text-base shrink-0 border border-orca-warning/20">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-              </div>
-              <div>
-                <h3 class="text-xs sm:text-sm font-bold text-white">Standard Maintenance</h3>
-                <p class="text-[10px] text-orca-muted">Disables form submissions for regular members.</p>
-              </div>
-            </div>
-            <div>
-              <label class="cursor-pointer inline-flex items-center">
-                <input type="checkbox" id="maintenance-toggle-tab" onchange="toggleMaintenanceMode()" class="hidden">
-                <span class="switch-track">
-                  <span class="switch-thumb"></span>
-                </span>
-              </label>
-            </div>
-          </div>
-          <p class="text-[11px] text-orca-muted">Server moderators can still manage settings during standard maintenance.</p>
-        </div>
+      <div class="glass-card p-5 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+        <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center justify-between border-b border-white/5 pb-3">
+          <span><i class="fa-solid fa-sitemap text-amber-400"></i> Server Channel Hierarchy</span>
+          <span class="text-[10px] text-orca-muted">Reflects in all dropdowns</span>
+        </h3>
 
-        <!-- Total Lockdown Protocol (Owner Only) -->
-        <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl border border-orca-danger/30">
-          <div class="flex items-center justify-between border-b border-white/5 pb-3">
-            <div class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-xl bg-orca-danger/10 text-orca-danger flex items-center justify-center text-base shrink-0 border border-orca-danger/20">
-                <i class="fa-solid fa-lock"></i>
-              </div>
-              <div>
-                <h3 class="text-xs sm:text-sm font-bold text-white">Total Lockdown Mode</h3>
-                <p class="text-[10px] text-orca-danger font-bold">Hardcoded Owner Access Only (1219266886143967245)</p>
-              </div>
-            </div>
-            <div>
-              <label class="cursor-pointer inline-flex items-center">
-                <input type="checkbox" id="total-lockdown-toggle" onchange="toggleTotalLockdown()" class="hidden">
-                <span class="switch-track">
-                  <span class="switch-thumb"></span>
-                </span>
-              </label>
-            </div>
-          </div>
-          <p class="text-[11px] text-orca-muted">Blocks <strong>ALL users and moderators</strong> from bot commands. Only Owner ID <code class="font-mono text-orca-accent">1219266886143967245</code> can access system.</p>
+        <!-- Interactive Visual Discord Structure List -->
+        <div id="discord-structure-editor" class="space-y-4">
+          <!-- Dynamically Populated from discordCategories structure -->
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- Modal: Add / Edit Question Field -->
+  <!-- Modal: Add Question Field -->
   <div id="question-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden z-50">
     <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-3.5 shadow-2xl animate-fade-in">
       <div class="flex items-center justify-between border-b border-white/10 pb-2">
-        <h3 class="text-base sm:text-lg font-extrabold text-white" id="modal-title">Add Question Field</h3>
-        <button onclick="closeAddQuestionModal()" class="text-orca-muted hover:text-white p-1">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <h3 class="text-base sm:text-lg font-extrabold text-white">Add Question Field</h3>
+        <button onclick="closeAddQuestionModal()" class="text-orca-muted hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div>
         <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Question Prompt</label>
-        <input type="text" id="q-label-input" placeholder="e.g. What features do you need in your bot?" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+        <input type="text" id="q-label-input" placeholder="e.g. What is your suggestion?" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
       </div>
       <div>
         <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Placeholder Text</label>
-        <input type="text" id="q-placeholder-input" placeholder="e.g. Needs music, moderation, logs..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-      </div>
-      <div>
-        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Input Field Type</label>
-        <select id="q-style-input" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-          <option value="paragraph">Paragraph Text (Long Multi-line)</option>
-          <option value="short">Short Input Text (Single Line)</option>
-        </select>
-      </div>
-      <div class="flex items-center gap-2 pt-0.5">
-        <input type="checkbox" id="q-required-input" checked class="w-4 h-4 rounded bg-orca-base border-orca-border text-orca-accent focus:ring-0">
-        <label for="q-required-input" class="text-xs text-white font-medium">Require Answer to Submit</label>
+        <input type="text" id="q-placeholder-input" placeholder="e.g. Type details..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
       </div>
       <div class="flex justify-end gap-2.5 pt-2 border-t border-white/5">
         <button onclick="closeAddQuestionModal()" class="px-3.5 py-2 text-xs font-bold text-orca-muted hover:text-white transition">Cancel</button>
-        <button onclick="addFormQuestion(this)" class="px-4 py-2 text-xs bg-orca-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow" id="modal-save-btn">Save Question</button>
+        <button onclick="addFormQuestion()" class="px-4 py-2 text-xs bg-orca-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Save Question</button>
       </div>
     </div>
   </div>
 
-  <!-- Interactive Modal Simulator (For Discord Fill-Out Test) -->
-  <div id="discord-fill-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden z-50">
-    <div class="bg-[#313338] border border-[#1f2023] w-full max-w-lg rounded-2xl p-5 space-y-4 shadow-2xl animate-fade-in text-white">
+  <!-- CLOSE TICKET CONTROL PANEL MODAL -->
+  <div id="close-ticket-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-[#313338] text-white w-full max-w-md rounded-2xl border border-[#1f2023] p-5 space-y-4 shadow-2xl animate-fade-in">
       <div class="flex items-center justify-between border-b border-[#3f4147] pb-3">
-        <h3 class="font-bold text-sm sm:text-base flex items-center gap-2">
-          <span>📝</span> <span id="test-modal-title">Form Title</span>
-        </h3>
-        <button onclick="closeDiscordTestModal()" class="text-[#949ba4] hover:text-white">
-          <i class="fa-solid fa-xmark"></i>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+          <h3 class="font-extrabold text-sm text-white">Ticket Closing Control Panel</h3>
+        </div>
+        <button onclick="closeTicketModal()" class="text-[#949ba4] hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <p class="text-xs text-[#dbdee1] leading-relaxed">
+        Ticket close triggered. Grant buyer role or finalize transcript logging below:
+      </p>
+
+      <div class="space-y-2.5 pt-1">
+        <button onclick="simGiveBuyerRole()" class="w-full bg-[#248046] hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-between transition shadow">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-user-check"></i> Give Buyer Role</span>
+          <span class="text-[10px] bg-emerald-950 px-2 py-0.5 rounded font-mono text-emerald-300" id="modal-role-badge">@Buyer</span>
         </button>
-      </div>
 
-      <div id="test-modal-questions-body" class="space-y-3.5 max-h-[60vh] overflow-y-auto pr-1">
-        <!-- Rendered live questions for selected category -->
-      </div>
-
-      <div class="flex justify-end gap-2 pt-3 border-t border-[#3f4147]">
-        <button onclick="closeDiscordTestModal()" class="px-4 py-2 text-xs text-[#dbdee1] hover:underline font-semibold">Cancel</button>
-        <button onclick="submitDiscordTestModal()" class="px-5 py-2 text-xs bg-[#5865f2] hover:bg-[#4752c4] text-white rounded font-semibold transition">Submit Form</button>
+        <button onclick="simFinalizeClose()" class="w-full bg-[#da373c] hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-between transition shadow">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-box-archive"></i> Close & Save Transcript</span>
+          <span class="text-[10px] text-rose-200">Deletes Channel</span>
+        </button>
       </div>
     </div>
   </div>
@@ -572,48 +652,63 @@
   </div>
 
   <script>
-    // Initial channels fallback
-    let channels = [
-      { id: '1001', name: 'commission-form', type: 'text' },
-      { id: '1002', name: 'partnership-form', type: 'text' },
-      { id: '1003', name: 'form-logs', type: 'text' }
-    ];
-    let roles = [
-      { id: '2001', name: 'Staff' },
-      { id: '2002', name: 'Management' }
-    ];
     let activeCategory = "";
-    let editingIndex = null;
-    
-    // Isolated Category Map
-    let categoryMap = {
-      "Custom Bot Commission": {
-        title: "🤖 REQUEST CUSTOM BOT COMMISSION",
-        description: "Want a custom bot built specifically for your Discord server? Click the button below to complete our quick commission form!",
-        button_label: "📝 Fill Out Form",
-        channel_id: "1001",
-        log_channel_id: "1003",
-        ping_role_id: "2001",
-        questions: [
-          { label: "What is your Discord Username?", placeholder: "e.g. user#0000", style: "short", required: true },
-          { label: "Detailed Bot Requirements", placeholder: "Explain commands and features needed...", style: "paragraph", required: true }
+    let simTicketId = null;
+
+    // Discord Hierarchical Category & Channel Structure (Strict Order Matching Discord Sidebar)
+    let discordCategories = [
+      {
+        id: "cat-info",
+        name: "📁 INFORMATION",
+        channels: [
+          { id: "c-101", name: "rules-and-info", icon: "fa-hashtag" },
+          { id: "c-102", name: "announcements", icon: "fa-bullhorn" }
         ]
       },
-      "Partnership Application": {
-        title: "🤝 PARTNERSHIP APPLICATION",
-        description: "Interested in forming a server partnership with our community? Click below to apply!",
-        button_label: "🤝 Apply for Partner",
-        channel_id: "1002",
-        log_channel_id: "1003",
-        ping_role_id: "2002",
-        questions: [
-          { label: "Server Invite Link", placeholder: "https://discord.gg/...", style: "short", required: true },
-          { label: "Why do you want to partner?", placeholder: "Tell us about your community...", style: "paragraph", required: true }
+      {
+        id: "cat-forms",
+        name: "📁 FORMS & TICKETS",
+        channels: [
+          { id: "c-201", name: "commission-form", icon: "fa-hashtag" },
+          { id: "c-202", name: "partnership-form", icon: "fa-hashtag" },
+          { id: "c-203", name: "suggestions", icon: "fa-hashtag" },
+          { id: "c-204", name: "bug-reports", icon: "fa-hashtag" }
         ]
+      },
+      {
+        id: "cat-logs",
+        name: "📁 MODERATION & LOGS",
+        channels: [
+          { id: "c-301", name: "commission-logs", icon: "fa-hashtag" },
+          { id: "c-302", name: "form-transcripts", icon: "fa-hashtag" },
+          { id: "c-303", name: "audit-log", icon: "fa-shield" }
+        ]
+      },
+      {
+        id: "cat-general",
+        name: "📁 GENERAL CHANNELS",
+        channels: [
+          { id: "c-401", name: "general", icon: "fa-hashtag" },
+          { id: "c-402", name: "bot-commands", icon: "fa-robot" },
+          { id: "c-403", name: "Lounge (Voice)", icon: "fa-volume-high" }
+        ]
+      }
+    ];
+
+    let categoryMap = {
+      "Jailbreak Suggestions": {
+        title: "💡 JAILBREAK SUGGESTIONS",
+        button_label: "Open Suggestions Form",
+        questions: [{ label: "Your Suggestion", placeholder: "Explain your idea..." }]
+      },
+      "Jailbreak Bug Reports": {
+        title: "🐛 JAILBREAK BUG REPORTS",
+        button_label: "Open Bug Reports Form",
+        questions: [{ label: "Bug Details", placeholder: "Explain steps to reproduce..." }]
       }
     };
 
-    let rawUptimeSeconds = 12450;
+    let rawUptimeSeconds = 14820;
     let telemetryInterval = null;
     let chartInstance = null;
     const pingHistory = [15, 18, 22, 19, 24, 20, 18, 21, 19, 18];
@@ -648,6 +743,135 @@
       });
     }
 
+    /**
+     * RENDER DISCORD-STYLE GROUPED CHANNEL SELECTORS
+     * Produces <optgroup> elements in exact category order!
+     */
+    function renderHierarchicalChannelDropdowns() {
+      const selects = document.querySelectorAll('.hierarchy-select');
+      
+      selects.forEach(select => {
+        const selectedVal = select.value;
+        select.innerHTML = `<option value="">-- Select Discord Channel --</option>`;
+
+        discordCategories.forEach(cat => {
+          const optGroup = document.createElement('optgroup');
+          optGroup.label = cat.name;
+
+          cat.channels.forEach(ch => {
+            const opt = document.createElement('option');
+            opt.value = ch.id;
+            opt.innerText = (ch.icon === 'fa-volume-high' ? '🔊 ' : '# ') + ch.name;
+            optGroup.appendChild(opt);
+          });
+
+          select.appendChild(optGroup);
+        });
+
+        if (selectedVal) select.value = selectedVal;
+      });
+
+      const totalChannels = discordCategories.reduce((acc, cat) => acc + cat.channels.length, 0);
+      document.getElementById('stat-category-count').innerText = `${discordCategories.length} Categories (${totalChannels} Chs)`;
+    }
+
+    /**
+     * RENDER DISCORD CHANNEL STRUCTURE EDITOR MANAGER
+     */
+    function renderStructureEditor() {
+      const container = document.getElementById("discord-structure-editor");
+      if (!container) return;
+      container.innerHTML = "";
+
+      discordCategories.forEach((cat, catIdx) => {
+        let channelItemsHtml = "";
+
+        cat.channels.forEach((ch, chIdx) => {
+          channelItemsHtml += `
+            <div class="flex items-center justify-between bg-orca-base/80 p-2.5 rounded-xl border border-white/5 text-xs font-mono">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid ${ch.icon} text-orca-accent"></i>
+                <span class="text-white font-semibold"># ${ch.name}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button onclick="moveChannel(${catIdx}, ${chIdx}, -1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px]" title="Move Up">▲</button>
+                <button onclick="moveChannel(${catIdx}, ${chIdx}, 1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px]" title="Move Down">▼</button>
+                <button onclick="deleteChannel(${catIdx}, ${chIdx})" class="px-2 py-1 bg-rose-950/60 text-rose-400 hover:bg-rose-900 rounded text-[10px]" title="Delete Channel">✕</button>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML += `
+          <div class="bg-orca-card p-4 rounded-2xl border border-white/5 space-y-3">
+            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+              <h4 class="font-extrabold text-xs text-orca-accent tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-folder text-amber-400"></i> ${cat.name}
+              </h4>
+              <button onclick="promptAddChannel(${catIdx})" class="text-[10px] bg-orca-accent/20 text-orca-accent hover:bg-orca-accent hover:text-white px-2.5 py-1 rounded-lg font-bold transition">
+                + Add Channel
+              </button>
+            </div>
+            <div class="space-y-1.5">
+              ${channelItemsHtml || '<p class="text-[10px] text-orca-muted italic">No channels in this category.</p>'}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function moveChannel(catIdx, chIdx, direction) {
+      const targetIdx = chIdx + direction;
+      if (targetIdx < 0 || targetIdx >= discordCategories[catIdx].channels.length) return;
+
+      const channels = discordCategories[catIdx].channels;
+      const temp = channels[chIdx];
+      channels[chIdx] = channels[targetIdx];
+      channels[targetIdx] = temp;
+
+      renderStructureEditor();
+      renderHierarchicalChannelDropdowns();
+      showToast("Channel re-ordered!");
+    }
+
+    function deleteChannel(catIdx, chIdx) {
+      discordCategories[catIdx].channels.splice(chIdx, 1);
+      renderStructureEditor();
+      renderHierarchicalChannelDropdowns();
+      showToast("Channel removed from structure.");
+    }
+
+    function promptAddChannel(catIdx) {
+      const name = prompt("Enter new channel name (e.g. ticket-logs, general-chat):");
+      if (!name || !name.trim()) return;
+
+      const cleanName = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      discordCategories[catIdx].channels.push({
+        id: `c-${Date.now()}`,
+        name: cleanName,
+        icon: 'fa-hashtag'
+      });
+
+      renderStructureEditor();
+      renderHierarchicalChannelDropdowns();
+      showToast(`Added #${cleanName} to category!`);
+    }
+
+    function promptCreateCategory() {
+      const catName = prompt("Enter new Category Name (e.g. TICKET CATEGORY):");
+      if (!catName || !catName.trim()) return;
+
+      discordCategories.push({
+        id: `cat-${Date.now()}`,
+        name: `📁 ${catName.trim().toUpperCase()}`,
+        channels: []
+      });
+
+      renderStructureEditor();
+      renderHierarchicalChannelDropdowns();
+      showToast(`Created new category: ${catName}`);
+    }
+
     function toggleMobileMenu() {
       const menu = document.getElementById('mobile-menu');
       const icon = document.getElementById('menu-icon');
@@ -658,19 +882,6 @@
         menu.classList.add('hidden');
         icon.className = 'fa-solid fa-bars text-sm';
       }
-    }
-
-    function startBtnLoading(btn, loadingText = "Processing...") {
-      if (!btn) return () => {};
-      const originalHtml = btn.innerHTML;
-      btn.disabled = true;
-      btn.classList.add('opacity-75', 'cursor-not-allowed');
-      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>${loadingText}</span>`;
-      return () => {
-        btn.disabled = false;
-        btn.classList.remove('opacity-75', 'cursor-not-allowed');
-        btn.innerHTML = originalHtml;
-      };
     }
 
     function formatUptime(seconds) {
@@ -689,71 +900,104 @@
       }, 1000);
     }
 
-    function populateDropdowns() {
-      const textChannels = channels.filter(c => c.type === 'text');
-      const fillSelect = (elemId, list, defaultLabel) => {
-        const elem = document.getElementById(elemId);
-        if (!elem) return;
-        elem.innerHTML = `<option value="">${defaultLabel}</option>`;
-        list.forEach(item => {
-          elem.innerHTML += `<option value="${item.id}"># ${item.name}</option>`;
-        });
-      };
-
-      fillSelect('form-channel-select', textChannels, '-- Select Button Channel --');
-      fillSelect('log-channel-select', textChannels, '-- Select Log Channel --');
-
-      const roleSelect = document.getElementById('form-role-select');
-      if (roleSelect) {
-        roleSelect.innerHTML = `<option value="">-- Select Role (Optional) --</option>`;
-        roles.forEach(r => {
-          roleSelect.innerHTML += `<option value="${r.id}">@ ${r.name}</option>`;
-        });
-      }
-    }
-
-    function createNewFormPanelPrompt() {
-      const newCatName = prompt("Enter a name for your new Form Category (e.g. Bug Report, Feedback):");
-      if (!newCatName || !newCatName.trim()) return;
-
-      const cleanCat = newCatName.trim();
-      if (!categoryMap[cleanCat]) {
-        // Complete Fresh Reset for New Category
-        categoryMap[cleanCat] = {
-          title: `📋 ${cleanCat.toUpperCase()}`,
-          description: `Click the button below to submit a ${cleanCat} request.`,
-          button_label: "📝 Fill Out Form",
-          channel_id: "",
-          log_channel_id: "",
-          ping_role_id: "",
-          questions: [
-            { label: "Please explain your request details", placeholder: "Type your request here...", style: "paragraph", required: true }
-          ]
-        };
-      }
-
-      renderCategoryDropdown();
-      document.getElementById("form-category-select").value = cleanCat;
-      switchActiveCategory();
-      showToast(`Created fresh category "${cleanCat}"!`);
-    }
-
-    function renderCategoryDropdown() {
-      const select = document.getElementById("form-category-select");
-      const currentVal = select.value;
-      select.innerHTML = `<option value="">-- Choose Category First --</option>`;
-      Object.keys(categoryMap).forEach(cat => {
-        const opt = document.createElement("option");
-        opt.value = cat;
-        opt.innerText = (cat === "Custom Bot Commission" ? "🤖 " : cat === "Partnership Application" ? "🤝 " : "📁 ") + cat;
-        select.appendChild(opt);
+    function switchTab(tab) {
+      const tabs = ['overview', 'ticket-config', 'formpanel', 'channels-manager'];
+      tabs.forEach(t => {
+        const tabEl = document.getElementById(`tab-${t}`);
+        if (tabEl) tabEl.classList.add('hidden');
+        
+        const desktopNav = document.getElementById(`nav-${t}`);
+        if (desktopNav) {
+          desktopNav.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all';
+        }
       });
-      select.value = activeCategory || currentVal;
+
+      const target = document.getElementById(`tab-${tab}`);
+      if (target) target.classList.remove('hidden');
+
+      const activeDesktop = document.getElementById(`nav-${tab}`);
+      if (activeDesktop) {
+        activeDesktop.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all';
+      }
     }
 
+    // TICKET ENGINE LOGIC
+    function saveTicketSettings(btn) {
+      showToast("Ticket configuration saved with channel hierarchy!");
+    }
+
+    function updateBuyerRoleTag() {
+      const val = document.getElementById("ticket-buyer-role").value;
+      document.getElementById("modal-role-badge").innerText = val;
+    }
+
+    function simOpenTicket(username) {
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      simTicketId = `ticket-${username}-${rand}`;
+
+      document.getElementById("sim-ticket-name").innerText = `#${simTicketId}`;
+      document.getElementById("sim-embed-title").innerText = document.getElementById("ticket-welcome-title").value;
+      document.getElementById("sim-embed-desc").innerText = document.getElementById("ticket-welcome-desc").value;
+
+      document.getElementById("sim-ticket-container").classList.remove("hidden");
+      document.getElementById("sim-chat-log").innerHTML = `
+        <div class="text-[10px] text-emerald-400 font-mono bg-emerald-950/40 p-1.5 rounded border border-emerald-500/20">
+          [System]: Private channel #${simTicketId} opened for @${username}.
+        </div>
+      `;
+      showToast(`Opened channel #${simTicketId}`);
+    }
+
+    function simSendMessage() {
+      const input = document.getElementById("sim-user-input");
+      const val = input.value.trim();
+      if (!val) return;
+
+      const log = document.getElementById("sim-chat-log");
+      log.innerHTML += `
+        <div class="text-xs bg-[#1e1f22] p-1.5 rounded flex justify-between">
+          <span>@bayat: ${val}</span>
+          <span class="text-[9px] text-[#80848e]">now</span>
+        </div>
+      `;
+
+      input.value = "";
+
+      if (val.toLowerCase() === "close") {
+        triggerCloseModal();
+      }
+    }
+
+    function triggerCloseModal() {
+      document.getElementById("close-ticket-modal").classList.remove("hidden");
+    }
+
+    function closeTicketModal() {
+      document.getElementById("close-ticket-modal").classList.add("hidden");
+    }
+
+    function simGiveBuyerRole() {
+      const role = document.getElementById("ticket-buyer-role").value;
+      const log = document.getElementById("sim-chat-log");
+      log.innerHTML += `
+        <div class="text-[10px] text-indigo-300 font-mono bg-indigo-950/40 p-1.5 rounded border border-indigo-500/30">
+          [System]: User granted role ${role}! Review invite active.
+        </div>
+      `;
+      closeTicketModal();
+      showToast(`Role ${role} granted to buyer!`);
+    }
+
+    function simFinalizeClose() {
+      closeTicketModal();
+      document.getElementById("sim-ticket-container").classList.add("hidden");
+      showToast(`Ticket #${simTicketId} closed and transcript archived!`);
+      simTicketId = null;
+    }
+
+    // FORM ENGINE CATEGORY LOGIC
     function switchActiveCategory() {
       activeCategory = document.getElementById("form-category-select").value;
-
       const placeholder = document.getElementById("category-placeholder");
       const workspace = document.getElementById("category-workspace");
 
@@ -766,28 +1010,12 @@
       placeholder.classList.add("hidden");
       workspace.classList.remove("hidden");
 
-      const catData = categoryMap[activeCategory] || {
-        title: `📋 ${activeCategory.toUpperCase()}`,
-        description: `Click below to complete the ${activeCategory} form.`,
-        button_label: "📝 Fill Out Form",
-        channel_id: "",
-        log_channel_id: "",
-        ping_role_id: "",
-        questions: []
-      };
-
-      // Populate Inputs strictly from this category's isolated data
+      const data = categoryMap[activeCategory] || { title: activeCategory, button_label: "Open Form", questions: [] };
       document.getElementById("cfg-category-input").value = activeCategory;
-      document.getElementById("form-panel-title").value = catData.title || `📋 ${activeCategory.toUpperCase()}`;
-      document.getElementById("form-panel-desc").value = catData.description || `Click below to submit your ${activeCategory} form.`;
-      document.getElementById("form-button-label").value = catData.button_label || "📝 Fill Out Form";
-
-      document.getElementById("form-channel-select").value = catData.channel_id || "";
-      document.getElementById("log-channel-select").value = catData.log_channel_id || "";
-      document.getElementById("form-role-select").value = catData.ping_role_id || "";
+      document.getElementById("form-panel-title").value = data.title;
+      document.getElementById("form-button-label").value = data.button_label;
 
       document.querySelectorAll(".active-cat-display").forEach(el => el.innerText = activeCategory);
-
       renderFormQuestions();
       updateFormPreview();
     }
@@ -795,367 +1023,75 @@
     function renderFormQuestions() {
       const container = document.getElementById("form-questions-container");
       container.innerHTML = "";
-
       const questions = (categoryMap[activeCategory] && categoryMap[activeCategory].questions) || [];
 
-      if (questions.length === 0) {
-        container.innerHTML = `<div class="p-5 text-center text-orca-muted glass-card rounded-xl text-xs">No questions configured for "${escapeHtml(activeCategory)}". Click "+ Add Question" to create fields.</div>`;
-        return;
-      }
-
       questions.forEach((q, idx) => {
-        const styleBadge = q.style === 'paragraph' 
-          ? `<span class="bg-orca-accent/10 text-orca-accent text-[9px] px-1.5 py-0.2 rounded font-bold uppercase">Paragraph</span>`
-          : `<span class="bg-orca-success/10 text-orca-success text-[9px] px-1.5 py-0.2 rounded font-bold uppercase">Short Input</span>`;
-
         container.innerHTML += `
-          <div class="glass-card p-3 sm:p-4 rounded-xl flex items-center justify-between shadow-md hover:border-white/10 transition animate-fade-in gap-2.5">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <p class="font-bold text-white text-xs sm:text-sm truncate">Q${idx + 1}: ${escapeHtml(q.label)}</p>
-                ${styleBadge}
-                ${q.required ? '<span class="text-orca-danger text-[9px] font-bold">*Required</span>' : ''}
-              </div>
-              <p class="text-[11px] text-orca-muted mt-0.5 truncate">Placeholder: "${escapeHtml(q.placeholder || 'None')}"</p>
+          <div class="glass-card p-3 rounded-xl flex items-center justify-between text-xs">
+            <div>
+              <span class="font-bold text-white">Q${idx + 1}: ${q.label}</span>
             </div>
-            <div class="flex items-center gap-1">
-              <button onclick="editFormQuestion(${idx})" class="text-orca-accent hover:bg-orca-accent/10 p-2 rounded-lg transition text-xs shrink-0" title="Edit Question">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-              <button onclick="removeFormQuestion(${idx}, this)" class="text-orca-danger hover:bg-orca-danger/10 p-2 rounded-lg transition text-xs shrink-0" title="Delete Question">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </div>
+            <button onclick="removeQuestion(${idx})" class="text-orca-danger hover:bg-orca-danger/10 p-1.5 rounded">
+              <i class="fa-solid fa-trash"></i>
+            </button>
           </div>
         `;
       });
     }
 
-    // Modal open handling with explicit input cleanup
-    function openAddQuestionModal(idx = null) { 
-      if (!activeCategory) {
-        showToast("Choose a category first!", true);
-        return;
-      }
-
-      editingIndex = idx;
-      const modalTitle = document.getElementById("modal-title");
-      const saveBtn = document.getElementById("modal-save-btn");
-
-      if (idx !== null && categoryMap[activeCategory].questions[idx]) {
-        // Edit Mode
-        const q = categoryMap[activeCategory].questions[idx];
-        document.getElementById("q-label-input").value = q.label;
-        document.getElementById("q-placeholder-input").value = q.placeholder || "";
-        document.getElementById("q-style-input").value = q.style || "short";
-        document.getElementById("q-required-input").checked = !!q.required;
-        modalTitle.innerText = `Edit Question #${idx + 1}`;
-        saveBtn.innerText = "Update Question";
-      } else {
-        // Fresh Reset for New Question!
-        document.getElementById("q-label-input").value = "";
-        document.getElementById("q-placeholder-input").value = "";
-        document.getElementById("q-style-input").value = "short";
-        document.getElementById("q-required-input").checked = true;
-        modalTitle.innerText = "Add Question Field";
-        saveBtn.innerText = "Add Question";
-      }
-
-      document.getElementById("question-modal").classList.remove("hidden"); 
+    function openAddQuestionModal() {
+      document.getElementById("q-label-input").value = "";
+      document.getElementById("q-placeholder-input").value = "";
+      document.getElementById("question-modal").classList.remove("hidden");
     }
 
-    function closeAddQuestionModal() { 
-      document.getElementById("question-modal").classList.add("hidden"); 
-      editingIndex = null;
+    function closeAddQuestionModal() {
+      document.getElementById("question-modal").classList.add("hidden");
     }
 
-    function editFormQuestion(idx) {
-      openAddQuestionModal(idx);
-    }
-
-    async function addFormQuestion(btn = null) {
+    function addFormQuestion() {
       const label = document.getElementById("q-label-input").value.trim();
       const placeholder = document.getElementById("q-placeholder-input").value.trim();
-      const style = document.getElementById("q-style-input").value;
-      const required = document.getElementById("q-required-input").checked;
+      if (!label) return;
 
-      if (!label) {
-        showToast("Question prompt is required.", true);
-        return;
-      }
-
-      const stopLoading = startBtnLoading(btn, "Saving...");
       if (!categoryMap[activeCategory].questions) categoryMap[activeCategory].questions = [];
-
-      if (editingIndex !== null) {
-        categoryMap[activeCategory].questions[editingIndex] = { label, placeholder, style, required };
-      } else {
-        categoryMap[activeCategory].questions.push({ label, placeholder, style, required });
-      }
-      
+      categoryMap[activeCategory].questions.push({ label, placeholder });
       renderFormQuestions();
       closeAddQuestionModal();
-
-      showToast(`Saved questions for category "${activeCategory}"!`);
-      try {
-        await fetch('/api/form-questions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ category: activeCategory, questions: categoryMap[activeCategory].questions })
-        });
-      } catch (e) {
-        // Graceful silent fallback for local testing
-      } finally { 
-        stopLoading(); 
-      }
+      showToast("Question added to category!");
     }
 
-    async function removeFormQuestion(idx, btn = null) {
-      const stopLoading = startBtnLoading(btn, "");
+    function removeQuestion(idx) {
       categoryMap[activeCategory].questions.splice(idx, 1);
       renderFormQuestions();
-
-      showToast("Question removed.");
-      try {
-        await fetch('/api/form-questions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ category: activeCategory, questions: categoryMap[activeCategory].questions })
-        });
-      } catch (e) {}
-      finally { stopLoading(); }
-    }
-
-    async function loadAllData(manualSync = false, btn = null) {
-      const stopLoading = manualSync ? startBtnLoading(btn, "Syncing...") : () => {};
-      if (manualSync) {
-        document.getElementById('refresh-icon').classList.add('fa-spin');
-        showToast("Synchronizing with telemetry service...");
-      }
-
-      try {
-        const guildRes = await fetch('/api/guild-data');
-        if (guildRes.ok) {
-          const gData = await guildRes.json();
-          if (gData.channels) channels = gData.channels;
-          if (gData.roles) roles = gData.roles;
-
-          const currentPing = gData.latency || 18;
-          updateStatValue('stat-ping', `${currentPing} ms`);
-
-          if (gData.uptime_seconds !== undefined) {
-            rawUptimeSeconds = gData.uptime_seconds;
-            document.getElementById('stat-uptime').innerText = formatUptime(rawUptimeSeconds);
-          }
-        }
-      } catch (e) {
-        // Fallback for standalone HTML execution
-      } finally {
-        populateDropdowns();
-        renderCategoryDropdown();
-        stopLoading();
-        if (manualSync) {
-          setTimeout(() => document.getElementById('refresh-icon').classList.remove('fa-spin'), 600);
-          showToast("Telemetry synced!");
-        }
-      }
-    }
-
-    function updateStatValue(elemId, newValue) {
-      const el = document.getElementById(elemId);
-      if (el) el.innerText = String(newValue);
-    }
-
-    function escapeHtml(str) {
-      return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      showToast("Question deleted.");
     }
 
     function updateFormPreview() {
-      if (!activeCategory || !categoryMap[activeCategory]) return;
-
-      const title = document.getElementById("form-panel-title").value || `📋 ${activeCategory.toUpperCase()}`;
-      const desc = document.getElementById("form-panel-desc").value || `Click below to complete our quick ${activeCategory} form!`;
-      const btnLabel = document.getElementById("form-button-label").value || "📝 Fill Out Form";
-
-      categoryMap[activeCategory].title = title;
-      categoryMap[activeCategory].description = desc;
-      categoryMap[activeCategory].button_label = btnLabel;
-
-      document.getElementById("preview-form-title").innerText = title;
-      document.getElementById("preview-form-desc").innerText = desc;
-      document.getElementById("preview-button-label").innerText = btnLabel;
-      document.getElementById("preview-category-badge").innerText = activeCategory;
-    }
-
-    // Discord Fill Modal Test Simulator
-    function testOpenDiscordModal() {
-      if (!activeCategory || !categoryMap[activeCategory]) return;
-      const catData = categoryMap[activeCategory];
-
-      document.getElementById("test-modal-title").innerText = catData.title || activeCategory;
-      const body = document.getElementById("test-modal-questions-body");
-      body.innerHTML = "";
-
-      if (!catData.questions || catData.questions.length === 0) {
-        body.innerHTML = `<p class="text-xs text-[#80848e] text-center py-4">No questions defined for this category form.</p>`;
-      } else {
-        catData.questions.forEach((q, i) => {
-          body.innerHTML += `
-            <div class="space-y-1">
-              <label class="block text-[11px] font-bold text-[#b5bac1] uppercase tracking-wider">
-                ${escapeHtml(q.label)} ${q.required ? '<span class="text-rose-500">*</span>' : ''}
-              </label>
-              ${q.style === 'paragraph' 
-                ? `<textarea rows="3" placeholder="${escapeHtml(q.placeholder || '')}" class="w-full bg-[#1e1f22] border border-[#3f4147] rounded-lg p-2.5 text-xs text-white placeholder-[#80848e] focus:outline-none focus:border-[#5865f2] resize-none"></textarea>`
-                : `<input type="text" placeholder="${escapeHtml(q.placeholder || '')}" class="w-full bg-[#1e1f22] border border-[#3f4147] rounded-lg p-2.5 text-xs text-white placeholder-[#80848e] focus:outline-none focus:border-[#5865f2]" />`
-              }
-            </div>
-          `;
-        });
-      }
-
-      document.getElementById("discord-fill-modal").classList.remove("hidden");
-    }
-
-    function closeDiscordTestModal() {
-      document.getElementById("discord-fill-modal").classList.add("hidden");
-    }
-
-    function submitDiscordTestModal() {
-      closeDiscordTestModal();
-      showToast("Test submission logged! Clean state verified.");
-    }
-
-    async function toggleMaintenanceMode() {
-      const enabled = document.getElementById("maintenance-toggle-tab").checked;
-      showToast(enabled ? "Enabling Maintenance Protocol..." : "Disabling Maintenance Protocol...");
-      try {
-        await fetch('/api/maintenance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ maintenance: enabled })
-        });
-      } catch (e) {}
-    }
-
-    async function toggleTotalLockdown() {
-      const enabled = document.getElementById("total-lockdown-toggle").checked;
-      showToast(enabled ? "ACTIVATING TOTAL LOCKDOWN..." : "Disengaging Total Lockdown...");
-      try {
-        await fetch('/api/lockdown', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lockdown: enabled })
-        });
-      } catch (e) {}
-    }
-
-    async function saveFormPanelSettings(btn = null) {
       if (!activeCategory) return;
-      const stopLoading = startBtnLoading(btn, "Saving...");
-      
-      const chId = document.getElementById("form-channel-select").value;
-      const logChId = document.getElementById("log-channel-select").value;
-      const pingRoleId = document.getElementById("form-role-select").value;
-
-      categoryMap[activeCategory].channel_id = chId;
-      categoryMap[activeCategory].log_channel_id = logChId;
-      categoryMap[activeCategory].ping_role_id = pingRoleId;
-
-      updateFormPreview();
-      showToast(`Saved all settings for "${activeCategory}"!`);
-
-      try {
-        await fetch('/api/save-form-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            category: activeCategory,
-            ...categoryMap[activeCategory]
-          })
-        });
-      } catch (e) {}
-      finally { stopLoading(); }
+      document.getElementById("preview-form-title").innerText = document.getElementById("form-panel-title").value || activeCategory;
+      document.getElementById("preview-button-label").innerText = document.getElementById("form-button-label").value || "Open Form";
     }
 
-    async function deployFormPanel(btn = null) {
-      if (!activeCategory) return;
-      const channelId = document.getElementById("form-channel-select").value;
-      if (!channelId) {
-        showToast("Select a Button Channel first!", true);
-        return;
-      }
-      const stopLoading = startBtnLoading(btn, "Deploying...");
-      await saveFormPanelSettings();
-      showToast(`Form panel deployed for "${activeCategory}"!`);
-
-      try {
-        await fetch('/api/deploy-form-panel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel_id: channelId, category: activeCategory })
-        });
-      } catch (e) {}
-      finally { stopLoading(); }
+    function saveFormPanelSettings() {
+      showToast(`Category settings for "${activeCategory}" saved!`);
     }
 
-    function switchTab(tab) {
-      const tabs = ['overview', 'formpanel', 'maintenance'];
-      tabs.forEach(t => {
-        const tabEl = document.getElementById(`tab-${t}`);
-        if (tabEl) tabEl.classList.add('hidden');
-        
-        const desktopNav = document.getElementById(`nav-${t}`);
-        if (desktopNav) {
-          desktopNav.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all duration-200';
-        }
-        
-        const mobileNav = document.getElementById(`m-nav-${t}`);
-        if (mobileNav) {
-          mobileNav.className = 'flex flex-col items-center gap-0.5 px-4 py-1 text-orca-muted';
-        }
-      });
-
-      const target = document.getElementById(`tab-${tab}`);
-      if (target) {
-        target.classList.remove('hidden');
-        target.classList.remove('animate-fade-in');
-        void target.offsetWidth;
-        target.classList.add('animate-fade-in');
-      }
-
-      const activeDesktop = document.getElementById(`nav-${tab}`);
-      if (activeDesktop) {
-        activeDesktop.className = 'w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all duration-200';
-      }
-      
-      const activeMobile = document.getElementById(`m-nav-${tab}`);
-      if (activeMobile) {
-        activeMobile.className = 'flex flex-col items-center gap-0.5 px-4 py-1 text-orca-accent font-bold';
-      }
+    function loadAllData(manualSync = false) {
+      renderHierarchicalChannelDropdowns();
+      renderStructureEditor();
+      if (manualSync) showToast("Channel structure & telemetry synced!");
     }
 
-    function showToast(msg, isError = false) {
+    function showToast(msg) {
       const toast = document.getElementById("toast");
-      const icon = document.getElementById("toast-icon");
-      const message = document.getElementById("toast-message");
-
-      message.innerText = msg;
-      if (isError) {
-        toast.classList.replace("bg-orca-accent", "bg-orca-danger");
-        icon.className = "fa-solid fa-circle-xmark text-white text-sm sm:text-base shrink-0";
-      } else {
-        toast.classList.replace("bg-orca-danger", "bg-orca-accent");
-        icon.className = "fa-solid fa-circle-check text-orca-success text-sm sm:text-base shrink-0";
-      }
-
+      document.getElementById("toast-message").innerText = msg;
       toast.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
       setTimeout(() => {
         toast.classList.add("opacity-0", "translate-y-4", "pointer-events-none");
       }, 3000);
     }
 
-    // Initialize application
     initChart();
     start1SecondTicks();
     loadAllData();
