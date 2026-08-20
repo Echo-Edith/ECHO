@@ -2,6 +2,7 @@ import os
 import time
 import asyncio
 import re
+import io
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
@@ -16,6 +17,7 @@ except ImportError:
 
 EMBED_COLOR = discord.Color.blurple()
 ERROR_COLOR = discord.Color.red()
+SUCCESS_COLOR = discord.Color.green()
 HARDCODED_OWNER_ID = 1219266886143967245
 
 _mongo_client = None
@@ -82,7 +84,66 @@ def is_maintenance(guild_id: int, user_id: int, guild: Optional[discord.Guild]) 
 
 
 # ----------------------------------------------------------------------
-# Dynamic Multi-Part Chained Modals
+# Close Ticket Modal Interface
+# ----------------------------------------------------------------------
+class CloseTicketModal(discord.ui.Modal):
+    def __init__(self, category: str, ticket_data: dict):
+        super().__init__(title="Close Ticket & Finalize Log")
+        self.category = category
+        self.ticket_data = ticket_data
+
+        self.reason_input = discord.ui.TextInput(
+            label="Reason for Closing",
+            style=discord.TextStyle.short,
+            placeholder="e.g. Commission completed & delivered",
+            required=False,
+            max_length=200
+        )
+        self.add_item(self.reason_input)
+
+        self.buyer_role_input = discord.ui.TextInput(
+            label="Grant Buyer Role? (yes / no)",
+            style=discord.TextStyle.short,
+            placeholder="Type 'yes' or 'no'",
+            required=True,
+            default="yes",
+            max_length=5
+        )
+        self.add_item(self.buyer_role_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        reason = self.reason_input.value.strip() or "No reason provided"
+        give_role = self.buyer_role_input.value.strip().lower() in ["yes", "y", "true", "1"]
+
+        cog = interaction.client.get_cog("Orca")
+        if cog:
+            await cog.execute_ticket_close(
+                interaction=interaction,
+                channel=interaction.channel,
+                category=self.category,
+                ticket_data=self.ticket_data,
+                reason=reason,
+                give_role=give_role
+            )
+
+
+# ----------------------------------------------------------------------
+# Ticket Control Panel Inside Active Channel
+# ----------------------------------------------------------------------
+class TicketChannelControlView(discord.ui.View):
+    def __init__(self, category: str, ticket_data: dict):
+        super().__init__(timeout=None)
+        self.category = category
+        self.ticket_data = ticket_data
+
+    @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="orca_ticket_close_btn")
+    async def close_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(CloseTicketModal(self.category, self.ticket_data))
+
+
+# ----------------------------------------------------------------------
+# Dynamic Multi-Part Chained Modals for Intake
 # ----------------------------------------------------------------------
 class ChainedCustomModal(discord.ui.Modal):
     def __init__(self, title: str, category: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict]):
@@ -133,6 +194,7 @@ class ChainedCustomModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
         db = get_db()
 
+        # Strict 1-to-Infinity Incremental Sequential Counter per Server
         counter = 1
         config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
         if config:
@@ -143,17 +205,20 @@ class ChainedCustomModal(discord.ui.Modal):
         cat_configs = config.get("category_configs", {}) if config else {}
         cat_data = cat_configs.get(self.category, {})
 
-        if db is not None:
-            db["form_submissions"].insert_one({
-                "number": counter,
-                "category": self.category,
-                "username": str(interaction.user),
-                "user_id": str(interaction.user.id),
-                "answers": current_answers,
-                "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-            })
+        ticket_record = {
+            "number": counter,
+            "category": self.category,
+            "username": str(interaction.user),
+            "user_id": str(interaction.user.id),
+            "answers": current_answers,
+            "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "closed": False
+        }
 
-        # Check for designated Opened Ticket Target Category on Discord
+        if db is not None:
+            db["form_submissions"].insert_one(ticket_record)
+
+        # Check target category placement on Discord
         target_category_ref = cat_data.get("openedCategory")
         target_discord_category = None
         if target_category_ref and interaction.guild:
@@ -162,14 +227,15 @@ class ChainedCustomModal(discord.ui.Modal):
             if not target_discord_category:
                 target_discord_category = discord.utils.get(interaction.guild.categories, name=target_category_ref)
 
-        # Create private ticket channel for the user
+        # Create private ticket channel
         ticket_channel = None
         if interaction.guild:
-            channel_name = f"ticket-{interaction.user.name}-{counter}"
+            clean_username = re.sub(r'[^a-zA-Z0-9]', '', interaction.user.name.lower()) or "user"
+            channel_name = f"ticket-{clean_username}-{counter}"
             overwrites = {
                 interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-                interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, attach_files=True),
+                interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True)
             }
 
             staff_role_id = cat_data.get("staffRole") or config.get("ping_role_id")
@@ -183,18 +249,20 @@ class ChainedCustomModal(discord.ui.Modal):
                     name=channel_name,
                     category=target_discord_category if isinstance(target_discord_category, discord.CategoryChannel) else None,
                     overwrites=overwrites,
+                    topic=f"ORCA Ticket #{counter} | Opener ID: {interaction.user.id} | Category: {self.category}",
                     reason=f"ORCA Ticket #{counter} opened by {interaction.user}"
                 )
             except Exception:
                 pass
 
-        # Send Welcome Embed into the newly created ticket channel
+        # Send Welcome Embed inside newly created private channel
         if ticket_channel:
             welcome_title = cat_data.get("welcomeTitle") or f"🐬 {self.category} Ticket Created"
             welcome_desc = cat_data.get("welcomeDesc") or "Welcome to your private ticket channel! A staff member will assist you shortly."
             
-            w_embed = discord.Embed(title=welcome_title, description=welcome_desc, color=discord.Color.green())
+            w_embed = discord.Embed(title=welcome_title, description=welcome_desc, color=SUCCESS_COLOR)
             w_embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
+            
             for ans in current_answers:
                 w_embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
 
@@ -205,30 +273,9 @@ class ChainedCustomModal(discord.ui.Modal):
                     ping_text += f" {role.mention}"
 
             try:
-                await ticket_channel.send(content=ping_text, embed=w_embed)
+                await ticket_channel.send(content=ping_text, embed=w_embed, view=TicketChannelControlView(self.category, ticket_record))
             except Exception:
                 pass
-
-        # Send transcript log to log channel if configured
-        log_channel_id = cat_data.get("logChannel") or cat_data.get("log_channel_id") or config.get("log_channel_id")
-        if log_channel_id and interaction.guild:
-            log_ch = interaction.guild.get_channel(int(log_channel_id))
-            if log_ch:
-                l_embed = discord.Embed(
-                    title=f"📥 New Ticket #{counter} [{self.category}]",
-                    color=discord.Color.blue(),
-                    timestamp=discord.utils.utcnow()
-                )
-                l_embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
-                if ticket_channel:
-                    l_embed.add_field(name="Ticket Channel", value=ticket_channel.mention, inline=False)
-                for ans in current_answers:
-                    l_embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
-
-                try:
-                    await log_ch.send(embed=l_embed)
-                except Exception:
-                    pass
 
         response_text = f"Thank you! Your ticket channel has been created: {ticket_channel.mention}" if ticket_channel else "Thank you for submitting your ticket details! Our team has received your submission."
         await interaction.followup.send(
@@ -295,7 +342,7 @@ class FormPanelView(discord.ui.View):
 
 
 # ----------------------------------------------------------------------
-# Main Cog
+# Main Cog Engine
 # ----------------------------------------------------------------------
 class Orca(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -329,8 +376,148 @@ class Orca(commands.Cog):
         return True
 
     # ====================================================================
-    # Slash Commands
+    # Execute Ticket Close, Buyer Role Grant, DM Receipt & Transcript Log
     # ====================================================================
+    async def execute_ticket_close(self, interaction: discord.Interaction, channel: discord.TextChannel, category: str, ticket_data: dict, reason: str, give_role: bool):
+        guild = interaction.guild
+        if not guild or not isinstance(channel, discord.TextChannel):
+            return
+
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
+        cat_configs = config.get("category_configs", {}) if config else {}
+        cat_data = cat_configs.get(category, {})
+
+        # Extract opener ID from topic or dataset
+        opener_id = ticket_data.get("user_id")
+        if not opener_id and channel.topic:
+            match = re.search(r"Opener ID:\s*(\d+)", channel.topic)
+            if match:
+                opener_id = match.group(1)
+
+        opener_member = guild.get_member(int(opener_id)) if opener_id else None
+
+        # 1. Optionally grant Buyer Role
+        role_granted_status = "No"
+        if give_role and opener_member:
+            buyer_role_id = cat_data.get("buyerRole")
+            if buyer_role_id:
+                buyer_role = guild.get_role(int(buyer_role_id))
+                if buyer_role:
+                    try:
+                        await opener_member.add_roles(buyer_role, reason=f"ORCA Ticket #{ticket_data.get('number', '')} closed")
+                        role_granted_status = f"Yes ({buyer_role.mention})"
+                    except Exception:
+                        role_granted_status = "Failed (Missing Permissions)"
+
+        # 2. Gather Channel Messages for Public Log Transcript
+        messages = []
+        try:
+            async for msg in channel.history(limit=500, oldest_first=True):
+                time_str = msg.created_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+                messages.append(f"[{time_str}] {msg.author}: {msg.clean_content}")
+        except Exception:
+            pass
+        transcript_text = "\n".join(messages)
+
+        # 3. Log to Transcript Log Channel (Only upon Close)
+        log_channel_id = cat_data.get("logChannel") or cat_data.get("log_channel_id") or config.get("log_channel_id")
+        if log_channel_id:
+            log_ch = guild.get_channel(int(log_channel_id))
+            if log_ch:
+                l_embed = discord.Embed(
+                    title=f"🔒 Ticket #{ticket_data.get('number', 'N/A')} Closed [{category}]",
+                    color=ERROR_COLOR,
+                    timestamp=discord.utils.utcnow()
+                )
+                l_embed.add_field(name="Ticket Opener", value=f"<@{opener_id}> (`{opener_id}`)" if opener_id else "Unknown", inline=True)
+                l_embed.add_field(name="Closed By", value=f"{interaction.user.mention}", inline=True)
+                l_embed.add_field(name="Buyer Role Granted", value=role_granted_status, inline=True)
+                l_embed.add_field(name="Close Reason", value=f"*{reason}*", inline=False)
+
+                # Append answered form questions
+                answers = ticket_data.get("answers", [])
+                for ans in answers:
+                    l_embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
+
+                file = discord.File(io.BytesIO(transcript_text.encode('utf-8')), filename=f"transcript-{channel.name}.txt") if transcript_text else None
+                try:
+                    await log_ch.send(embed=l_embed, file=file)
+                except Exception:
+                    pass
+
+        # 4. DM Notification Receipt to Ticket Opener
+        if opener_member:
+            dm_embed = discord.Embed(
+                title=f"🧾 ORCA Studio Ticket Receipt #{ticket_data.get('number', '')}",
+                description=f"Your ticket in **{guild.name}** under **{category}** has been finalized and closed.",
+                color=EMBED_COLOR,
+                timestamp=discord.utils.utcnow()
+            )
+            dm_embed.add_field(name="Status", value="Closed & Archived", inline=True)
+            dm_embed.add_field(name="Reason", value=reason, inline=True)
+            dm_embed.add_field(name="Buyer Role", value="Granted" if "Yes" in role_granted_status else "Not Applicable", inline=True)
+            dm_embed.set_footer(text="Thank you for choosing ORCA Automation Studio!")
+
+            try:
+                await opener_member.send(embed=dm_embed)
+            except Exception:
+                pass
+
+        # Update database document
+        if db is not None:
+            db["form_submissions"].update_one(
+                {"number": ticket_data.get("number")},
+                {"$set": {"closed": True, "closed_by": str(interaction.user), "close_reason": reason}}
+            )
+
+        # Final deletion of ticket channel
+        try:
+            await interaction.followup.send(embed=info_embed("🔒 Closing Ticket", "This channel will be archived and deleted in 5 seconds..."), ephemeral=True)
+            await asyncio.sleep(5)
+            await channel.delete(reason=f"ORCA Ticket Closed by {interaction.user}")
+        except Exception:
+            pass
+
+    # ====================================================================
+    # Commands
+    # ====================================================================
+    @app_commands.command(name="close", description="Close the current ticket channel with reason and optional buyer role grant.")
+    @app_commands.describe(reason="Reason for closing this ticket", give_buyer_role="Grant configured Buyer Role to ticket opener?")
+    @app_commands.choices(give_buyer_role=[
+        app_commands.Choice(name="Yes (Grant Buyer Role)", value="yes"),
+        app_commands.Choice(name="No (Do Not Grant Role)", value="no")
+    ])
+    async def close_slash_cmd(self, interaction: discord.Interaction, reason: Optional[str] = "No reason provided", give_buyer_role: app_commands.Choice[str] = None):
+        if not interaction.guild or not isinstance(interaction.channel, discord.TextChannel) or not interaction.channel.name.startswith("ticket-"):
+            return await interaction.response.send_message(embed=error_embed("This command can only be executed inside an active ticket channel."), ephemeral=True)
+
+        await interaction.response.defer(ephemeral=True)
+        
+        category = "Custom Bot Commission"
+        ticket_data = {"number": "N/A"}
+
+        db = get_db()
+        if db is not None:
+            match = re.search(r"ticket-.*?(\d+)$", interaction.channel.name)
+            if match:
+                num = int(match.group(1))
+                found = db["form_submissions"].find_one({"number": num})
+                if found:
+                    ticket_data = found
+                    category = found.get("category", "Custom Bot Commission")
+
+        give_role = give_buyer_role.value == "yes" if give_buyer_role else False
+
+        await self.execute_ticket_close(
+            interaction=interaction,
+            channel=interaction.channel,
+            category=category,
+            ticket_data=ticket_data,
+            reason=reason,
+            give_role=give_role
+        )
+
     @app_commands.command(name="system-stats", description="Shows bot ping and uptime.")
     async def system_stats(self, interaction: discord.Interaction):
         guild_id = interaction.guild.id if interaction.guild else 0
