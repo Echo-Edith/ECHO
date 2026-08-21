@@ -11,11 +11,6 @@ except ImportError:
     psutil = None
 
 try:
-    import resource
-except ImportError:
-    resource = None
-
-try:
     import pymongo
 except ImportError:
     pymongo = None
@@ -115,8 +110,108 @@ def get_guild_data():
         "category_configs": config.get("category_configs", {}),
         "verification_config": config.get("verification_config", {}),
         "custom_role_config": config.get("custom_role_config", {}),
-        "staff_config": config.get("staff_config", {})
+        "staff_config": config.get("staff_config", {}),
+        "estimator_config": config.get("estimator_config", {}),
+        "monitor_config": config.get("monitor_config", {}),
+        "review_config": config.get("review_config", {})
     })
+
+
+@app.route('/api/save-estimator-config', methods=['POST'])
+def save_estimator_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"estimator_config": data}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
+@app.route('/api/deploy-estimator-panel', methods=['POST'])
+def deploy_estimator_panel():
+    if _bot_ref is None or not _bot_ref.is_ready():
+        return jsonify({"error": "Bot not ready"}), 500
+
+    data = request.json or {}
+    channel_id = data.get("channel_id")
+    cog = _bot_ref.get_cog("Orca")
+
+    if not cog or not channel_id:
+        return jsonify({"error": "Invalid request"}), 400
+
+    future = asyncio.run_coroutine_threadsafe(
+        cog.deploy_estimator_panel_from_web(int(channel_id)),
+        _bot_ref.loop
+    )
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/save-monitor-config', methods=['POST'])
+def save_monitor_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"monitor_config": data}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
+@app.route('/api/publish-announcement', methods=['POST'])
+def publish_announcement():
+    if _bot_ref is None or not _bot_ref.is_ready():
+        return jsonify({"error": "Bot not ready"}), 500
+
+    data = request.json or {}
+    channel_id = data.get("channel_id")
+    cog = _bot_ref.get_cog("Orca")
+
+    if not cog or not channel_id:
+        return jsonify({"error": "Invalid request"}), 400
+
+    future = asyncio.run_coroutine_threadsafe(
+        cog.publish_announcement_from_web(data),
+        _bot_ref.loop
+    )
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/save-review-config', methods=['POST'])
+def save_review_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"review_config": data}},
+        upsert=True
+    )
+    return jsonify({"success": True})
 
 
 @app.route('/api/save-custom-role-config', methods=['POST'])
