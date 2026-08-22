@@ -15,6 +15,7 @@ try:
 except ImportError:
     pymongo = None
 
+# Mute Werkzeug HTTP logging to keep cronjob/console logs minimal
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -114,6 +115,7 @@ def get_guild_data():
         "estimator_config": config.get("estimator_config", {}),
         "monitor_config": config.get("monitor_config", {}),
         "automod_config": config.get("automod_config", {}),
+        "welcomer_config": config.get("welcomer_config", {}),
         "review_config": config.get("review_config", {})
     })
 
@@ -138,11 +140,13 @@ def get_staff_members():
                     top_role = member.top_role if member.top_role and member.top_role.name != "@everyone" else matched_header
                     role_name = matched_header.name if matched_header else (top_role.name if top_role else "Staff")
                     hex_color = f"#{top_role.color.value:06x}" if (top_role and top_role.color.value) else "#3b82f6"
+                    avatar_url = member.display_avatar.url if member.display_avatar else "https://cdn.discordapp.com/embed/avatars/0.png"
                     staff_list.append({
                         "id": str(member.id),
                         "name": str(member),
                         "role": role_name,
-                        "color": hex_color
+                        "color": hex_color,
+                        "avatar": avatar_url
                     })
         except Exception:
             pass
@@ -277,6 +281,23 @@ def remove_blacklist_user():
         return jsonify({"error": "User ID required"}), 400
 
     db["blacklist"].delete_one({"user_id": str(user_id)})
+    return jsonify({"success": True})
+
+
+@app.route('/api/save-welcomer-config', methods=['POST'])
+def save_welcomer_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"welcomer_config": data}},
+        upsert=True
+    )
     return jsonify({"success": True})
 
 
