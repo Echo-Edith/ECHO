@@ -130,6 +130,26 @@
 </head>
 <body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-orca-accent selection:text-white pb-20 md:pb-0">
 
+  <!-- Password Authentication Gate Overlay -->
+  <div id="auth-gate-overlay" class="fixed inset-0 bg-[#090a0f]/95 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+    <div class="glass-panel border border-white/10 w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl text-center animate-fade-in">
+      <div class="w-16 h-16 rounded-2xl bg-orca-accent/10 border border-orca-accent/20 flex items-center justify-center mx-auto text-orca-accent text-2xl shadow-lg">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <div>
+        <h2 class="text-xl font-extrabold text-white tracking-tight">ORCA Studio Command Gate</h2>
+        <p class="text-xs text-orca-muted mt-1">Authorized Owner Access Required. Enter security key to unlock.</p>
+      </div>
+      <div class="space-y-3">
+        <input type="password" id="auth-password-input" placeholder="Enter Access Password" onkeydown="if(event.key==='Enter') verifyDashboardAuth()" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-mono text-center focus:outline-none focus:border-orca-accent transition shadow-inner">
+        <button onclick="verifyDashboardAuth()" class="w-full bg-orca-accent hover:bg-orca-accent/80 text-white font-extrabold py-3 rounded-xl text-xs shadow glow-blue transition active:scale-95">
+          <i class="fa-solid fa-key"></i> Authenticate & Unlock
+        </button>
+      </div>
+      <p id="auth-error-msg" class="text-xs font-bold text-orca-danger hidden flex items-center justify-center gap-1.5"><i class="fa-solid fa-circle-xmark"></i> Invalid Security Key</p>
+    </div>
+  </div>
+
   <!-- Mobile Top Header Bar -->
   <header class="md:hidden glass-panel p-3.5 sticky top-0 z-40 flex items-center justify-between border-b border-orca-border shadow-2xl">
     <div class="flex items-center gap-2.5">
@@ -149,8 +169,8 @@
     </button>
   </header>
 
-  <!-- Mobile Menu Overlay Dropdown -->
-  <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl">
+  <!-- Mobile Menu Overlay Dropdown (Displays All Features) -->
+  <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl max-h-[80vh] overflow-y-auto">
     <button onclick="switchTab('overview'); toggleMobileMenu()" id="m-top-nav-overview" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent transition">
       <i class="fa-solid fa-chart-line w-4 text-center"></i> System Stats Live Telemetry
     </button>
@@ -160,20 +180,32 @@
     <button onclick="switchTab('price-estimator'); toggleMobileMenu()" id="m-top-nav-price-estimator" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-calculator w-4 text-center"></i> Price Estimator
     </button>
-    <button onclick="switchTab('custom-roles'); toggleMobileMenu()" id="m-top-nav-custom-roles" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-palette w-4 text-center"></i> Custom Roles
-    </button>
     <button onclick="switchTab('staff-mgmt'); toggleMobileMenu()" id="m-top-nav-staff-mgmt" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-user-gear w-4 text-center"></i> Staff Directory
+      <i class="fa-solid fa-user-gear w-4 text-center"></i> Staff Ranks & Users
     </button>
     <button onclick="switchTab('welcomer'); toggleMobileMenu()" id="m-top-nav-welcomer" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-hand-wave w-4 text-center"></i> Member Welcomer
+      <i class="fa-solid fa-hand-holding-heart w-4 text-center text-emerald-400"></i> New Member Welcomer
+    </button>
+    <button onclick="switchTab('status-rotator'); toggleMobileMenu()" id="m-top-nav-status-rotator" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-gamepad w-4 text-center text-indigo-400"></i> Status Rotator
     </button>
     <button onclick="switchTab('verification-engine'); toggleMobileMenu()" id="m-top-nav-verification-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-user-check w-4 text-center"></i> Verification
     </button>
     <button onclick="switchTab('automod'); toggleMobileMenu()" id="m-top-nav-automod" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-shield-halved w-4 text-center"></i> AutoMod Protocol
+    </button>
+    <button onclick="switchTab('blacklist-tab'); toggleMobileMenu()" id="m-top-nav-blacklist-tab" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-user-slash w-4 text-center"></i> Blacklist Manager
+    </button>
+    <button onclick="switchTab('reviews-engine'); toggleMobileMenu()" id="m-top-nav-reviews-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-star w-4 text-center"></i> Client Reviews
+    </button>
+    <button onclick="switchTab('announcements'); toggleMobileMenu()" id="m-top-nav-announcements" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-bullhorn w-4 text-center"></i> Embed Publisher
+    </button>
+    <button onclick="switchTab('bot-monitor'); toggleMobileMenu()" id="m-top-nav-bot-monitor" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-server w-4 text-center"></i> Health Ping Monitor
     </button>
   </div>
 
@@ -192,8 +224,12 @@
       <span class="text-[9px] font-extrabold tracking-tight">Staff</span>
     </button>
     <button onclick="switchTab('welcomer')" id="m-nav-welcomer" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-hand-wave text-sm"></i>
+      <i class="fa-solid fa-hand-holding-heart text-sm"></i>
       <span class="text-[9px] font-extrabold tracking-tight">Welcome</span>
+    </button>
+    <button onclick="switchTab('status-rotator')" id="m-nav-status-rotator" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
+      <i class="fa-solid fa-gamepad text-sm"></i>
+      <span class="text-[9px] font-extrabold tracking-tight">Status</span>
     </button>
   </nav>
 
@@ -226,14 +262,14 @@
         <button onclick="switchTab('price-estimator')" id="nav-price-estimator" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-calculator w-4 text-center text-amber-400"></i> Price Estimator
         </button>
-        <button onclick="switchTab('custom-roles')" id="nav-custom-roles" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-palette w-4 text-center text-indigo-400"></i> Custom Roles Studio
-        </button>
         <button onclick="switchTab('staff-mgmt')" id="nav-staff-mgmt" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-user-gear w-4 text-center text-rose-400"></i> Staff Ranks & Users
         </button>
         <button onclick="switchTab('welcomer')" id="nav-welcomer" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-hand-wave w-4 text-center text-emerald-400"></i> New Member Welcomer
+          <i class="fa-solid fa-hand-holding-heart w-4 text-center text-emerald-400"></i> New Member Welcomer
+        </button>
+        <button onclick="switchTab('status-rotator')" id="nav-status-rotator" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-gamepad w-4 text-center text-indigo-400"></i> Multi-Status Rotator
         </button>
         <button onclick="switchTab('verification-engine')" id="nav-verification-engine" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-user-check w-4 text-center text-emerald-400"></i> Verification Engine
@@ -250,6 +286,9 @@
         <button onclick="switchTab('announcements')" id="nav-announcements" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-bullhorn w-4 text-center text-purple-400"></i> Embed Publisher
         </button>
+        <button onclick="switchTab('bot-monitor')" id="nav-bot-monitor" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-server w-4 text-center text-emerald-400"></i> Health Ping Monitor
+        </button>
       </nav>
     </div>
 
@@ -257,7 +296,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Server Sync
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v21.0</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v22.0</span>
     </div>
   </aside>
 
@@ -337,7 +376,7 @@
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Infinite Ticket Command Engine</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Select a category below to configure channels, target opened categories, staff roles, and questions.</p>
+          <p class="text-xs text-orca-muted mt-0.5">Configure panel channels, target opened categories, staff ping roles, and questions per category.</p>
         </div>
         <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
           <i class="fa-solid fa-shield-halved"></i> Admin Protected
@@ -403,7 +442,7 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Buyer Role (Option on Close)</label>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Buyer Role (Optional on Close)</label>
               <select id="ticket-buyer-role" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></select>
             </div>
             <div>
@@ -496,83 +535,7 @@
       </div>
     </section>
 
-    <!-- TAB 4: SEPARATED CUSTOM ROLE CREATION STUDIO -->
-    <section id="tab-custom-roles" class="space-y-4 md:space-y-6 hidden animate-fade-in">
-      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Client Custom Role Studio</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Custom role creation panel, divider role order, and audit log configuration.</p>
-        </div>
-        <span class="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs px-3 py-1 rounded-xl font-bold">
-          <i class="fa-solid fa-palette"></i> Role Studio
-        </span>
-      </div>
-
-      <div class="glass-card rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden border border-white/10 max-w-3xl">
-        <button onclick="toggleAccordion('custom-role-panel-body', 'custom-role-icon')" class="w-full p-4 sm:p-6 flex items-center justify-between bg-orca-card/80 hover:bg-orca-card transition cursor-pointer">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
-              <i class="fa-solid fa-palette"></i>
-            </div>
-            <div class="text-left">
-              <h3 class="text-xs sm:text-sm font-extrabold uppercase text-white">Client Custom Role Creator Studio</h3>
-              <p class="text-[10px] text-orca-muted">Click to open/close custom role modal settings</p>
-            </div>
-          </div>
-          <i class="fa-solid fa-chevron-down text-orca-muted transition-transform duration-200" id="custom-role-icon"></i>
-        </button>
-
-        <div id="custom-role-panel-body" class="p-4 sm:p-6 space-y-4 border-t border-white/5 bg-orca-base/40">
-          <div>
-            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Custom Role Creator Channel</label>
-            <select id="custom-role-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-extrabold text-amber-400 uppercase tracking-widest mb-1">
-              <i class="fa-solid fa-folder-tree"></i> Organizational Custom Role Header Role
-            </label>
-            <select id="custom-role-header-id" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
-            <p class="text-[10px] text-orca-muted mt-1">Select divider (e.g. <code>———— CUSTOM ROLE ————</code>). New client roles will be placed directly under this.</p>
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-extrabold text-rose-400 uppercase tracking-widest mb-1">
-              <i class="fa-solid fa-shield-halved"></i> Custom Role Audit Log Channel
-            </label>
-            <select id="custom-role-log-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
-            <p class="text-[10px] text-orca-muted mt-1">Logs created role names & hex colors to catch inappropriate role names.</p>
-          </div>
-
-          <div class="space-y-3 border-t border-white/5 pt-3">
-            <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Custom Role Modal UI Customization</h4>
-            <div>
-              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Modal Title</label>
-              <input type="text" id="cr-modal-title" value="🎨 Create Custom Client Role" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-            </div>
-            <div>
-              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Role Name Prompt</label>
-              <input type="text" id="cr-modal-label-name" value="Role Name" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-            </div>
-            <div>
-              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Role Hex Color Prompt</label>
-              <input type="text" id="cr-modal-label-color" value="Role Hex Color Code" placeholder="#3B82F6" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-            </div>
-          </div>
-
-          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
-            <button id="btn-deploy-custom-role" onclick="deployCustomRolePanel(this)" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-2">
-              <i class="fa-solid fa-cloud-arrow-up"></i> Deploy Panel
-            </button>
-            <button id="btn-save-custom-role" onclick="saveCustomRoleConfig(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow glow-blue flex items-center justify-center gap-2">
-              <i class="fa-solid fa-floppy-disk"></i> Save Settings
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 5: SEPARATED STAFF RANKS & USERS MANAGEMENT -->
+    <!-- TAB 4: SEPARATED STAFF RANKS & USERS DIRECTORY -->
     <section id="tab-staff-mgmt" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -640,15 +603,15 @@
       </div>
     </section>
 
-    <!-- TAB 6: NEW MEMBER WELCOMER -->
+    <!-- TAB 5: NEW MEMBER WELCOMER -->
     <section id="tab-welcomer" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">New Member Welcomer</h2>
           <p class="text-xs text-orca-muted mt-0.5">Configure welcome channel embeds and automated direct messages for new members.</p>
         </div>
-        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-xl font-bold">
-          <i class="fa-solid fa-hand-wave"></i> Welcomer
+        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-hand-holding-heart"></i> Welcomer
         </span>
       </div>
 
@@ -700,7 +663,49 @@
       </div>
     </section>
 
-    <!-- TAB 7: RESTORED VERIFICATION ENGINE -->
+    <!-- TAB 6: MULTI-STATUS ROTATOR STUDIO -->
+    <section id="tab-status-rotator" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Multi-Bot Custom Activity & Status Rotator</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Configure dynamic rich presence status messages that rotate on a custom timer.</p>
+        </div>
+        <span class="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-gamepad"></i> Status Rotator
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+          <div>
+            <h4 class="text-xs font-bold text-white">Enable Dynamic Status Rotator</h4>
+            <p class="text-[10px] text-orca-muted">Automatically cycles through configured activities.</p>
+          </div>
+          <label class="cursor-pointer inline-flex items-center">
+            <input type="checkbox" id="rotator-enabled" class="hidden">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+
+        <div class="space-y-3 border-t border-white/5 pt-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Status Activities List</h4>
+            <button onclick="addStatusRotatorRow()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Add Status
+            </button>
+          </div>
+          <div id="status-rotator-rows" class="space-y-2"></div>
+        </div>
+
+        <div class="pt-3 border-t border-white/5 flex justify-end">
+          <button id="btn-save-rotator" onclick="saveStatusRotatorConfig(this)" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow">
+            <i class="fa-solid fa-floppy-disk"></i> Save Rotator Config
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: VERIFICATION ENGINE -->
     <section id="tab-verification-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -1008,6 +1013,7 @@
     let activeTicketCategory = "";
     let editingQuestionIdx = null;
     let priceTypes = [];
+    let statusRotatorList = [];
     let monitoredBotIds = [];
     let selectedStaffHeaderRoleIds = [];
     let selectedVerificationRoleIds = [];
@@ -1017,6 +1023,25 @@
     let blacklistUsersList = [];
     let ticketCategoryMap = {};
     let chartInstance = null;
+
+    function verifyDashboardAuth() {
+      const pwd = document.getElementById("auth-password-input").value.trim();
+      const err = document.getElementById("auth-error-msg");
+      if (pwd === "Minions") {
+        document.getElementById("auth-gate-overlay").classList.add("hidden");
+        sessionStorage.setItem("orca_auth", "true");
+        if (err) err.classList.add("hidden");
+      } else {
+        if (err) err.classList.remove("hidden");
+      }
+    }
+
+    if (sessionStorage.getItem("orca_auth") === "true") {
+      document.addEventListener("DOMContentLoaded", () => {
+        const gate = document.getElementById("auth-gate-overlay");
+        if (gate) gate.classList.add("hidden");
+      });
+    }
 
     function setBtnLoading(btn, isLoading, originalHtml) {
       if (!btn) return;
@@ -1029,19 +1054,6 @@
         btn.disabled = false;
         btn.classList.remove("opacity-75", "cursor-not-allowed");
         btn.innerHTML = btn.dataset.originalContent || originalHtml;
-      }
-    }
-
-    function toggleAccordion(bodyId, iconId) {
-      const body = document.getElementById(bodyId);
-      const icon = document.getElementById(iconId);
-      if (!body) return;
-      if (body.classList.contains('hidden')) {
-        body.classList.remove('hidden');
-        if (icon) icon.className = 'fa-solid fa-chevron-up text-orca-muted transition-transform duration-200';
-      } else {
-        body.classList.add('hidden');
-        if (icon) icon.className = 'fa-solid fa-chevron-down text-orca-muted transition-transform duration-200';
       }
     }
 
@@ -1092,6 +1104,62 @@
         if (manual) showToast("Telemetry stats updated!");
       } catch (e) {
         console.error("Telemetry fetch error:", e);
+      }
+    }
+
+    function renderStatusRotatorRows() {
+      const container = document.getElementById("status-rotator-rows");
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (statusRotatorList.length === 0) {
+        statusRotatorList = [
+          { type: "watching", text: "45 Active Commissions" },
+          { type: "playing", text: "ORCA Studio v22" },
+          { type: "listening", text: "/dashboard" }
+        ];
+      }
+
+      statusRotatorList.forEach((st, idx) => {
+        const div = document.createElement("div");
+        div.className = "flex items-center gap-2";
+        div.innerHTML = `
+          <select onchange="statusRotatorList[${idx}].type=this.value" class="bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent w-32">
+            <option value="playing" ${st.type==='playing'?'selected':''}>Playing</option>
+            <option value="watching" ${st.type==='watching'?'selected':''}>Watching</option>
+            <option value="listening" ${st.type==='listening'?'selected':''}>Listening</option>
+            <option value="competing" ${st.type==='competing'?'selected':''}>Competing</option>
+          </select>
+          <input type="text" value="${st.text || ''}" placeholder="Status Text" onchange="statusRotatorList[${idx}].text=this.value" class="flex-1 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          <button onclick="statusRotatorList.splice(${idx},1); renderStatusRotatorRows()" class="p-2 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addStatusRotatorRow() {
+      statusRotatorList.push({ type: "playing", text: "" });
+      renderStatusRotatorRows();
+    }
+
+    async function saveStatusRotatorConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        enabled: document.getElementById('rotator-enabled').checked,
+        statuses: statusRotatorList.filter(s => s.text && s.text.trim() !== '')
+      };
+
+      try {
+        await fetch('/api/save-rotator-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("Status Rotator setup saved!");
+      } catch (e) {
+        showToast("Save error", true);
+      } finally {
+        setBtnLoading(btn, false);
       }
     }
 
@@ -1240,8 +1308,7 @@
           
           const roleColorHex = s.color || "#3b82f6";
           const pfpUrl = s.avatar || "https://cdn.discordapp.com/embed/avatars/0.png";
-          // Trim Role Name for Tag (e.g. "Commission Staff" -> "Commission")
-          const cleanTag = (s.role || "Staff").replace(/staff/gi, '').strip() || "Staff";
+          const cleanTag = (s.role || "Staff").replace(/staff/gi, '').trim() || "Staff";
 
           div.innerHTML = `
             <div class="flex items-center gap-3">
@@ -1490,6 +1557,12 @@
           priceTypes = ec.types || [];
         }
 
+        if (gData.rotator_config) {
+          const rc = gData.rotator_config;
+          document.getElementById('rotator-enabled').checked = rc.enabled || false;
+          statusRotatorList = rc.statuses || [];
+        }
+
         if (gData.welcomer_config) {
           const wc = gData.welcomer_config;
           document.getElementById('welcomer-enabled').checked = wc.enabled || false;
@@ -1503,16 +1576,6 @@
           const mc = gData.monitor_config;
           document.getElementById('monitor-log-channel').value = mc.log_channel_id || '';
           monitoredBotIds = mc.bot_ids || [];
-        }
-
-        if (gData.custom_role_config) {
-          const cr = gData.custom_role_config;
-          document.getElementById('custom-role-channel-id').value = cr.channel_id || '';
-          document.getElementById('custom-role-header-id').value = cr.header_role_id || '';
-          document.getElementById('custom-role-log-channel-id').value = cr.log_channel_id || '';
-          if (cr.modal_title) document.getElementById('cr-modal-title').value = cr.modal_title;
-          if (cr.modal_label_name) document.getElementById('cr-modal-label-name').value = cr.modal_label_name;
-          if (cr.modal_label_color) document.getElementById('cr-modal-label-color').value = cr.modal_label_color;
         }
 
         if (gData.staff_config) {
@@ -1534,6 +1597,7 @@
         renderMonitoredBotRows();
         renderStaffHeaderDropdowns();
         renderVerificationRoleDropdowns();
+        renderStatusRotatorRows();
         renderCategorySelectorDropdown();
         loadStaffUsersList();
         loadBlacklistUsersList();
@@ -1846,51 +1910,6 @@
       }
     }
 
-    async function saveCustomRoleConfig(btn) {
-      setBtnLoading(btn, true);
-      const payload = {
-        channel_id: document.getElementById('custom-role-channel-id').value,
-        header_role_id: document.getElementById('custom-role-header-id').value,
-        log_channel_id: document.getElementById('custom-role-log-channel-id').value,
-        modal_title: document.getElementById('cr-modal-title').value,
-        modal_label_name: document.getElementById('cr-modal-label-name').value,
-        modal_label_color: document.getElementById('cr-modal-label-color').value
-      };
-
-      try {
-        await fetch('/api/save-custom-role-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        showToast("Custom Role Studio saved!");
-      } catch (e) {
-        showToast("Save error", true);
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
-    async function deployCustomRolePanel(btn) {
-      setBtnLoading(btn, true);
-      await saveCustomRoleConfig(null);
-      const chId = document.getElementById('custom-role-channel-id').value;
-
-      try {
-        const res = await fetch('/api/deploy-custom-role-panel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel_id: chId })
-        });
-        const data = await res.json();
-        if (data.success) showToast("Deployed Custom Role Panel!");
-      } catch (e) {
-        showToast("Deploy error", true);
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
     async function saveStaffConfig(btn) {
       setBtnLoading(btn, true);
       const headers = selectedStaffHeaderRoleIds.filter(r => r && r.trim() !== '');
@@ -2003,7 +2022,7 @@
     }
 
     function switchTab(tabKey) {
-      const allTabs = ['overview', 'ticket-engine', 'price-estimator', 'custom-roles', 'staff-mgmt', 'welcomer', 'verification-engine', 'automod', 'blacklist-tab', 'reviews-engine', 'announcements', 'bot-monitor'];
+      const allTabs = ['overview', 'ticket-engine', 'price-estimator', 'staff-mgmt', 'welcomer', 'status-rotator', 'verification-engine', 'automod', 'blacklist-tab', 'reviews-engine', 'announcements', 'bot-monitor'];
 
       allTabs.forEach(t => {
         const sec = document.getElementById(`tab-${t}`);
