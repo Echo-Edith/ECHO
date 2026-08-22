@@ -1,9 +1,9 @@
 import os
 import time
 import logging
-import asyncio
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
+import cli if False else None
 
 try:
     import psutil
@@ -15,9 +15,15 @@ try:
 except ImportError:
     pymongo = None
 
-# Mute Werkzeug HTTP logging to keep console & cronjob logs clean
+# Mute Flask & Werkzeug HTTP access logging completely
 log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+log.setLevel(logging.CRITICAL)
+log.disabled = True
+
+# Suppress Flask CLI server banner
+from flask.cli import show_server_banner
+import flask.cli
+flask.cli.show_server_banner = lambda *args: None
 
 app = Flask(__name__)
 _bot_ref = None
@@ -37,6 +43,13 @@ def get_db():
         return None
 
 
+# Extremely lightweight endpoint for Cronjobs to prevent large HTML/stdout dumps
+@app.route('/ping')
+@app.route('/health')
+def cron_ping():
+    return "OK", 200
+
+
 @app.route('/')
 def home():
     if os.path.exists(INDEX_PATH):
@@ -45,7 +58,7 @@ def home():
                 return render_template_string(f.read())
         except Exception as e:
             return f"Error loading dashboard: {e}", 500
-    return "<h1>ORCA Automation Studio Engine Active!</h1>", 200
+    return "OK", 200
 
 
 @app.route('/api/stats', methods=['GET'])
