@@ -188,9 +188,9 @@ class ReviewFeedbackModal(discord.ui.Modal):
         self.stars = stars
 
         self.msg_input = discord.ui.TextInput(
-            label="Feedback Comment (Server Rules Apply)",
+            label="Feedback Comment",
             style=discord.TextStyle.paragraph,
-            placeholder="Tell us what you liked about your commission experience...",
+            placeholder="(Server rules apply)",
             required=False,
             max_length=500
         )
@@ -227,13 +227,19 @@ class ReviewFeedbackModal(discord.ui.Modal):
                         color=SUCCESS_COLOR if self.stars >= 4 else EMBED_COLOR,
                         timestamp=discord.utils.utcnow()
                     )
-                    r_embed.set_footer(text="Server Rules Apply • Official Studio Review")
+                    r_embed.set_footer(text="(Server rules apply)")
                     try:
                         await ch.send(embed=r_embed)
                     except Exception:
                         pass
 
-        await interaction.followup.send(embed=info_embed("Thank You!", "Your feedback has been submitted to the Studio Showcase! Server Rules Apply."), ephemeral=True)
+        await interaction.followup.send(
+            embed=info_embed(
+                "Thank You!",
+                "Your feedback has been submitted to the Studio Showcase!\n\n(Server rules apply)"
+            ),
+            ephemeral=True
+        )
 
 
 class ReviewRatingView(discord.ui.View):
@@ -890,8 +896,9 @@ class Orca(commands.Cog):
                         bot_member = None
 
                 if not bot_member or bot_member.status == discord.Status.offline:
+                    # Title strictly formatted as "Bot Alert: Client Bot Offline"
                     embed = discord.Embed(
-                        title="🚨 Lifetime Warranty Alert: Client Bot Offline",
+                        title="Bot Alert: Client Bot Offline",
                         description=f"Monitored Bot <@{bid}> appears to be **OFFLINE** or unreachable!",
                         color=ERROR_COLOR,
                         timestamp=discord.utils.utcnow()
@@ -985,10 +992,10 @@ class Orca(commands.Cog):
             try:
                 r_embed = discord.Embed(
                     title="⭐ Rate Your ORCA Studio Experience",
-                    description=f"Your ticket #{ticket_data.get('number', '')} in **{guild.name}** is completed! Please rate your experience below (Server Rules Apply):",
+                    description=f"Your ticket #{ticket_data.get('number', '')} in **{guild.name}** is completed! Please rate your experience below:\n\n(Server rules apply)",
                     color=EMBED_COLOR
                 )
-                r_embed.set_footer(text="Server Rules Apply • Studio Feedback")
+                r_embed.set_footer(text="(Server rules apply)")
                 await opener_member.send(embed=r_embed, view=ReviewRatingView(guild.id, str(ticket_data.get('number', ''))))
             except Exception:
                 pass
@@ -1098,7 +1105,7 @@ class Orca(commands.Cog):
 
     async def deploy_custom_role_panel_from_web(self, channel_id: int):
         channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
-        embed = discord.Embed(title="🎨 CLIENT CUSTOM ROLE CREATOR STUDIO", description="Click the button below to create your custom role!", color=EMBED_COLOR)
+        embed = discord.Embed(title="🎨 CUSTOM ROLE CREATOR STUDIO", description="Click the button below to create your custom role!", color=EMBED_COLOR)
         await channel.send(embed=embed, view=CustomRolePanelView())
 
     async def deploy_estimator_panel_from_web(self, channel_id: int):
