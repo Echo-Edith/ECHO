@@ -891,9 +891,8 @@ class Orca(commands.Cog):
 
                 if not bot_member or bot_member.status == discord.Status.offline:
                     embed = discord.Embed(
-                        title="🚨 Bot Health Alert: Client Bot Offline",
-                        description=f"Monitored Bot <@{bid}> 
-                        appears to be **OFFLINE** or unreachable!",
+                        title="🚨 Lifetime Warranty Alert: Client Bot Offline",
+                        description=f"Monitored Bot <@{bid}> appears to be **OFFLINE** or unreachable!",
                         color=ERROR_COLOR,
                         timestamp=discord.utils.utcnow()
                     )
@@ -986,8 +985,7 @@ class Orca(commands.Cog):
             try:
                 r_embed = discord.Embed(
                     title="⭐ Rate Your ORCA Studio Experience",
-                    description=f"Your ticket #{ticket_data.get('number', '')} in **{guild.name}** is completed! Please rate your experience below 
-                    (Server Rules Apply):",
+                    description=f"Your ticket #{ticket_data.get('number', '')} in **{guild.name}** is completed! Please rate your experience below (Server Rules Apply):",
                     color=EMBED_COLOR
                 )
                 r_embed.set_footer(text="Server Rules Apply • Studio Feedback")
@@ -1100,7 +1098,7 @@ class Orca(commands.Cog):
 
     async def deploy_custom_role_panel_from_web(self, channel_id: int):
         channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
-        embed = discord.Embed(title="🎨 CUSTOM ROLE CREATOR STUDIO", description="Click the button below to create your custom role!", color=EMBED_COLOR)
+        embed = discord.Embed(title="🎨 CLIENT CUSTOM ROLE CREATOR STUDIO", description="Click the button below to create your custom role!", color=EMBED_COLOR)
         await channel.send(embed=embed, view=CustomRolePanelView())
 
     async def deploy_estimator_panel_from_web(self, channel_id: int):
