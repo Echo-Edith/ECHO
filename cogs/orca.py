@@ -88,23 +88,12 @@ def info_embed(title: str, description: str = None) -> discord.Embed:
     return discord.Embed(title=title, description=description, color=EMBED_COLOR)
 
 
-def parse_color(color_str: str) -> discord.Color:
+def parse_hex_color(color_str: str) -> discord.Color:
     clean = color_str.strip().lstrip('#')
     try:
         return discord.Color(int(clean, 16))
     except Exception:
-        named_colors = {
-            "blue": discord.Color.blue(),
-            "red": discord.Color.red(),
-            "green": discord.Color.green(),
-            "purple": discord.Color.purple(),
-            "gold": discord.Color.gold(),
-            "orange": discord.Color.orange(),
-            "cyan": discord.Color.dark_teal(),
-            "white": discord.Color.from_rgb(255, 255, 255),
-            "black": discord.Color.from_rgb(1, 1, 1)
-        }
-        return named_colors.get(color_str.lower(), discord.Color.blurple())
+        return discord.Color.blurple()
 
 
 def is_owner(user_id: int) -> bool:
@@ -184,36 +173,28 @@ class TOSAgreementView(discord.ui.View):
 
 
 # ----------------------------------------------------------------------
-# ⭐ Commission Review Rating DM View
+# ⭐ Commission Review Modal & DM View
 # ----------------------------------------------------------------------
-class ReviewRatingView(discord.ui.View):
-    def __init__(self, guild_id: int, ticket_num: str):
-        super().__init__(timeout=None)
+class ReviewFeedbackModal(discord.ui.Modal):
+    def __init__(self, guild_id: int, ticket_num: str, stars: int):
+        super().__init__(title="⭐ Add Optional Feedback Review")
         self.guild_id = guild_id
         self.ticket_num = ticket_num
+        self.stars = stars
 
-    @discord.ui.button(label="⭐ 1 Star", style=discord.ButtonStyle.secondary, custom_id="orca_rate_1")
-    async def rate_1(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.process_review(interaction, 1)
+        self.msg_input = discord.ui.TextInput(
+            label="Feedback Comment (Server Rules Apply)",
+            style=discord.TextStyle.paragraph,
+            placeholder="Tell us what you liked about your commission experience...",
+            required=False,
+            max_length=500
+        )
+        self.add_item(self.msg_input)
 
-    @discord.ui.button(label="⭐⭐ 2 Stars", style=discord.ButtonStyle.secondary, custom_id="orca_rate_2")
-    async def rate_2(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.process_review(interaction, 2)
-
-    @discord.ui.button(label="⭐⭐⭐ 3 Stars", style=discord.ButtonStyle.primary, custom_id="orca_rate_3")
-    async def rate_3(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.process_review(interaction, 3)
-
-    @discord.ui.button(label="⭐⭐⭐⭐ 4 Stars", style=discord.ButtonStyle.primary, custom_id="orca_rate_4")
-    async def rate_4(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.process_review(interaction, 4)
-
-    @discord.ui.button(label="⭐⭐⭐⭐⭐ 5 Stars", style=discord.ButtonStyle.success, custom_id="orca_rate_5")
-    async def rate_5(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.process_review(interaction, 5)
-
-    async def process_review(self, interaction: discord.Interaction, stars: int):
+    async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
+        feedback_text = self.msg_input.value.strip() or "*(No written feedback provided)*"
+
         db = get_db()
         if db is not None:
             db["reviews"].insert_one({
@@ -221,7 +202,8 @@ class ReviewRatingView(discord.ui.View):
                 "ticket_num": self.ticket_num,
                 "user_id": str(interaction.user.id),
                 "username": str(interaction.user),
-                "stars": stars,
+                "stars": self.stars,
+                "feedback": feedback_text,
                 "timestamp": datetime.utcnow()
             })
 
@@ -233,19 +215,47 @@ class ReviewRatingView(discord.ui.View):
                 client_bot = interaction.client
                 ch = client_bot.get_channel(int(rev_ch_id))
                 if ch:
-                    stars_str = "⭐" * stars
+                    stars_str = "⭐" * self.stars
                     r_embed = discord.Embed(
                         title=f"🌟 New Client Review ({stars_str})",
-                        description=f"**Client:** {interaction.user.mention}\n**Ticket Ref:** #{self.ticket_num}\n**Rating:** {stars}/5 Stars",
-                        color=SUCCESS_COLOR if stars >= 4 else EMBED_COLOR,
+                        description=f"**Client:** {interaction.user.mention}\n**Ticket Ref:** #{self.ticket_num}\n**Rating:** {self.stars}/5 Stars\n\n**Comment:**\n*{feedback_text}*",
+                        color=SUCCESS_COLOR if self.stars >= 4 else EMBED_COLOR,
                         timestamp=discord.utils.utcnow()
                     )
+                    r_embed.set_footer(text="Server Rules Apply • Official Studio Review")
                     try:
                         await ch.send(embed=r_embed)
                     except Exception:
                         pass
 
-        await interaction.followup.send(embed=info_embed("Thank You!", "Your feedback has been submitted to the Studio Showcase!"), ephemeral=True)
+        await interaction.followup.send(embed=info_embed("Thank You!", "Your feedback has been submitted to the Studio Showcase! Server Rules Apply."), ephemeral=True)
+
+
+class ReviewRatingView(discord.ui.View):
+    def __init__(self, guild_id: int, ticket_num: str):
+        super().__init__(timeout=None)
+        self.guild_id = guild_id
+        self.ticket_num = ticket_num
+
+    @discord.ui.button(label="⭐ 1 Star", style=discord.ButtonStyle.secondary, custom_id="orca_rate_1")
+    async def rate_1(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ReviewFeedbackModal(self.guild_id, self.ticket_num, 1))
+
+    @discord.ui.button(label="⭐⭐ 2 Stars", style=discord.ButtonStyle.secondary, custom_id="orca_rate_2")
+    async def rate_2(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ReviewFeedbackModal(self.guild_id, self.ticket_num, 2))
+
+    @discord.ui.button(label="⭐⭐⭐ 3 Stars", style=discord.ButtonStyle.primary, custom_id="orca_rate_3")
+    async def rate_3(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ReviewFeedbackModal(self.guild_id, self.ticket_num, 3))
+
+    @discord.ui.button(label="⭐⭐⭐⭐ 4 Stars", style=discord.ButtonStyle.primary, custom_id="orca_rate_4")
+    async def rate_4(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ReviewFeedbackModal(self.guild_id, self.ticket_num, 4))
+
+    @discord.ui.button(label="⭐⭐⭐⭐⭐ 5 Stars", style=discord.ButtonStyle.success, custom_id="orca_rate_5")
+    async def rate_5(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ReviewFeedbackModal(self.guild_id, self.ticket_num, 5))
 
 
 # ----------------------------------------------------------------------
@@ -353,10 +363,10 @@ class CustomRoleModal(discord.ui.Modal):
         self.color_input = discord.ui.TextInput(
             label=label_color[:45],
             style=discord.TextStyle.short,
-            placeholder="e.g. #FF5733, #3498DB, or Blue",
+            placeholder="#3B82F6",
             required=True,
             default="#3B82F6",
-            max_length=20
+            max_length=10
         )
         self.add_item(self.color_input)
 
@@ -371,10 +381,10 @@ class CustomRoleModal(discord.ui.Modal):
         cr_config = config.get("custom_role_config", {})
 
         role_name = self.name_input.value.strip()
-        role_color = parse_color(self.color_input.value)
+        role_color = parse_hex_color(self.color_input.value)
 
         header_role_id = cr_config.get("header_role_id")
-        header_role = guild.get_role(int(header_role_id)) if header_role_id else None
+        header_role = guild.get_role(int(header_role_id)) if header_role_id and str(header_role_id).isdigit() else None
 
         try:
             new_role = await guild.create_role(
@@ -383,22 +393,26 @@ class CustomRoleModal(discord.ui.Modal):
                 reason=f"ORCA Custom Buyer Role created by {interaction.user}"
             )
 
-            await interaction.user.add_roles(new_role, reason="Custom Role Studio Creation")
-
+            roles_to_assign = [new_role]
             if header_role:
+                roles_to_assign.append(header_role)
+
+            await interaction.user.add_roles(*roles_to_assign, reason="Custom Role Studio Creation")
+
+            if header_role and header_role.position > 1:
                 try:
                     await new_role.edit(position=max(1, header_role.position - 1))
                 except Exception:
                     pass
 
-            # Audit Log Channel Notification
+            # Custom Role Audit Log Notification
             log_ch_id = cr_config.get("log_channel_id")
-            if log_ch_id:
+            if log_ch_id and str(log_ch_id).isdigit():
                 log_ch = guild.get_channel(int(log_ch_id))
                 if log_ch:
                     l_embed = discord.Embed(
                         title="🎨 Custom Role Created Audit Log",
-                        description=f"**User:** {interaction.user.mention} (`{interaction.user.id}`)\n**Role Name:** `{role_name}`\n**Role Mention:** {new_role.mention}\n**Color:** `{self.color_input.value}`",
+                        description=f"**User:** {interaction.user.mention} (`{interaction.user.id}`)\n**Role Name:** `{role_name}`\n**Role Mention:** {new_role.mention}\n**Hex Color:** `{self.color_input.value}`",
                         color=role_color,
                         timestamp=discord.utils.utcnow()
                     )
@@ -409,13 +423,13 @@ class CustomRoleModal(discord.ui.Modal):
 
             embed = discord.Embed(
                 title="🎨 Custom Role Created & Assigned!",
-                description=f"Your new role {new_role.mention} has been created and assigned to your profile!",
+                description=f"Your new custom role {new_role.mention} has been created and placed directly under your configured divider role!",
                 color=role_color
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
 
         except Exception as e:
-            await interaction.followup.send(embed=error_embed(f"Failed to create role: {e}"), ephemeral=True)
+            await interaction.followup.send(embed=error_embed(f"Failed to create custom role: {e}"), ephemeral=True)
 
 
 class CustomRolePanelView(discord.ui.View):
@@ -430,7 +444,7 @@ class CustomRolePanelView(discord.ui.View):
 
         m_title = cr_config.get("modal_title", "🎨 Create Custom Client Role")
         l_name = cr_config.get("modal_label_name", "Role Name")
-        l_color = cr_config.get("modal_label_color", "Role Color (Hex Code or Name)")
+        l_color = cr_config.get("modal_label_color", "Role Hex Color Code")
 
         await interaction.response.send_modal(CustomRoleModal(m_title, l_name, l_color))
 
@@ -522,7 +536,7 @@ class ChainedCustomModal(discord.ui.Modal):
         ticket_channel = None
         if interaction.guild:
             clean_category = re.sub(r'[^a-zA-Z0-9]', '', self.category.lower()) or "ticket"
-            # Format: ticket-category-number
+            # Ticket format: ticket-category-number
             channel_name = f"ticket-{clean_category}-{counter}"[:100]
 
             overwrites = {
@@ -565,12 +579,10 @@ class ChainedCustomModal(discord.ui.Modal):
                     ping_text += f" {role.mention}"
 
             try:
-                # Post Welcome & Control View
                 await ticket_channel.send(content=ping_text, embed=w_embed, view=TicketChannelControlView(self.category, ticket_record))
-                # Post Terms of Service Acceptance View
                 tos_embed = discord.Embed(
                     title="📜 Studio Terms of Service & Revision Policy",
-                    description="By commissioning ORCA Studio, you agree that revisions are limited after delivery and payments are non-refundable once work begins.",
+                    description="By commissioning ORCA Studio, you agree that revisions are limited after delivery and payments are non-refundable once development begins.",
                     color=EMBED_COLOR
                 )
                 await ticket_channel.send(embed=tos_embed, view=TOSAgreementView())
@@ -703,6 +715,53 @@ class Orca(commands.Cog):
             self.bot.add_view(FormPanelView(category=cat))
 
     # ----------------------------------------------------------------------
+    # 🛡️ Basic AutoMod Security Engine
+    # ----------------------------------------------------------------------
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.author.bot or not message.guild:
+            return
+
+        db = get_db()
+        if db is None:
+            return
+
+        config = db["guild_config"].find_one({"guild_id": message.guild.id}) or {}
+        am = config.get("automod_config", {})
+
+        # Anti-Link Filter
+        if am.get("anti_link"):
+            if "discord.gg/" in message.content.lower() or "discord.com/invite/" in message.content.lower():
+                if not message.author.guild_permissions.manage_messages:
+                    try:
+                        await message.delete()
+                        return await message.channel.send(f"⚠️ {message.author.mention}, unauthorized invite links are not permitted!", delete_after=5)
+                    except Exception:
+                        pass
+
+        # Mass Ping Protection
+        if am.get("anti_ping"):
+            if len(message.mentions) + len(message.role_mentions) > 5:
+                if not message.author.guild_permissions.mention_everyone:
+                    try:
+                        await message.delete()
+                        return await message.channel.send(f"⚠️ {message.author.mention}, mass pings are disabled!", delete_after=5)
+                    except Exception:
+                        pass
+
+        # Bad Words Filter
+        banned_str = am.get("banned_words", "")
+        if banned_str:
+            banned_words = [w.strip().lower() for w in banned_str.split(",") if w.strip()]
+            for word in banned_words:
+                if word in message.content.lower():
+                    try:
+                        await message.delete()
+                        return await message.channel.send(f"⚠️ {message.author.mention}, your message contained a blacklisted term.", delete_after=5)
+                    except Exception:
+                        pass
+
+    # ----------------------------------------------------------------------
     # 🤖 Bot Hosting & Health Ping Monitor Task
     # ----------------------------------------------------------------------
     @tasks.loop(minutes=10)
@@ -736,9 +795,10 @@ class Orca(commands.Cog):
                         bot_member = None
 
                 if not bot_member or bot_member.status == discord.Status.offline:
+                    # Clean ping UI without showing "User ID:"
                     embed = discord.Embed(
                         title="🚨 Lifetime Warranty Alert: Client Bot Offline",
-                        description=f"Monitored Bot <@{bid}> (`ID: {bid}`) appears to be **OFFLINE** or unreachable!",
+                        description=f"Monitored Bot <@{bid}> appears to be **OFFLINE** or unreachable!",
                         color=ERROR_COLOR,
                         timestamp=discord.utils.utcnow()
                     )
@@ -878,9 +938,10 @@ class Orca(commands.Cog):
             try:
                 r_embed = discord.Embed(
                     title="⭐ Rate Your ORCA Studio Experience",
-                    description=f"Your ticket #{ticket_data.get('number', '')} in **{guild.name}** is completed! Please take a second to rate your experience below:",
+                    description=f"Your ticket #{ticket_data.get('number', '')} in **{guild.name}** is completed! Please rate your experience below (Server Rules Apply):",
                     color=EMBED_COLOR
                 )
+                r_embed.set_footer(text="Server Rules Apply • Studio Feedback")
                 await opener_member.send(embed=r_embed, view=ReviewRatingView(guild.id, str(ticket_data.get('number', ''))))
             except Exception:
                 pass
@@ -898,7 +959,7 @@ class Orca(commands.Cog):
             pass
 
     # ====================================================================
-    # Strict Allowed Slash Commands
+    # Strict Allowed Slash Commands List
     # ====================================================================
     @app_commands.command(name="system-stats", description="Shows bot ping and uptime.")
     async def system_stats(self, interaction: discord.Interaction):
@@ -923,7 +984,7 @@ class Orca(commands.Cog):
         await interaction.response.defer()
         guild = interaction.guild
         sorted_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
-        # Clean hierarchy view WITHOUT member count
+        # Clean hierarchy view WITHOUT member counts
         role_lines = [f"`{r.position}` — {r.mention}" for r in sorted_roles if r.name != "@everyone"]
 
         embed = discord.Embed(title="📜 Server Role Hierarchy Order", description="\n".join(role_lines[:40]) if role_lines else "*(No roles)*", color=EMBED_COLOR)
