@@ -3,7 +3,6 @@ import time
 import logging
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
-import cli if False else None
 
 try:
     import psutil
@@ -15,15 +14,17 @@ try:
 except ImportError:
     pymongo = None
 
-# Mute Flask & Werkzeug HTTP access logging completely
+# Mute Werkzeug HTTP access logging completely to keep logs minimal
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.CRITICAL)
 log.disabled = True
 
-# Suppress Flask CLI server banner
-from flask.cli import show_server_banner
-import flask.cli
-flask.cli.show_server_banner = lambda *args: None
+# Safely suppress Flask CLI banner without causing import errors
+try:
+    import flask.cli
+    flask.cli.show_server_banner = lambda *args, **kwargs: None
+except Exception:
+    pass
 
 app = Flask(__name__)
 _bot_ref = None
@@ -43,15 +44,21 @@ def get_db():
         return None
 
 
-# Extremely lightweight endpoint for Cronjobs to prevent large HTML/stdout dumps
+# Tiny 2-byte response for cron-job.org and keep-alive pingers
 @app.route('/ping')
 @app.route('/health')
+@app.route('/cron')
 def cron_ping():
     return "OK", 200
 
 
 @app.route('/')
 def home():
+    # If request is from cron-job or headless bot, return tiny OK to prevent size limits
+    user_agent = request.headers.get('User-Agent', '').lower()
+    if 'cron' in user_agent or 'uptime' in user_agent or 'bot' in user_agent:
+        return "OK", 200
+
     if os.path.exists(INDEX_PATH):
         try:
             with open(INDEX_PATH, "r", encoding="utf-8") as f:
