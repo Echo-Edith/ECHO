@@ -88,14 +88,6 @@ def info_embed(title: str, description: str = None) -> discord.Embed:
     return discord.Embed(title=title, description=description, color=EMBED_COLOR)
 
 
-def parse_hex_color(color_str: str) -> discord.Color:
-    clean = color_str.strip().lstrip('#')
-    try:
-        return discord.Color(int(clean, 16))
-    except Exception:
-        return discord.Color.blurple()
-
-
 def is_owner(user_id: int) -> bool:
     return user_id == HARDCODED_OWNER_ID
 
@@ -190,7 +182,7 @@ class ReviewFeedbackModal(discord.ui.Modal):
         self.msg_input = discord.ui.TextInput(
             label="Feedback Comment",
             style=discord.TextStyle.paragraph,
-            placeholder="(Server rules apply)",
+            placeholder="Tell us about your commission experience...",
             required=False,
             max_length=500
         )
@@ -223,11 +215,10 @@ class ReviewFeedbackModal(discord.ui.Modal):
                     stars_str = "⭐" * self.stars
                     r_embed = discord.Embed(
                         title=f"🌟 New Client Review ({stars_str})",
-                        description=f"**Client:** {interaction.user.mention}\n**Ticket Ref:** #{self.ticket_num}\n**Rating:** {self.stars}/5 Stars\n\n**Comment:**\n*{feedback_text}*",
+                        description=f"**Client:** {interaction.user.mention}\n**Ticket Ref:** #{self.ticket_num}\n**Rating:** {self.stars}/5 Stars\n\n**Comment:**\n*{feedback_text}*\n\n(Server rules apply)",
                         color=SUCCESS_COLOR if self.stars >= 4 else EMBED_COLOR,
                         timestamp=discord.utils.utcnow()
                     )
-                    r_embed.set_footer(text="(Server rules apply)")
                     try:
                         await ch.send(embed=r_embed)
                     except Exception:
@@ -398,110 +389,6 @@ class VerificationView(discord.ui.View):
             await interaction.followup.send(embed=embed, ephemeral=True)
         else:
             await interaction.followup.send(embed=error_embed("Could not assign verification roles."), ephemeral=True)
-
-
-# ----------------------------------------------------------------------
-# Custom Client Role Creation Modal & View
-# ----------------------------------------------------------------------
-class CustomRoleModal(discord.ui.Modal):
-    def __init__(self, modal_title: str, label_name: str, label_color: str):
-        super().__init__(title=modal_title[:45])
-
-        self.name_input = discord.ui.TextInput(
-            label=label_name[:45],
-            style=discord.TextStyle.short,
-            placeholder="e.g. VIP Client, Bot Architect",
-            required=True,
-            max_length=32
-        )
-        self.add_item(self.name_input)
-
-        self.color_input = discord.ui.TextInput(
-            label=label_color[:45],
-            style=discord.TextStyle.short,
-            placeholder="#3B82F6",
-            required=True,
-            default="#3B82F6",
-            max_length=10
-        )
-        self.add_item(self.color_input)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        guild = interaction.guild
-        if not guild:
-            return
-
-        db = get_db()
-        config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
-        cr_config = config.get("custom_role_config", {})
-
-        role_name = self.name_input.value.strip()
-        role_color = parse_hex_color(self.color_input.value)
-
-        header_role_id = cr_config.get("header_role_id")
-        header_role = guild.get_role(int(header_role_id)) if header_role_id and str(header_role_id).isdigit() else None
-
-        try:
-            new_role = await guild.create_role(
-                name=role_name,
-                color=role_color,
-                reason=f"ORCA Custom Buyer Role created by {interaction.user}"
-            )
-
-            roles_to_assign = [new_role]
-            if header_role:
-                roles_to_assign.append(header_role)
-
-            await interaction.user.add_roles(*roles_to_assign, reason="Custom Role Studio Creation")
-
-            if header_role and header_role.position > 1:
-                try:
-                    await new_role.edit(position=max(1, header_role.position - 1))
-                except Exception:
-                    pass
-
-            log_ch_id = cr_config.get("log_channel_id")
-            if log_ch_id and str(log_ch_id).isdigit():
-                log_ch = guild.get_channel(int(log_ch_id))
-                if log_ch:
-                    l_embed = discord.Embed(
-                        title="🎨 Custom Role Created Audit Log",
-                        description=f"**User:** {interaction.user.mention} (`{interaction.user.id}`)\n**Role Name:** `{role_name}`\n**Role Mention:** {new_role.mention}\n**Hex Color:** `{self.color_input.value}`",
-                        color=role_color,
-                        timestamp=discord.utils.utcnow()
-                    )
-                    try:
-                        await log_ch.send(embed=l_embed)
-                    except Exception:
-                        pass
-
-            embed = discord.Embed(
-                title="🎨 Custom Role Created & Assigned!",
-                description=f"Your new custom role {new_role.mention} has been created and placed directly under your configured divider role!",
-                color=role_color
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            await interaction.followup.send(embed=error_embed(f"Failed to create custom role: {e}"), ephemeral=True)
-
-
-class CustomRolePanelView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label="🎨 Create Custom Role", style=discord.ButtonStyle.blurple, custom_id="orca_custom_role_btn")
-    async def create_role_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        db = get_db()
-        config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
-        cr_config = config.get("custom_role_config", {})
-
-        m_title = cr_config.get("modal_title", "🎨 Create Custom Client Role")
-        l_name = cr_config.get("modal_label_name", "Role Name")
-        l_color = cr_config.get("modal_label_color", "Role Hex Color Code")
-
-        await interaction.response.send_modal(CustomRoleModal(m_title, l_name, l_color))
 
 
 # ----------------------------------------------------------------------
@@ -744,14 +631,16 @@ class Orca(commands.Cog):
         self.bot = bot
         self.start_time = time.time()
         self.user_ping_tracker = {}
+        self.status_index = 0
+        self.status_rotator_loop.start()
         self.bot_health_monitor_loop.start()
 
     def cog_unload(self):
+        self.status_rotator_loop.cancel()
         self.bot_health_monitor_loop.cancel()
 
     async def cog_load(self):
         self.bot.add_view(VerificationView())
-        self.bot.add_view(CustomRolePanelView())
         db = get_db()
         registered_cats = set(["Custom Bot Commission", "Partnership Application"])
         if db is not None:
@@ -765,6 +654,53 @@ class Orca(commands.Cog):
         
         for cat in registered_cats:
             self.bot.add_view(FormPanelView(category=cat))
+
+    # ----------------------------------------------------------------------
+    # 🤖 Multi-Bot Custom Activity & Status Rotator Task
+    # ----------------------------------------------------------------------
+    @tasks.loop(minutes=2)
+    async def status_rotator_loop(self):
+        if not self.bot.guilds:
+            return
+
+        db = get_db()
+        if db is None:
+            return
+
+        guild_id = self.bot.guilds[0].id
+        config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+        rc = config.get("rotator_config", {})
+
+        if not rc.get("enabled"):
+            return
+
+        statuses = rc.get("statuses", [])
+        if not statuses:
+            return
+
+        self.status_index = (self.status_index + 1) % len(statuses)
+        item = statuses[self.status_index]
+
+        st_type = item.get("type", "playing").lower()
+        st_text = item.get("text", "ORCA Studio")
+
+        act_type = discord.ActivityType.playing
+        if st_type == "watching":
+            act_type = discord.ActivityType.watching
+        elif st_type == "listening":
+            act_type = discord.ActivityType.listening
+        elif st_type == "competing":
+            act_type = discord.ActivityType.competing
+
+        activity = discord.Activity(type=act_type, name=st_text)
+        try:
+            await self.bot.change_presence(activity=activity)
+        except Exception:
+            pass
+
+    @status_rotator_loop.before_loop
+    async def before_rotator_loop(self):
+        await self.bot.wait_until_ready()
 
     # ----------------------------------------------------------------------
     # 🛡️ Basic AutoMod Listener (Bypasses Admins & Owner)
@@ -784,7 +720,7 @@ class Orca(commands.Cog):
         config = db["guild_config"].find_one({"guild_id": message.guild.id}) or {}
         am = config.get("automod_config", {})
 
-        # Anti-Link Filter (Permits Giphy/Tenor GIF links)
+        # Anti-Link Filter (Permits Tenor/Giphy GIF links)
         if am.get("anti_link"):
             content_lower = message.content.lower()
             if ("discord.gg/" in content_lower or "discord.com/invite/" in content_lower or "http://" in content_lower or "https://" in content_lower):
@@ -796,7 +732,7 @@ class Orca(commands.Cog):
                     except Exception:
                         pass
 
-        # Mass Ping Rate Limit Protection (2+ pings in under 10 seconds)
+        # Mass Ping Protection (2+ pings in under 10 seconds)
         if am.get("anti_ping"):
             total_pings = len(message.mentions) + len(message.role_mentions)
             if total_pings >= 2:
@@ -863,7 +799,7 @@ class Orca(commands.Cog):
                 pass
 
     # ----------------------------------------------------------------------
-    # 🤖 Bot Hosting & Health Ping Monitor Loop
+    # 🤖 Real Bot Health Monitor Heartbeat Loop
     # ----------------------------------------------------------------------
     @tasks.loop(minutes=10)
     async def bot_health_monitor_loop(self):
@@ -888,15 +824,16 @@ class Orca(commands.Cog):
                 if not bid or not str(bid).isdigit():
                     continue
 
-                bot_member = guild.get_member(int(bid))
-                if not bot_member:
-                    try:
-                        bot_member = await guild.fetch_member(int(bid))
-                    except Exception:
-                        bot_member = None
+                is_offline = False
+                try:
+                    user_obj = await self.bot.fetch_user(int(bid))
+                    bot_member = guild.get_member(int(bid))
+                    if bot_member and bot_member.status == discord.Status.offline:
+                        is_offline = True
+                except Exception:
+                    is_offline = True
 
-                if not bot_member or bot_member.status == discord.Status.offline:
-                    # Title strictly formatted as "Bot Alert: Client Bot Offline"
+                if is_offline:
                     embed = discord.Embed(
                         title="Bot Alert: Client Bot Offline",
                         description=f"Monitored Bot <@{bid}> appears to be **OFFLINE** or unreachable!",
@@ -932,7 +869,6 @@ class Orca(commands.Cog):
             except Exception:
                 pass
 
-        role_granted_status = "No"
         if give_role and opener_member:
             buyer_role_id = cat_data.get("buyerRole")
             if buyer_role_id and str(buyer_role_id).isdigit():
@@ -940,21 +876,8 @@ class Orca(commands.Cog):
                 if buyer_role:
                     try:
                         await opener_member.add_roles(buyer_role, reason=f"ORCA Ticket closed")
-                        role_granted_status = f"Yes ({buyer_role.mention})"
-
-                        cr_config = config.get("custom_role_config", {})
-                        cr_channel_id = cr_config.get("channel_id")
-                        cr_channel = guild.get_channel(int(cr_channel_id)) if cr_channel_id and str(cr_channel_id).isdigit() else None
-
-                        dm_embed = discord.Embed(
-                            title="🎨 Your Custom Role Studio Link",
-                            description=f"Your ticket in **{guild.name}** has been closed and your Buyer role has been granted!\n\n" +
-                                        (f"You can now head over to {cr_channel.mention} to create your custom role!" if cr_channel else "Head over to the custom role channel in our server to create your custom role!"),
-                            color=SUCCESS_COLOR
-                        )
-                        await opener_member.send(embed=dm_embed)
-                    except Exception as e:
-                        role_granted_status = f"Failed: {e}"
+                    except Exception:
+                        pass
 
         messages_data = []
         try:
@@ -1102,11 +1025,6 @@ class Orca(commands.Cog):
         v_config = db["guild_config"].find_one({"guild_id": channel.guild.id}).get("verification_config", {}) if db else {}
         embed = discord.Embed(title=v_config.get("title", "🛡️ MEMBER VERIFICATION PORTAL"), description=v_config.get("description", "Click below to verify!"), color=EMBED_COLOR)
         await channel.send(embed=embed, view=VerificationView(v_config.get("button_label", "✅ Verify Access")))
-
-    async def deploy_custom_role_panel_from_web(self, channel_id: int):
-        channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
-        embed = discord.Embed(title="🎨 CUSTOM ROLE CREATOR STUDIO", description="Click the button below to create your custom role!", color=EMBED_COLOR)
-        await channel.send(embed=embed, view=CustomRolePanelView())
 
     async def deploy_estimator_panel_from_web(self, channel_id: int):
         channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
