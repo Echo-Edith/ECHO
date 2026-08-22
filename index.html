@@ -120,8 +120,8 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
     input:checked + .switch-track {
-      background-color: #f23f43;
-      border-color: rgba(242, 63, 67, 0.4);
+      background-color: #3b82f6;
+      border-color: rgba(59, 130, 246, 0.4);
     }
     input:checked + .switch-track .switch-thumb {
       transform: translateX(22px);
@@ -152,7 +152,7 @@
   <!-- Mobile Menu Overlay Dropdown -->
   <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl">
     <button onclick="switchTab('overview'); toggleMobileMenu()" id="m-top-nav-overview" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent transition">
-      <i class="fa-solid fa-chart-line w-4 text-center"></i> System Stats
+      <i class="fa-solid fa-chart-line w-4 text-center"></i> System Stats Live Telemetry
     </button>
     <button onclick="switchTab('ticket-engine'); toggleMobileMenu()" id="m-top-nav-ticket-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets Engine
@@ -164,22 +164,16 @@
       <i class="fa-solid fa-palette w-4 text-center"></i> Custom Roles
     </button>
     <button onclick="switchTab('staff-mgmt'); toggleMobileMenu()" id="m-top-nav-staff-mgmt" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-user-gear w-4 text-center"></i> Staff Ranks
+      <i class="fa-solid fa-user-gear w-4 text-center"></i> Staff Directory
+    </button>
+    <button onclick="switchTab('welcomer'); toggleMobileMenu()" id="m-top-nav-welcomer" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-hand-wave w-4 text-center"></i> Member Welcomer
+    </button>
+    <button onclick="switchTab('verification-engine'); toggleMobileMenu()" id="m-top-nav-verification-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-user-check w-4 text-center"></i> Verification
     </button>
     <button onclick="switchTab('automod'); toggleMobileMenu()" id="m-top-nav-automod" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-shield-halved w-4 text-center"></i> AutoMod Protocol
-    </button>
-    <button onclick="switchTab('blacklist-tab'); toggleMobileMenu()" id="m-top-nav-blacklist-tab" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-user-slash w-4 text-center"></i> Blacklist Manager
-    </button>
-    <button onclick="switchTab('reviews-engine'); toggleMobileMenu()" id="m-top-nav-reviews-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-star w-4 text-center"></i> Client Reviews
-    </button>
-    <button onclick="switchTab('announcements'); toggleMobileMenu()" id="m-top-nav-announcements" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-bullhorn w-4 text-center"></i> Embed Publisher
-    </button>
-    <button onclick="switchTab('bot-monitor'); toggleMobileMenu()" id="m-top-nav-bot-monitor" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-server w-4 text-center"></i> Health Ping Monitor
     </button>
   </div>
 
@@ -197,9 +191,9 @@
       <i class="fa-solid fa-user-gear text-sm"></i>
       <span class="text-[9px] font-extrabold tracking-tight">Staff</span>
     </button>
-    <button onclick="switchTab('bot-monitor')" id="m-nav-bot-monitor" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-server text-sm"></i>
-      <span class="text-[9px] font-extrabold tracking-tight">Health</span>
+    <button onclick="switchTab('welcomer')" id="m-nav-welcomer" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
+      <i class="fa-solid fa-hand-wave text-sm"></i>
+      <span class="text-[9px] font-extrabold tracking-tight">Welcome</span>
     </button>
   </nav>
 
@@ -238,6 +232,12 @@
         <button onclick="switchTab('staff-mgmt')" id="nav-staff-mgmt" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-user-gear w-4 text-center text-rose-400"></i> Staff Ranks & Users
         </button>
+        <button onclick="switchTab('welcomer')" id="nav-welcomer" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-hand-wave w-4 text-center text-emerald-400"></i> New Member Welcomer
+        </button>
+        <button onclick="switchTab('verification-engine')" id="nav-verification-engine" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-user-check w-4 text-center text-emerald-400"></i> Verification Engine
+        </button>
         <button onclick="switchTab('automod')" id="nav-automod" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-shield-halved w-4 text-center text-cyan-400"></i> AutoMod Protocol
         </button>
@@ -250,9 +250,6 @@
         <button onclick="switchTab('announcements')" id="nav-announcements" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-bullhorn w-4 text-center text-purple-400"></i> Embed Publisher
         </button>
-        <button onclick="switchTab('bot-monitor')" id="nav-bot-monitor" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-server w-4 text-center text-emerald-400"></i> Health Ping Monitor
-        </button>
       </nav>
     </div>
 
@@ -260,7 +257,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Server Sync
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v20.5</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v21.0</span>
     </div>
   </aside>
 
@@ -536,7 +533,7 @@
               <i class="fa-solid fa-folder-tree"></i> Organizational Custom Role Header Role
             </label>
             <select id="custom-role-header-id" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
-            <p class="text-[10px] text-orca-muted mt-1">Select divider (e.g. <code>———— CUSTOM ROLE ————</code>). New client roles will be positioned directly under this.</p>
+            <p class="text-[10px] text-orca-muted mt-1">Select divider (e.g. <code>———— CUSTOM ROLE ————</code>). New client roles will be placed directly under this.</p>
           </div>
 
           <div>
@@ -544,7 +541,7 @@
               <i class="fa-solid fa-shield-halved"></i> Custom Role Audit Log Channel
             </label>
             <select id="custom-role-log-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
-            <p class="text-[10px] text-orca-muted mt-1">Logs created role names & hex colors to prevent inappropriate role names.</p>
+            <p class="text-[10px] text-orca-muted mt-1">Logs created role names & hex colors to catch inappropriate role names.</p>
           </div>
 
           <div class="space-y-3 border-t border-white/5 pt-3">
@@ -643,12 +640,137 @@
       </div>
     </section>
 
-    <!-- TAB 6: AUTOMOD PROTOCOL -->
+    <!-- TAB 6: NEW MEMBER WELCOMER -->
+    <section id="tab-welcomer" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">New Member Welcomer</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Configure welcome channel embeds and automated direct messages for new members.</p>
+        </div>
+        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-hand-wave"></i> Welcomer
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+          <div>
+            <h4 class="text-xs font-bold text-white">Enable Welcome Messages</h4>
+            <p class="text-[10px] text-orca-muted">Send automated welcome alerts when a user joins.</p>
+          </div>
+          <label class="cursor-pointer inline-flex items-center">
+            <input type="checkbox" id="welcomer-enabled" class="hidden">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Welcome Channel</label>
+          <select id="welcomer-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Channel Welcome Message Text</label>
+          <textarea id="welcomer-msg-text" rows="3" placeholder="Welcome {user} to {server}! Check out our commission channels." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+        </div>
+
+        <div class="pt-2 border-t border-white/5 space-y-3">
+          <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+            <div>
+              <h4 class="text-xs font-bold text-white">Enable Welcome DM</h4>
+              <p class="text-[10px] text-orca-muted">Send a direct message greeting to new members upon joining.</p>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="welcomer-dm-enabled" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">DM Message Content</label>
+            <textarea id="welcomer-dm-text" rows="3" placeholder="Welcome to ORCA Studio! Open a ticket anytime if you need custom bot development." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/5 flex justify-end">
+          <button id="btn-save-welcomer" onclick="saveWelcomerConfig(this)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow">
+            <i class="fa-solid fa-floppy-disk"></i> Save Welcomer Config
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: RESTORED VERIFICATION ENGINE -->
+    <section id="tab-verification-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Verification Engine</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Customizable member verification system with automatic role granting upon completion.</p>
+        </div>
+        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-user-shield"></i> Security Module
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Verification Channel</label>
+            <select id="verify-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Verification Log Channel</label>
+            <select id="verify-log-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-white/5">
+          <div class="flex items-center justify-between">
+            <label class="block text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest">
+              <i class="fa-solid fa-tags"></i> Assigned Roles Upon Verification
+            </label>
+            <button onclick="addVerificationRoleDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Add Role
+            </button>
+          </div>
+          <div id="verify-roles-container" class="space-y-2"></div>
+        </div>
+
+        <div class="space-y-3 border-t border-white/5 pt-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Title</label>
+            <input type="text" id="verify-panel-title" value="🛡️ MEMBER VERIFICATION PORTAL" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
+            <textarea id="verify-panel-desc" rows="2" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none">Click the button below to complete member verification and unlock server access!</textarea>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Text</label>
+            <input type="text" id="verify-button-label" value="✅ Verify Access" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
+          <button id="btn-deploy-verify" onclick="deployVerificationPanel(this)" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow glow-green flex items-center justify-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Deploy Verification Panel
+          </button>
+          <button id="btn-save-verify" onclick="saveVerificationConfig(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-6 py-3 rounded-xl text-xs shadow glow-blue flex items-center justify-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Save Verification Config
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 8: AUTOMOD PROTOCOL -->
     <section id="tab-automod" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">AutoMod Security Protocol</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Automated filters for bad words, links, mass pings, and spam protection.</p>
+          <p class="text-xs text-orca-muted mt-0.5">Automated filters for bad words, invite links (GIF links permitted), mass pings, and spam protection.</p>
         </div>
         <span class="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs px-3 py-1 rounded-xl font-bold">
           <i class="fa-solid fa-shield-halved"></i> AutoMod
@@ -659,8 +781,8 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
             <div>
-              <h4 class="text-xs font-bold text-white">Anti-Link Filter</h4>
-              <p class="text-[10px] text-orca-muted">Deletes unauthorized Discord invite links.</p>
+              <h4 class="text-xs font-bold text-white">Anti-Link Filter (Allows GIF Links)</h4>
+              <p class="text-[10px] text-orca-muted">Deletes unauthorized invite links, but ignores Tenor & Giphy GIF links.</p>
             </div>
             <label class="cursor-pointer inline-flex items-center">
               <input type="checkbox" id="automod-anti-link" class="hidden">
@@ -681,8 +803,8 @@
 
           <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
             <div>
-              <h4 class="text-xs font-bold text-white">Mass Ping Protection</h4>
-              <p class="text-[10px] text-orca-muted">Blocks messages containing more than 5 user/role pings.</p>
+              <h4 class="text-xs font-bold text-white">Mass Ping Protection (2+ Pings in 10s)</h4>
+              <p class="text-[10px] text-orca-muted">Blocks messages containing multiple pings sent within 10 seconds.</p>
             </div>
             <label class="cursor-pointer inline-flex items-center">
               <input type="checkbox" id="automod-anti-ping" class="hidden">
@@ -704,7 +826,7 @@
       </div>
     </section>
 
-    <!-- TAB 7: BLACKLIST MANAGER -->
+    <!-- TAB 9: BLACKLIST MANAGER -->
     <section id="tab-blacklist-tab" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -750,7 +872,7 @@
       </div>
     </section>
 
-    <!-- TAB 8: CLIENT REVIEWS ENGINE -->
+    <!-- TAB 10: CLIENT REVIEWS ENGINE -->
     <section id="tab-reviews-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -775,7 +897,7 @@
       </div>
     </section>
 
-    <!-- TAB 9: PUBLISHER -->
+    <!-- TAB 11: PUBLISHER -->
     <section id="tab-announcements" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -816,7 +938,7 @@
       </div>
     </section>
 
-    <!-- TAB 10: BOT HOSTING & HEALTH MONITOR -->
+    <!-- TAB 12: BOT HOSTING & HEALTH MONITOR -->
     <section id="tab-bot-monitor" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -888,6 +1010,7 @@
     let priceTypes = [];
     let monitoredBotIds = [];
     let selectedStaffHeaderRoleIds = [];
+    let selectedVerificationRoleIds = [];
     let serverDiscordCategories = [];
     let serverDiscordRoles = [];
     let staffMembersList = [];
@@ -1059,6 +1182,41 @@
       renderStaffHeaderDropdowns();
     }
 
+    function renderVerificationRoleDropdowns() {
+      const container = document.getElementById('verify-roles-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (selectedVerificationRoleIds.length === 0) selectedVerificationRoleIds = [''];
+
+      selectedVerificationRoleIds.forEach((roleId, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+
+        let optionsHtml = `<option value="">-- Select Granted Role --</option>`;
+        serverDiscordRoles.forEach(r => {
+          optionsHtml += `<option value="${r.id}" ${r.id === roleId ? 'selected' : ''}>${r.name}</option>`;
+        });
+
+        div.innerHTML = `
+          <select onchange="selectedVerificationRoleIds[${index}]=this.value" class="hierarchy-role-select flex-1 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            ${optionsHtml}
+          </select>
+          ${selectedVerificationRoleIds.length > 1 ? `
+            <button onclick="selectedVerificationRoleIds.splice(${index},1); renderVerificationRoleDropdowns()" class="text-orca-danger hover:bg-orca-danger/10 p-2 rounded-lg text-xs">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          ` : ''}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addVerificationRoleDropdown() {
+      selectedVerificationRoleIds.push('');
+      renderVerificationRoleDropdowns();
+    }
+
     async function loadStaffUsersList() {
       const container = document.getElementById("staff-members-list");
       if (!container) return;
@@ -1078,13 +1236,23 @@
 
         staffMembersList.forEach(s => {
           const div = document.createElement("div");
-          div.className = "flex items-center justify-between p-2.5 bg-orca-surface border border-white/5 rounded-xl";
+          div.className = "flex items-center justify-between p-3 bg-orca-surface border border-white/5 rounded-xl";
           
           const roleColorHex = s.color || "#3b82f6";
+          const pfpUrl = s.avatar || "https://cdn.discordapp.com/embed/avatars/0.png";
+          // Trim Role Name for Tag (e.g. "Commission Staff" -> "Commission")
+          const cleanTag = (s.role || "Staff").replace(/staff/gi, '').strip() || "Staff";
+
           div.innerHTML = `
-            <div>
-              <span class="text-xs font-bold text-white">${s.name}</span>
-              <p class="text-[10px] font-bold mt-0.5" style="color: ${roleColorHex};">${s.role}</p>
+            <div class="flex items-center gap-3">
+              <img src="${pfpUrl}" class="w-9 h-9 rounded-full border border-white/10">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white">${s.name}</span>
+                  <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border" style="color: ${roleColorHex}; border-color: ${roleColorHex}44; background: ${roleColorHex}11;">${cleanTag}</span>
+                </div>
+                <p class="text-[10px] text-orca-muted font-mono mt-0.5">ID: ${s.id}</p>
+              </div>
             </div>
             <button onclick="removeStaffMemberWeb('${s.id}')" class="p-1.5 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
           `;
@@ -1212,6 +1380,83 @@
       }
     }
 
+    async function saveWelcomerConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        enabled: document.getElementById('welcomer-enabled').checked,
+        channel_id: document.getElementById('welcomer-channel-id').value,
+        message: document.getElementById('welcomer-msg-text').value,
+        dm_enabled: document.getElementById('welcomer-dm-enabled').checked,
+        dm_message: document.getElementById('welcomer-dm-text').value
+      };
+
+      try {
+        await fetch('/api/save-welcomer-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("Welcomer settings saved!");
+      } catch (e) {
+        showToast("Save error", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveVerificationConfig(btn) {
+      setBtnLoading(btn, true);
+      const roles = selectedVerificationRoleIds.filter(r => r && r.trim() !== '');
+
+      const payload = {
+        channel_id: document.getElementById('verify-channel-id').value,
+        log_channel_id: document.getElementById('verify-log-channel-id').value,
+        roles: roles,
+        title: document.getElementById('verify-panel-title').value,
+        description: document.getElementById('verify-panel-desc').value,
+        button_label: document.getElementById('verify-button-label').value
+      };
+
+      try {
+        await fetch('/api/save-verification-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("Verification settings saved!");
+      } catch (e) {
+        showToast("Error saving verification settings", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function deployVerificationPanel(btn) {
+      setBtnLoading(btn, true);
+      await saveVerificationConfig(null);
+
+      const chId = document.getElementById('verify-channel-id').value;
+      if (!chId) {
+        showToast("Select a Target Verification Channel first!", true);
+        setBtnLoading(btn, false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/deploy-verification-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel_id: chId })
+        });
+        const data = await res.json();
+        if (data.success) showToast("Deployed Verification Panel!");
+      } catch (e) {
+        showToast("Deployment error", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
     async function loadAllData() {
       try {
         const res = await fetch('/api/guild-data');
@@ -1228,11 +1473,30 @@
           if (d) d.src = gData.bot_avatar;
         }
 
+        if (gData.verification_config) {
+          const v = gData.verification_config;
+          document.getElementById('verify-channel-id').value = v.channel_id || '';
+          document.getElementById('verify-log-channel-id').value = v.log_channel_id || '';
+          document.getElementById('verify-panel-title').value = v.title || '🛡️ MEMBER VERIFICATION PORTAL';
+          document.getElementById('verify-panel-desc').value = v.description || 'Click the button below to complete verification!';
+          document.getElementById('verify-button-label').value = v.button_label || '✅ Verify Access';
+          selectedVerificationRoleIds = v.roles || [];
+        }
+
         if (gData.estimator_config) {
           const ec = gData.estimator_config;
           document.getElementById('estimator-channel-id').value = ec.channel_id || '';
           document.getElementById('estimator-currency').value = ec.currency || '$';
           priceTypes = ec.types || [];
+        }
+
+        if (gData.welcomer_config) {
+          const wc = gData.welcomer_config;
+          document.getElementById('welcomer-enabled').checked = wc.enabled || false;
+          document.getElementById('welcomer-channel-id').value = wc.channel_id || '';
+          document.getElementById('welcomer-msg-text').value = wc.message || '';
+          document.getElementById('welcomer-dm-enabled').checked = wc.dm_enabled || false;
+          document.getElementById('welcomer-dm-text').value = wc.dm_message || '';
         }
 
         if (gData.monitor_config) {
@@ -1269,6 +1533,7 @@
         renderPriceTypeRows();
         renderMonitoredBotRows();
         renderStaffHeaderDropdowns();
+        renderVerificationRoleDropdowns();
         renderCategorySelectorDropdown();
         loadStaffUsersList();
         loadBlacklistUsersList();
@@ -1738,7 +2003,7 @@
     }
 
     function switchTab(tabKey) {
-      const allTabs = ['overview', 'ticket-engine', 'price-estimator', 'custom-roles', 'staff-mgmt', 'automod', 'blacklist-tab', 'reviews-engine', 'announcements', 'bot-monitor'];
+      const allTabs = ['overview', 'ticket-engine', 'price-estimator', 'custom-roles', 'staff-mgmt', 'welcomer', 'verification-engine', 'automod', 'blacklist-tab', 'reviews-engine', 'announcements', 'bot-monitor'];
 
       allTabs.forEach(t => {
         const sec = document.getElementById(`tab-${t}`);
