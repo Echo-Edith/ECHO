@@ -1036,7 +1036,7 @@ class Orca(commands.Cog):
         currency = ec.get("currency", "$")
 
         embed = discord.Embed(
-            title="💼 COMMISSION QUOTE & PRICE ESTIMATOR",
+            title="💼 COMMISSION PRICE",
             description="Select your required bot features and add-ons below to calculate an instant quote estimate!",
             color=EMBED_COLOR
         )
