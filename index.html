@@ -152,10 +152,10 @@
   <!-- Mobile Menu Overlay Dropdown -->
   <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl">
     <button onclick="switchTab('overview'); toggleMobileMenu()" id="m-top-nav-overview" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent transition">
-      <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview
+      <i class="fa-solid fa-chart-line w-4 text-center"></i> System Stats
     </button>
     <button onclick="switchTab('ticket-engine'); toggleMobileMenu()" id="m-top-nav-ticket-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets
+      <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets Engine
     </button>
     <button onclick="switchTab('price-estimator'); toggleMobileMenu()" id="m-top-nav-price-estimator" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-calculator w-4 text-center"></i> Price Estimator
@@ -166,14 +166,20 @@
     <button onclick="switchTab('staff-mgmt'); toggleMobileMenu()" id="m-top-nav-staff-mgmt" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-user-gear w-4 text-center"></i> Staff Ranks
     </button>
+    <button onclick="switchTab('automod'); toggleMobileMenu()" id="m-top-nav-automod" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-shield-halved w-4 text-center"></i> AutoMod Protocol
+    </button>
+    <button onclick="switchTab('blacklist-tab'); toggleMobileMenu()" id="m-top-nav-blacklist-tab" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-user-slash w-4 text-center"></i> Blacklist Manager
+    </button>
     <button onclick="switchTab('reviews-engine'); toggleMobileMenu()" id="m-top-nav-reviews-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-star w-4 text-center"></i> Reviews
+      <i class="fa-solid fa-star w-4 text-center"></i> Client Reviews
     </button>
     <button onclick="switchTab('announcements'); toggleMobileMenu()" id="m-top-nav-announcements" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-bullhorn w-4 text-center"></i> Publisher
+      <i class="fa-solid fa-bullhorn w-4 text-center"></i> Embed Publisher
     </button>
     <button onclick="switchTab('bot-monitor'); toggleMobileMenu()" id="m-top-nav-bot-monitor" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-server w-4 text-center"></i> Health Monitor
+      <i class="fa-solid fa-server w-4 text-center"></i> Health Ping Monitor
     </button>
   </div>
 
@@ -187,13 +193,13 @@
       <i class="fa-solid fa-ticket text-sm"></i>
       <span class="text-[9px] font-extrabold tracking-tight">Tickets</span>
     </button>
-    <button onclick="switchTab('price-estimator')" id="m-nav-price-estimator" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-calculator text-sm"></i>
-      <span class="text-[9px] font-extrabold tracking-tight">Quotes</span>
-    </button>
     <button onclick="switchTab('staff-mgmt')" id="m-nav-staff-mgmt" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
       <i class="fa-solid fa-user-gear text-sm"></i>
       <span class="text-[9px] font-extrabold tracking-tight">Staff</span>
+    </button>
+    <button onclick="switchTab('bot-monitor')" id="m-nav-bot-monitor" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
+      <i class="fa-solid fa-server text-sm"></i>
+      <span class="text-[9px] font-extrabold tracking-tight">Health</span>
     </button>
   </nav>
 
@@ -218,10 +224,10 @@
 
       <nav class="space-y-1.5">
         <button onclick="switchTab('overview')" id="nav-overview" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all">
-          <i class="fa-solid fa-chart-line w-4 text-center"></i> Overview (/system-stats)
+          <i class="fa-solid fa-chart-line w-4 text-center"></i> System Stats Live Telemetry
         </button>
         <button onclick="switchTab('ticket-engine')" id="nav-ticket-engine" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-ticket w-4 text-center text-orca-accent"></i> Tickets & Claims
+          <i class="fa-solid fa-ticket w-4 text-center text-orca-accent"></i> Tickets & Category Workspace
         </button>
         <button onclick="switchTab('price-estimator')" id="nav-price-estimator" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-calculator w-4 text-center text-amber-400"></i> Price Estimator
@@ -230,10 +236,16 @@
           <i class="fa-solid fa-palette w-4 text-center text-indigo-400"></i> Custom Roles Studio
         </button>
         <button onclick="switchTab('staff-mgmt')" id="nav-staff-mgmt" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-user-gear w-4 text-center text-rose-400"></i> Staff Ranks Management
+          <i class="fa-solid fa-user-gear w-4 text-center text-rose-400"></i> Staff Ranks & Users
+        </button>
+        <button onclick="switchTab('automod')" id="nav-automod" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-shield-halved w-4 text-center text-cyan-400"></i> AutoMod Protocol
+        </button>
+        <button onclick="switchTab('blacklist-tab')" id="nav-blacklist-tab" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-user-slash w-4 text-center text-red-400"></i> Blacklist Manager
         </button>
         <button onclick="switchTab('reviews-engine')" id="nav-reviews-engine" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-star w-4 text-center text-yellow-400"></i> Client Reviews
+          <i class="fa-solid fa-star w-4 text-center text-yellow-400"></i> Client Reviews Setup
         </button>
         <button onclick="switchTab('announcements')" id="nav-announcements" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-bullhorn w-4 text-center text-purple-400"></i> Embed Publisher
@@ -248,7 +260,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Server Sync
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v19.5</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v20.5</span>
     </div>
   </aside>
 
@@ -259,11 +271,11 @@
     <section id="tab-overview" class="space-y-4 md:space-y-6 animate-fade-in">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
         <div>
-          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">/system-stats Live Telemetry</h2>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">System Stats Live Telemetry</h2>
           <p class="text-xs text-orca-muted mt-0.5">Accurate real-time bot infrastructure health, RAM usage, ping, and database performance.</p>
         </div>
         <button id="btn-sync-stats" onclick="fetchTelemetryStats(true)" class="bg-orca-card hover:bg-orca-card/80 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/10 transition active:scale-95 shadow-lg w-full sm:w-auto">
-          <i class="fa-solid fa-arrows-rotate text-orca-accent" id="refresh-icon"></i> Sync /stats
+          <i class="fa-solid fa-arrows-rotate text-orca-accent" id="refresh-icon"></i> Sync Stats
         </button>
       </div>
 
@@ -313,7 +325,7 @@
         <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
           <div class="flex items-center gap-2">
             <i class="fa-solid fa-chart-area text-orca-accent"></i>
-            <h3 class="text-xs font-extrabold uppercase tracking-widest text-white">Live API Latency Trend (/system-stats)</h3>
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-white">Live API Latency Trend (System Stats)</h3>
           </div>
           <span class="text-[10px] font-mono text-orca-muted bg-orca-base px-2 py-0.5 rounded border border-white/5">Polling Live</span>
         </div>
@@ -328,7 +340,7 @@
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Infinite Ticket Command Engine</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Select a category below to configure channels, staff roles, and questions. Auto-names to `ticket-category-number`!</p>
+          <p class="text-xs text-orca-muted mt-0.5">Select a category below to configure channels, target opened categories, staff roles, and questions.</p>
         </div>
         <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
           <i class="fa-solid fa-shield-halved"></i> Admin Protected
@@ -383,9 +395,18 @@
             </div>
           </div>
 
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-accent uppercase tracking-widest mb-1">
+              <i class="fa-solid fa-folder-tree"></i> Opened Ticket Target Category
+            </label>
+            <select id="ticket-opened-category" class="hierarchy-category-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition">
+              <option value="">-- Created Uncategorized or Under Selected Category --</option>
+            </select>
+          </div>
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Buyer Role (Given on Close)</label>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Buyer Role (Option on Close)</label>
               <select id="ticket-buyer-role" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent transition"></select>
             </div>
             <div>
@@ -537,8 +558,8 @@
               <input type="text" id="cr-modal-label-name" value="Role Name" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
             </div>
             <div>
-              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Role Color Prompt</label>
-              <input type="text" id="cr-modal-label-color" value="Role Color (Hex Code or Name)" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Role Hex Color Prompt</label>
+              <input type="text" id="cr-modal-label-color" value="Role Hex Color Code" placeholder="#3B82F6" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
             </div>
           </div>
 
@@ -554,47 +575,191 @@
       </div>
     </section>
 
-    <!-- TAB 5: SEPARATED STAFF RANKS MANAGEMENT -->
+    <!-- TAB 5: SEPARATED STAFF RANKS & USERS MANAGEMENT -->
     <section id="tab-staff-mgmt" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Staff Ranks & Header Configuration</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Manage multiple staff divider headers and assign/demote staff members under staff roles.</p>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Staff Ranks & Users Directory</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Manage staff divider headers and add/remove staff users directly from the web interface.</p>
         </div>
         <span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-3 py-1 rounded-xl font-bold">
-          <i class="fa-solid fa-user-gear"></i> Staff Mgmt
+          <i class="fa-solid fa-user-gear"></i> Staff Directory
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div class="lg:col-span-7 space-y-4">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="block text-[10px] font-extrabold text-rose-400 uppercase tracking-widest">
+                  <i class="fa-solid fa-folder-tree"></i> Organizational Staff Header Roles
+                </label>
+                <button onclick="addStaffHeaderDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+                  <i class="fa-solid fa-plus text-[10px]"></i> Add Header
+                </button>
+              </div>
+              <div id="staff-headers-container" class="space-y-2"></div>
+            </div>
+
+            <div class="pt-3 border-t border-white/5 flex justify-end">
+              <button id="btn-save-staff-config" onclick="saveStaffConfig(this)" class="bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow glow-green flex items-center justify-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> Save Staff Headers
+              </button>
+            </div>
+          </div>
+
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-white border-b border-white/5 pb-2">
+              <i class="fa-solid fa-user-plus text-orca-accent"></i> Add Staff Member
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target User ID</label>
+                <input type="text" id="add-staff-user-id" placeholder="User ID e.g. 1219266886143967245" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+              </div>
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Assign Staff Rank/Role</label>
+                <select id="add-staff-role-id" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+              </div>
+            </div>
+            <div class="flex justify-end pt-1">
+              <button onclick="addStaffMemberWeb()" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow">
+                Promote Staff Member
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-white border-b border-white/5 pb-2 flex items-center justify-between">
+              <span><i class="fa-solid fa-users text-rose-400"></i> Active Server Staff</span>
+              <button onclick="loadStaffUsersList()" class="text-orca-accent text-xs"><i class="fa-solid fa-rotate"></i></button>
+            </h3>
+            <div id="staff-members-list" class="space-y-2.5 max-h-96 overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: AUTOMOD PROTOCOL -->
+    <section id="tab-automod" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">AutoMod Security Protocol</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Automated filters for bad words, links, mass pings, and spam protection.</p>
+        </div>
+        <span class="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-shield-halved"></i> AutoMod
         </span>
       </div>
 
       <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <label class="block text-[10px] font-extrabold text-rose-400 uppercase tracking-widest">
-              <i class="fa-solid fa-folder-tree"></i> Organizational Staff Header Roles (1 to ∞)
+        <div class="space-y-3">
+          <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+            <div>
+              <h4 class="text-xs font-bold text-white">Anti-Link Filter</h4>
+              <p class="text-[10px] text-orca-muted">Deletes unauthorized Discord invite links.</p>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="automod-anti-link" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
-            <button onclick="addStaffHeaderDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
-              <i class="fa-solid fa-plus text-[10px]"></i> Add Header
-            </button>
           </div>
-          <div id="staff-headers-container" class="space-y-2"></div>
-          <p class="text-[10px] text-orca-muted">Select divider headers (e.g. <code>———— STAFF ————</code>). Adding a staff member grants these headers automatically.</p>
+
+          <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+            <div>
+              <h4 class="text-xs font-bold text-white">Anti-Spam Filter</h4>
+              <p class="text-[10px] text-orca-muted">Warns users sending rapid duplicate messages.</p>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="automod-anti-spam" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+            <div>
+              <h4 class="text-xs font-bold text-white">Mass Ping Protection</h4>
+              <p class="text-[10px] text-orca-muted">Blocks messages containing more than 5 user/role pings.</p>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="automod-anti-ping" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-white/5">
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Bad Words Keyword Blacklist (Comma Separated)</label>
+          <textarea id="automod-banned-words" rows="3" placeholder="word1, word2, word3" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent resize-none"></textarea>
         </div>
 
         <div class="pt-3 border-t border-white/5 flex justify-end">
-          <button id="btn-save-staff-config" onclick="saveStaffConfig(this)" class="bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow glow-green flex items-center justify-center gap-2">
-            <i class="fa-solid fa-floppy-disk"></i> Save Staff Settings
+          <button id="btn-save-automod" onclick="saveAutoModConfig(this)" class="bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow">
+            <i class="fa-solid fa-floppy-disk"></i> Save AutoMod Rules
           </button>
         </div>
       </div>
     </section>
 
-    <!-- TAB 6: CLIENT REVIEWS ENGINE -->
+    <!-- TAB 7: BLACKLIST MANAGER -->
+    <section id="tab-blacklist-tab" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Blacklist Manager</h2>
+          <p class="text-xs text-orca-muted mt-0.5">View and manage users restricted from submitting tickets or using bot commands.</p>
+        </div>
+        <span class="bg-red-500/20 text-red-400 border border-red-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-user-slash"></i> Blacklist
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div class="lg:col-span-5">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-red-400 border-b border-white/5 pb-2">
+              <i class="fa-solid fa-user-plus"></i> Add User to Blacklist
+            </h3>
+            <div>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">User Discord ID</label>
+              <input type="text" id="bl-user-id" placeholder="e.g. 1219266886143967245" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+            </div>
+            <div>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Reason</label>
+              <input type="text" id="bl-reason" placeholder="e.g. Ticket spamming / harassment" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            </div>
+            <div class="flex justify-end pt-1">
+              <button onclick="addBlacklistUserWeb()" class="bg-red-600 hover:bg-red-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow">
+                Blacklist User
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-7">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-white border-b border-white/5 pb-2 flex items-center justify-between">
+              <span><i class="fa-solid fa-list text-red-400"></i> Blacklisted Users Log</span>
+              <button onclick="loadBlacklistUsersList()" class="text-orca-accent text-xs"><i class="fa-solid fa-rotate"></i></button>
+            </h3>
+            <div id="blacklist-users-container" class="space-y-2.5 max-h-96 overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 8: CLIENT REVIEWS ENGINE -->
     <section id="tab-reviews-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Commission Review & Feedback Showcase Setup</h2>
           <p class="text-xs text-orca-muted mt-0.5">Select the channel where client 1-5 star ticket feedback automatically posts.</p>
         </div>
+        <span class="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-star"></i> Reviews
+        </span>
       </div>
 
       <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
@@ -610,10 +775,16 @@
       </div>
     </section>
 
-    <!-- TAB 7: PUBLISHER -->
+    <!-- TAB 9: PUBLISHER -->
     <section id="tab-announcements" class="space-y-4 md:space-y-6 hidden animate-fade-in">
-      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
-        <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Announcement & Patch Notes Publisher</h2>
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Announcement & Patch Notes Publisher</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Draft rich Discord embeds with custom headers, button links, images, and pings.</p>
+        </div>
+        <span class="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-bullhorn"></i> Publisher
+        </span>
       </div>
 
       <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
@@ -631,11 +802,11 @@
         </div>
         <div>
           <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Embed Title</label>
-          <input type="text" id="pub-title" value="📢 ORCA STUDIO ANNOUNCEMENT" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          <input type="text" id="pub-title" placeholder="📢 ORCA STUDIO ANNOUNCEMENT" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
         </div>
         <div>
           <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Embed Description</label>
-          <textarea id="pub-desc" rows="4" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none">Type announcement here...</textarea>
+          <textarea id="pub-desc" rows="4" placeholder="Type announcement here..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
         </div>
         <div class="pt-3 border-t border-white/5 flex justify-end">
           <button id="btn-publish-embed" onclick="publishAnnouncementEmbed(this)" class="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow">
@@ -645,10 +816,16 @@
       </div>
     </section>
 
-    <!-- TAB 8: BOT HOSTING & HEALTH MONITOR -->
+    <!-- TAB 10: BOT HOSTING & HEALTH MONITOR -->
     <section id="tab-bot-monitor" class="space-y-4 md:space-y-6 hidden animate-fade-in">
-      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl">
-        <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Bot Hosting & Health Ping Monitor</h2>
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Bot Hosting & Health Ping Monitor</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Monitor client bot online statuses and automatically send downtime pings to #uptime-status.</p>
+        </div>
+        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-server"></i> Uptime Guard
+        </span>
       </div>
 
       <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
@@ -713,6 +890,8 @@
     let selectedStaffHeaderRoleIds = [];
     let serverDiscordCategories = [];
     let serverDiscordRoles = [];
+    let staffMembersList = [];
+    let blacklistUsersList = [];
     let ticketCategoryMap = {};
     let chartInstance = null;
 
@@ -801,8 +980,7 @@
       if (priceTypes.length === 0) {
         priceTypes = [
           { name: "Basic Discord Bot", price: 25 },
-          { name: "Advanced Bot + Web Dashboard", price: 60 },
-          { name: "24/7 Hosting Setup", price: 15 }
+          { name: "Advanced Bot + Web Dashboard", price: 60 }
         ];
       }
 
@@ -834,7 +1012,7 @@
         const div = document.createElement("div");
         div.className = "flex items-center gap-2";
         div.innerHTML = `
-          <input type="text" value="${botId || ''}" placeholder="Client Bot User ID (e.g. 1219266886143967245)" onchange="monitoredBotIds[${idx}]=this.value.trim()" class="flex-1 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+          <input type="text" value="${botId || ''}" placeholder="Client Bot User ID e.g. 1219266886143967245" onchange="monitoredBotIds[${idx}]=this.value.trim()" class="flex-1 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
           <button onclick="monitoredBotIds.splice(${idx},1); renderMonitoredBotRows()" class="p-2 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
         `;
         container.appendChild(div);
@@ -857,7 +1035,7 @@
         const div = document.createElement('div');
         div.className = 'flex items-center gap-2';
 
-        let optionsHtml = `<option value="">-- Select Staff Header Role #${index + 1} --</option>`;
+        let optionsHtml = `<option value="">-- Select Staff Header Role --</option>`;
         serverDiscordRoles.forEach(r => {
           optionsHtml += `<option value="${r.id}" ${r.id === roleId ? 'selected' : ''}>${r.name}</option>`;
         });
@@ -879,6 +1057,159 @@
     function addStaffHeaderDropdown() {
       selectedStaffHeaderRoleIds.push('');
       renderStaffHeaderDropdowns();
+    }
+
+    async function loadStaffUsersList() {
+      const container = document.getElementById("staff-members-list");
+      if (!container) return;
+      container.innerHTML = `<p class="text-xs text-orca-muted p-2">Loading staff users...</p>`;
+
+      try {
+        const res = await fetch('/api/staff-members');
+        if (!res.ok) return;
+        const data = await res.json();
+        staffMembersList = data.staff || [];
+
+        container.innerHTML = "";
+        if (staffMembersList.length === 0) {
+          container.innerHTML = `<p class="text-xs text-orca-muted p-2">No staff members found.</p>`;
+          return;
+        }
+
+        staffMembersList.forEach(s => {
+          const div = document.createElement("div");
+          div.className = "flex items-center justify-between p-2.5 bg-orca-surface border border-white/5 rounded-xl";
+          
+          const roleColorHex = s.color || "#3b82f6";
+          div.innerHTML = `
+            <div>
+              <span class="text-xs font-bold text-white">${s.name}</span>
+              <p class="text-[10px] font-bold mt-0.5" style="color: ${roleColorHex};">${s.role}</p>
+            </div>
+            <button onclick="removeStaffMemberWeb('${s.id}')" class="p-1.5 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+          `;
+          container.appendChild(div);
+        });
+      } catch (e) {
+        container.innerHTML = `<p class="text-xs text-orca-danger p-2">Failed to load staff list.</p>`;
+      }
+    }
+
+    async function addStaffMemberWeb() {
+      const uid = document.getElementById("add-staff-user-id").value.trim();
+      const rid = document.getElementById("add-staff-role-id").value;
+
+      if (!uid || !rid) {
+        showToast("User ID and Role required!", true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/add-staff-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: uid, role_id: rid })
+        });
+        if (res.ok) {
+          showToast("Staff member promoted!");
+          document.getElementById("add-staff-user-id").value = "";
+          loadStaffUsersList();
+        }
+      } catch (e) {
+        showToast("Error promoting staff", true);
+      }
+    }
+
+    async function removeStaffMemberWeb(userId) {
+      try {
+        const res = await fetch('/api/remove-staff-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId })
+        });
+        if (res.ok) {
+          showToast("Staff member demoted!");
+          loadStaffUsersList();
+        }
+      } catch (e) {
+        showToast("Error demoting staff", true);
+      }
+    }
+
+    async function loadBlacklistUsersList() {
+      const container = document.getElementById("blacklist-users-container");
+      if (!container) return;
+      container.innerHTML = `<p class="text-xs text-orca-muted p-2">Loading blacklist...</p>`;
+
+      try {
+        const res = await fetch('/api/blacklist-users');
+        if (!res.ok) return;
+        const data = await res.json();
+        blacklistUsersList = data.blacklist || [];
+
+        container.innerHTML = "";
+        if (blacklistUsersList.length === 0) {
+          container.innerHTML = `<p class="text-xs text-orca-muted p-2">No blacklisted users.</p>`;
+          return;
+        }
+
+        blacklistUsersList.forEach(u => {
+          const div = document.createElement("div");
+          div.className = "flex items-center justify-between p-2.5 bg-orca-surface border border-white/5 rounded-xl";
+          div.innerHTML = `
+            <div>
+              <span class="text-xs font-bold text-white">${u.username || 'User ID: ' + u.user_id}</span>
+              <p class="text-[10px] text-orca-muted italic">Reason: "${u.reason || 'No reason provided'}"</p>
+            </div>
+            <button onclick="removeBlacklistUserWeb('${u.user_id}')" class="p-1.5 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+          `;
+          container.appendChild(div);
+        });
+      } catch (e) {
+        container.innerHTML = `<p class="text-xs text-orca-danger p-2">Failed to load blacklist.</p>`;
+      }
+    }
+
+    async function addBlacklistUserWeb() {
+      const uid = document.getElementById("bl-user-id").value.trim();
+      const reason = document.getElementById("bl-reason").value.trim() || "No reason provided";
+
+      if (!uid) {
+        showToast("User ID required!", true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/add-blacklist-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: uid, reason })
+        });
+        if (res.ok) {
+          showToast("User blacklisted!");
+          document.getElementById("bl-user-id").value = "";
+          document.getElementById("bl-reason").value = "";
+          loadBlacklistUsersList();
+        }
+      } catch (e) {
+        showToast("Error blacklisting user", true);
+      }
+    }
+
+    async function removeBlacklistUserWeb(userId) {
+      try {
+        const res = await fetch('/api/remove-blacklist-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId })
+        });
+        if (res.ok) {
+          showToast("User unblacklisted!");
+          loadBlacklistUsersList();
+        }
+      } catch (e) {
+        showToast("Error unblacklisting user", true);
+      }
     }
 
     async function loadAllData() {
@@ -925,11 +1256,22 @@
           selectedStaffHeaderRoleIds = sc.staff_header_role_ids || (sc.staff_header_role_id ? [sc.staff_header_role_id] : []);
         }
 
+        if (gData.automod_config) {
+          const am = gData.automod_config;
+          document.getElementById('automod-anti-link').checked = am.anti_link || false;
+          document.getElementById('automod-anti-spam').checked = am.anti_spam || false;
+          document.getElementById('automod-anti-ping').checked = am.anti_ping || false;
+          document.getElementById('automod-banned-words').value = am.banned_words || '';
+        }
+
         renderHierarchicalChannelDropdowns();
+        renderOpenedCategoryDropdown();
         renderPriceTypeRows();
         renderMonitoredBotRows();
         renderStaffHeaderDropdowns();
         renderCategorySelectorDropdown();
+        loadStaffUsersList();
+        loadBlacklistUsersList();
       } catch (e) {
         console.error("Load error:", e);
       }
@@ -968,6 +1310,18 @@
       });
     }
 
+    function renderOpenedCategoryDropdown() {
+      const select = document.getElementById("ticket-opened-category");
+      if (!select) return;
+      select.innerHTML = `<option value="">-- Created Uncategorized or Under Selected Category --</option>`;
+      serverDiscordCategories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id || cat.name;
+        opt.innerText = `📁 ${cat.name}`;
+        select.appendChild(opt);
+      });
+    }
+
     function renderCategorySelectorDropdown() {
       const select = document.getElementById("ticket-category-select");
       if (!select) return;
@@ -1002,6 +1356,7 @@
       const catData = ticketCategoryMap[val] || {};
       document.getElementById("ticket-panel-channel").value = catData.panelChannel || catData.channel_id || "";
       document.getElementById("ticket-log-channel").value = catData.logChannel || catData.log_channel_id || "";
+      document.getElementById("ticket-opened-category").value = catData.openedCategory || "";
       document.getElementById("ticket-buyer-role").value = catData.buyerRole || "";
       document.getElementById("ticket-staff-role").value = catData.staffRole || "";
       document.getElementById("ticket-panel-title").value = catData.panelTitle || `📋 ${val.toUpperCase()} TICKET PANEL`;
@@ -1129,6 +1484,7 @@
         config: {
           panelChannel: document.getElementById("ticket-panel-channel").value,
           logChannel: document.getElementById("ticket-log-channel").value,
+          openedCategory: document.getElementById("ticket-opened-category").value,
           buyerRole: document.getElementById("ticket-buyer-role").value,
           staffRole: document.getElementById("ticket-staff-role").value,
           panelTitle: document.getElementById("ticket-panel-title").value,
@@ -1281,7 +1637,30 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        showToast("Staff Settings saved!");
+        showToast("Staff Headers saved!");
+      } catch (e) {
+        showToast("Save error", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveAutoModConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        anti_link: document.getElementById('automod-anti-link').checked,
+        anti_spam: document.getElementById('automod-anti-spam').checked,
+        anti_ping: document.getElementById('automod-anti-ping').checked,
+        banned_words: document.getElementById('automod-banned-words').value
+      };
+
+      try {
+        await fetch('/api/save-automod-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("AutoMod rules saved!");
       } catch (e) {
         showToast("Save error", true);
       } finally {
@@ -1330,20 +1709,27 @@
 
     async function publishAnnouncementEmbed(btn) {
       setBtnLoading(btn, true);
+      const titleInput = document.getElementById('pub-title');
+      const descInput = document.getElementById('pub-desc');
+
       const payload = {
         channel_id: document.getElementById('pub-channel-id').value,
         ping: document.getElementById('pub-ping-opt').value,
-        title: document.getElementById('pub-title').value,
-        description: document.getElementById('pub-desc').value
+        title: titleInput.value,
+        description: descInput.value
       };
 
       try {
-        await fetch('/api/publish-announcement', {
+        const res = await fetch('/api/publish-announcement', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        showToast("Announcement Published!");
+        if (res.ok) {
+          showToast("Announcement Published!");
+          titleInput.value = "";
+          descInput.value = "";
+        }
       } catch (e) {
         showToast("Publish error", true);
       } finally {
@@ -1352,7 +1738,7 @@
     }
 
     function switchTab(tabKey) {
-      const allTabs = ['overview', 'ticket-engine', 'price-estimator', 'custom-roles', 'staff-mgmt', 'reviews-engine', 'announcements', 'bot-monitor'];
+      const allTabs = ['overview', 'ticket-engine', 'price-estimator', 'custom-roles', 'staff-mgmt', 'automod', 'blacklist-tab', 'reviews-engine', 'announcements', 'bot-monitor'];
 
       allTabs.forEach(t => {
         const sec = document.getElementById(`tab-${t}`);
