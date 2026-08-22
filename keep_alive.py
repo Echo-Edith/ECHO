@@ -113,8 +113,188 @@ def get_guild_data():
         "staff_config": config.get("staff_config", {}),
         "estimator_config": config.get("estimator_config", {}),
         "monitor_config": config.get("monitor_config", {}),
+        "automod_config": config.get("automod_config", {}),
         "review_config": config.get("review_config", {})
     })
+
+
+@app.route('/api/staff-members', methods=['GET'])
+def get_staff_members():
+    staff_list = []
+    if _bot_ref and _bot_ref.guilds:
+        try:
+            guild = _bot_ref.guilds[0]
+            db = get_db()
+            config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
+            staff_config = config.get("staff_config", {})
+            header_ids = staff_config.get("staff_header_role_ids", [])
+            header_ids_int = {int(hid) for hid in header_ids if str(hid).isdigit()}
+
+            for member in guild.members:
+                if member.bot:
+                    continue
+                matched_header = next((r for r in member.roles if r.id in header_ids_int), None)
+                if matched_header or member.guild_permissions.administrator:
+                    top_role = member.top_role if member.top_role and member.top_role.name != "@everyone" else matched_header
+                    role_name = matched_header.name if matched_header else (top_role.name if top_role else "Staff")
+                    hex_color = f"#{top_role.color.value:06x}" if (top_role and top_role.color.value) else "#3b82f6"
+                    staff_list.append({
+                        "id": str(member.id),
+                        "name": str(member),
+                        "role": role_name,
+                        "color": hex_color
+                    })
+        except Exception:
+            pass
+
+    return jsonify({"staff": staff_list})
+
+
+@app.route('/api/add-staff-user', methods=['POST'])
+def add_staff_user():
+    data = request.json or {}
+    user_id = data.get("user_id")
+    role_id = data.get("role_id")
+
+    if not _bot_ref or not _bot_ref.guilds or not user_id or not role_id:
+        return jsonify({"error": "Invalid request"}), 400
+
+    guild = _bot_ref.guilds[0]
+    db = get_db()
+    config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
+    staff_config = config.get("staff_config", {})
+    header_ids = staff_config.get("staff_header_role_ids", [])
+
+    async def _add():
+        member = guild.get_member(int(user_id)) or await guild.fetch_member(int(user_id))
+        target_role = guild.get_role(int(role_id))
+        roles_to_add = [target_role] if target_role else []
+        for hid in header_ids:
+            if str(hid).isdigit():
+                hr = guild.get_role(int(hid))
+                if hr:
+                    roles_to_add.append(hr)
+        if member and roles_to_add:
+            await member.add_roles(*roles_to_add, reason="ORCA Web Dashboard Staff Promotion")
+
+    future = asyncio.run_coroutine_threadsafe(_add(), _bot_ref.loop)
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/remove-staff-user', methods=['POST'])
+def remove_staff_user():
+    data = request.json or {}
+    user_id = data.get("user_id")
+
+    if not _bot_ref or not _bot_ref.guilds or not user_id:
+        return jsonify({"error": "Invalid request"}), 400
+
+    guild = _bot_ref.guilds[0]
+    db = get_db()
+    config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
+    staff_config = config.get("staff_config", {})
+    header_ids = staff_config.get("staff_header_role_ids", [])
+
+    async def _remove():
+        member = guild.get_member(int(user_id)) or await guild.fetch_member(int(user_id))
+        if member:
+            for hid in header_ids:
+                if str(hid).isdigit():
+                    hr = guild.get_role(int(hid))
+                    if hr and hr in member.roles:
+                        await member.remove_roles(hr, reason="ORCA Web Dashboard Staff Demotion")
+
+    future = asyncio.run_coroutine_threadsafe(_remove(), _bot_ref.loop)
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/blacklist-users', methods=['GET'])
+def get_blacklist_users():
+    db = get_db()
+    if db is None:
+        return jsonify({"blacklist": []})
+
+    bl_list = []
+    for doc in db["blacklist"].find():
+        bl_list.append({
+            "user_id": doc.get("user_id"),
+            "username": doc.get("username", f"User {doc.get('user_id')}"),
+            "reason": doc.get("reason", "No reason provided")
+        })
+
+    return jsonify({"blacklist": bl_list})
+
+
+@app.route('/api/add-blacklist-user', methods=['POST'])
+def add_blacklist_user():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    user_id = data.get("user_id")
+    reason = data.get("reason", "No reason provided")
+
+    if not user_id:
+        return jsonify({"error": "User ID required"}), 400
+
+    username = f"User {user_id}"
+    if _bot_ref and _bot_ref.guilds:
+        try:
+            guild = _bot_ref.guilds[0]
+            member = guild.get_member(int(user_id))
+            if member:
+                username = str(member)
+        except Exception:
+            pass
+
+    db["blacklist"].update_one(
+        {"user_id": str(user_id)},
+        {"$set": {"user_id": str(user_id), "username": username, "reason": reason}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
+@app.route('/api/remove-blacklist-user', methods=['POST'])
+def remove_blacklist_user():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    user_id = data.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "User ID required"}), 400
+
+    db["blacklist"].delete_one({"user_id": str(user_id)})
+    return jsonify({"success": True})
+
+
+@app.route('/api/save-automod-config', methods=['POST'])
+def save_automod_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"automod_config": data}},
+        upsert=True
+    )
+    return jsonify({"success": True})
 
 
 @app.route('/api/save-estimator-config', methods=['POST'])
