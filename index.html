@@ -75,6 +75,14 @@
     }
     .animate-fade-in { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
+    /* Orca Jump Keyframe Animation */
+    @keyframes orcaJump {
+      0% { transform: translateY(20px) rotate(-15deg) scale(0.8); opacity: 0; }
+      50% { transform: translateY(-35px) rotate(0deg) scale(1.15); opacity: 1; }
+      100% { transform: translateY(0) rotate(10deg) scale(1); opacity: 1; }
+    }
+    .animate-orca-jump { animation: orcaJump 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #090a0f; }
     ::-webkit-scrollbar-thumb { background: #232838; border-radius: 9999px; }
@@ -130,19 +138,37 @@
 </head>
 <body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-orca-accent selection:text-white pb-20 md:pb-0">
 
-  <!-- Password Authentication Gate Overlay -->
+  <!-- Password Gate Overlay with Animated Jumping Orca & Visible Password Toggle -->
   <div id="auth-gate-overlay" class="fixed inset-0 bg-[#090a0f]/95 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-    <div class="glass-panel border border-white/10 w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl text-center animate-fade-in">
-      <div class="w-16 h-16 rounded-2xl bg-orca-accent/10 border border-orca-accent/20 flex items-center justify-center mx-auto text-orca-accent text-2xl shadow-lg">
-        <i class="fa-solid fa-lock"></i>
+    <div class="glass-panel border border-white/10 w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl text-center relative overflow-hidden animate-fade-in">
+      
+      <!-- Animated Jumping Orca Graphic -->
+      <div class="relative w-24 h-20 mx-auto flex items-center justify-center">
+        <!-- Water Ripple Base -->
+        <div class="absolute bottom-0 w-16 h-3 bg-orca-accent/20 rounded-full blur-sm animate-pulse"></div>
+        <!-- SVG Orca Jumping -->
+        <div class="animate-orca-jump z-10">
+          <svg class="w-16 h-16 text-orca-accent drop-shadow-[0_0_15px_rgba(59,130,246,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5c-2.49 0-4.5-1.01-4.5-2.25s2.01-2.25 4.5-2.25 4.5 1.01 4.5 2.25-2.01 2.25-4.5 2.25zm0-5.5c-1.38 0-2.5-.67-2.5-1.5s1.12-1.5 2.5-1.5 2.5.67 2.5 1.5-1.12 1.5-2.5 1.5z"/>
+          </svg>
+        </div>
       </div>
+
       <div>
         <h2 class="text-xl font-extrabold text-white tracking-tight">ORCA Studio Command Gate</h2>
         <p class="text-xs text-orca-muted mt-1">Authorized Owner Access Required. Enter security key to unlock.</p>
       </div>
+
       <div class="space-y-3">
-        <input type="password" id="auth-password-input" placeholder="Enter Access Password" onkeydown="if(event.key==='Enter') verifyDashboardAuth()" class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-mono text-center focus:outline-none focus:border-orca-accent transition shadow-inner">
-        <button onclick="verifyDashboardAuth()" class="w-full bg-orca-accent hover:bg-orca-accent/80 text-white font-extrabold py-3 rounded-xl text-xs shadow glow-blue transition active:scale-95">
+        <!-- Password Input with Eye Toggle -->
+        <div class="relative">
+          <input type="password" id="auth-password-input" placeholder="Enter Access Password" onkeydown="if(event.key==='Enter') verifyDashboardAuth()" class="w-full bg-orca-base border border-orca-border rounded-xl py-3 px-10 text-white text-xs font-mono text-center focus:outline-none focus:border-orca-accent transition shadow-inner">
+          <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-orca-muted hover:text-white p-1">
+            <i class="fa-solid fa-eye text-xs" id="auth-eye-icon"></i>
+          </button>
+        </div>
+
+        <button id="btn-auth-unlock" onclick="verifyDashboardAuth(this)" class="w-full bg-orca-accent hover:bg-orca-accent/80 text-white font-extrabold py-3 rounded-xl text-xs shadow glow-blue transition active:scale-95 flex items-center justify-center gap-2">
           <i class="fa-solid fa-key"></i> Authenticate & Unlock
         </button>
       </div>
@@ -181,10 +207,10 @@
       <i class="fa-solid fa-calculator w-4 text-center"></i> Price Estimator
     </button>
     <button onclick="switchTab('staff-mgmt'); toggleMobileMenu()" id="m-top-nav-staff-mgmt" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-user-gear w-4 text-center"></i> Staff Ranks & Users
+      <i class="fa-solid fa-user-gear w-4 text-center"></i> Staff Directory
     </button>
     <button onclick="switchTab('welcomer'); toggleMobileMenu()" id="m-top-nav-welcomer" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-hand-holding-heart w-4 text-center text-emerald-400"></i> New Member Welcomer
+      <i class="fa-solid fa-hand-holding-heart w-4 text-center text-emerald-400"></i> Member Welcomer
     </button>
     <button onclick="switchTab('status-rotator'); toggleMobileMenu()" id="m-top-nav-status-rotator" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-gamepad w-4 text-center text-indigo-400"></i> Status Rotator
@@ -296,7 +322,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Server Sync
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v22.0</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v23.0</span>
     </div>
   </aside>
 
@@ -376,7 +402,7 @@
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Infinite Ticket Command Engine</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Configure panel channels, target opened categories, staff ping roles, and questions per category.</p>
+          <p class="text-xs text-orca-muted mt-0.5">Select a category below to configure channels, target opened categories, staff roles, and questions.</p>
         </div>
         <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
           <i class="fa-solid fa-shield-halved"></i> Admin Protected
@@ -419,6 +445,31 @@
           <h3 class="text-xs font-extrabold uppercase tracking-widest text-orca-muted flex items-center gap-2 border-b border-white/5 pb-2.5">
             <i class="fa-solid fa-sliders text-orca-accent"></i> Channels & Roles: <span class="active-cat-display text-white font-bold">--</span>
           </h3>
+
+          <!-- Category Specific TOS Toggle & Review DM Options -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-orca-surface/60 rounded-xl border border-white/5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Enable Terms of Service Button</h4>
+                <p class="text-[10px] text-orca-muted">Requires users to accept ToS before chatting in ticket.</p>
+              </div>
+              <label class="cursor-pointer inline-flex items-center">
+                <input type="checkbox" id="cat-tos-enabled" class="hidden">
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+              </label>
+            </div>
+
+            <div class="flex items-center justify-between border-t md:border-t-0 md:border-l border-white/5 pt-2 md:pt-0 md:pl-3">
+              <div>
+                <h4 class="text-xs font-bold text-white">Send DM Review Prompt On Close</h4>
+                <p class="text-[10px] text-orca-muted">Asks client for 1-5 star review when closed.</p>
+              </div>
+              <label class="cursor-pointer inline-flex items-center">
+                <input type="checkbox" id="cat-review-enabled" class="hidden">
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+              </label>
+            </div>
+          </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
@@ -584,7 +635,7 @@
               </div>
             </div>
             <div class="flex justify-end pt-1">
-              <button onclick="addStaffMemberWeb()" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow">
+              <button id="btn-add-staff-member" onclick="addStaffMemberWeb(this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow">
                 Promote Staff Member
               </button>
             </div>
@@ -858,7 +909,7 @@
               <input type="text" id="bl-reason" placeholder="e.g. Ticket spamming / harassment" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
             </div>
             <div class="flex justify-end pt-1">
-              <button onclick="addBlacklistUserWeb()" class="bg-red-600 hover:bg-red-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow">
+              <button id="btn-add-bl-user" onclick="addBlacklistUserWeb(this)" class="bg-red-600 hover:bg-red-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow">
                 Blacklist User
               </button>
             </div>
@@ -895,7 +946,7 @@
           <select id="review-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
         </div>
         <div class="flex justify-end pt-2">
-          <button onclick="saveReviewConfig(this)" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">
+          <button id="btn-save-reviews" onclick="saveReviewConfig(this)" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">
             <i class="fa-solid fa-floppy-disk"></i> Save Review Channel
           </button>
         </div>
@@ -1024,7 +1075,19 @@
     let ticketCategoryMap = {};
     let chartInstance = null;
 
-    function verifyDashboardAuth() {
+    function togglePasswordVisibility() {
+      const input = document.getElementById("auth-password-input");
+      const icon = document.getElementById("auth-eye-icon");
+      if (input.type === "password") {
+        input.type = "text";
+        icon.className = "fa-solid fa-eye-slash text-xs";
+      } else {
+        input.type = "password";
+        icon.className = "fa-solid fa-eye text-xs";
+      }
+    }
+
+    function verifyDashboardAuth(btn) {
       const pwd = document.getElementById("auth-password-input").value.trim();
       const err = document.getElementById("auth-error-msg");
       if (pwd === "Minions") {
@@ -1115,7 +1178,7 @@
       if (statusRotatorList.length === 0) {
         statusRotatorList = [
           { type: "watching", text: "45 Active Commissions" },
-          { type: "playing", text: "ORCA Studio v22" },
+          { type: "playing", text: "ORCA Studio v23" },
           { type: "listening", text: "/dashboard" }
         ];
       }
@@ -1330,12 +1393,14 @@
       }
     }
 
-    async function addStaffMemberWeb() {
+    async function addStaffMemberWeb(btn) {
+      setBtnLoading(btn, true);
       const uid = document.getElementById("add-staff-user-id").value.trim();
       const rid = document.getElementById("add-staff-role-id").value;
 
       if (!uid || !rid) {
         showToast("User ID and Role required!", true);
+        setBtnLoading(btn, false);
         return;
       }
 
@@ -1352,6 +1417,8 @@
         }
       } catch (e) {
         showToast("Error promoting staff", true);
+      } finally {
+        setBtnLoading(btn, false);
       }
     }
 
@@ -1390,11 +1457,17 @@
 
         blacklistUsersList.forEach(u => {
           const div = document.createElement("div");
-          div.className = "flex items-center justify-between p-2.5 bg-orca-surface border border-white/5 rounded-xl";
+          div.className = "flex items-center justify-between p-3 bg-orca-surface border border-white/5 rounded-xl";
+          const pfpUrl = u.avatar || "https://cdn.discordapp.com/embed/avatars/0.png";
+
           div.innerHTML = `
-            <div>
-              <span class="text-xs font-bold text-white">${u.username || 'User ID: ' + u.user_id}</span>
-              <p class="text-[10px] text-orca-muted italic">Reason: "${u.reason || 'No reason provided'}"</p>
+            <div class="flex items-center gap-3">
+              <img src="${pfpUrl}" class="w-8 h-8 rounded-full border border-white/10">
+              <div>
+                <span class="text-xs font-bold text-white">${u.username || 'User ID: ' + u.user_id}</span>
+                <p class="text-[10px] text-red-400 font-medium">Reason: "${u.reason || 'No reason provided'}"</p>
+                <p class="text-[9px] text-orca-muted font-mono">ID: ${u.user_id}</p>
+              </div>
             </div>
             <button onclick="removeBlacklistUserWeb('${u.user_id}')" class="p-1.5 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
           `;
@@ -1405,12 +1478,14 @@
       }
     }
 
-    async function addBlacklistUserWeb() {
+    async function addBlacklistUserWeb(btn) {
+      setBtnLoading(btn, true);
       const uid = document.getElementById("bl-user-id").value.trim();
       const reason = document.getElementById("bl-reason").value.trim() || "No reason provided";
 
       if (!uid) {
         showToast("User ID required!", true);
+        setBtnLoading(btn, false);
         return;
       }
 
@@ -1428,6 +1503,8 @@
         }
       } catch (e) {
         showToast("Error blacklisting user", true);
+      } finally {
+        setBtnLoading(btn, false);
       }
     }
 
@@ -1683,6 +1760,8 @@
       document.querySelectorAll(".active-cat-display").forEach(el => el.innerText = val);
 
       const catData = ticketCategoryMap[val] || {};
+      document.getElementById("cat-tos-enabled").checked = catData.tosEnabled !== false;
+      document.getElementById("cat-review-enabled").checked = catData.reviewEnabled !== false;
       document.getElementById("ticket-panel-channel").value = catData.panelChannel || catData.channel_id || "";
       document.getElementById("ticket-log-channel").value = catData.logChannel || catData.log_channel_id || "";
       document.getElementById("ticket-opened-category").value = catData.openedCategory || "";
@@ -1795,6 +1874,8 @@
         panelTitle: `📋 ${cleanName.toUpperCase()} TICKET PANEL`,
         panelDesc: `Click below to open a ${cleanName} ticket.`,
         buttonLabel: "📝 Open Ticket",
+        tosEnabled: true,
+        reviewEnabled: true,
         questions: [{ label: "Explain your requirements in detail", placeholder: "Type here...", style: "paragraph", required: true }]
       };
 
@@ -1811,6 +1892,8 @@
       const payload = {
         category_name: activeTicketCategory,
         config: {
+          tosEnabled: document.getElementById("cat-tos-enabled").checked,
+          reviewEnabled: document.getElementById("cat-review-enabled").checked,
           panelChannel: document.getElementById("ticket-panel-channel").value,
           logChannel: document.getElementById("ticket-log-channel").value,
           openedCategory: document.getElementById("ticket-opened-category").value,
