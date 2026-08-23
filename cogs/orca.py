@@ -39,6 +39,7 @@ def get_db():
         return None
 
 
+# 📜 Full Discord-Dark Styled Scrollable HTML Transcript Generator
 def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
     rows = []
     for msg in messages:
@@ -47,15 +48,20 @@ def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
         time_str = msg.get("timestamp", "")
         avatar = msg.get("avatar", "https://cdn.discordapp.com/embed/avatars/0.png")
 
+        # Basic Discord codeblock & newline formatting
+        formatted_content = content.replace("\n", "<br>")
+        formatted_content = re.sub(r'```(.*?)```', r'<pre class="bg-[#2b2d31] p-2 rounded text-xs font-mono my-1 overflow-x-auto"><code>\1</code></pre>', formatted_content)
+        formatted_content = re.sub(r'`(.*?)`', r'<code class="bg-[#2b2d31] px-1 rounded text-xs font-mono">\1</code>', formatted_content)
+
         rows.append(f"""
-        <div class="msg flex items-start gap-3 p-2 hover:bg-white/5 rounded-lg">
-          <img src="{avatar}" class="w-10 h-10 rounded-full">
-          <div>
+        <div class="msg flex items-start gap-3 p-2.5 hover:bg-[#2e3035] rounded-lg transition-colors">
+          <img src="{avatar}" class="w-10 h-10 rounded-full border border-white/10 shrink-0">
+          <div class="flex-1 overflow-hidden">
             <div class="flex items-center gap-2">
-              <span class="font-bold text-blue-400 text-sm">{author}</span>
-              <span class="text-[10px] text-gray-400">{time_str}</span>
+              <span class="font-bold text-[#5865f2] text-sm">{author}</span>
+              <span class="text-[10px] text-gray-400 font-mono">{time_str}</span>
             </div>
-            <p class="text-xs text-gray-200 mt-1">{content}</p>
+            <div class="text-xs text-gray-200 mt-1 leading-relaxed break-words">{formatted_content}</div>
           </div>
         </div>
         """)
@@ -64,17 +70,37 @@ def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
     <!DOCTYPE html>
     <html class="dark">
     <head>
-      <title>ORCA Studio Web Transcript - {channel_name}</title>
+      <meta charset="UTF-8">
+      <title>ORCA Studio Web Transcript - #{channel_name}</title>
       <script src="https://cdn.tailwindcss.com"></script>
+      <style>
+        ::-webkit-scrollbar {{ width: 8px; }}
+        ::-webkit-scrollbar-track {{ background: #1e1f22; }}
+        ::-webkit-scrollbar-thumb {{ background: #2b2d31; border-radius: 9999px; }}
+        ::-webkit-scrollbar-thumb:hover {{ background: #35373c; }}
+      </style>
     </head>
-    <body class="bg-[#090a0f] text-white p-6 font-sans">
-      <div class="max-w-4xl mx-auto space-y-4">
-        <header class="border-b border-white/10 pb-4">
-          <h1 class="text-xl font-bold text-blue-400">🐬 ORCA Studio Transcript: #{channel_name}</h1>
-          <p class="text-xs text-gray-400">Generated on {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}</p>
-        </header>
-        <div class="space-y-2">{"".join(rows)}</div>
-      </div>
+    <body class="bg-[#313338] text-white font-sans antialiased h-screen flex flex-col overflow-hidden">
+      <!-- Fixed Header -->
+      <header class="bg-[#2b2d31] p-4 border-b border-[#1f2023] flex items-center justify-between shrink-0 shadow-lg">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-[#5865f2]/20 text-[#5865f2] flex items-center justify-center font-bold text-lg">#</div>
+          <div>
+            <h1 class="text-base font-extrabold text-white">ORCA Studio Transcript: #{channel_name}</h1>
+            <p class="text-[11px] text-gray-400">Archived on {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} • Total Messages: {len(messages)}</p>
+          </div>
+        </div>
+        <span class="bg-[#23a55a]/20 text-[#23a55a] border border-[#23a55a]/30 text-[10px] px-2.5 py-1 rounded-full font-bold">Encrypted Archive</span>
+      </header>
+
+      <!-- Scrollable Message Viewport -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-2 max-w-5xl mx-auto w-full">
+        <div class="p-4 bg-[#2b2d31] rounded-2xl border border-white/5 mb-4 text-center space-y-1">
+          <h2 class="text-sm font-bold text-gray-300">Beginning of Transcript for #{channel_name}</h2>
+          <p class="text-[11px] text-gray-400">Scroll down to view all messages and attachments.</p>
+        </div>
+        {"".join(rows)}
+      </main>
     </body>
     </html>
     """
@@ -480,9 +506,13 @@ class ChainedCustomModal(discord.ui.Modal):
             clean_category = re.sub(r'[^a-zA-Z0-9]', '', self.category.lower()) or "ticket"
             channel_name = f"ticket-{clean_category}-{counter}"[:100]
 
+            tos_enabled = cat_data.get("tosEnabled", True)
+            # If ToS is disabled, grant chat permissions immediately. Otherwise strip send_messages.
+            user_send_messages = not tos_enabled
+
             overwrites = {
                 interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=False, attach_files=True),
+                interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=user_send_messages, attach_files=True),
                 interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True)
             }
 
@@ -505,7 +535,7 @@ class ChainedCustomModal(discord.ui.Modal):
 
         if ticket_channel:
             welcome_title = cat_data.get("welcomeTitle") or f"🐬 {self.category} Ticket Created"
-            welcome_desc = cat_data.get("welcomeDesc") or "Welcome to your private ticket channel! Please accept the Terms of Service below to enable chat permissions."
+            welcome_desc = cat_data.get("welcomeDesc") or "Welcome to your private ticket channel! Staff will assist you shortly."
             
             w_embed = discord.Embed(title=welcome_title, description=welcome_desc, color=SUCCESS_COLOR)
             w_embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
@@ -521,12 +551,15 @@ class ChainedCustomModal(discord.ui.Modal):
 
             try:
                 await ticket_channel.send(content=ping_text, embed=w_embed, view=TicketChannelControlView(self.category, ticket_record))
-                tos_embed = discord.Embed(
-                    title="📜 Studio Terms of Service & Revision Policy",
-                    description="By commissioning ORCA Studio, you agree that revisions are limited after delivery and payments are non-refundable once development begins.",
-                    color=EMBED_COLOR
-                )
-                await ticket_channel.send(embed=tos_embed, view=TOSAgreementView(interaction.user.id))
+                
+                # Only post Terms of Service agreement prompt if enabled for this category
+                if tos_enabled:
+                    tos_embed = discord.Embed(
+                        title="📜 Studio Terms of Service & Revision Policy",
+                        description="By commissioning ORCA Studio, you agree that revisions are limited after delivery and payments are non-refundable once development begins.",
+                        color=EMBED_COLOR
+                    )
+                    await ticket_channel.send(embed=tos_embed, view=TOSAgreementView(interaction.user.id))
             except Exception:
                 pass
 
@@ -624,7 +657,7 @@ class PriceEstimatorPanelView(discord.ui.View):
 
 
 # ----------------------------------------------------------------------
-# Main Cog Engine
+# Main Cog Extension Class
 # ----------------------------------------------------------------------
 class Orca(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -799,7 +832,7 @@ class Orca(commands.Cog):
                 pass
 
     # ----------------------------------------------------------------------
-    # 🤖 Real Bot Health Monitor Heartbeat Loop
+    # 🤖 Real Bot Health Monitor Gateway Heartbeat Loop
     # ----------------------------------------------------------------------
     @tasks.loop(minutes=10)
     async def bot_health_monitor_loop(self):
@@ -911,7 +944,9 @@ class Orca(commands.Cog):
                 except Exception:
                     pass
 
-        if opener_member:
+        # Only send DM review if enabled for this category
+        review_enabled = cat_data.get("reviewEnabled", True)
+        if review_enabled and opener_member:
             try:
                 r_embed = discord.Embed(
                     title="⭐ Rate Your ORCA Studio Experience",
