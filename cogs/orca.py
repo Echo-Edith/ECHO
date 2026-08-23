@@ -21,6 +21,7 @@ SUCCESS_COLOR = discord.Color.green()
 HARDCODED_OWNER_ID = 1219266886143967245
 
 _mongo_client = None
+_local_config = {}  # In-memory database fallback if MongoDB is unreachable
 
 
 def get_db():
@@ -39,7 +40,6 @@ def get_db():
         return None
 
 
-# 📜 Full Discord-Dark Styled Scrollable HTML Transcript Generator
 def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
     rows = []
     for msg in messages:
@@ -48,7 +48,6 @@ def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
         time_str = msg.get("timestamp", "")
         avatar = msg.get("avatar", "https://cdn.discordapp.com/embed/avatars/0.png")
 
-        # Basic Discord codeblock & newline formatting
         formatted_content = content.replace("\n", "<br>")
         formatted_content = re.sub(r'```(.*?)```', r'<pre class="bg-[#2b2d31] p-2 rounded text-xs font-mono my-1 overflow-x-auto"><code>\1</code></pre>', formatted_content)
         formatted_content = re.sub(r'`(.*?)`', r'<code class="bg-[#2b2d31] px-1 rounded text-xs font-mono">\1</code>', formatted_content)
@@ -77,11 +76,9 @@ def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
         ::-webkit-scrollbar {{ width: 8px; }}
         ::-webkit-scrollbar-track {{ background: #1e1f22; }}
         ::-webkit-scrollbar-thumb {{ background: #2b2d31; border-radius: 9999px; }}
-        ::-webkit-scrollbar-thumb:hover {{ background: #35373c; }}
       </style>
     </head>
     <body class="bg-[#313338] text-white font-sans antialiased h-screen flex flex-col overflow-hidden">
-      <!-- Fixed Header -->
       <header class="bg-[#2b2d31] p-4 border-b border-[#1f2023] flex items-center justify-between shrink-0 shadow-lg">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 rounded-xl bg-[#5865f2]/20 text-[#5865f2] flex items-center justify-center font-bold text-lg">#</div>
@@ -93,7 +90,6 @@ def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
         <span class="bg-[#23a55a]/20 text-[#23a55a] border border-[#23a55a]/30 text-[10px] px-2.5 py-1 rounded-full font-bold">Encrypted Archive</span>
       </header>
 
-      <!-- Scrollable Message Viewport -->
       <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-2 max-w-5xl mx-auto w-full">
         <div class="p-4 bg-[#2b2d31] rounded-2xl border border-white/5 mb-4 text-center space-y-1">
           <h2 class="text-sm font-bold text-gray-300">Beginning of Transcript for #{channel_name}</h2>
@@ -122,27 +118,10 @@ def is_blacklisted(user_id: int) -> bool:
     db = get_db()
     if db is None:
         return False
-    return db["blacklist"].find_one({"user_id": str(user_id)}) is not None
-
-
-def is_lockdown_active(guild_id: int, user_id: int) -> bool:
-    if is_owner(user_id):
+    try:
+        return db["blacklist"].find_one({"user_id": str(user_id)}) is not None
+    except Exception:
         return False
-    db = get_db()
-    if db is None:
-        return False
-    config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-    return config.get("lockdown", False)
-
-
-def is_maintenance(guild_id: int, user_id: int, guild: Optional[discord.Guild]) -> bool:
-    if is_owner(user_id) or (guild and user_id == guild.owner_id):
-        return False
-    db = get_db()
-    if db is None:
-        return False
-    config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-    return config.get("maintenance", False)
 
 
 def can_user_close_ticket(member: discord.Member, category: str, guild: discord.Guild) -> bool:
@@ -150,10 +129,13 @@ def can_user_close_ticket(member: discord.Member, category: str, guild: discord.
         return True
 
     db = get_db()
-    if db is None:
-        return member.guild_permissions.manage_channels
+    config = {}
+    if db is not None:
+        try:
+            config = db["guild_config"].find_one({"guild_id": guild.id}) or {}
+        except Exception:
+            pass
 
-    config = db["guild_config"].find_one({"guild_id": guild.id}) or {}
     cat_configs = config.get("category_configs", {})
     cat_data = cat_configs.get(category, {})
 
@@ -220,35 +202,35 @@ class ReviewFeedbackModal(discord.ui.Modal):
 
         db = get_db()
         if db is not None:
-            db["reviews"].insert_one({
-                "guild_id": self.guild_id,
-                "ticket_num": self.ticket_num,
-                "user_id": str(interaction.user.id),
-                "username": str(interaction.user),
-                "stars": self.stars,
-                "feedback": feedback_text,
-                "timestamp": datetime.utcnow()
-            })
+            try:
+                db["reviews"].insert_one({
+                    "guild_id": self.guild_id,
+                    "ticket_num": self.ticket_num,
+                    "user_id": str(interaction.user.id),
+                    "username": str(interaction.user),
+                    "stars": self.stars,
+                    "feedback": feedback_text,
+                    "timestamp": datetime.utcnow()
+                })
 
-            config = db["guild_config"].find_one({"guild_id": self.guild_id}) or {}
-            rev_config = config.get("review_config", {})
-            rev_ch_id = rev_config.get("channel_id")
+                config = db["guild_config"].find_one({"guild_id": self.guild_id}) or {}
+                rev_config = config.get("review_config", {})
+                rev_ch_id = rev_config.get("channel_id")
 
-            if rev_ch_id and str(rev_ch_id).isdigit():
-                client_bot = interaction.client
-                ch = client_bot.get_channel(int(rev_ch_id))
-                if ch:
-                    stars_str = "⭐" * self.stars
-                    r_embed = discord.Embed(
-                        title=f"🌟 New Client Review ({stars_str})",
-                        description=f"**Client:** {interaction.user.mention}\n**Ticket Ref:** #{self.ticket_num}\n**Rating:** {self.stars}/5 Stars\n\n**Comment:**\n*{feedback_text}*\n\n(Server rules apply)",
-                        color=SUCCESS_COLOR if self.stars >= 4 else EMBED_COLOR,
-                        timestamp=discord.utils.utcnow()
-                    )
-                    try:
+                if rev_ch_id and str(rev_ch_id).isdigit():
+                    client_bot = interaction.client
+                    ch = client_bot.get_channel(int(rev_ch_id))
+                    if ch:
+                        stars_str = "⭐" * self.stars
+                        r_embed = discord.Embed(
+                            title=f"🌟 New Client Review ({stars_str})",
+                            description=f"**Client:** {interaction.user.mention}\n**Ticket Ref:** #{self.ticket_num}\n**Rating:** {self.stars}/5 Stars\n\n**Comment:**\n*{feedback_text}*\n\n(Server rules apply)",
+                            color=SUCCESS_COLOR if self.stars >= 4 else EMBED_COLOR,
+                            timestamp=discord.utils.utcnow()
+                        )
                         await ch.send(embed=r_embed)
-                    except Exception:
-                        pass
+            except Exception:
+                pass
 
         await interaction.followup.send(
             embed=info_embed(
@@ -286,9 +268,6 @@ class ReviewRatingView(discord.ui.View):
         await interaction.response.send_modal(ReviewFeedbackModal(self.guild_id, self.ticket_num, 5))
 
 
-# ----------------------------------------------------------------------
-# Modal Ticket Close Field Component
-# ----------------------------------------------------------------------
 class ModalTicketClose(discord.ui.Modal):
     def __init__(self, category: str, ticket_data: dict):
         super().__init__(title="Close Ticket & Finalize Log")
@@ -334,9 +313,6 @@ class ModalTicketClose(discord.ui.Modal):
             )
 
 
-# ----------------------------------------------------------------------
-# 🏷️ Staff Ticket Claiming & Control View
-# ----------------------------------------------------------------------
 class TicketChannelControlView(discord.ui.View):
     def __init__(self, category: str, ticket_data: dict):
         super().__init__(timeout=None)
@@ -417,9 +393,6 @@ class VerificationView(discord.ui.View):
             await interaction.followup.send(embed=error_embed("Could not assign verification roles."), ephemeral=True)
 
 
-# ----------------------------------------------------------------------
-# Dynamic Multi-Part Chained Modals for Intake
-# ----------------------------------------------------------------------
 class ChainedCustomModal(discord.ui.Modal):
     def __init__(self, title: str, category: str, questions_chunk: List[dict], all_questions: List[dict], current_index: int, previous_answers: List[dict]):
         modal_title = f"{title} (Part {current_index // 5 + 1})" if len(all_questions) > 5 else title
@@ -470,13 +443,16 @@ class ChainedCustomModal(discord.ui.Modal):
         db = get_db()
 
         counter = 1
-        config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
-        if config:
-            counter = config.get("submission_counter", 0) + 1
-            if db is not None:
-                db["guild_config"].update_one({"guild_id": interaction.guild.id}, {"$set": {"submission_counter": counter}})
+        config = {}
+        if db is not None:
+            try:
+                config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) or {}
+                counter = config.get("submission_counter", 0) + 1
+                db["guild_config"].update_one({"guild_id": interaction.guild.id}, {"$set": {"submission_counter": counter}}, upsert=True)
+            except Exception:
+                pass
 
-        cat_configs = config.get("category_configs", {}) if config else {}
+        cat_configs = config.get("category_configs", {})
         cat_data = cat_configs.get(self.category, {})
 
         ticket_record = {
@@ -491,7 +467,10 @@ class ChainedCustomModal(discord.ui.Modal):
         }
 
         if db is not None:
-            db["form_submissions"].insert_one(ticket_record)
+            try:
+                db["form_submissions"].insert_one(ticket_record)
+            except Exception:
+                pass
 
         target_category_ref = cat_data.get("openedCategory")
         target_discord_category = None
@@ -507,7 +486,6 @@ class ChainedCustomModal(discord.ui.Modal):
             channel_name = f"ticket-{clean_category}-{counter}"[:100]
 
             tos_enabled = cat_data.get("tosEnabled", True)
-            # If ToS is disabled, grant chat permissions immediately. Otherwise strip send_messages.
             user_send_messages = not tos_enabled
 
             overwrites = {
@@ -552,7 +530,6 @@ class ChainedCustomModal(discord.ui.Modal):
             try:
                 await ticket_channel.send(content=ping_text, embed=w_embed, view=TicketChannelControlView(self.category, ticket_record))
                 
-                # Only post Terms of Service agreement prompt if enabled for this category
                 if tos_enabled:
                     tos_embed = discord.Embed(
                         title="📜 Studio Terms of Service & Revision Policy",
@@ -589,13 +566,15 @@ class FormPanelView(discord.ui.View):
         if is_blacklisted(interaction.user.id):
             return await interaction.response.send_message(embed=error_embed("You are blacklisted from submitting tickets."), ephemeral=True)
 
-        if is_maintenance(guild_id, interaction.user.id, interaction.guild):
-            return await interaction.response.send_message(embed=error_embed("The ticket system is currently undergoing maintenance."), ephemeral=True)
-
         db = get_db()
-        config = db["guild_config"].find_one({"guild_id": guild_id}) if db is not None else {}
+        config = {}
+        if db is not None:
+            try:
+                config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+            except Exception:
+                pass
         
-        cat_configs = config.get("category_configs", {}) if config else {}
+        cat_configs = config.get("category_configs", {})
         cat_data = cat_configs.get(self.category, {})
 
         questions = cat_data.get("questions", [])
@@ -616,9 +595,6 @@ class FormPanelView(discord.ui.View):
         await interaction.response.send_modal(modal)
 
 
-# ----------------------------------------------------------------------
-# 💼 Commission Quote & Price Estimator Select Component
-# ----------------------------------------------------------------------
 class PriceEstimatorSelect(discord.ui.Select):
     def __init__(self, options_data: List[dict], currency: str):
         self.currency = currency
@@ -688,9 +664,6 @@ class Orca(commands.Cog):
         for cat in registered_cats:
             self.bot.add_view(FormPanelView(category=cat))
 
-    # ----------------------------------------------------------------------
-    # 🤖 Multi-Bot Custom Activity & Status Rotator Task
-    # ----------------------------------------------------------------------
     @tasks.loop(minutes=2)
     async def status_rotator_loop(self):
         if not self.bot.guilds:
@@ -700,33 +673,33 @@ class Orca(commands.Cog):
         if db is None:
             return
 
-        guild_id = self.bot.guilds[0].id
-        config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-        rc = config.get("rotator_config", {})
-
-        if not rc.get("enabled"):
-            return
-
-        statuses = rc.get("statuses", [])
-        if not statuses:
-            return
-
-        self.status_index = (self.status_index + 1) % len(statuses)
-        item = statuses[self.status_index]
-
-        st_type = item.get("type", "playing").lower()
-        st_text = item.get("text", "ORCA Studio")
-
-        act_type = discord.ActivityType.playing
-        if st_type == "watching":
-            act_type = discord.ActivityType.watching
-        elif st_type == "listening":
-            act_type = discord.ActivityType.listening
-        elif st_type == "competing":
-            act_type = discord.ActivityType.competing
-
-        activity = discord.Activity(type=act_type, name=st_text)
         try:
+            guild_id = self.bot.guilds[0].id
+            config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+            rc = config.get("rotator_config", {})
+
+            if not rc.get("enabled"):
+                return
+
+            statuses = rc.get("statuses", [])
+            if not statuses:
+                return
+
+            self.status_index = (self.status_index + 1) % len(statuses)
+            item = statuses[self.status_index]
+
+            st_type = item.get("type", "playing").lower()
+            st_text = item.get("text", "ORCA Studio")
+
+            act_type = discord.ActivityType.playing
+            if st_type == "watching":
+                act_type = discord.ActivityType.watching
+            elif st_type == "listening":
+                act_type = discord.ActivityType.listening
+            elif st_type == "competing":
+                act_type = discord.ActivityType.competing
+
+            activity = discord.Activity(type=act_type, name=st_text)
             await self.bot.change_presence(activity=activity)
         except Exception:
             pass
@@ -735,9 +708,6 @@ class Orca(commands.Cog):
     async def before_rotator_loop(self):
         await self.bot.wait_until_ready()
 
-    # ----------------------------------------------------------------------
-    # 🛡️ Basic AutoMod Listener (Bypasses Admins & Owner)
-    # ----------------------------------------------------------------------
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or not message.guild:
@@ -750,56 +720,53 @@ class Orca(commands.Cog):
         if db is None:
             return
 
-        config = db["guild_config"].find_one({"guild_id": message.guild.id}) or {}
-        am = config.get("automod_config", {})
+        try:
+            config = db["guild_config"].find_one({"guild_id": message.guild.id}) or {}
+            am = config.get("automod_config", {})
 
-        # Anti-Link Filter (Permits Tenor/Giphy GIF links)
-        if am.get("anti_link"):
-            content_lower = message.content.lower()
-            if ("discord.gg/" in content_lower or "discord.com/invite/" in content_lower or "http://" in content_lower or "https://" in content_lower):
-                if not any(gif_domain in content_lower for gif_domain in ["tenor.com", "giphy.com", ".gif"]):
-                    try:
-                        await message.delete()
-                        embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, unauthorized links are not permitted here.", color=ERROR_COLOR)
-                        return await message.channel.send(embed=embed, delete_after=5)
-                    except Exception:
-                        pass
+            if am.get("anti_link"):
+                content_lower = message.content.lower()
+                if ("discord.gg/" in content_lower or "discord.com/invite/" in content_lower or "http://" in content_lower or "https://" in content_lower):
+                    if not any(gif_domain in content_lower for gif_domain in ["tenor.com", "giphy.com", ".gif"]):
+                        try:
+                            await message.delete()
+                            embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, unauthorized links are not permitted here.", color=ERROR_COLOR)
+                            return await message.channel.send(embed=embed, delete_after=5)
+                        except Exception:
+                            pass
 
-        # Mass Ping Protection (2+ pings in under 10 seconds)
-        if am.get("anti_ping"):
-            total_pings = len(message.mentions) + len(message.role_mentions)
-            if total_pings >= 2:
-                now = time.time()
-                user_id = message.author.id
-                history = self.user_ping_tracker.get(user_id, [])
-                history = [t for t in history if now - t < 10]
-                history.append(now)
-                self.user_ping_tracker[user_id] = history
+            if am.get("anti_ping"):
+                total_pings = len(message.mentions) + len(message.role_mentions)
+                if total_pings >= 2:
+                    now = time.time()
+                    user_id = message.author.id
+                    history = self.user_ping_tracker.get(user_id, [])
+                    history = [t for t in history if now - t < 10]
+                    history.append(now)
+                    self.user_ping_tracker[user_id] = history
 
-                if len(history) >= 2:
-                    try:
-                        await message.delete()
-                        embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, mass or repeated pings are restricted.", color=ERROR_COLOR)
-                        return await message.channel.send(embed=embed, delete_after=5)
-                    except Exception:
-                        pass
+                    if len(history) >= 2:
+                        try:
+                            await message.delete()
+                            embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, mass or repeated pings are restricted.", color=ERROR_COLOR)
+                            return await message.channel.send(embed=embed, delete_after=5)
+                        except Exception:
+                            pass
 
-        # Bad Words Blacklist
-        banned_str = am.get("banned_words", "")
-        if banned_str:
-            banned_words = [w.strip().lower() for w in banned_str.split(",") if w.strip()]
-            for word in banned_words:
-                if word in message.content.lower():
-                    try:
-                        await message.delete()
-                        embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, your message contained a blacklisted term.", color=ERROR_COLOR)
-                        return await message.channel.send(embed=embed, delete_after=5)
-                    except Exception:
-                        pass
+            banned_str = am.get("banned_words", "")
+            if banned_str:
+                banned_words = [w.strip().lower() for w in banned_str.split(",") if w.strip()]
+                for word in banned_words:
+                    if word in message.content.lower():
+                        try:
+                            await message.delete()
+                            embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, your message contained a blacklisted term.", color=ERROR_COLOR)
+                            return await message.channel.send(embed=embed, delete_after=5)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
 
-    # ----------------------------------------------------------------------
-    # 👋 New Member Welcomer Listener
-    # ----------------------------------------------------------------------
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         guild = member.guild
@@ -807,33 +774,27 @@ class Orca(commands.Cog):
         if db is None:
             return
 
-        config = db["guild_config"].find_one({"guild_id": guild.id}) or {}
-        wc = config.get("welcomer_config", {})
+        try:
+            config = db["guild_config"].find_one({"guild_id": guild.id}) or {}
+            wc = config.get("welcomer_config", {})
 
-        if wc.get("enabled"):
-            ch_id = wc.get("channel_id")
-            if ch_id and str(ch_id).isdigit():
-                ch = guild.get_channel(int(ch_id))
-                if ch:
-                    text = wc.get("message", "Welcome {user} to {server}!").replace("{user}", member.mention).replace("{server}", guild.name)
-                    embed = discord.Embed(title="👋 Welcome to ORCA Studio!", description=text, color=SUCCESS_COLOR)
-                    embed.set_thumbnail(url=member.display_avatar.url)
-                    try:
+            if wc.get("enabled"):
+                ch_id = wc.get("channel_id")
+                if ch_id and str(ch_id).isdigit():
+                    ch = guild.get_channel(int(ch_id))
+                    if ch:
+                        text = wc.get("message", "Welcome {user} to {server}!").replace("{user}", member.mention).replace("{server}", guild.name)
+                        embed = discord.Embed(title="👋 Welcome to ORCA Studio!", description=text, color=SUCCESS_COLOR)
+                        embed.set_thumbnail(url=member.display_avatar.url)
                         await ch.send(embed=embed)
-                    except Exception:
-                        pass
 
-        if wc.get("dm_enabled"):
-            dm_text = wc.get("dm_message", "Welcome to {server}!").replace("{user}", member.name).replace("{server}", guild.name)
-            dm_embed = discord.Embed(title=f"Welcome to {guild.name}!", description=dm_text, color=EMBED_COLOR)
-            try:
+            if wc.get("dm_enabled"):
+                dm_text = wc.get("dm_message", "Welcome to {server}!").replace("{user}", member.name).replace("{server}", guild.name)
+                dm_embed = discord.Embed(title=f"Welcome to {guild.name}!", description=dm_text, color=EMBED_COLOR)
                 await member.send(embed=dm_embed)
-            except Exception:
-                pass
+        except Exception:
+            pass
 
-    # ----------------------------------------------------------------------
-    # 🤖 Real Bot Health Monitor Gateway Heartbeat Loop
-    # ----------------------------------------------------------------------
     @tasks.loop(minutes=10)
     async def bot_health_monitor_loop(self):
         for guild in self.bot.guilds:
@@ -841,42 +802,41 @@ class Orca(commands.Cog):
             if db is None:
                 continue
 
-            config = db["guild_config"].find_one({"guild_id": guild.id}) or {}
-            mc = config.get("monitor_config", {})
-            log_ch_id = mc.get("log_channel_id")
-            bot_ids = mc.get("bot_ids", [])
+            try:
+                config = db["guild_config"].find_one({"guild_id": guild.id}) or {}
+                mc = config.get("monitor_config", {})
+                log_ch_id = mc.get("log_channel_id")
+                bot_ids = mc.get("bot_ids", [])
 
-            if not log_ch_id or not bot_ids or not str(log_ch_id).isdigit():
-                continue
-
-            log_ch = guild.get_channel(int(log_ch_id))
-            if not log_ch:
-                continue
-
-            for bid in bot_ids:
-                if not bid or not str(bid).isdigit():
+                if not log_ch_id or not bot_ids or not str(log_ch_id).isdigit():
                     continue
 
-                is_offline = False
-                try:
-                    user_obj = await self.bot.fetch_user(int(bid))
-                    bot_member = guild.get_member(int(bid))
-                    if bot_member and bot_member.status == discord.Status.offline:
-                        is_offline = True
-                except Exception:
-                    is_offline = True
+                log_ch = guild.get_channel(int(log_ch_id))
+                if not log_ch:
+                    continue
 
-                if is_offline:
-                    embed = discord.Embed(
-                        title="Bot Alert: Client Bot Offline",
-                        description=f"Monitored Bot <@{bid}> appears to be **OFFLINE** or unreachable!",
-                        color=ERROR_COLOR,
-                        timestamp=discord.utils.utcnow()
-                    )
+                for bid in bot_ids:
+                    if not bid or not str(bid).isdigit():
+                        continue
+
+                    is_offline = False
                     try:
-                        await log_ch.send(embed=embed)
+                        bot_member = guild.get_member(int(bid))
+                        if bot_member and bot_member.status == discord.Status.offline:
+                            is_offline = True
                     except Exception:
-                        pass
+                        is_offline = True
+
+                    if is_offline:
+                        embed = discord.Embed(
+                            title="Bot Alert: Client Bot Offline",
+                            description=f"Monitored Bot <@{bid}> appears to be **OFFLINE** or unreachable!",
+                            color=ERROR_COLOR,
+                            timestamp=discord.utils.utcnow()
+                        )
+                        await log_ch.send(embed=embed)
+            except Exception:
+                pass
 
     @bot_health_monitor_loop.before_loop
     async def before_monitor_loop(self):
@@ -885,8 +845,14 @@ class Orca(commands.Cog):
     async def execute_ticket_close(self, interaction: Optional[discord.Interaction], channel: discord.TextChannel, category: str, ticket_data: dict, reason: str, give_role: bool):
         guild = channel.guild
         db = get_db()
-        config = db["guild_config"].find_one({"guild_id": guild.id}) if db is not None else {}
-        cat_configs = config.get("category_configs", {}) if config else {}
+        config = {}
+        if db is not None:
+            try:
+                config = db["guild_config"].find_one({"guild_id": guild.id}) or {}
+            except Exception:
+                pass
+
+        cat_configs = config.get("category_configs", {})
         cat_data = cat_configs.get(category, {})
 
         opener_id = ticket_data.get("user_id")
@@ -944,7 +910,6 @@ class Orca(commands.Cog):
                 except Exception:
                     pass
 
-        # Only send DM review if enabled for this category
         review_enabled = cat_data.get("reviewEnabled", True)
         if review_enabled and opener_member:
             try:
@@ -971,29 +936,31 @@ class Orca(commands.Cog):
             pass
 
     # ====================================================================
-    # Allowed Slash Commands
+    # Slash Commands with Instant Deferrals
     # ====================================================================
     @app_commands.command(name="system-stats", description="Shows bot ping and uptime.")
     async def system_stats(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         latency = round(self.bot.latency * 1000)
         uptime = int(time.time() - self.start_time)
         h, rem = divmod(uptime, 3600)
         m, s = divmod(rem, 60)
-        await interaction.response.send_message(embed=discord.Embed(title="⚙️ ORCA System Stats", description=f"Ping: `{latency}ms`\nUptime: `{h}h {m}m {s}s`", color=EMBED_COLOR), ephemeral=True)
+        await interaction.followup.send(embed=discord.Embed(title="⚙️ ORCA System Stats", description=f"Ping: `{latency}ms`\nUptime: `{h}h {m}m {s}s`", color=EMBED_COLOR), ephemeral=True)
 
     @app_commands.command(name="dashboard", description="Get web control dashboard link.")
     async def dashboard(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         if not is_owner(interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("Bot Owner only."), ephemeral=True)
-        url = os.getenv("DASHBOARD_URL", "https://echo-dashboard.duckdns.org").strip()
-        await interaction.response.send_message(embed=discord.Embed(title="🌐 ORCA Web Dashboard", description=f"[Open Control Panel]({url})", color=EMBED_COLOR), ephemeral=True)
+            return await interaction.followup.send(embed=error_embed("Bot Owner only."), ephemeral=True)
+        url = os.getenv("DASHBOARD_URL", "https://echo-dashboard-qn39.onrender.com").strip()
+        await interaction.followup.send(embed=discord.Embed(title="🌐 ORCA Web Dashboard", description=f"[Open Control Panel]({url})", color=EMBED_COLOR), ephemeral=True)
 
     @app_commands.command(name="role-list", description="Display server roles in hierarchical order.")
     async def role_list_cmd(self, interaction: discord.Interaction):
-        if not interaction.guild:
-            return await interaction.response.send_message(embed=error_embed("Server only."), ephemeral=True)
-
         await interaction.response.defer()
+        if not interaction.guild:
+            return await interaction.followup.send(embed=error_embed("Server only."))
+
         guild = interaction.guild
         sorted_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
         role_lines = [f"`{r.position}` — {r.mention}" for r in sorted_roles if r.name != "@everyone"]
@@ -1011,26 +978,35 @@ class Orca(commands.Cog):
         app_commands.Choice(name="Completed", value="Completed")
     ])
     async def order_status_cmd(self, interaction: discord.Interaction, ticket_num: int, status: Optional[app_commands.Choice[str]] = None):
+        await interaction.response.defer()
         db = get_db()
         if db is None:
-            return await interaction.response.send_message(embed=error_embed("Database unavailable."), ephemeral=True)
+            return await interaction.followup.send(embed=error_embed("Database unavailable."))
 
-        found = db["form_submissions"].find_one({"number": ticket_num})
+        found = None
+        try:
+            found = db["form_submissions"].find_one({"number": ticket_num})
+        except Exception:
+            pass
+
         if not found:
-            return await interaction.response.send_message(embed=error_embed(f"Order #{ticket_num} not found."), ephemeral=True)
+            return await interaction.followup.send(embed=error_embed(f"Order #{ticket_num} not found."))
 
         if status:
             if not interaction.user.guild_permissions.administrator and not is_owner(interaction.user.id):
-                return await interaction.response.send_message(embed=error_embed("Staff permission required to update status."), ephemeral=True)
+                return await interaction.followup.send(embed=error_embed("Staff permission required to update status."))
 
-            db["form_submissions"].update_one({"number": ticket_num}, {"$set": {"order_status": status.value}})
-            await interaction.response.send_message(embed=info_embed("💰 Order Status Updated", f"Order #{ticket_num} status updated to: **{status.value}**"), ephemeral=True)
+            try:
+                db["form_submissions"].update_one({"number": ticket_num}, {"$set": {"order_status": status.value}})
+            except Exception:
+                pass
+            await interaction.followup.send(embed=info_embed("💰 Order Status Updated", f"Order #{ticket_num} status updated to: **{status.value}**"))
         else:
             curr = found.get("order_status", "In Queue")
             embed = discord.Embed(title=f"📦 Order Status #{ticket_num}", color=EMBED_COLOR)
             embed.add_field(name="Category", value=found.get("category", "Custom Commission"), inline=True)
             embed.add_field(name="Current Progress", value=f"**{curr}**", inline=True)
-            await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
 
     # ====================================================================
     # Web Deploy Handlers
@@ -1057,14 +1033,24 @@ class Orca(commands.Cog):
     async def deploy_verification_panel_from_web(self, channel_id: int):
         channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
         db = get_db()
-        v_config = db["guild_config"].find_one({"guild_id": channel.guild.id}).get("verification_config", {}) if db else {}
+        v_config = {}
+        if db is not None:
+            try:
+                v_config = db["guild_config"].find_one({"guild_id": channel.guild.id}).get("verification_config", {})
+            except Exception:
+                pass
         embed = discord.Embed(title=v_config.get("title", "🛡️ MEMBER VERIFICATION PORTAL"), description=v_config.get("description", "Click below to verify!"), color=EMBED_COLOR)
         await channel.send(embed=embed, view=VerificationView(v_config.get("button_label", "✅ Verify Access")))
 
     async def deploy_estimator_panel_from_web(self, channel_id: int):
         channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
         db = get_db()
-        config = db["guild_config"].find_one({"guild_id": channel.guild.id}) if db is not None else {}
+        config = {}
+        if db is not None:
+            try:
+                config = db["guild_config"].find_one({"guild_id": channel.guild.id}) or {}
+            except Exception:
+                pass
         ec = config.get("estimator_config", {})
 
         types = ec.get("types", [])
