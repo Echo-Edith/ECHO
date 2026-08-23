@@ -1,10 +1,11 @@
 import os
+import sys
 import logging
 import discord
 from discord.ext import commands
 from keep_alive import keep_alive
 
-# Suppress verbose discord / asyncio logs from printing to stdout/cron logs
+# Suppress spammy HTTP logging
 logging.getLogger('discord').setLevel(logging.ERROR)
 logging.getLogger('discord.http').setLevel(logging.ERROR)
 
@@ -23,25 +24,36 @@ class OrcaClient(commands.Bot):
         for ext in ['cogs.orca', 'orca']:
             try:
                 await self.load_extension(ext)
+                print(f"✅ Cog loaded successfully: {ext}")
                 loaded = True
                 break
-            except Exception:
-                continue
+            except commands.ExtensionAlreadyLoaded:
+                loaded = True
+                break
+            except Exception as e:
+                print(f"⚠️ Could not load extension {ext}: {e}")
 
         try:
-            await self.tree.sync()
-        except Exception:
-            pass
+            synced = await self.tree.sync()
+            print(f"🔁 Synced {len(synced)} slash commands globally.")
+        except Exception as e:
+            print(f"❌ Failed to sync command tree: {e}")
 
     async def on_ready(self):
-        pass
+        print(f"👑 ORCA Bot online as: {self.user} (ID: {self.user.id})")
 
 
 bot = OrcaClient()
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
-    if token:
+    if not token:
+        print("❌ CRITICAL: 'DISCORD_TOKEN' environment variable is missing!")
+        sys.exit(1)
+    else:
         keep_alive(bot)
-        bot.run(token)
+        try:
+            bot.run(token)
+        except Exception as e:
+            print(f"❌ Bot runtime error: {e}")
 
