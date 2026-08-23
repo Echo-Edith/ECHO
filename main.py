@@ -1,11 +1,13 @@
 import os
 import sys
+import time
+import asyncio
 import logging
 import discord
 from discord.ext import commands
 from keep_alive import keep_alive
 
-# Suppress spammy HTTP logging
+# Suppress verbose discord logs
 logging.getLogger('discord').setLevel(logging.ERROR)
 logging.getLogger('discord.http').setLevel(logging.ERROR)
 
@@ -45,15 +47,35 @@ class OrcaClient(commands.Bot):
 
 bot = OrcaClient()
 
-if __name__ == "__main__":
+
+def start_bot():
     token = os.getenv("DISCORD_TOKEN")
     if not token:
         print("❌ CRITICAL: 'DISCORD_TOKEN' environment variable is missing!")
         sys.exit(1)
-    else:
-        keep_alive(bot)
+
+    # Start Flask Web Server
+    keep_alive(bot)
+
+    # Retry loop with backoff if Discord rate-limits (HTTP 429)
+    retry_delay = 15
+    while True:
         try:
             bot.run(token)
+            break
+        except discord.errors.HTTPException as e:
+            if e.status == 429:
+                print(f"⚠️ Discord 429 Rate Limited. Sleeping {retry_delay} seconds before reconnecting...")
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 300)  # Exponential backoff up to 5 mins
+            else:
+                print(f"❌ Discord HTTP Error: {e}")
+                time.sleep(10)
         except Exception as e:
             print(f"❌ Bot runtime error: {e}")
+            time.sleep(10)
+
+
+if __name__ == "__main__":
+    start_bot()
 
