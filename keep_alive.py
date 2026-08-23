@@ -14,12 +14,12 @@ try:
 except ImportError:
     pymongo = None
 
-# Mute Werkzeug HTTP access logging completely to keep logs minimal
+# Mute Werkzeug HTTP access logging completely to keep logs clean
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.CRITICAL)
 log.disabled = True
 
-# Safely suppress Flask CLI banner without causing import errors
+# Suppress Flask CLI server banner safely
 try:
     import flask.cli
     flask.cli.show_server_banner = lambda *args, **kwargs: None
@@ -44,7 +44,7 @@ def get_db():
         return None
 
 
-# Tiny 2-byte response for cron-job.org and keep-alive pingers
+# Tiny 2-byte endpoint for cron-job.org and keep-alive pingers
 @app.route('/ping')
 @app.route('/health')
 @app.route('/cron')
@@ -54,7 +54,6 @@ def cron_ping():
 
 @app.route('/')
 def home():
-    # If request is from cron-job or headless bot, return tiny OK to prevent size limits
     user_agent = request.headers.get('User-Agent', '').lower()
     if 'cron' in user_agent or 'uptime' in user_agent or 'bot' in user_agent:
         return "OK", 200
@@ -248,10 +247,22 @@ def get_blacklist_users():
 
     bl_list = []
     for doc in db["blacklist"].find():
+        user_id = doc.get("user_id")
+        avatar_url = "https://cdn.discordapp.com/embed/avatars/0.png"
+        if _bot_ref and _bot_ref.guilds:
+            try:
+                guild = _bot_ref.guilds[0]
+                member = guild.get_member(int(user_id))
+                if member and member.display_avatar:
+                    avatar_url = member.display_avatar.url
+            except Exception:
+                pass
+
         bl_list.append({
-            "user_id": doc.get("user_id"),
-            "username": doc.get("username", f"User {doc.get('user_id')}"),
-            "reason": doc.get("reason", "No reason provided")
+            "user_id": user_id,
+            "username": doc.get("username", f"User {user_id}"),
+            "reason": doc.get("reason", "No reason provided"),
+            "avatar": avatar_url
         })
 
     return jsonify({"blacklist": bl_list})
