@@ -144,9 +144,7 @@
       
       <!-- Animated Jumping Orca Graphic -->
       <div class="relative w-24 h-20 mx-auto flex items-center justify-center">
-        <!-- Water Ripple Base -->
         <div class="absolute bottom-0 w-16 h-3 bg-orca-accent/20 rounded-full blur-sm animate-pulse"></div>
-        <!-- SVG Orca Jumping -->
         <div class="animate-orca-jump z-10">
           <svg class="w-16 h-16 text-orca-accent drop-shadow-[0_0_15px_rgba(59,130,246,0.6)]" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5c-2.49 0-4.5-1.01-4.5-2.25s2.01-2.25 4.5-2.25 4.5 1.01 4.5 2.25-2.01 2.25-4.5 2.25zm0-5.5c-1.38 0-2.5-.67-2.5-1.5s1.12-1.5 2.5-1.5 2.5.67 2.5 1.5-1.12 1.5-2.5 1.5z"/>
@@ -203,6 +201,9 @@
     <button onclick="switchTab('ticket-engine'); toggleMobileMenu()" id="m-top-nav-ticket-engine" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets Engine
     </button>
+    <button onclick="switchTab('outreach'); toggleMobileMenu()" id="m-top-nav-outreach" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+      <i class="fa-solid fa-handshake w-4 text-center text-teal-400"></i> Partnership Outreach
+    </button>
     <button onclick="switchTab('price-estimator'); toggleMobileMenu()" id="m-top-nav-price-estimator" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-calculator w-4 text-center"></i> Price Estimator
     </button>
@@ -230,34 +231,10 @@
     <button onclick="switchTab('announcements'); toggleMobileMenu()" id="m-top-nav-announcements" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-bullhorn w-4 text-center"></i> Embed Publisher
     </button>
-    <button onclick="switchTab('bot-monitor'); toggleMobileMenu()" id="m-top-nav-bot-monitor" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
+    <button onclick="switchTab('bot-monitor'); toggleMobileMenu()" id="m-top-nav-bot-monitor" class="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-server w-4 text-center"></i> Health Ping Monitor
     </button>
   </div>
-
-  <!-- Mobile Bottom Navigation Bar -->
-  <nav class="md:hidden fixed bottom-0 inset-x-0 glass-panel border-t border-orca-border z-40 px-2 py-2 flex items-center justify-around">
-    <button onclick="switchTab('overview')" id="m-nav-overview" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-accent">
-      <i class="fa-solid fa-chart-pie text-sm"></i>
-      <span class="text-[9px] font-extrabold tracking-tight">Stats</span>
-    </button>
-    <button onclick="switchTab('ticket-engine')" id="m-nav-ticket-engine" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-ticket text-sm"></i>
-      <span class="text-[9px] font-extrabold tracking-tight">Tickets</span>
-    </button>
-    <button onclick="switchTab('staff-mgmt')" id="m-nav-staff-mgmt" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-user-gear text-sm"></i>
-      <span class="text-[9px] font-extrabold tracking-tight">Staff</span>
-    </button>
-    <button onclick="switchTab('welcomer')" id="m-nav-welcomer" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-hand-holding-heart text-sm"></i>
-      <span class="text-[9px] font-extrabold tracking-tight">Welcome</span>
-    </button>
-    <button onclick="switchTab('status-rotator')" id="m-nav-status-rotator" class="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition text-orca-muted">
-      <i class="fa-solid fa-gamepad text-sm"></i>
-      <span class="text-[9px] font-extrabold tracking-tight">Status</span>
-    </button>
-  </nav>
 
   <!-- Desktop Sidebar Navigation -->
   <aside class="hidden md:flex w-72 glass-panel p-5 flex-col justify-between border-r border-orca-border shrink-0 z-30">
@@ -284,6 +261,9 @@
         </button>
         <button onclick="switchTab('ticket-engine')" id="nav-ticket-engine" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-ticket w-4 text-center text-orca-accent"></i> Tickets & Category Workspace
+        </button>
+        <button onclick="switchTab('outreach')" id="nav-outreach" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
+          <i class="fa-solid fa-handshake w-4 text-center text-teal-400"></i> Partnership Outreach
         </button>
         <button onclick="switchTab('price-estimator')" id="nav-price-estimator" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-calculator w-4 text-center text-amber-400"></i> Price Estimator
@@ -322,7 +302,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Server Sync
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v23.0</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v24.0</span>
     </div>
   </aside>
 
@@ -402,7 +382,7 @@
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Infinite Ticket Command Engine</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Select a category below to configure channels, target opened categories, staff roles, and questions.</p>
+          <p class="text-xs text-orca-muted mt-0.5">Configure panel channels, target opened categories, staff roles, and questions per category.</p>
         </div>
         <span class="bg-orca-accent/20 text-orca-accent border border-orca-accent/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
           <i class="fa-solid fa-shield-halved"></i> Admin Protected
@@ -446,7 +426,6 @@
             <i class="fa-solid fa-sliders text-orca-accent"></i> Channels & Roles: <span class="active-cat-display text-white font-bold">--</span>
           </h3>
 
-          <!-- Category Specific TOS Toggle & Review DM Options -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-orca-surface/60 rounded-xl border border-white/5">
             <div class="flex items-center justify-between">
               <div>
@@ -541,7 +520,55 @@
       </div>
     </section>
 
-    <!-- TAB 3: COMMISSION QUOTE & PRICE ESTIMATOR -->
+    <!-- TAB 3: PARTNERSHIP OUTREACH ENGINE -->
+    <section id="tab-outreach" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Automated Partnership Outreach Assistant</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Automate outreach DMs to group & server owners to request partnerships and manage cross-promotions.</p>
+        </div>
+        <span class="bg-teal-500/20 text-teal-400 border border-teal-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-handshake"></i> Outreach Bot
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+          <div>
+            <h4 class="text-xs font-bold text-white">Enable Automated Outreach Bot</h4>
+            <p class="text-[10px] text-orca-muted">Sends polite partnership pitch DMs to server owners in batches.</p>
+          </div>
+          <label class="cursor-pointer inline-flex items-center">
+            <input type="checkbox" id="outreach-enabled" class="hidden">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-teal-400 uppercase tracking-widest mb-1">Target Owner User IDs / Server Invites (One per line)</label>
+          <textarea id="outreach-target-list" rows="4" placeholder="1219266886143967245&#10;https://discord.gg/example" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent resize-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Outreach DM Pitch Template</label>
+          <textarea id="outreach-pitch-msg" rows="4" placeholder="Hey {owner}! I noticed your server {server_name}. We are ORCA Studio and we'd love to cross-promote with you!..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+          <p class="text-[10px] text-orca-muted mt-1">Available placeholders: <code>{owner}</code>, <code>{server_name}</code>, <code>{my_server}</code></p>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Your Server's Official Partnership Ad Copy</label>
+          <textarea id="outreach-our-ad-copy" rows="4" placeholder="Paste your studio's advertisement text & banner link here for partners to copy..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-white/5 flex justify-end">
+          <button id="btn-save-outreach" onclick="saveOutreachConfig(this)" class="bg-teal-600 hover:bg-teal-500 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow">
+            <i class="fa-solid fa-floppy-disk"></i> Save Outreach Setup
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: COMMISSION QUOTE & PRICE ESTIMATOR -->
     <section id="tab-price-estimator" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -586,7 +613,7 @@
       </div>
     </section>
 
-    <!-- TAB 4: SEPARATED STAFF RANKS & USERS DIRECTORY -->
+    <!-- TAB 5: SEPARATED STAFF RANKS & USERS DIRECTORY -->
     <section id="tab-staff-mgmt" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -654,7 +681,7 @@
       </div>
     </section>
 
-    <!-- TAB 5: NEW MEMBER WELCOMER -->
+    <!-- TAB 6: NEW MEMBER WELCOMER -->
     <section id="tab-welcomer" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -714,7 +741,7 @@
       </div>
     </section>
 
-    <!-- TAB 6: MULTI-STATUS ROTATOR STUDIO -->
+    <!-- TAB 7: MULTI-STATUS ROTATOR STUDIO -->
     <section id="tab-status-rotator" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -756,7 +783,7 @@
       </div>
     </section>
 
-    <!-- TAB 7: VERIFICATION ENGINE -->
+    <!-- TAB 8: VERIFICATION ENGINE -->
     <section id="tab-verification-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -821,7 +848,7 @@
       </div>
     </section>
 
-    <!-- TAB 8: AUTOMOD PROTOCOL -->
+    <!-- TAB 9: AUTOMOD PROTOCOL -->
     <section id="tab-automod" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -882,7 +909,7 @@
       </div>
     </section>
 
-    <!-- TAB 9: BLACKLIST MANAGER -->
+    <!-- TAB 10: BLACKLIST MANAGER -->
     <section id="tab-blacklist-tab" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -928,7 +955,7 @@
       </div>
     </section>
 
-    <!-- TAB 10: CLIENT REVIEWS ENGINE -->
+    <!-- TAB 11: CLIENT REVIEWS ENGINE -->
     <section id="tab-reviews-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -953,7 +980,7 @@
       </div>
     </section>
 
-    <!-- TAB 11: PUBLISHER -->
+    <!-- TAB 12: PUBLISHER -->
     <section id="tab-announcements" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -994,7 +1021,7 @@
       </div>
     </section>
 
-    <!-- TAB 12: BOT HOSTING & HEALTH MONITOR -->
+    <!-- TAB 13: BOT HOSTING & HEALTH MONITOR -->
     <section id="tab-bot-monitor" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -1178,7 +1205,7 @@
       if (statusRotatorList.length === 0) {
         statusRotatorList = [
           { type: "watching", text: "45 Active Commissions" },
-          { type: "playing", text: "ORCA Studio v23" },
+          { type: "playing", text: "ORCA Studio v24" },
           { type: "listening", text: "/dashboard" }
         ];
       }
@@ -1219,6 +1246,29 @@
           body: JSON.stringify(payload)
         });
         showToast("Status Rotator setup saved!");
+      } catch (e) {
+        showToast("Save error", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveOutreachConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        enabled: document.getElementById('outreach-enabled').checked,
+        targets: document.getElementById('outreach-target-list').value,
+        pitch: document.getElementById('outreach-pitch-msg').value,
+        ad_copy: document.getElementById('outreach-our-ad-copy').value
+      };
+
+      try {
+        await fetch('/api/save-outreach-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("Partnership Outreach setup saved!");
       } catch (e) {
         showToast("Save error", true);
       } finally {
@@ -1615,6 +1665,14 @@
           const d = document.getElementById('bot-avatar-desktop');
           if (m) m.src = gData.bot_avatar;
           if (d) d.src = gData.bot_avatar;
+        }
+
+        if (gData.outreach_config) {
+          const oc = gData.outreach_config;
+          document.getElementById('outreach-enabled').checked = oc.enabled || false;
+          document.getElementById('outreach-target-list').value = oc.targets || '';
+          document.getElementById('outreach-pitch-msg').value = oc.pitch || '';
+          document.getElementById('outreach-our-ad-copy').value = oc.ad_copy || '';
         }
 
         if (gData.verification_config) {
@@ -2105,7 +2163,7 @@
     }
 
     function switchTab(tabKey) {
-      const allTabs = ['overview', 'ticket-engine', 'price-estimator', 'staff-mgmt', 'welcomer', 'status-rotator', 'verification-engine', 'automod', 'blacklist-tab', 'reviews-engine', 'announcements', 'bot-monitor'];
+      const allTabs = ['overview', 'ticket-engine', 'outreach', 'price-estimator', 'staff-mgmt', 'welcomer', 'status-rotator', 'verification-engine', 'automod', 'blacklist-tab', 'reviews-engine', 'announcements', 'bot-monitor'];
 
       allTabs.forEach(t => {
         const sec = document.getElementById(`tab-${t}`);
