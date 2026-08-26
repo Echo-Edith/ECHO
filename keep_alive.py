@@ -44,7 +44,7 @@ def get_db():
         return None
 
 
-# Tiny 2-byte endpoint for cron-job.org and keep-alive pingers
+# Lightweight endpoint for cron-job.org and keep-alive pingers
 @app.route('/ping')
 @app.route('/health')
 @app.route('/cron')
@@ -135,7 +135,8 @@ def get_guild_data():
         "automod_config": config.get("automod_config", {}),
         "welcomer_config": config.get("welcomer_config", {}),
         "rotator_config": config.get("rotator_config", {}),
-        "review_config": config.get("review_config", {})
+        "review_config": config.get("review_config", {}),
+        "outreach_config": config.get("outreach_config", {})
     })
 
 
@@ -312,6 +313,23 @@ def remove_blacklist_user():
         return jsonify({"error": "User ID required"}), 400
 
     db["blacklist"].delete_one({"user_id": str(user_id)})
+    return jsonify({"success": True})
+
+
+@app.route('/api/save-outreach-config', methods=['POST'])
+def save_outreach_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"outreach_config": data}},
+        upsert=True
+    )
     return jsonify({"success": True})
 
 
