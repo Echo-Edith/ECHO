@@ -21,7 +21,6 @@ SUCCESS_COLOR = discord.Color.green()
 HARDCODED_OWNER_ID = 1219266886143967245
 
 _mongo_client = None
-_local_config = {}  # In-memory database fallback if MongoDB is unreachable
 
 
 def get_db():
@@ -40,6 +39,7 @@ def get_db():
         return None
 
 
+# 📜 Discord-Dark Scrollable HTML Transcript Generator
 def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
     rows = []
     for msg in messages:
@@ -124,6 +124,32 @@ def is_blacklisted(user_id: int) -> bool:
         return False
 
 
+def is_lockdown_active(guild_id: int, user_id: int) -> bool:
+    if is_owner(user_id):
+        return False
+    db = get_db()
+    if db is None:
+        return False
+    try:
+        config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+        return config.get("lockdown", False)
+    except Exception:
+        return False
+
+
+def is_maintenance(guild_id: int, user_id: int, guild: Optional[discord.Guild]) -> bool:
+    if is_owner(user_id) or (guild and user_id == guild.owner_id):
+        return False
+    db = get_db()
+    if db is None:
+        return False
+    try:
+        config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+        return config.get("maintenance", False)
+    except Exception:
+        return False
+
+
 def can_user_close_ticket(member: discord.Member, category: str, guild: discord.Guild) -> bool:
     if is_owner(member.id) or member.id == guild.owner_id or member.guild_permissions.administrator:
         return True
@@ -175,6 +201,30 @@ class TOSAgreementView(discord.ui.View):
             )
         except Exception as e:
             await interaction.response.send_message(embed=error_embed(f"Failed to update permissions: {e}"), ephemeral=True)
+
+
+# ----------------------------------------------------------------------
+# 🤝 Automated Partnership Outreach Interaction View
+# ----------------------------------------------------------------------
+class PartnershipOutreachView(discord.ui.View):
+    def __init__(self, guild_id: int, ad_copy: str):
+        super().__init__(timeout=None)
+        self.guild_id = guild_id
+        self.ad_copy = ad_copy
+
+    @discord.ui.button(label="🤝 Accept Partnership", style=discord.ButtonStyle.success, custom_id="orca_partner_accept_btn")
+    async def accept_partnership(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        embed = discord.Embed(
+            title="🤝 Partnership Accepted!",
+            description=f"Thank you for partnering with ORCA Studio!\n\nHere is our official advertisement copy to post in your server:\n\n```{self.ad_copy}```",
+            color=SUCCESS_COLOR
+        )
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    @discord.ui.button(label="❌ Decline / Not Interested", style=discord.ButtonStyle.secondary, custom_id="orca_partner_decline_btn")
+    async def decline_partnership(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message(embed=info_embed("Understood", "Thank you for your time! You will not be contacted again."), ephemeral=True)
 
 
 # ----------------------------------------------------------------------
@@ -642,10 +692,12 @@ class Orca(commands.Cog):
         self.user_ping_tracker = {}
         self.status_index = 0
         self.status_rotator_loop.start()
+        self.outreach_task_loop.start()
         self.bot_health_monitor_loop.start()
 
     def cog_unload(self):
         self.status_rotator_loop.cancel()
+        self.outreach_task_loop.cancel()
         self.bot_health_monitor_loop.cancel()
 
     async def cog_load(self):
@@ -664,6 +716,55 @@ class Orca(commands.Cog):
         for cat in registered_cats:
             self.bot.add_view(FormPanelView(category=cat))
 
+    # ----------------------------------------------------------------------
+    # 🤝 Partnership Outreach Automated Manager Task Loop
+    # ----------------------------------------------------------------------
+    @tasks.loop(minutes=15)
+    async def outreach_task_loop(self):
+        if not self.bot.guilds:
+            return
+
+        db = get_db()
+        if db is None:
+            return
+
+        try:
+            guild_id = self.bot.guilds[0].id
+            config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
+            oc = config.get("outreach_config", {})
+
+            if not oc.get("enabled"):
+                return
+
+            targets_raw = oc.get("targets", "")
+            pitch = oc.get("pitch") or "Hey {owner}! We would love to cross-promote with {server_name}!"
+            ad_copy = oc.get("ad_copy") or "ORCA Studio Bot Development Services"
+
+            target_ids = [t.strip() for t in targets_raw.splitlines() if t.strip().isdigit()]
+
+            for tid in target_ids[:3]:  # Safe batch of 3 per 15 minutes
+                try:
+                    target_user = await self.bot.fetch_user(int(tid))
+                    if target_user:
+                        formatted_pitch = pitch.replace("{owner}", target_user.name).replace("{server_name}", "your server")
+                        o_embed = discord.Embed(
+                            title="🤝 Partnership Inquiry from ORCA Studio",
+                            description=formatted_pitch,
+                            color=EMBED_COLOR
+                        )
+                        await target_user.send(embed=o_embed, view=PartnershipOutreachView(guild_id, ad_copy))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    @outreach_task_loop.before_loop
+    async def before_outreach_loop(self):
+        await self.bot.wait_until_ready()
+
+    # ----------------------------------------------------------------------
+    # 🤖 Multi-Bot Custom Activity & Status Rotator Task
+    # ----------------------------------------------------------------------
     @tasks.loop(minutes=2)
     async def status_rotator_loop(self):
         if not self.bot.guilds:
@@ -1057,7 +1158,7 @@ class Orca(commands.Cog):
         currency = ec.get("currency", "$")
 
         embed = discord.Embed(
-            title="💼 COMMISSION PRICE",
+            title="💼 COMMISSION PRICE ",
             description="Select your required bot features and add-ons below to calculate an instant quote estimate!",
             color=EMBED_COLOR
         )
