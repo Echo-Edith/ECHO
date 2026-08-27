@@ -692,12 +692,10 @@ class Orca(commands.Cog):
         self.user_ping_tracker = {}
         self.status_index = 0
         self.status_rotator_loop.start()
-        self.outreach_task_loop.start()
         self.bot_health_monitor_loop.start()
 
     def cog_unload(self):
         self.status_rotator_loop.cancel()
-        self.outreach_task_loop.cancel()
         self.bot_health_monitor_loop.cancel()
 
     async def cog_load(self):
@@ -715,52 +713,6 @@ class Orca(commands.Cog):
         
         for cat in registered_cats:
             self.bot.add_view(FormPanelView(category=cat))
-
-    # ----------------------------------------------------------------------
-    # 🤝 Partnership Outreach Automated Manager Task Loop
-    # ----------------------------------------------------------------------
-    @tasks.loop(minutes=15)
-    async def outreach_task_loop(self):
-        if not self.bot.guilds:
-            return
-
-        db = get_db()
-        if db is None:
-            return
-
-        try:
-            guild_id = self.bot.guilds[0].id
-            config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-            oc = config.get("outreach_config", {})
-
-            if not oc.get("enabled"):
-                return
-
-            targets_raw = oc.get("targets", "")
-            pitch = oc.get("pitch") or "Hey {owner}! We would love to cross-promote with {server_name}!"
-            ad_copy = oc.get("ad_copy") or "ORCA Studio Bot Development Services"
-
-            target_ids = [t.strip() for t in targets_raw.splitlines() if t.strip().isdigit()]
-
-            for tid in target_ids[:3]:  # Safe batch of 3 per 15 minutes
-                try:
-                    target_user = await self.bot.fetch_user(int(tid))
-                    if target_user:
-                        formatted_pitch = pitch.replace("{owner}", target_user.name).replace("{server_name}", "your server")
-                        o_embed = discord.Embed(
-                            title="🤝 Partnership Inquiry from ORCA Studio",
-                            description=formatted_pitch,
-                            color=EMBED_COLOR
-                        )
-                        await target_user.send(embed=o_embed, view=PartnershipOutreachView(guild_id, ad_copy))
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-    @outreach_task_loop.before_loop
-    async def before_outreach_loop(self):
-        await self.bot.wait_until_ready()
 
     # ----------------------------------------------------------------------
     # 🤖 Multi-Bot Custom Activity & Status Rotator Task
@@ -1112,6 +1064,24 @@ class Orca(commands.Cog):
     # ====================================================================
     # Web Deploy Handlers
     # ====================================================================
+    async def deploy_outreach_dm_from_web(self, user_id: int, pitch: str, image_url: str, ad_copy: str):
+        target_user = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
+        if not target_user:
+            raise Exception("Discord User not found or bot cannot access User ID.")
+
+        guild_id = self.bot.guilds[0].id if self.bot.guilds else 0
+        formatted_pitch = pitch.replace("{owner}", target_user.name).replace("{server_name}", "your server")
+
+        o_embed = discord.Embed(
+            title="🤝 Partnership Inquiry from ORCA Studio",
+            description=formatted_pitch,
+            color=EMBED_COLOR
+        )
+        if image_url and image_url.strip():
+            o_embed.set_image(url=image_url.strip())
+
+        await target_user.send(embed=o_embed, view=PartnershipOutreachView(guild_id, ad_copy))
+
     async def publish_announcement_from_web(self, data: dict):
         channel_id = data.get("channel_id")
         channel = self.bot.get_channel(int(channel_id)) or await self.bot.fetch_channel(int(channel_id))
@@ -1129,6 +1099,15 @@ class Orca(commands.Cog):
             color=EMBED_COLOR,
             timestamp=discord.utils.utcnow()
         )
+
+        image_url = data.get("image_url")
+        if image_url and image_url.strip():
+            embed.set_image(url=image_url.strip())
+
+        thumbnail_url = data.get("thumbnail_url")
+        if thumbnail_url and thumbnail_url.strip():
+            embed.set_thumbnail(url=thumbnail_url.strip())
+
         await channel.send(content=ping_content if ping_content else None, embed=embed)
 
     async def deploy_verification_panel_from_web(self, channel_id: int):
@@ -1158,7 +1137,7 @@ class Orca(commands.Cog):
         currency = ec.get("currency", "$")
 
         embed = discord.Embed(
-            title="💼 COMMISSION PRICE ",
+            title="💼 COMMISSION PRICE",
             description="Select your required bot features and add-ons below to calculate an instant quote estimate!",
             color=EMBED_COLOR
         )
