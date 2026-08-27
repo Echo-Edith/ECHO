@@ -316,6 +316,32 @@ def remove_blacklist_user():
     return jsonify({"success": True})
 
 
+@app.route('/api/deploy-outreach-dm', methods=['POST'])
+def deploy_outreach_dm():
+    if _bot_ref is None or not _bot_ref.is_ready():
+        return jsonify({"error": "Bot not ready"}), 500
+
+    data = request.json or {}
+    user_id = data.get("user_id")
+    pitch = data.get("pitch", "")
+    image_url = data.get("image_url", "")
+    ad_copy = data.get("ad_copy", "")
+
+    cog = _bot_ref.get_cog("Orca")
+    if not cog or not user_id or not str(user_id).isdigit():
+        return jsonify({"error": "Valid Discord User ID required"}), 400
+
+    future = asyncio.run_coroutine_threadsafe(
+        cog.deploy_outreach_dm_from_web(int(user_id), pitch, image_url, ad_copy),
+        _bot_ref.loop
+    )
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/save-outreach-config', methods=['POST'])
 def save_outreach_config():
     db = get_db()
