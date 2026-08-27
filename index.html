@@ -193,7 +193,7 @@
     </button>
   </header>
 
-  <!-- Mobile Menu Overlay Dropdown (Displays All Features) -->
+  <!-- Mobile Menu Overlay Dropdown -->
   <div id="mobile-menu" class="hidden md:hidden fixed inset-x-0 top-[60px] z-30 glass-panel border-b border-orca-border p-3.5 space-y-2 animate-fade-in shadow-2xl max-h-[80vh] overflow-y-auto">
     <button onclick="switchTab('overview'); toggleMobileMenu()" id="m-top-nav-overview" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-white bg-orca-accent transition">
       <i class="fa-solid fa-chart-line w-4 text-center"></i> System Stats Live Telemetry
@@ -202,7 +202,7 @@
       <i class="fa-solid fa-ticket w-4 text-center"></i> Tickets Engine
     </button>
     <button onclick="switchTab('outreach'); toggleMobileMenu()" id="m-top-nav-outreach" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
-      <i class="fa-solid fa-handshake w-4 text-center text-teal-400"></i> Partnership Outreach
+      <i class="fa-solid fa-paper-plane w-4 text-center text-teal-400"></i> Auto Partnership DM
     </button>
     <button onclick="switchTab('price-estimator'); toggleMobileMenu()" id="m-top-nav-price-estimator" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs uppercase text-orca-muted hover:text-white transition">
       <i class="fa-solid fa-calculator w-4 text-center"></i> Price Estimator
@@ -263,7 +263,7 @@
           <i class="fa-solid fa-ticket w-4 text-center text-orca-accent"></i> Tickets & Category Workspace
         </button>
         <button onclick="switchTab('outreach')" id="nav-outreach" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
-          <i class="fa-solid fa-handshake w-4 text-center text-teal-400"></i> Partnership Outreach
+          <i class="fa-solid fa-paper-plane w-4 text-center text-teal-400"></i> Auto Partnership DM
         </button>
         <button onclick="switchTab('price-estimator')" id="nav-price-estimator" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all">
           <i class="fa-solid fa-calculator w-4 text-center text-amber-400"></i> Price Estimator
@@ -302,7 +302,7 @@
       <span class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-orca-success"></span> Live Server Sync
       </span>
-      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v24.0</span>
+      <span class="bg-orca-card px-2 py-1 rounded border border-white/5 font-bold">v25.0</span>
     </div>
   </aside>
 
@@ -520,49 +520,48 @@
       </div>
     </section>
 
-    <!-- TAB 3: PARTNERSHIP OUTREACH ENGINE -->
+    <!-- TAB 3: AUTOMATED PARTNERSHIP OUTREACH -->
     <section id="tab-outreach" class="space-y-4 md:space-y-6 hidden animate-fade-in">
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Automated Partnership Outreach Assistant</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Automate outreach DMs to group & server owners to request partnerships and manage cross-promotions.</p>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Single User Auto DM Partnership Outreach</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Send direct partnership outreach DMs instantly without requiring user authorization.</p>
         </div>
         <span class="bg-teal-500/20 text-teal-400 border border-teal-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
-          <i class="fa-solid fa-handshake"></i> Outreach Bot
+          <i class="fa-solid fa-paper-plane"></i> Direct DM Dispatcher
         </span>
       </div>
 
       <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
-        <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+        <div class="space-y-3">
           <div>
-            <h4 class="text-xs font-bold text-white">Enable Automated Outreach Bot</h4>
-            <p class="text-[10px] text-orca-muted">Sends polite partnership pitch DMs to server owners in batches.</p>
+            <label class="block text-[10px] font-extrabold text-teal-400 uppercase tracking-widest mb-1">Target Owner User ID (Single Intake)</label>
+            <input type="text" id="outreach-single-user-id" placeholder="e.g. 1219266886143967245" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+            <p class="text-[10px] text-orca-muted mt-1">This ID field auto-resets immediately after launching the DM pitch.</p>
           </div>
-          <label class="cursor-pointer inline-flex items-center">
-            <input type="checkbox" id="outreach-enabled" class="hidden">
-            <span class="switch-track"><span class="switch-thumb"></span></span>
-          </label>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Outreach DM Pitch Template</label>
+            <textarea id="outreach-pitch-msg" rows="3" placeholder="Hey {owner}! We are ORCA Studio and we'd love to cross-promote with your server!" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Outreach Image / Banner Attachment URL (Optional)</label>
+            <input type="url" id="outreach-image-url" placeholder="https://i.imgur.com/example.png" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Your Official Studio Ad Copy</label>
+            <textarea id="outreach-our-ad-copy" rows="3" placeholder="Paste your studio's advertisement text & banner link here..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+          </div>
         </div>
 
-        <div>
-          <label class="block text-[10px] font-extrabold text-teal-400 uppercase tracking-widest mb-1">Target Owner User IDs / Server Invites (One per line)</label>
-          <textarea id="outreach-target-list" rows="4" placeholder="1219266886143967245&#10;https://discord.gg/example" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent resize-none"></textarea>
-        </div>
-
-        <div>
-          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Outreach DM Pitch Template</label>
-          <textarea id="outreach-pitch-msg" rows="4" placeholder="Hey {owner}! I noticed your server {server_name}. We are ORCA Studio and we'd love to cross-promote with you!..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
-          <p class="text-[10px] text-orca-muted mt-1">Available placeholders: <code>{owner}</code>, <code>{server_name}</code>, <code>{my_server}</code></p>
-        </div>
-
-        <div>
-          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Your Server's Official Partnership Ad Copy</label>
-          <textarea id="outreach-our-ad-copy" rows="4" placeholder="Paste your studio's advertisement text & banner link here for partners to copy..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
-        </div>
-
-        <div class="pt-3 border-t border-white/5 flex justify-end">
-          <button id="btn-save-outreach" onclick="saveOutreachConfig(this)" class="bg-teal-600 hover:bg-teal-500 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow">
-            <i class="fa-solid fa-floppy-disk"></i> Save Outreach Setup
+        <div class="pt-3 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <button id="btn-deploy-direct-dm" onclick="deployOutreachDM(this)" class="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow flex items-center justify-center gap-2">
+            <i class="fa-solid fa-paper-plane"></i> 🚀 Launch Direct Outreach DM
+          </button>
+          <button id="btn-save-outreach" onclick="saveOutreachConfig(this)" class="w-full sm:w-auto bg-orca-card hover:bg-white/10 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow border border-white/10">
+            <i class="fa-solid fa-floppy-disk"></i> Save Outreach Template
           </button>
         </div>
       </div>
@@ -985,7 +984,7 @@
       <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Announcement & Patch Notes Publisher</h2>
-          <p class="text-xs text-orca-muted mt-0.5">Draft rich Discord embeds with custom headers, button links, images, and pings.</p>
+          <p class="text-xs text-orca-muted mt-0.5">Draft rich Discord embeds with custom headers, image attachments, thumbnail icons, and pings.</p>
         </div>
         <span class="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs px-3 py-1 rounded-xl font-bold">
           <i class="fa-solid fa-bullhorn"></i> Publisher
@@ -993,28 +992,44 @@
       </div>
 
       <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
-        <div>
-          <label class="block text-[10px] font-extrabold text-purple-400 uppercase tracking-widest mb-1">Target Channel</label>
-          <select id="pub-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-purple-400 uppercase tracking-widest mb-1">Target Channel</label>
+            <select id="pub-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Ping Option</label>
+            <select id="pub-ping-opt" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+              <option value="none">No Ping</option>
+              <option value="everyone">@everyone</option>
+              <option value="here">@here</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Ping Option</label>
-          <select id="pub-ping-opt" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
-            <option value="none">No Ping</option>
-            <option value="everyone">@everyone</option>
-            <option value="here">@here</option>
-          </select>
-        </div>
+
         <div>
           <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Embed Title</label>
           <input type="text" id="pub-title" placeholder="📢 ORCA STUDIO ANNOUNCEMENT" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
         </div>
+
         <div>
           <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Embed Description</label>
           <textarea id="pub-desc" rows="4" placeholder="Type announcement here..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Main Banner Image URL (Optional)</label>
+            <input type="url" id="pub-image-url" placeholder="https://i.imgur.com/example.png" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+          </div>
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Thumbnail / Icon URL (Optional)</label>
+            <input type="url" id="pub-thumbnail-url" placeholder="https://i.imgur.com/icon.png" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+          </div>
+        </div>
+
         <div class="pt-3 border-t border-white/5 flex justify-end">
-          <button id="btn-publish-embed" onclick="publishAnnouncementEmbed(this)" class="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow">
+          <button id="btn-publish-embed" onclick="publishAnnouncementEmbed(this)" class="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow flex items-center justify-center gap-2">
             <i class="fa-solid fa-paper-plane"></i> Publish Announcement
           </button>
         </div>
@@ -1205,7 +1220,7 @@
       if (statusRotatorList.length === 0) {
         statusRotatorList = [
           { type: "watching", text: "45 Active Commissions" },
-          { type: "playing", text: "ORCA Studio v24" },
+          { type: "playing", text: "ORCA Studio v25" },
           { type: "listening", text: "/dashboard" }
         ];
       }
@@ -1253,12 +1268,49 @@
       }
     }
 
+    async function deployOutreachDM(btn) {
+      const input = document.getElementById('outreach-single-user-id');
+      const userId = input ? input.value.trim() : '';
+
+      if (!userId) {
+        showToast("Single User ID required to launch DM!", true);
+        return;
+      }
+
+      setBtnLoading(btn, true);
+
+      const payload = {
+        user_id: userId,
+        pitch: document.getElementById('outreach-pitch-msg').value,
+        image_url: document.getElementById('outreach-image-url').value,
+        ad_copy: document.getElementById('outreach-our-ad-copy').value
+      };
+
+      try {
+        const res = await fetch('/api/deploy-outreach-dm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Direct Outreach DM sent to ${userId}!`);
+          input.value = ""; // Auto-reset single ID input field only
+        } else {
+          showToast(data.error || "Failed to DM user.", true);
+        }
+      } catch (e) {
+        showToast("Error launching DM pitch", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
     async function saveOutreachConfig(btn) {
       setBtnLoading(btn, true);
       const payload = {
-        enabled: document.getElementById('outreach-enabled').checked,
-        targets: document.getElementById('outreach-target-list').value,
         pitch: document.getElementById('outreach-pitch-msg').value,
+        image_url: document.getElementById('outreach-image-url').value,
         ad_copy: document.getElementById('outreach-our-ad-copy').value
       };
 
@@ -1268,7 +1320,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        showToast("Partnership Outreach setup saved!");
+        showToast("Outreach template saved!");
       } catch (e) {
         showToast("Save error", true);
       } finally {
@@ -1651,6 +1703,104 @@
       }
     }
 
+    async function saveAutoModConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        anti_link: document.getElementById('automod-anti-link').checked,
+        anti_spam: document.getElementById('automod-anti-spam').checked,
+        anti_ping: document.getElementById('automod-anti-ping').checked,
+        banned_words: document.getElementById('automod-banned-words').value
+      };
+
+      try {
+        await fetch('/api/save-automod-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("AutoMod rules saved!");
+      } catch (e) {
+        showToast("Save error", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveBotMonitorConfig(btn) {
+      setBtnLoading(btn, true);
+      const validIds = monitoredBotIds.filter(id => id && id.trim() !== '');
+      const payload = {
+        log_channel_id: document.getElementById('monitor-log-channel').value,
+        bot_ids: validIds
+      };
+
+      try {
+        await fetch('/api/save-monitor-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("Bot Health Monitor saved!");
+      } catch (e) {
+        showToast("Save error", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveReviewConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = { channel_id: document.getElementById('review-channel-id').value };
+      try {
+        await fetch('/api/save-review-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("Review Showcase Channel saved!");
+      } catch (e) {
+        showToast("Save error", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function publishAnnouncementEmbed(btn) {
+      setBtnLoading(btn, true);
+      const titleInput = document.getElementById('pub-title');
+      const descInput = document.getElementById('pub-desc');
+      const imgInput = document.getElementById('pub-image-url');
+      const thumbInput = document.getElementById('pub-thumbnail-url');
+
+      const payload = {
+        channel_id: document.getElementById('pub-channel-id').value,
+        ping: document.getElementById('pub-ping-opt').value,
+        title: titleInput.value,
+        description: descInput.value,
+        image_url: imgInput ? imgInput.value : '',
+        thumbnail_url: thumbInput ? thumbInput.value : ''
+      };
+
+      try {
+        const res = await fetch('/api/publish-announcement', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          showToast("Announcement Published!");
+          titleInput.value = "";
+          descInput.value = "";
+          if (imgInput) imgInput.value = "";
+          if (thumbInput) thumbInput.value = "";
+        }
+      } catch (e) {
+        showToast("Publish error", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
     async function loadAllData() {
       try {
         const res = await fetch('/api/guild-data');
@@ -1669,9 +1819,8 @@
 
         if (gData.outreach_config) {
           const oc = gData.outreach_config;
-          document.getElementById('outreach-enabled').checked = oc.enabled || false;
-          document.getElementById('outreach-target-list').value = oc.targets || '';
           document.getElementById('outreach-pitch-msg').value = oc.pitch || '';
+          document.getElementById('outreach-image-url').value = oc.image_url || '';
           document.getElementById('outreach-our-ad-copy').value = oc.ad_copy || '';
         }
 
@@ -2003,160 +2152,6 @@
         if (data.success) showToast(`Deployed ${activeTicketCategory} Panel!`);
       } catch (e) {
         showToast("Deployment error", true);
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
-    async function saveEstimatorConfig(btn) {
-      setBtnLoading(btn, true);
-      const validTypes = priceTypes.filter(p => p.name && p.name.trim() !== '' && p.price > 0);
-      const payload = {
-        channel_id: document.getElementById('estimator-channel-id').value,
-        currency: document.getElementById('estimator-currency').value || "$",
-        types: validTypes
-      };
-
-      try {
-        await fetch('/api/save-estimator-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        showToast("Price Estimator setup saved!");
-      } catch (e) {
-        showToast("Save error", true);
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
-    async function deployEstimatorPanel(btn) {
-      setBtnLoading(btn, true);
-      await saveEstimatorConfig(null);
-      const chId = document.getElementById('estimator-channel-id').value;
-
-      try {
-        const res = await fetch('/api/deploy-estimator-panel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel_id: chId })
-        });
-        const data = await res.json();
-        if (data.success) showToast("Deployed Quote Panel!");
-      } catch (e) {
-        showToast("Deploy error", true);
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
-    async function saveStaffConfig(btn) {
-      setBtnLoading(btn, true);
-      const headers = selectedStaffHeaderRoleIds.filter(r => r && r.trim() !== '');
-      const payload = { staff_header_role_ids: headers };
-
-      try {
-        await fetch('/api/save-staff-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        showToast("Staff Headers saved!");
-      } catch (e) {
-        showToast("Save error", true);
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
-    async function saveAutoModConfig(btn) {
-      setBtnLoading(btn, true);
-      const payload = {
-        anti_link: document.getElementById('automod-anti-link').checked,
-        anti_spam: document.getElementById('automod-anti-spam').checked,
-        anti_ping: document.getElementById('automod-anti-ping').checked,
-        banned_words: document.getElementById('automod-banned-words').value
-      };
-
-      try {
-        await fetch('/api/save-automod-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        showToast("AutoMod rules saved!");
-      } catch (e) {
-        showToast("Save error", true);
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
-    async function saveBotMonitorConfig(btn) {
-      setBtnLoading(btn, true);
-      const validIds = monitoredBotIds.filter(id => id && id.trim() !== '');
-      const payload = {
-        log_channel_id: document.getElementById('monitor-log-channel').value,
-        bot_ids: validIds
-      };
-
-      try {
-        await fetch('/api/save-monitor-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        showToast("Bot Health Monitor saved!");
-      } catch (e) {
-        showToast("Save error", true);
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
-    async function saveReviewConfig(btn) {
-      setBtnLoading(btn, true);
-      const payload = { channel_id: document.getElementById('review-channel-id').value };
-      try {
-        await fetch('/api/save-review-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        showToast("Review Showcase Channel saved!");
-      } catch (e) {
-        showToast("Save error", true);
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
-    async function publishAnnouncementEmbed(btn) {
-      setBtnLoading(btn, true);
-      const titleInput = document.getElementById('pub-title');
-      const descInput = document.getElementById('pub-desc');
-
-      const payload = {
-        channel_id: document.getElementById('pub-channel-id').value,
-        ping: document.getElementById('pub-ping-opt').value,
-        title: titleInput.value,
-        description: descInput.value
-      };
-
-      try {
-        const res = await fetch('/api/publish-announcement', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          showToast("Announcement Published!");
-          titleInput.value = "";
-          descInput.value = "";
-        }
-      } catch (e) {
-        showToast("Publish error", true);
       } finally {
         setBtnLoading(btn, false);
       }
