@@ -131,12 +131,11 @@ def get_guild_data():
         "verification_config": config.get("verification_config", {}),
         "staff_config": config.get("staff_config", {}),
         "estimator_config": config.get("estimator_config", {}),
-        "monitor_config": config.get("monitor_config", {}),
+        "downtime_config": config.get("downtime_config", {}),
         "automod_config": config.get("automod_config", {}),
         "welcomer_config": config.get("welcomer_config", {}),
         "rotator_config": config.get("rotator_config", {}),
-        "review_config": config.get("review_config", {}),
-        "outreach_config": config.get("outreach_config", {})
+        "review_config": config.get("review_config", {})
     })
 
 
@@ -316,23 +315,23 @@ def remove_blacklist_user():
     return jsonify({"success": True})
 
 
-@app.route('/api/deploy-outreach-dm', methods=['POST'])
-def deploy_outreach_dm():
+@app.route('/api/create-invoice', methods=['POST'])
+def create_invoice():
     if _bot_ref is None or not _bot_ref.is_ready():
         return jsonify({"error": "Bot not ready"}), 500
 
     data = request.json or {}
-    user_id = data.get("user_id")
-    pitch = data.get("pitch", "")
-    image_url = data.get("image_url", "")
-    ad_copy = data.get("ad_copy", "")
+    client_id = data.get("client_id")
+    amount = data.get("amount")
+    method = data.get("method", "PayPal / Robux")
+    channel_id = data.get("channel_id")
 
     cog = _bot_ref.get_cog("Orca")
-    if not cog or not user_id or not str(user_id).isdigit():
-        return jsonify({"error": "Valid Discord User ID required"}), 400
+    if not cog or not client_id or not amount or not channel_id:
+        return jsonify({"error": "Invalid request fields"}), 400
 
     future = asyncio.run_coroutine_threadsafe(
-        cog.deploy_outreach_dm_from_web(int(user_id), pitch, image_url, ad_copy),
+        cog.create_invoice_from_web(int(channel_id), int(client_id), float(amount), method),
         _bot_ref.loop
     )
     try:
@@ -342,8 +341,8 @@ def deploy_outreach_dm():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/api/save-outreach-config', methods=['POST'])
-def save_outreach_config():
+@app.route('/api/save-downtime-config', methods=['POST'])
+def save_downtime_config():
     db = get_db()
     if db is None:
         return jsonify({"error": "Database unavailable"}), 500
@@ -353,10 +352,33 @@ def save_outreach_config():
 
     db["guild_config"].update_one(
         {"guild_id": guild_id},
-        {"$set": {"outreach_config": data}},
+        {"$set": {"downtime_config": data}},
         upsert=True
     )
     return jsonify({"success": True})
+
+
+@app.route('/api/deploy-downtime-panel', methods=['POST'])
+def deploy_downtime_panel():
+    if _bot_ref is None or not _bot_ref.is_ready():
+        return jsonify({"error": "Bot not ready"}), 500
+
+    data = request.json or {}
+    channel_id = data.get("channel_id")
+    cog = _bot_ref.get_cog("Orca")
+
+    if not cog or not channel_id:
+        return jsonify({"error": "Invalid request"}), 400
+
+    future = asyncio.run_coroutine_threadsafe(
+        cog.deploy_downtime_panel_from_web(int(channel_id)),
+        _bot_ref.loop
+    )
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/save-rotator-config', methods=['POST'])
@@ -448,23 +470,6 @@ def deploy_estimator_panel():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/save-monitor-config', methods=['POST'])
-def save_monitor_config():
-    db = get_db()
-    if db is None:
-        return jsonify({"error": "Database unavailable"}), 500
-
-    data = request.json or {}
-    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-
-    db["guild_config"].update_one(
-        {"guild_id": guild_id},
-        {"$set": {"monitor_config": data}},
-        upsert=True
-    )
-    return jsonify({"success": True})
 
 
 @app.route('/api/publish-announcement', methods=['POST'])
