@@ -3,7 +3,7 @@ import time
 import asyncio
 import re
 import io
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 import discord
@@ -39,7 +39,7 @@ def get_db():
         return None
 
 
-# 📜 Discord-Dark Scrollable HTML Transcript Generator
+# 📜 Discord-Dark Long Screenshot Style HTML Transcript Generator
 def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
     rows = []
     for msg in messages:
@@ -204,27 +204,125 @@ class TOSAgreementView(discord.ui.View):
 
 
 # ----------------------------------------------------------------------
-# 🤝 Automated Partnership Outreach Interaction View
+# 💵 Invoice & Payment Status View
 # ----------------------------------------------------------------------
-class PartnershipOutreachView(discord.ui.View):
-    def __init__(self, guild_id: int, ad_copy: str):
+class InvoiceControlView(discord.ui.View):
+    def __init__(self, invoice_id: str, client_id: int, total_amount: float, status: str = "Deposit Pending"):
         super().__init__(timeout=None)
-        self.guild_id = guild_id
-        self.ad_copy = ad_copy
+        self.invoice_id = invoice_id
+        self.client_id = client_id
+        self.total_amount = total_amount
+        self.status = status
 
-    @discord.ui.button(label="🤝 Accept Partnership", style=discord.ButtonStyle.success, custom_id="orca_partner_accept_btn")
-    async def accept_partnership(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+    @discord.ui.button(label="💵 Mark Deposit Paid (50%)", style=discord.ButtonStyle.primary, custom_id="orca_invoice_deposit_btn")
+    async def deposit_paid(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not interaction.user.guild_permissions.administrator and not is_owner(interaction.user.id):
+            return await interaction.response.send_message(embed=error_embed("Staff permissions required."), ephemeral=True)
+
+        self.status = "Deposit Paid (50%)"
+        deposit_val = round(self.total_amount / 2, 2)
         embed = discord.Embed(
-            title="🤝 Partnership Accepted!",
-            description=f"Thank you for partnering with ORCA Studio!\n\nHere is our official advertisement copy to post in your server:\n\n```{self.ad_copy}```",
+            title="💳 Commission Invoice Status Updated",
+            description=f"**Client:** <@{self.client_id}>\n**Total Price:** `${self.total_amount}`\n**Deposit Paid:** `${deposit_val}`\n**Current Status:** `Deposit Paid (50%)`",
             color=SUCCESS_COLOR
         )
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        embed.set_footer(text="(Server rules apply)")
+        button.disabled = True
+        await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="❌ Decline / Not Interested", style=discord.ButtonStyle.secondary, custom_id="orca_partner_decline_btn")
-    async def decline_partnership(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(embed=info_embed("Understood", "Thank you for your time! You will not be contacted again."), ephemeral=True)
+    @discord.ui.button(label="✅ Mark Fully Paid", style=discord.ButtonStyle.success, custom_id="orca_invoice_full_btn")
+    async def mark_full_paid(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not interaction.user.guild_permissions.administrator and not is_owner(interaction.user.id):
+            return await interaction.response.send_message(embed=error_embed("Staff permissions required."), ephemeral=True)
+
+        self.status = "Fully Paid"
+        embed = discord.Embed(
+            title="💳 Commission Invoice Fully Settled",
+            description=f"**Client:** <@{self.client_id}>\n**Total Paid:** `${self.total_amount}`\n**Status:** `Fully Paid & Cleared`",
+            color=SUCCESS_COLOR
+        )
+        embed.set_footer(text="(Server rules apply)")
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(embed=embed, view=self)
+
+
+# ----------------------------------------------------------------------
+# 🚨 Bot Downtime Incident Report Modal & View
+# ----------------------------------------------------------------------
+class DowntimeReportModal(discord.ui.Modal):
+    def __init__(self, log_channel_id: int):
+        super().__init__(title="🚨 Report Bot Outage")
+        self.log_channel_id = log_channel_id
+
+        self.bot_name_input = discord.ui.TextInput(
+            label="Bot Name / User ID",
+            style=discord.TextStyle.short,
+            placeholder="e.g. Economy Bot (1219266886143967245)",
+            required=True
+        )
+        self.add_item(self.bot_name_input)
+
+        self.desc_input = discord.ui.TextInput(
+            label="Outage / Error Details",
+            style=discord.TextStyle.paragraph,
+            placeholder="Describe what commands are failing or offline errors...",
+            required=True
+        )
+        self.add_item(self.desc_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        ch = interaction.guild.get_channel(self.log_channel_id)
+        if ch:
+            embed = discord.Embed(
+                title="🚨 Bot Outage Incident Report",
+                description=f"**Reported By:** {interaction.user.mention}\n**Bot Ref:** {self.bot_name_input.value}\n\n**Outage Description:**\n*{self.desc_input.value}*",
+                color=ERROR_COLOR,
+                timestamp=discord.utils.utcnow()
+            )
+            embed.set_footer(text="(Server rules apply)")
+            try:
+                await ch.send(embed=embed)
+            except Exception:
+                pass
+
+        await interaction.followup.send(embed=info_embed("Report Logged", "Downtime report sent to staff!"), ephemeral=True)
+
+
+class DowntimeReportView(discord.ui.View):
+    def __init__(self, button_label: str = "⚠️ Report Bot Outage"):
+        super().__init__(timeout=None)
+        btn = discord.ui.Button(
+            label=button_label,
+            style=discord.ButtonStyle.danger,
+            custom_id="orca_downtime_form_btn"
+        )
+        btn.callback = self.report_callback
+        self.add_item(btn)
+
+    async def report_callback(self, interaction: discord.Interaction):
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
+        dc = config.get("downtime_config", {})
+
+        allowed_roles = dc.get("allowed_roles", [])
+        if allowed_roles:
+            has_role = False
+            for rid in allowed_roles:
+                if rid and str(rid).isdigit():
+                    r = interaction.guild.get_role(int(rid))
+                    if r and r in interaction.user.roles:
+                        has_role = True
+                        break
+            if not has_role and not interaction.user.guild_permissions.administrator:
+                return await interaction.response.send_message(embed=error_embed("You do not have permission to submit downtime reports."), ephemeral=True)
+
+        log_ch_id = dc.get("log_channel_id")
+        if not log_ch_id or not str(log_ch_id).isdigit():
+            return await interaction.response.send_message(embed=error_embed("Downtime log channel is not configured."), ephemeral=True)
+
+        await interaction.response.send_modal(DowntimeReportModal(int(log_ch_id)))
 
 
 # ----------------------------------------------------------------------
@@ -274,10 +372,11 @@ class ReviewFeedbackModal(discord.ui.Modal):
                         stars_str = "⭐" * self.stars
                         r_embed = discord.Embed(
                             title=f"🌟 New Client Review ({stars_str})",
-                            description=f"**Client:** {interaction.user.mention}\n**Ticket Ref:** #{self.ticket_num}\n**Rating:** {self.stars}/5 Stars\n\n**Comment:**\n*{feedback_text}*\n\n(Server rules apply)",
+                            description=f"**Client:** {interaction.user.mention}\n**Ticket Ref:** #{self.ticket_num}\n**Rating:** {self.stars}/5 Stars\n\n**Comment:**\n*{feedback_text}*",
                             color=SUCCESS_COLOR if self.stars >= 4 else EMBED_COLOR,
                             timestamp=discord.utils.utcnow()
                         )
+                        r_embed.set_footer(text="(Server rules apply)")
                         await ch.send(embed=r_embed)
             except Exception:
                 pass
@@ -285,7 +384,7 @@ class ReviewFeedbackModal(discord.ui.Modal):
         await interaction.followup.send(
             embed=info_embed(
                 "Thank You!",
-                "Your feedback has been submitted to the Studio Showcase!\n\n(Server rules apply)"
+                "Your feedback has been submitted to the Studio Showcase!"
             ),
             ephemeral=True
         )
@@ -334,7 +433,7 @@ class ModalTicketClose(discord.ui.Modal):
         self.add_item(self.reason_input)
 
         self.buyer_role_input = discord.ui.TextInput(
-            label="Grant Buyer Role? (yes / no)",
+            label="Grant Client Role? (yes / no)",
             style=discord.TextStyle.short,
             placeholder="Type 'yes' or 'no'",
             required=True,
@@ -692,11 +791,9 @@ class Orca(commands.Cog):
         self.user_ping_tracker = {}
         self.status_index = 0
         self.status_rotator_loop.start()
-        self.bot_health_monitor_loop.start()
 
     def cog_unload(self):
         self.status_rotator_loop.cancel()
-        self.bot_health_monitor_loop.cancel()
 
     async def cog_load(self):
         self.bot.add_view(VerificationView())
@@ -848,53 +945,6 @@ class Orca(commands.Cog):
         except Exception:
             pass
 
-    @tasks.loop(minutes=10)
-    async def bot_health_monitor_loop(self):
-        for guild in self.bot.guilds:
-            db = get_db()
-            if db is None:
-                continue
-
-            try:
-                config = db["guild_config"].find_one({"guild_id": guild.id}) or {}
-                mc = config.get("monitor_config", {})
-                log_ch_id = mc.get("log_channel_id")
-                bot_ids = mc.get("bot_ids", [])
-
-                if not log_ch_id or not bot_ids or not str(log_ch_id).isdigit():
-                    continue
-
-                log_ch = guild.get_channel(int(log_ch_id))
-                if not log_ch:
-                    continue
-
-                for bid in bot_ids:
-                    if not bid or not str(bid).isdigit():
-                        continue
-
-                    is_offline = False
-                    try:
-                        bot_member = guild.get_member(int(bid))
-                        if bot_member and bot_member.status == discord.Status.offline:
-                            is_offline = True
-                    except Exception:
-                        is_offline = True
-
-                    if is_offline:
-                        embed = discord.Embed(
-                            title="Bot Alert: Client Bot Offline",
-                            description=f"Monitored Bot <@{bid}> appears to be **OFFLINE** or unreachable!",
-                            color=ERROR_COLOR,
-                            timestamp=discord.utils.utcnow()
-                        )
-                        await log_ch.send(embed=embed)
-            except Exception:
-                pass
-
-    @bot_health_monitor_loop.before_loop
-    async def before_monitor_loop(self):
-        await self.bot.wait_until_ready()
-
     async def execute_ticket_close(self, interaction: Optional[discord.Interaction], channel: discord.TextChannel, category: str, ticket_data: dict, reason: str, give_role: bool):
         guild = channel.guild
         db = get_db()
@@ -968,7 +1018,7 @@ class Orca(commands.Cog):
             try:
                 r_embed = discord.Embed(
                     title="⭐ Rate Your ORCA Studio Experience",
-                    description=f"Your ticket #{ticket_data.get('number', '')} in **{guild.name}** is completed! Please rate your experience below:\n\n(Server rules apply)",
+                    description=f"Your ticket #{ticket_data.get('number', '')} in **{guild.name}** is completed! Please rate your experience below:",
                     color=EMBED_COLOR
                 )
                 r_embed.set_footer(text="(Server rules apply)")
@@ -1021,6 +1071,24 @@ class Orca(commands.Cog):
         embed = discord.Embed(title="📜 Server Role Hierarchy Order", description="\n".join(role_lines[:40]) if role_lines else "*(No roles)*", color=EMBED_COLOR)
         await interaction.followup.send(embed=embed)
 
+    @app_commands.command(name="invoice", description="Issue or view payment status invoices.")
+    @app_commands.describe(client="Target client member", amount="Total agreed commission price", method="Payment Method (e.g. PayPal/Robux)")
+    async def invoice_cmd(self, interaction: discord.Interaction, client: discord.Member, amount: float, method: str = "PayPal / Robux"):
+        await interaction.response.defer()
+        if not interaction.user.guild_permissions.administrator and not is_owner(interaction.user.id):
+            return await interaction.followup.send(embed=error_embed("Staff permissions required."))
+
+        invoice_id = f"INV-{int(time.time())}"
+        embed = discord.Embed(
+            title="💳 Commission Payment Invoice Issued",
+            description=f"**Client:** {client.mention}\n**Total Amount:** `${amount}`\n**Payment Method:** `{method}`\n**Current Status:** `Deposit Pending`",
+            color=EMBED_COLOR
+        )
+        embed.set_footer(text="(Server rules apply)")
+
+        view = InvoiceControlView(invoice_id, client.id, amount, "Deposit Pending")
+        await interaction.followup.send(content=f"{client.mention}", embed=embed, view=view)
+
     @app_commands.command(name="order-status", description="Update or view commission order status.")
     @app_commands.describe(ticket_num="Ticket Number", status="Current status phase")
     @app_commands.choices(status=[
@@ -1053,34 +1121,74 @@ class Orca(commands.Cog):
                 db["form_submissions"].update_one({"number": ticket_num}, {"$set": {"order_status": status.value}})
             except Exception:
                 pass
+
+            # Progress Milestone Automated Client DM Notification
+            progress_map = {
+                "In Queue": "░░░░░░░░░░ 0%",
+                "In Development": "████░░░░░░ 40%",
+                "Testing Phase": "████████░░ 80%",
+                "Ready for Delivery": "█████████░ 90%",
+                "Completed": "██████████ 100%"
+            }
+            p_bar = progress_map.get(status.value, "████░░░░░░ 50%")
+
+            client_id = found.get("user_id")
+            if client_id:
+                try:
+                    target_client = await self.bot.fetch_user(int(client_id))
+                    if target_client:
+                        m_embed = discord.Embed(
+                            title=f"📦 Commission Order #{ticket_num} Progress Update",
+                            description=f"Your commission order in **{interaction.guild.name}** has reached a new milestone:\n\n**Current Status:** `{status.value}`\n**Progress:** `{p_bar}`",
+                            color=SUCCESS_COLOR
+                        )
+                        m_embed.set_footer(text="(Server rules apply)")
+                        await target_client.send(embed=m_embed)
+                except Exception:
+                    pass
+
             await interaction.followup.send(embed=info_embed("💰 Order Status Updated", f"Order #{ticket_num} status updated to: **{status.value}**"))
         else:
             curr = found.get("order_status", "In Queue")
             embed = discord.Embed(title=f"📦 Order Status #{ticket_num}", color=EMBED_COLOR)
             embed.add_field(name="Category", value=found.get("category", "Custom Commission"), inline=True)
             embed.add_field(name="Current Progress", value=f"**{curr}**", inline=True)
+            embed.set_footer(text="(Server rules apply)")
             await interaction.followup.send(embed=embed)
 
     # ====================================================================
     # Web Deploy Handlers
     # ====================================================================
-    async def deploy_outreach_dm_from_web(self, user_id: int, pitch: str, image_url: str, ad_copy: str):
-        target_user = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
-        if not target_user:
-            raise Exception("Discord User not found or bot cannot access User ID.")
+    async def create_invoice_from_web(self, channel_id: int, client_id: int, amount: float, method: str):
+        channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
+        invoice_id = f"INV-{int(time.time())}"
 
-        guild_id = self.bot.guilds[0].id if self.bot.guilds else 0
-        formatted_pitch = pitch.replace("{owner}", target_user.name).replace("{server_name}", "your server")
-
-        o_embed = discord.Embed(
-            title="🤝 Partnership Inquiry from ORCA Studio",
-            description=formatted_pitch,
+        embed = discord.Embed(
+            title="💳 Commission Payment Invoice Issued",
+            description=f"**Client:** <@{client_id}>\n**Total Amount:** `${amount}`\n**Payment Method:** `{method}`\n**Current Status:** `Deposit Pending`",
             color=EMBED_COLOR
         )
-        if image_url and image_url.strip():
-            o_embed.set_image(url=image_url.strip())
+        embed.set_footer(text="(Server rules apply)")
 
-        await target_user.send(embed=o_embed, view=PartnershipOutreachView(guild_id, ad_copy))
+        view = InvoiceControlView(invoice_id, client_id, amount, "Deposit Pending")
+        await channel.send(content=f"<@{client_id}>", embed=embed, view=view)
+
+    async def deploy_downtime_panel_from_web(self, channel_id: int):
+        channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
+        db = get_db()
+        dc = {}
+        if db is not None:
+            try:
+                dc = db["guild_config"].find_one({"guild_id": channel.guild.id}).get("downtime_config", {})
+            except Exception:
+                pass
+        embed = discord.Embed(
+            title=dc.get("title", "🚨 BOT DOWNTIME INCIDENT REPORT"),
+            description=dc.get("description", "Click below to submit a bot downtime report."),
+            color=ERROR_COLOR
+        )
+        embed.set_footer(text="(Server rules apply)")
+        await channel.send(embed=embed, view=DowntimeReportView(dc.get("button_label", "⚠️ Report Bot Outage")))
 
     async def publish_announcement_from_web(self, data: dict):
         channel_id = data.get("channel_id")
@@ -1099,6 +1207,7 @@ class Orca(commands.Cog):
             color=EMBED_COLOR,
             timestamp=discord.utils.utcnow()
         )
+        embed.set_footer(text="(Server rules apply)")
 
         image_url = data.get("image_url")
         if image_url and image_url.strip():
@@ -1120,6 +1229,7 @@ class Orca(commands.Cog):
             except Exception:
                 pass
         embed = discord.Embed(title=v_config.get("title", "🛡️ MEMBER VERIFICATION PORTAL"), description=v_config.get("description", "Click below to verify!"), color=EMBED_COLOR)
+        embed.set_footer(text="(Server rules apply)")
         await channel.send(embed=embed, view=VerificationView(v_config.get("button_label", "✅ Verify Access")))
 
     async def deploy_estimator_panel_from_web(self, channel_id: int):
@@ -1137,16 +1247,18 @@ class Orca(commands.Cog):
         currency = ec.get("currency", "$")
 
         embed = discord.Embed(
-            title="💼 COMMISSION PRICE",
+            title="💼 COMMISSION QUOTE & PRICE ESTIMATOR",
             description="Select your required bot features and add-ons below to calculate an instant quote estimate!",
             color=EMBED_COLOR
         )
+        embed.set_footer(text="(Server rules apply)")
         view = PriceEstimatorPanelView(types, currency)
         await channel.send(embed=embed, view=view)
 
     async def deploy_form_panel_from_web(self, channel_id: int, category: str = "Custom Bot Commission"):
         channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
         embed = discord.Embed(title=f"📋 {category.upper()} TICKET PANEL", description="Click below to open a ticket!", color=EMBED_COLOR)
+        embed.set_footer(text="(Server rules apply)")
         await channel.send(embed=embed, view=FormPanelView(category=category))
 
 
