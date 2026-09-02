@@ -67,6 +67,20 @@ def home():
     return "OK", 200
 
 
+# Hosted Long Screenshot Web Transcript Browser Viewer
+@app.route('/transcript/<transcript_id>')
+def view_transcript(transcript_id):
+    db = get_db()
+    if db is None:
+        return "Database unavailable", 500
+
+    doc = db["transcripts"].find_one({"transcript_id": transcript_id})
+    if not doc:
+        return "Transcript not found or expired.", 404
+
+    return render_template_string(doc.get("html", "<h1>No content</h1>"))
+
+
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     ram_mb = 0.0
@@ -173,6 +187,28 @@ def get_staff_members():
     return jsonify({"staff": staff_list})
 
 
+@app.route('/api/staff-activity-logs', methods=['GET'])
+def get_staff_activity_logs():
+    db = get_db()
+    if db is None:
+        return jsonify({"logs": []})
+
+    logs = []
+    try:
+        for doc in db["staff_activity"].find().sort("timestamp", -1).limit(30):
+            logs.append({
+                "staff_name": doc.get("staff_name", "Staff"),
+                "staff_role": doc.get("staff_role", "Staff"),
+                "action": doc.get("action", "Action"),
+                "details": doc.get("details", ""),
+                "timestamp": doc.get("timestamp").strftime("%H:%M UTC") if doc.get("timestamp") else "Recent"
+            })
+    except Exception:
+        pass
+
+    return jsonify({"logs": logs})
+
+
 @app.route('/api/add-staff-user', methods=['POST'])
 def add_staff_user():
     data = request.json or {}
@@ -180,7 +216,7 @@ def add_staff_user():
     role_id = data.get("role_id")
 
     if not _bot_ref or not _bot_ref.guilds or not user_id or not role_id:
-        return jsonify({"error": "Invalid request"}), 400
+        return jsonify({"error": "Invalid user ID or role parameter"}), 400
 
     guild = _bot_ref.guilds[0]
     db = get_db()
@@ -315,32 +351,6 @@ def remove_blacklist_user():
     return jsonify({"success": True})
 
 
-@app.route('/api/create-invoice', methods=['POST'])
-def create_invoice():
-    if _bot_ref is None or not _bot_ref.is_ready():
-        return jsonify({"error": "Bot not ready"}), 500
-
-    data = request.json or {}
-    client_id = data.get("client_id")
-    amount = data.get("amount")
-    method = data.get("method", "PayPal / Robux")
-    channel_id = data.get("channel_id")
-
-    cog = _bot_ref.get_cog("Orca")
-    if not cog or not client_id or not amount or not channel_id:
-        return jsonify({"error": "Invalid request fields"}), 400
-
-    future = asyncio.run_coroutine_threadsafe(
-        cog.create_invoice_from_web(int(channel_id), int(client_id), float(amount), method),
-        _bot_ref.loop
-    )
-    try:
-        future.result(timeout=10)
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route('/api/save-downtime-config', methods=['POST'])
 def save_downtime_config():
     db = get_db()
@@ -368,7 +378,7 @@ def deploy_downtime_panel():
     cog = _bot_ref.get_cog("Orca")
 
     if not cog or not channel_id:
-        return jsonify({"error": "Invalid request"}), 400
+        return jsonify({"error": "Target channel not selected"}), 400
 
     future = asyncio.run_coroutine_threadsafe(
         cog.deploy_downtime_panel_from_web(int(channel_id)),
@@ -459,7 +469,7 @@ def deploy_estimator_panel():
     cog = _bot_ref.get_cog("Orca")
 
     if not cog or not channel_id:
-        return jsonify({"error": "Invalid request"}), 400
+        return jsonify({"error": "Invalid channel ID"}), 400
 
     future = asyncio.run_coroutine_threadsafe(
         cog.deploy_estimator_panel_from_web(int(channel_id)),
@@ -482,7 +492,7 @@ def publish_announcement():
     cog = _bot_ref.get_cog("Orca")
 
     if not cog or not channel_id:
-        return jsonify({"error": "Invalid request"}), 400
+        return jsonify({"error": "Invalid channel ID"}), 400
 
     future = asyncio.run_coroutine_threadsafe(
         cog.publish_announcement_from_web(data),
@@ -556,7 +566,7 @@ def deploy_verification_panel():
     cog = _bot_ref.get_cog("Orca")
 
     if not cog or not channel_id:
-        return jsonify({"error": "Invalid request"}), 400
+        return jsonify({"error": "Invalid channel ID"}), 400
 
     future = asyncio.run_coroutine_threadsafe(
         cog.deploy_verification_panel_from_web(int(channel_id)),
