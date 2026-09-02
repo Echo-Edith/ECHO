@@ -3,6 +3,7 @@ import time
 import asyncio
 import re
 import io
+import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
@@ -39,7 +40,7 @@ def get_db():
         return None
 
 
-# 📜 Discord-Dark Long Screenshot Style HTML Transcript Generator
+# 📜 Full Discord-Dark Long Screenshot Style HTML Transcript Generator
 def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
     rows = []
     for msg in messages:
@@ -49,12 +50,12 @@ def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
         avatar = msg.get("avatar", "https://cdn.discordapp.com/embed/avatars/0.png")
 
         formatted_content = content.replace("\n", "<br>")
-        formatted_content = re.sub(r'```(.*?)```', r'<pre class="bg-[#2b2d31] p-2 rounded text-xs font-mono my-1 overflow-x-auto"><code>\1</code></pre>', formatted_content)
-        formatted_content = re.sub(r'`(.*?)`', r'<code class="bg-[#2b2d31] px-1 rounded text-xs font-mono">\1</code>', formatted_content)
+        formatted_content = re.sub(r'```(.*?)```', r'<pre class="bg-[#2b2d31] p-2.5 rounded-lg text-xs font-mono my-1.5 border border-white/5 overflow-x-auto"><code>\1</code></pre>', formatted_content)
+        formatted_content = re.sub(r'`(.*?)`', r'<code class="bg-[#2b2d31] px-1.5 py-0.5 rounded text-xs font-mono text-[#00a8fc]">\1</code>', formatted_content)
 
         rows.append(f"""
-        <div class="msg flex items-start gap-3 p-2.5 hover:bg-[#2e3035] rounded-lg transition-colors">
-          <img src="{avatar}" class="w-10 h-10 rounded-full border border-white/10 shrink-0">
+        <div class="msg flex items-start gap-3.5 p-3 hover:bg-[#2e3035] rounded-xl transition-colors border-b border-white/[0.02]">
+          <img src="{avatar}" class="w-10 h-10 rounded-full border border-white/10 shrink-0 shadow">
           <div class="flex-1 overflow-hidden">
             <div class="flex items-center gap-2">
               <span class="font-bold text-[#5865f2] text-sm">{author}</span>
@@ -70,6 +71,7 @@ def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
     <html class="dark">
     <head>
       <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>ORCA Studio Web Transcript - #{channel_name}</title>
       <script src="https://cdn.tailwindcss.com"></script>
       <style>
@@ -78,22 +80,22 @@ def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
         ::-webkit-scrollbar-thumb {{ background: #2b2d31; border-radius: 9999px; }}
       </style>
     </head>
-    <body class="bg-[#313338] text-white font-sans antialiased h-screen flex flex-col overflow-hidden">
-      <header class="bg-[#2b2d31] p-4 border-b border-[#1f2023] flex items-center justify-between shrink-0 shadow-lg">
+    <body class="bg-[#313338] text-white font-sans antialiased min-h-screen flex flex-col">
+      <header class="bg-[#2b2d31] p-4 border-b border-[#1f2023] flex items-center justify-between shrink-0 shadow-2xl sticky top-0 z-30">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-[#5865f2]/20 text-[#5865f2] flex items-center justify-center font-bold text-lg">#</div>
+          <div class="w-10 h-10 rounded-xl bg-[#5865f2]/20 text-[#5865f2] flex items-center justify-center font-bold text-xl shadow">#</div>
           <div>
-            <h1 class="text-base font-extrabold text-white">ORCA Studio Transcript: #{channel_name}</h1>
-            <p class="text-[11px] text-gray-400">Archived on {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} • Total Messages: {len(messages)}</p>
+            <h1 class="text-base font-extrabold text-white tracking-tight">ORCA Studio Transcript: #{channel_name}</h1>
+            <p class="text-[11px] text-gray-400">Archived on {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} • Messages Logged: {len(messages)}</p>
           </div>
         </div>
-        <span class="bg-[#23a55a]/20 text-[#23a55a] border border-[#23a55a]/30 text-[10px] px-2.5 py-1 rounded-full font-bold">Encrypted Archive</span>
+        <span class="bg-[#23a55a]/20 text-[#23a55a] border border-[#23a55a]/30 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-wider">Web Browser Viewable</span>
       </header>
 
-      <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-2 max-w-5xl mx-auto w-full">
-        <div class="p-4 bg-[#2b2d31] rounded-2xl border border-white/5 mb-4 text-center space-y-1">
-          <h2 class="text-sm font-bold text-gray-300">Beginning of Transcript for #{channel_name}</h2>
-          <p class="text-[11px] text-gray-400">Scroll down to view all messages and attachments.</p>
+      <main class="flex-1 p-4 md:p-8 space-y-2 max-w-5xl mx-auto w-full">
+        <div class="p-5 bg-[#2b2d31] rounded-2xl border border-white/5 mb-6 text-center space-y-1 shadow-xl">
+          <h2 class="text-sm font-bold text-gray-200">Full Channel Transcript for #{channel_name}</h2>
+          <p class="text-[11px] text-gray-400">Continuous long-form screenshot view of channel history.</p>
         </div>
         {"".join(rows)}
       </main>
@@ -137,19 +139,6 @@ def is_lockdown_active(guild_id: int, user_id: int) -> bool:
         return False
 
 
-def is_maintenance(guild_id: int, user_id: int, guild: Optional[discord.Guild]) -> bool:
-    if is_owner(user_id) or (guild and user_id == guild.owner_id):
-        return False
-    db = get_db()
-    if db is None:
-        return False
-    try:
-        config = db["guild_config"].find_one({"guild_id": guild_id}) or {}
-        return config.get("maintenance", False)
-    except Exception:
-        return False
-
-
 def can_user_close_ticket(member: discord.Member, category: str, guild: discord.Guild) -> bool:
     if is_owner(member.id) or member.id == guild.owner_id or member.guild_permissions.administrator:
         return True
@@ -174,6 +163,100 @@ def can_user_close_ticket(member: discord.Member, category: str, guild: discord.
     return member.guild_permissions.manage_channels
 
 
+def log_staff_activity(guild_id: int, staff_member: discord.Member, action_type: str, details: str):
+    db = get_db()
+    if db is None:
+        return
+    try:
+        top_role = staff_member.top_role.name if staff_member.top_role else "Staff"
+        db["staff_activity"].insert_one({
+            "guild_id": guild_id,
+            "staff_id": str(staff_member.id),
+            "staff_name": str(staff_member),
+            "staff_role": top_role,
+            "action": action_type,
+            "details": details,
+            "timestamp": datetime.utcnow()
+        })
+    except Exception:
+        pass
+
+
+# ----------------------------------------------------------------------
+# 🛍️ Multi-Category Interactive Shop Select & View
+# ----------------------------------------------------------------------
+class MultiCategoryShopSelect(discord.ui.Select):
+    def __init__(self, catalog_options: List[dict]):
+        self.catalog_map = {opt["name"]: opt for opt in catalog_options if opt.get("name")}
+        select_opts = [
+            discord.SelectOption(
+                label=opt["name"][:100],
+                description=f"Rate: ${opt.get('price', 0)} • {opt.get('desc', '')}"[:100],
+                value=opt["name"],
+                emoji=opt.get("emoji", "📦")
+            )
+            for opt in catalog_options if opt.get("name")
+        ]
+        super().__init__(
+            placeholder="Choose Custom Shop Categories & Assets...",
+            min_values=1,
+            max_values=len(select_opts) if select_opts else 1,
+            options=select_opts if select_opts else [discord.SelectOption(label="Roblox 2D Assets & Audio", value="Roblox Assets")]
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        selected_items = self.values
+        total = sum([self.catalog_map.get(i, {}).get("price", 0) for i in selected_items])
+
+        item_lines = "\n".join([f"• **{i}**: `${self.catalog_map.get(i, {}).get('price', 0)}`" for i in selected_items])
+        embed = discord.Embed(
+            title="🛒 ORCA Studio Order Cart Summary",
+            description=f"Selected Items & Services:\n\n{item_lines}\n\n**Total Estimate:** `${total}`\n**50% Deposit Required:** `${round(total/2, 2)}`",
+            color=SUCCESS_COLOR
+        )
+        embed.set_footer(text="(Server rules apply)")
+
+        view = ShopCheckoutView(selected_items)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+
+class ShopCheckoutView(discord.ui.View):
+    def __init__(self, selected_categories: List[str]):
+        super().__init__(timeout=None)
+        self.selected_categories = selected_categories
+
+    @discord.ui.button(label="📝 Proceed & Open Ticket", style=discord.ButtonStyle.success, emoji="🎟️")
+    async def checkout_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        cat_name = self.selected_categories[0] if self.selected_categories else "Custom Commission"
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": interaction.guild.id}) if db is not None else {}
+        cat_configs = config.get("category_configs", {})
+        cat_data = cat_configs.get(cat_name, {})
+
+        questions = cat_data.get("questions", [])
+        if not questions:
+            questions = [
+                {"label": "Please explain your ticket requirements", "placeholder": "Type details...", "style": "paragraph", "required": True}
+            ]
+
+        modal = ChainedCustomModal(
+            title=f"📋 {cat_name[:30]}",
+            category=cat_name,
+            questions_chunk=questions[:5],
+            all_questions=questions,
+            current_index=0,
+            previous_answers=[{"label": "Selected Shop Items", "value": ", ".join(self.selected_categories)}]
+        )
+        await interaction.response.send_modal(modal)
+
+
+class ShopPanelView(discord.ui.View):
+    def __init__(self, catalog_options: List[dict]):
+        super().__init__(timeout=None)
+        if catalog_options:
+            self.add_item(MultiCategoryShopSelect(catalog_options))
+
+
 # ----------------------------------------------------------------------
 # 💳 Terms of Service Agreement Component
 # ----------------------------------------------------------------------
@@ -192,59 +275,16 @@ class TOSAgreementView(discord.ui.View):
             button.disabled = True
             button.label = "✅ Terms Accepted"
             await interaction.response.edit_message(view=self)
-            await interaction.followup.send(
-                embed=discord.Embed(
-                    title="✅ Terms of Service Accepted",
-                    description=f"{interaction.user.mention} accepted the Terms of Service. Chat permissions granted!",
-                    color=SUCCESS_COLOR
-                )
+            
+            embed = discord.Embed(
+                title="✅ Terms of Service Accepted",
+                description=f"{interaction.user.mention} accepted the Terms of Service. Chat permissions granted!",
+                color=SUCCESS_COLOR
             )
+            embed.set_footer(text="(Server rules apply)")
+            await interaction.followup.send(embed=embed)
         except Exception as e:
             await interaction.response.send_message(embed=error_embed(f"Failed to update permissions: {e}"), ephemeral=True)
-
-
-# ----------------------------------------------------------------------
-# 💵 Invoice & Payment Status View
-# ----------------------------------------------------------------------
-class InvoiceControlView(discord.ui.View):
-    def __init__(self, invoice_id: str, client_id: int, total_amount: float, status: str = "Deposit Pending"):
-        super().__init__(timeout=None)
-        self.invoice_id = invoice_id
-        self.client_id = client_id
-        self.total_amount = total_amount
-        self.status = status
-
-    @discord.ui.button(label="💵 Mark Deposit Paid (50%)", style=discord.ButtonStyle.primary, custom_id="orca_invoice_deposit_btn")
-    async def deposit_paid(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not interaction.user.guild_permissions.administrator and not is_owner(interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("Staff permissions required."), ephemeral=True)
-
-        self.status = "Deposit Paid (50%)"
-        deposit_val = round(self.total_amount / 2, 2)
-        embed = discord.Embed(
-            title="💳 Commission Invoice Status Updated",
-            description=f"**Client:** <@{self.client_id}>\n**Total Price:** `${self.total_amount}`\n**Deposit Paid:** `${deposit_val}`\n**Current Status:** `Deposit Paid (50%)`",
-            color=SUCCESS_COLOR
-        )
-        embed.set_footer(text="(Server rules apply)")
-        button.disabled = True
-        await interaction.response.edit_message(embed=embed, view=self)
-
-    @discord.ui.button(label="✅ Mark Fully Paid", style=discord.ButtonStyle.success, custom_id="orca_invoice_full_btn")
-    async def mark_full_paid(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not interaction.user.guild_permissions.administrator and not is_owner(interaction.user.id):
-            return await interaction.response.send_message(embed=error_embed("Staff permissions required."), ephemeral=True)
-
-        self.status = "Fully Paid"
-        embed = discord.Embed(
-            title="💳 Commission Invoice Fully Settled",
-            description=f"**Client:** <@{self.client_id}>\n**Total Paid:** `${self.total_amount}`\n**Status:** `Fully Paid & Cleared`",
-            color=SUCCESS_COLOR
-        )
-        embed.set_footer(text="(Server rules apply)")
-        for item in self.children:
-            item.disabled = True
-        await interaction.response.edit_message(embed=embed, view=self)
 
 
 # ----------------------------------------------------------------------
@@ -482,7 +522,12 @@ class TicketChannelControlView(discord.ui.View):
             button.disabled = True
             button.label = f"📌 Claimed by {interaction.user.display_name}"
             await interaction.response.edit_message(view=self)
-            await channel.send(embed=info_embed("📌 Ticket Claimed", f"{interaction.user.mention} has claimed primary development responsibility for this ticket!"))
+            
+            log_staff_activity(interaction.guild.id, interaction.user, "Claimed Ticket", f"Claimed #{channel.name}")
+            
+            embed = info_embed("📌 Ticket Claimed", f"{interaction.user.mention} has claimed primary development responsibility for this ticket!")
+            embed.set_footer(text="(Server rules apply)")
+            await channel.send(embed=embed)
         except Exception as e:
             await interaction.response.send_message(embed=error_embed(f"Claim error: {e}"), ephemeral=True)
 
@@ -537,6 +582,7 @@ class VerificationView(discord.ui.View):
                 description=f"Welcome to **{guild.name}**! You have been verified and granted the following roles:\n\n{role_str}",
                 color=SUCCESS_COLOR
             )
+            embed.set_footer(text="(Server rules apply)")
             await interaction.followup.send(embed=embed, ephemeral=True)
         else:
             await interaction.followup.send(embed=error_embed("Could not assign verification roles."), ephemeral=True)
@@ -666,6 +712,7 @@ class ChainedCustomModal(discord.ui.Modal):
             
             w_embed = discord.Embed(title=welcome_title, description=welcome_desc, color=SUCCESS_COLOR)
             w_embed.set_author(name=f"{interaction.user} ({interaction.user.id})", icon_url=interaction.user.display_avatar.url)
+            w_embed.set_footer(text="(Server rules apply)")
             
             for ans in current_answers:
                 w_embed.add_field(name=ans["label"][:256], value=ans["value"][:1024], inline=False)
@@ -685,6 +732,7 @@ class ChainedCustomModal(discord.ui.Modal):
                         description="By commissioning ORCA Studio, you agree that revisions are limited after delivery and payments are non-refundable once development begins.",
                         color=EMBED_COLOR
                     )
+                    tos_embed.set_footer(text="(Server rules apply)")
                     await ticket_channel.send(embed=tos_embed, view=TOSAgreementView(interaction.user.id))
             except Exception:
                 pass
@@ -728,9 +776,15 @@ class FormPanelView(discord.ui.View):
 
         questions = cat_data.get("questions", [])
         if not questions:
-            questions = [
-                {"label": "Please explain your ticket details", "placeholder": "Type your details here...", "style": "paragraph", "required": True}
-            ]
+            if "roblox" in self.category.lower():
+                questions = [
+                    {"label": "Asset Type (T-Shirt/Decal/Audio ID)", "placeholder": "e.g. Boombox Audio Bypass / T-Shirt Design", "style": "short", "required": True},
+                    {"label": "Asset Requirements & Roblox Links", "placeholder": "Paste links or style preferences...", "style": "paragraph", "required": True}
+                ]
+            else:
+                questions = [
+                    {"label": "Please explain your ticket details", "placeholder": "Type your details here...", "style": "paragraph", "required": True}
+                ]
 
         title = cat_data.get("panelTitle") or f"📋 {self.category.upper()}"
         modal = ChainedCustomModal(
@@ -771,6 +825,7 @@ class PriceEstimatorSelect(discord.ui.Select):
             description=f"Calculated estimate based on your selections:\n\n{details}\n\n**Total Estimated Price:** `{self.currency}{total}`",
             color=SUCCESS_COLOR
         )
+        embed.set_footer(text="(Server rules apply)")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -798,7 +853,7 @@ class Orca(commands.Cog):
     async def cog_load(self):
         self.bot.add_view(VerificationView())
         db = get_db()
-        registered_cats = set(["Custom Bot Commission", "Partnership Application"])
+        registered_cats = set(["Custom Bot Commission", "Roblox 2D Assets & Audio", "Partnership Application"])
         if db is not None:
             try:
                 for doc in db["guild_config"].find():
@@ -881,6 +936,7 @@ class Orca(commands.Cog):
                         try:
                             await message.delete()
                             embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, unauthorized links are not permitted here.", color=ERROR_COLOR)
+                            embed.set_footer(text="(Server rules apply)")
                             return await message.channel.send(embed=embed, delete_after=5)
                         except Exception:
                             pass
@@ -899,6 +955,7 @@ class Orca(commands.Cog):
                         try:
                             await message.delete()
                             embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, mass or repeated pings are restricted.", color=ERROR_COLOR)
+                            embed.set_footer(text="(Server rules apply)")
                             return await message.channel.send(embed=embed, delete_after=5)
                         except Exception:
                             pass
@@ -911,6 +968,7 @@ class Orca(commands.Cog):
                         try:
                             await message.delete()
                             embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, your message contained a blacklisted term.", color=ERROR_COLOR)
+                            embed.set_footer(text="(Server rules apply)")
                             return await message.channel.send(embed=embed, delete_after=5)
                         except Exception:
                             pass
@@ -936,11 +994,13 @@ class Orca(commands.Cog):
                         text = wc.get("message", "Welcome {user} to {server}!").replace("{user}", member.mention).replace("{server}", guild.name)
                         embed = discord.Embed(title="👋 Welcome to ORCA Studio!", description=text, color=SUCCESS_COLOR)
                         embed.set_thumbnail(url=member.display_avatar.url)
+                        embed.set_footer(text="(Server rules apply)")
                         await ch.send(embed=embed)
 
             if wc.get("dm_enabled"):
                 dm_text = wc.get("dm_message", "Welcome to {server}!").replace("{user}", member.name).replace("{server}", guild.name)
                 dm_embed = discord.Embed(title=f"Welcome to {guild.name}!", description=dm_text, color=EMBED_COLOR)
+                dm_embed.set_footer(text="(Server rules apply)")
                 await member.send(embed=dm_embed)
         except Exception:
             pass
@@ -994,22 +1054,38 @@ class Orca(commands.Cog):
             pass
 
         html_content = generate_html_transcript(channel.name, messages_data)
-        file = discord.File(io.BytesIO(html_content.encode('utf-8')), filename=f"transcript-{channel.name}.html")
+        transcript_id = str(uuid.uuid4())[:8]
+
+        if db is not None:
+            try:
+                db["transcripts"].insert_one({
+                    "transcript_id": transcript_id,
+                    "channel_name": channel.name,
+                    "html": html_content,
+                    "timestamp": datetime.utcnow()
+                })
+            except Exception:
+                pass
+
+        base_url = os.getenv("DASHBOARD_URL", "https://echo-dashboard-qn39.onrender.com").rstrip("/")
+        view_url = f"{base_url}/transcript/{transcript_id}"
 
         log_channel_id = cat_data.get("logChannel") or config.get("log_channel_id")
         if log_channel_id and str(log_channel_id).isdigit():
             log_ch = guild.get_channel(int(log_channel_id))
             if log_ch:
                 l_embed = discord.Embed(
-                    title=f"📜 Ticket #{ticket_data.get('number', 'N/A')} HTML Transcript Log",
+                    title=f"📜 Ticket #{ticket_data.get('number', 'N/A')} Web Transcript Log",
+                    description=f"[🌐 View Full Channel Screenshot Transcript]({view_url})",
                     color=ERROR_COLOR,
                     timestamp=discord.utils.utcnow()
                 )
                 l_embed.add_field(name="Opener", value=f"<@{opener_id}>" if opener_id else "Unknown", inline=True)
                 l_embed.add_field(name="Closed By", value=f"{interaction.user.mention}" if interaction else "Auto-Close System", inline=True)
                 l_embed.add_field(name="Reason", value=f"*{reason}*", inline=False)
+                l_embed.set_footer(text="(Server rules apply)")
                 try:
-                    await log_ch.send(embed=l_embed, file=file)
+                    await log_ch.send(embed=l_embed)
                 except Exception:
                     pass
 
@@ -1028,6 +1104,7 @@ class Orca(commands.Cog):
 
         if interaction:
             try:
+                log_staff_activity(guild.id, interaction.user, "Closed Ticket", f"Closed #{channel.name} ({reason})")
                 await interaction.followup.send(embed=info_embed("🔒 Closing Ticket", "Archiving channel in 5 seconds..."), ephemeral=True)
             except Exception:
                 pass
@@ -1048,7 +1125,9 @@ class Orca(commands.Cog):
         uptime = int(time.time() - self.start_time)
         h, rem = divmod(uptime, 3600)
         m, s = divmod(rem, 60)
-        await interaction.followup.send(embed=discord.Embed(title="⚙️ ORCA System Stats", description=f"Ping: `{latency}ms`\nUptime: `{h}h {m}m {s}s`", color=EMBED_COLOR), ephemeral=True)
+        embed = discord.Embed(title="⚙️ ORCA System Stats", description=f"Ping: `{latency}ms`\nUptime: `{h}h {m}m {s}s`", color=EMBED_COLOR)
+        embed.set_footer(text="(Server rules apply)")
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="dashboard", description="Get web control dashboard link.")
     async def dashboard(self, interaction: discord.Interaction):
@@ -1056,7 +1135,9 @@ class Orca(commands.Cog):
         if not is_owner(interaction.user.id):
             return await interaction.followup.send(embed=error_embed("Bot Owner only."), ephemeral=True)
         url = os.getenv("DASHBOARD_URL", "https://echo-dashboard-qn39.onrender.com").strip()
-        await interaction.followup.send(embed=discord.Embed(title="🌐 ORCA Web Dashboard", description=f"[Open Control Panel]({url})", color=EMBED_COLOR), ephemeral=True)
+        embed = discord.Embed(title="🌐 ORCA Web Dashboard", description=f"[Open Control Panel]({url})", color=EMBED_COLOR)
+        embed.set_footer(text="(Server rules apply)")
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="role-list", description="Display server roles in hierarchical order.")
     async def role_list_cmd(self, interaction: discord.Interaction):
@@ -1069,25 +1150,8 @@ class Orca(commands.Cog):
         role_lines = [f"`{r.position}` — {r.mention}" for r in sorted_roles if r.name != "@everyone"]
 
         embed = discord.Embed(title="📜 Server Role Hierarchy Order", description="\n".join(role_lines[:40]) if role_lines else "*(No roles)*", color=EMBED_COLOR)
-        await interaction.followup.send(embed=embed)
-
-    @app_commands.command(name="invoice", description="Issue or view payment status invoices.")
-    @app_commands.describe(client="Target client member", amount="Total agreed commission price", method="Payment Method (e.g. PayPal/Robux)")
-    async def invoice_cmd(self, interaction: discord.Interaction, client: discord.Member, amount: float, method: str = "PayPal / Robux"):
-        await interaction.response.defer()
-        if not interaction.user.guild_permissions.administrator and not is_owner(interaction.user.id):
-            return await interaction.followup.send(embed=error_embed("Staff permissions required."))
-
-        invoice_id = f"INV-{int(time.time())}"
-        embed = discord.Embed(
-            title="💳 Commission Payment Invoice Issued",
-            description=f"**Client:** {client.mention}\n**Total Amount:** `${amount}`\n**Payment Method:** `{method}`\n**Current Status:** `Deposit Pending`",
-            color=EMBED_COLOR
-        )
         embed.set_footer(text="(Server rules apply)")
-
-        view = InvoiceControlView(invoice_id, client.id, amount, "Deposit Pending")
-        await interaction.followup.send(content=f"{client.mention}", embed=embed, view=view)
+        await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="order-status", description="Update or view commission order status.")
     @app_commands.describe(ticket_num="Ticket Number", status="Current status phase")
@@ -1121,6 +1185,8 @@ class Orca(commands.Cog):
                 db["form_submissions"].update_one({"number": ticket_num}, {"$set": {"order_status": status.value}})
             except Exception:
                 pass
+
+            log_staff_activity(interaction.guild.id, interaction.user, "Updated Order Status", f"Set #{ticket_num} to {status.value}")
 
             # Progress Milestone Automated Client DM Notification
             progress_map = {
@@ -1159,20 +1225,6 @@ class Orca(commands.Cog):
     # ====================================================================
     # Web Deploy Handlers
     # ====================================================================
-    async def create_invoice_from_web(self, channel_id: int, client_id: int, amount: float, method: str):
-        channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
-        invoice_id = f"INV-{int(time.time())}"
-
-        embed = discord.Embed(
-            title="💳 Commission Payment Invoice Issued",
-            description=f"**Client:** <@{client_id}>\n**Total Amount:** `${amount}`\n**Payment Method:** `{method}`\n**Current Status:** `Deposit Pending`",
-            color=EMBED_COLOR
-        )
-        embed.set_footer(text="(Server rules apply)")
-
-        view = InvoiceControlView(invoice_id, client_id, amount, "Deposit Pending")
-        await channel.send(content=f"<@{client_id}>", embed=embed, view=view)
-
     async def deploy_downtime_panel_from_web(self, channel_id: int):
         channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
         db = get_db()
@@ -1247,7 +1299,7 @@ class Orca(commands.Cog):
         currency = ec.get("currency", "$")
 
         embed = discord.Embed(
-            title="💼 COMMISSION PRICE",
+            title="💼 COMMISSION PRICE ESTIMATOR",
             description="Select your required bot features and add-ons below to calculate an instant quote estimate!",
             color=EMBED_COLOR
         )
