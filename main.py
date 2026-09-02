@@ -54,20 +54,18 @@ def start_bot():
         print("❌ CRITICAL: 'DISCORD_TOKEN' environment variable is missing!")
         sys.exit(1)
 
-    # Start Flask Web Server
     keep_alive(bot)
 
-    # Retry loop with backoff if Discord rate-limits (HTTP 429)
     retry_delay = 15
     while True:
         try:
             bot.run(token)
             break
         except discord.errors.HTTPException as e:
-            if e.status == 429:
-                print(f"⚠️ Discord 429 Rate Limited. Sleeping {retry_delay} seconds before reconnecting...")
+            if getattr(e, 'status', 0) == 429:
+                print(f"⚠️ Discord 429 Rate Limited. Sleeping {retry_delay}s...")
                 time.sleep(retry_delay)
-                retry_delay = min(retry_delay * 2, 300)  # Exponential backoff up to 5 mins
+                retry_delay = min(retry_delay * 2, 300)
             else:
                 print(f"❌ Discord HTTP Error: {e}")
                 time.sleep(10)
@@ -78,3 +76,4 @@ def start_bot():
 
 if __name__ == "__main__":
     start_bot()
+
