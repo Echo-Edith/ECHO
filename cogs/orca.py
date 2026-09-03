@@ -4,12 +4,14 @@ import asyncio
 import re
 import io
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
+
+from ai_brain import AIBrain
 
 try:
     import pymongo
@@ -38,6 +40,14 @@ def get_db():
         return _mongo_client["echo_bot"]
     except Exception:
         return None
+
+
+# Broad NSFW, Profanity & Offensive Slur Word List for AutoMod
+BANNED_WORDS_LIST = [
+    "nigger", "nigga", "faggot", "fag", "retard", "cunt", "bitch", "whore", "slut",
+    "dick", "pussy", "cock", "penis", "vagina", "porn", "porno", "hentai", "fuck",
+    "motherfucker", "bastard", "asshole", "shit", "chink", "spic", "kike", "dyke"
+]
 
 
 # 📜 Full Discord-Dark Long Screenshot Style HTML Transcript Generator
@@ -105,11 +115,15 @@ def generate_html_transcript(channel_name: str, messages: List[dict]) -> str:
 
 
 def error_embed(message: str) -> discord.Embed:
-    return discord.Embed(title="❌ Error", description=message, color=ERROR_COLOR)
+    emb = discord.Embed(title="❌ Error", description=message, color=ERROR_COLOR)
+    emb.set_footer(text="(Server rules apply)")
+    return emb
 
 
 def info_embed(title: str, description: str = None) -> discord.Embed:
-    return discord.Embed(title=title, description=description, color=EMBED_COLOR)
+    emb = discord.Embed(title=title, description=description, color=EMBED_COLOR)
+    emb.set_footer(text="(Server rules apply)")
+    return emb
 
 
 def is_owner(user_id: int) -> bool:
@@ -169,11 +183,14 @@ def log_staff_activity(guild_id: int, staff_member: discord.Member, action_type:
         return
     try:
         top_role = staff_member.top_role.name if staff_member.top_role else "Staff"
+        role_id = str(staff_member.top_role.id) if staff_member.top_role else "0"
+
         db["staff_activity"].insert_one({
             "guild_id": guild_id,
             "staff_id": str(staff_member.id),
             "staff_name": str(staff_member),
             "staff_role": top_role,
+            "role_id": role_id,
             "action": action_type,
             "details": details,
             "timestamp": datetime.utcnow()
@@ -235,9 +252,15 @@ class ShopCheckoutView(discord.ui.View):
 
         questions = cat_data.get("questions", [])
         if not questions:
-            questions = [
-                {"label": "Please explain your ticket requirements", "placeholder": "Type details...", "style": "paragraph", "required": True}
-            ]
+            if "roblox" in cat_name.lower():
+                questions = [
+                    {"label": "Asset Type (T-Shirt/Decal/Audio ID)", "placeholder": "e.g. Classic T-Shirt Design / Boombox Audio Bypass", "style": "short", "required": True},
+                    {"label": "Requirements & Roblox Links", "placeholder": "Paste details or links...", "style": "paragraph", "required": True}
+                ]
+            else:
+                questions = [
+                    {"label": "Please explain your ticket requirements", "placeholder": "Type details...", "style": "paragraph", "required": True}
+                ]
 
         modal = ChainedCustomModal(
             title=f"📋 {cat_name[:30]}",
@@ -725,6 +748,19 @@ class ChainedCustomModal(discord.ui.Modal):
 
             try:
                 await ticket_channel.send(content=ping_text, embed=w_embed, view=TicketChannelControlView(self.category, ticket_record))
+
+                # AI Brain: Autonomous Ticket Triaging & Developer Spec Drafting
+                ai_config = config.get("ai_config", {})
+                if ai_config.get("enabled", True):
+                    kb_text = ai_config.get("knowledge_base", "")
+                    ai_summary = await AIBrain.generate_ticket_summary(self.category, current_answers, kb_text)
+                    ai_embed = discord.Embed(
+                        title="🤖 AI Brain: Automated Ticket Triaging Summary",
+                        description=ai_summary,
+                        color=EMBED_COLOR
+                    )
+                    ai_embed.set_footer(text="(Server rules apply)")
+                    await ticket_channel.send(embed=ai_embed)
                 
                 if tos_enabled:
                     tos_embed = discord.Embed(
@@ -778,8 +814,8 @@ class FormPanelView(discord.ui.View):
         if not questions:
             if "roblox" in self.category.lower():
                 questions = [
-                    {"label": "Asset Type (T-Shirt/Decal/Audio ID)", "placeholder": "e.g. Boombox Audio Bypass / T-Shirt Design", "style": "short", "required": True},
-                    {"label": "Asset Requirements & Roblox Links", "placeholder": "Paste links or style preferences...", "style": "paragraph", "required": True}
+                    {"label": "Asset Type (T-Shirt/Decal/Audio ID)", "placeholder": "e.g. Classic T-Shirt Design / Boombox Audio Bypass", "style": "short", "required": True},
+                    {"label": "Requirements & Roblox Links", "placeholder": "Paste details or links...", "style": "paragraph", "required": True}
                 ]
             else:
                 questions = [
@@ -796,44 +832,6 @@ class FormPanelView(discord.ui.View):
             previous_answers=[]
         )
         await interaction.response.send_modal(modal)
-
-
-class PriceEstimatorSelect(discord.ui.Select):
-    def __init__(self, options_data: List[dict], currency: str):
-        self.currency = currency
-        self.type_map = {opt["name"]: opt["price"] for opt in options_data if opt.get("name") and opt.get("price")}
-
-        select_options = [
-            discord.SelectOption(label=name, description=f"Rate: {currency}{price}", value=name)
-            for name, price in self.type_map.items()
-        ]
-
-        super().__init__(
-            placeholder="Choose Bot Type & Feature Add-ons...",
-            min_values=1,
-            max_values=len(select_options) if select_options else 1,
-            options=select_options if select_options else [discord.SelectOption(label="Standard Bot", value="Standard Bot")]
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        selected_types = self.values
-        total = sum([self.type_map.get(t, 0) for t in selected_types])
-
-        details = "\n".join([f"• **{t}**: {self.currency}{self.type_map.get(t, 0)}" for t in selected_types])
-        embed = discord.Embed(
-            title="💼 Instant Commission Quote Estimate",
-            description=f"Calculated estimate based on your selections:\n\n{details}\n\n**Total Estimated Price:** `{self.currency}{total}`",
-            color=SUCCESS_COLOR
-        )
-        embed.set_footer(text="(Server rules apply)")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-class PriceEstimatorPanelView(discord.ui.View):
-    def __init__(self, types_data: List[dict], currency: str):
-        super().__init__(timeout=None)
-        if types_data:
-            self.add_item(PriceEstimatorSelect(types_data, currency))
 
 
 # ----------------------------------------------------------------------
@@ -918,6 +916,40 @@ class Orca(commands.Cog):
         if message.author.bot or not message.guild:
             return
 
+        # AI Brain Public Chat Mention Response (@ORCA)
+        if self.bot.user in message.mentions:
+            clean_msg = message.clean_content.replace(f"@{self.bot.user.name}", "").strip()
+            if clean_msg:
+                db = get_db()
+                config = db["guild_config"].find_one({"guild_id": message.guild.id}) if db is not None else {}
+                ai_config = config.get("ai_config", {})
+                if ai_config.get("enabled", True):
+                    kb_text = ai_config.get("knowledge_base", "")
+                    ai_reply = await AIBrain.answer_public_ping(message.author.name, clean_msg, kb_text)
+                    try:
+                        await message.reply(ai_reply, mention_author=True)
+                    except Exception:
+                        pass
+
+        # AI Brain Frustration / Sentiment Alert
+        if message.channel.name.startswith("ticket-"):
+            db = get_db()
+            config = db["guild_config"].find_one({"guild_id": message.guild.id}) if db is not None else {}
+            ai_config = config.get("ai_config", {})
+            if ai_config.get("enabled", True):
+                is_frustrated = await AIBrain.analyze_sentiment_and_frustration(message.clean_content)
+                if is_frustrated:
+                    alert_embed = discord.Embed(
+                        title="🚨 AI Sentiment Warning: High Client Frustration Detected",
+                        description=f"Client {message.author.mention} appears frustrated or dissatisfied. Immediate staff intervention is recommended.",
+                        color=ERROR_COLOR
+                    )
+                    alert_embed.set_footer(text="(Server rules apply)")
+                    try:
+                        await message.channel.send(embed=alert_embed)
+                    except Exception:
+                        pass
+
         if message.author.guild_permissions.administrator or is_owner(message.author.id):
             return
 
@@ -929,8 +961,18 @@ class Orca(commands.Cog):
             config = db["guild_config"].find_one({"guild_id": message.guild.id}) or {}
             am = config.get("automod_config", {})
 
+            # Comprehensive AutoMod Banned Words & Slurs Filter
+            content_lower = message.content.lower()
+            if any(bad_w in content_lower for bad_w in BANNED_WORDS_LIST):
+                try:
+                    await message.delete()
+                    embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, offensive terms, slurs, or NSFW content are strictly prohibited.", color=ERROR_COLOR)
+                    embed.set_footer(text="(Server rules apply)")
+                    return await message.channel.send(embed=embed, delete_after=5)
+                except Exception:
+                    pass
+
             if am.get("anti_link"):
-                content_lower = message.content.lower()
                 if ("discord.gg/" in content_lower or "discord.com/invite/" in content_lower or "http://" in content_lower or "https://" in content_lower):
                     if not any(gif_domain in content_lower for gif_domain in ["tenor.com", "giphy.com", ".gif"]):
                         try:
@@ -955,19 +997,6 @@ class Orca(commands.Cog):
                         try:
                             await message.delete()
                             embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, mass or repeated pings are restricted.", color=ERROR_COLOR)
-                            embed.set_footer(text="(Server rules apply)")
-                            return await message.channel.send(embed=embed, delete_after=5)
-                        except Exception:
-                            pass
-
-            banned_str = am.get("banned_words", "")
-            if banned_str:
-                banned_words = [w.strip().lower() for w in banned_str.split(",") if w.strip()]
-                for word in banned_words:
-                    if word in message.content.lower():
-                        try:
-                            await message.delete()
-                            embed = discord.Embed(title="⚠️ AutoMod Security Action", description=f"{message.author.mention}, your message contained a blacklisted term.", color=ERROR_COLOR)
                             embed.set_footer(text="(Server rules apply)")
                             return await message.channel.send(embed=embed, delete_after=5)
                         except Exception:
@@ -1188,7 +1217,7 @@ class Orca(commands.Cog):
 
             log_staff_activity(interaction.guild.id, interaction.user, "Updated Order Status", f"Set #{ticket_num} to {status.value}")
 
-            # Progress Milestone Automated Client DM Notification
+            # Milestone Progress Automated DM
             progress_map = {
                 "In Queue": "░░░░░░░░░░ 0%",
                 "In Development": "████░░░░░░ 40%",
@@ -1225,6 +1254,21 @@ class Orca(commands.Cog):
     # ====================================================================
     # Web Deploy Handlers
     # ====================================================================
+    async def deploy_shop_panel_from_web(self, channel_id: int):
+        channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
+        db = get_db()
+        config = db["guild_config"].find_one({"guild_id": channel.guild.id}) if db is not None else {}
+        sc = config.get("shop_config", {})
+
+        catalog = sc.get("catalog", [])
+        embed = discord.Embed(
+            title="🛒 ORCA STUDIO MULTI-CATEGORY SHOP & CATALOG",
+            description="Select one or multiple items/categories below to calculate an instant cart quote and open a commission ticket!",
+            color=EMBED_COLOR
+        )
+        embed.set_footer(text="(Server rules apply)")
+        await channel.send(embed=embed, view=ShopPanelView(catalog))
+
     async def deploy_downtime_panel_from_web(self, channel_id: int):
         channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
         db = get_db()
@@ -1283,29 +1327,6 @@ class Orca(commands.Cog):
         embed = discord.Embed(title=v_config.get("title", "🛡️ MEMBER VERIFICATION PORTAL"), description=v_config.get("description", "Click below to verify!"), color=EMBED_COLOR)
         embed.set_footer(text="(Server rules apply)")
         await channel.send(embed=embed, view=VerificationView(v_config.get("button_label", "✅ Verify Access")))
-
-    async def deploy_estimator_panel_from_web(self, channel_id: int):
-        channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
-        db = get_db()
-        config = {}
-        if db is not None:
-            try:
-                config = db["guild_config"].find_one({"guild_id": channel.guild.id}) or {}
-            except Exception:
-                pass
-        ec = config.get("estimator_config", {})
-
-        types = ec.get("types", [])
-        currency = ec.get("currency", "$")
-
-        embed = discord.Embed(
-            title="💼 COMMISSION PRICE ESTIMATOR",
-            description="Select your required bot features and add-ons below to calculate an instant quote estimate!",
-            color=EMBED_COLOR
-        )
-        embed.set_footer(text="(Server rules apply)")
-        view = PriceEstimatorPanelView(types, currency)
-        await channel.send(embed=embed, view=view)
 
     async def deploy_form_panel_from_web(self, channel_id: int, category: str = "Custom Bot Commission"):
         channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
