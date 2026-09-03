@@ -7,7 +7,6 @@ import discord
 from discord.ext import commands
 from keep_alive import keep_alive
 
-# Suppress verbose discord logs
 logging.getLogger('discord').setLevel(logging.ERROR)
 logging.getLogger('discord.http').setLevel(logging.ERROR)
 
@@ -26,20 +25,20 @@ class OrcaClient(commands.Bot):
         for ext in ['cogs.orca', 'orca']:
             try:
                 await self.load_extension(ext)
-                print(f"✅ Cog loaded successfully: {ext}")
+                print(f"✅ Extension loaded: {ext}")
                 loaded = True
                 break
             except commands.ExtensionAlreadyLoaded:
                 loaded = True
                 break
             except Exception as e:
-                print(f"⚠️ Could not load extension {ext}: {e}")
+                print(f"⚠️ Extension load issue {ext}: {e}")
 
         try:
             synced = await self.tree.sync()
             print(f"🔁 Synced {len(synced)} slash commands globally.")
         except Exception as e:
-            print(f"❌ Failed to sync command tree: {e}")
+            print(f"❌ Failed to sync slash commands: {e}")
 
     async def on_ready(self):
         print(f"👑 ORCA Bot online as: {self.user} (ID: {self.user.id})")
@@ -63,7 +62,7 @@ def start_bot():
             break
         except discord.errors.HTTPException as e:
             if getattr(e, 'status', 0) == 429:
-                print(f"⚠️ Discord 429 Rate Limited. Sleeping {retry_delay}s...")
+                print(f"⚠️ Discord 429 Rate Limit. Sleeping {retry_delay}s...")
                 time.sleep(retry_delay)
                 retry_delay = min(retry_delay * 2, 300)
             else:
