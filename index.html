@@ -647,4 +647,1862 @@
         </div>
       </div>
     </section>
+    <!-- TAB 4: AI BRAIN CONTROL CENTER -->
+    <section id="tab-ai-brain" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Autonomous AI Brain Control Center</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Configure Gemini AI behavior, studio knowledge base, and automated assistant rules.</p>
+        </div>
+        <span class="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-brain"></i> AI Brain
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+          <div>
+            <h4 class="text-xs font-bold text-white">Enable AI Brain Assistant</h4>
+            <p class="text-[10px] text-orca-muted">Powers ticket summaries, concierge responses, and @ORCA tag answers.</p>
+          </div>
+          <label class="cursor-pointer inline-flex items-center">
+            <input type="checkbox" id="ai-enabled" class="hidden">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-purple-400 uppercase tracking-widest mb-1">Studio Knowledge Base & Guidelines (Injected into AI Prompt)</label>
+          <textarea id="ai-knowledge-base" rows="6" placeholder="Enter pricing list, turnaround times, Roblox 2D asset/audio bypass rules, and studio guidelines here..." class="w-full bg-orca-base border border-orca-border rounded-xl p-3 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+          <p class="text-[10px] text-orca-muted mt-1">The AI references this information when answering client questions in tickets and public channels.</p>
+        </div>
+
+        <div class="pt-3 border-t border-white/5 flex justify-end">
+          <button id="btn-save-ai" onclick="saveAIConfig(this)" class="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Save AI Brain Configuration
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: SEPARATED STAFF RANKS & DIRECTORY WITH ACTIVITY LOG -->
+    <section id="tab-staff-mgmt" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Staff Ranks, Directory & Role Activity Logs</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Manage staff headers, promote staff members, and filter claimed ticket activities by staff roles and time periods.</p>
+        </div>
+        <span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-user-gear"></i> Staff Directory
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div class="lg:col-span-7 space-y-4">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="block text-[10px] font-extrabold text-rose-400 uppercase tracking-widest">
+                  <i class="fa-solid fa-folder-tree"></i> Organizational Staff Header Roles
+                </label>
+                <button onclick="addStaffHeaderDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+                  <i class="fa-solid fa-plus text-[10px]"></i> Add Header
+                </button>
+              </div>
+              <div id="staff-headers-container" class="space-y-2"></div>
+            </div>
+
+            <div class="pt-3 border-t border-white/5 flex justify-end">
+              <button id="btn-save-staff-config" onclick="saveStaffConfig(this)" class="bg-orca-success hover:bg-emerald-600 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow glow-green flex items-center justify-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> Save Staff Headers
+              </button>
+            </div>
+          </div>
+
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-white border-b border-white/5 pb-2">
+              <i class="fa-solid fa-user-plus text-orca-accent"></i> Add Staff Member
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target User ID</label>
+                <input type="text" id="add-staff-user-id" placeholder="User ID e.g. 1219266886143967245" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+              </div>
+              <div>
+                <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Assign Staff Rank/Role</label>
+                <select id="add-staff-role-id" class="hierarchy-role-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+              </div>
+            </div>
+            <div class="flex justify-end pt-1">
+              <button id="btn-add-staff-member" onclick="addStaffMemberWeb(this)" class="bg-orca-accent hover:bg-orca-accent/80 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow">
+                Promote Staff Member
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 space-y-4">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-white border-b border-white/5 pb-2 flex items-center justify-between">
+              <span><i class="fa-solid fa-users text-rose-400"></i> Active Server Staff</span>
+              <button onclick="loadStaffUsersList()" class="text-orca-accent text-xs"><i class="fa-solid fa-rotate"></i></button>
+            </h3>
+            <div id="staff-members-list" class="space-y-2.5 max-h-60 overflow-y-auto pr-1"></div>
+          </div>
+
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+              <h3 class="text-xs font-extrabold uppercase tracking-widest text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-list-check text-orca-accent"></i> Staff Activity Tracker
+              </h3>
+              <div class="flex items-center gap-2">
+                <select id="activity-role-filter" onchange="loadStaffActivityLogs()" class="bg-orca-base border border-orca-border rounded-lg p-1 text-white text-[10px] font-semibold">
+                  <option value="all">All Roles</option>
+                </select>
+                <select id="activity-time-filter" onchange="loadStaffActivityLogs()" class="bg-orca-base border border-orca-border rounded-lg p-1 text-white text-[10px] font-semibold">
+                  <option value="total">Total Claims (Default)</option>
+                  <option value="today">Today</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+            </div>
+            <div id="staff-activity-logs" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: NEW MEMBER WELCOMER -->
+    <section id="tab-welcomer" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">New Member Welcomer</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Configure welcome channel embeds and automated direct messages for new members.</p>
+        </div>
+        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-hand-holding-heart"></i> Welcomer
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+          <div>
+            <h4 class="text-xs font-bold text-white">Enable Welcome Messages</h4>
+            <p class="text-[10px] text-orca-muted">Send automated welcome alerts when a user joins.</p>
+          </div>
+          <label class="cursor-pointer inline-flex items-center">
+            <input type="checkbox" id="welcomer-enabled" class="hidden">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Welcome Channel</label>
+          <select id="welcomer-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Channel Welcome Message Text</label>
+          <textarea id="welcomer-msg-text" rows="3" placeholder="Welcome {user} to {server}! Check out our shop channels." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+        </div>
+
+        <div class="pt-2 border-t border-white/5 space-y-3">
+          <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+            <div>
+              <h4 class="text-xs font-bold text-white">Enable Welcome DM</h4>
+              <p class="text-[10px] text-orca-muted">Send a direct message greeting to new members upon joining.</p>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="welcomer-dm-enabled" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">DM Message Content</label>
+            <textarea id="welcomer-dm-text" rows="3" placeholder="Welcome to ORCA Studio! Open a ticket anytime if you need custom bot development or Roblox assets." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/5 flex justify-end">
+          <button id="btn-save-welcomer" onclick="saveWelcomerConfig(this)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow">
+            <i class="fa-solid fa-floppy-disk"></i> Save Welcomer Config
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: MULTI-STATUS ROTATOR STUDIO -->
+    <section id="tab-status-rotator" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Multi-Bot Custom Activity & Status Rotator</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Configure dynamic rich presence status messages that rotate on a custom timer.</p>
+        </div>
+        <span class="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-gamepad"></i> Status Rotator
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+          <div>
+            <h4 class="text-xs font-bold text-white">Enable Dynamic Status Rotator</h4>
+            <p class="text-[10px] text-orca-muted">Automatically cycles through configured activities.</p>
+          </div>
+          <label class="cursor-pointer inline-flex items-center">
+            <input type="checkbox" id="rotator-enabled" class="hidden">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+
+        <div class="space-y-3 border-t border-white/5 pt-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-extrabold uppercase text-white tracking-wider">Status Activities List</h4>
+            <button onclick="addStatusRotatorRow()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Add Status
+            </button>
+          </div>
+          <div id="status-rotator-rows" class="space-y-2"></div>
+        </div>
+
+        <div class="pt-3 border-t border-white/5 flex justify-end">
+          <button id="btn-save-rotator" onclick="saveStatusRotatorConfig(this)" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow">
+            <i class="fa-solid fa-floppy-disk"></i> Save Rotator Config
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 8: VERIFICATION ENGINE -->
+    <section id="tab-verification-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Verification Engine</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Customizable member verification system with automatic role granting upon completion.</p>
+        </div>
+        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-xl font-bold flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-user-shield"></i> Security Module
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Target Verification Channel</label>
+            <select id="verify-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Verification Log Channel</label>
+            <select id="verify-log-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-white/5">
+          <div class="flex items-center justify-between">
+            <label class="block text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest">
+              <i class="fa-solid fa-tags"></i> Assigned Roles Upon Verification
+            </label>
+            <button onclick="addVerificationRoleDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Add Role
+            </button>
+          </div>
+          <div id="verify-roles-container" class="space-y-2"></div>
+        </div>
+
+        <div class="space-y-3 border-t border-white/5 pt-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Title</label>
+            <input type="text" id="verify-panel-title" value="🛡️ MEMBER VERIFICATION PORTAL" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
+            <textarea id="verify-panel-desc" rows="2" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none">Click the button below to complete member verification and unlock server access!</textarea>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Text</label>
+            <input type="text" id="verify-button-label" value="✅ Verify Access" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
+          <button id="btn-deploy-verify" onclick="deployVerificationPanel(this)" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow glow-green flex items-center justify-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Deploy Verification Panel
+          </button>
+          <button id="btn-save-verify" onclick="saveVerificationConfig(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-6 py-3 rounded-xl text-xs shadow glow-blue flex items-center justify-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Save Verification Config
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 9: AUTOMOD PROTOCOL -->
+    <section id="tab-automod" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">AutoMod Security Protocol</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Automated filters for profanity, slurs, NSFW, invite links (GIF links permitted), mass pings, and spam protection.</p>
+        </div>
+        <span class="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-shield-halved"></i> AutoMod
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="space-y-3">
+          <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+            <div>
+              <h4 class="text-xs font-bold text-white">Anti-Link Filter (Allows GIF Links)</h4>
+              <p class="text-[10px] text-orca-muted">Deletes unauthorized invite links, but ignores Tenor & Giphy GIF links.</p>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="automod-anti-link" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+            <div>
+              <h4 class="text-xs font-bold text-white">Anti-Spam Filter</h4>
+              <p class="text-[10px] text-orca-muted">Warns users sending rapid duplicate messages.</p>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="automod-anti-spam" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between p-3 bg-orca-surface rounded-xl border border-white/5">
+            <div>
+              <h4 class="text-xs font-bold text-white">Mass Ping Protection (2+ Pings in 10s)</h4>
+              <p class="text-[10px] text-orca-muted">Blocks messages containing multiple pings sent within 10 seconds.</p>
+            </div>
+            <label class="cursor-pointer inline-flex items-center">
+              <input type="checkbox" id="automod-anti-ping" class="hidden">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-white/5">
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Bad Words & Slurs Keyword Blacklist (Comma Separated)</label>
+          <textarea id="automod-banned-words" rows="3" placeholder="word1, word2, word3" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent resize-none"></textarea>
+          <p class="text-[10px] text-orca-muted">In addition to custom keywords, ORCA includes built-in protection against common NSFW, profanity, and offensive slurs.</p>
+        </div>
+
+        <div class="pt-3 border-t border-white/5 flex justify-end">
+          <button id="btn-save-automod" onclick="saveAutoModConfig(this)" class="bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs shadow">
+            <i class="fa-solid fa-floppy-disk"></i> Save AutoMod Rules
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 10: BLACKLIST MANAGER -->
+    <section id="tab-blacklist-tab" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Blacklist Manager</h2>
+          <p class="text-xs text-orca-muted mt-0.5">View and manage users restricted from submitting tickets or using bot commands.</p>
+        </div>
+        <span class="bg-red-500/20 text-red-400 border border-red-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-user-slash"></i> Blacklist
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div class="lg:col-span-5">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-red-400 border-b border-white/5 pb-2">
+              <i class="fa-solid fa-user-plus"></i> Add User to Blacklist
+            </h3>
+            <div>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">User Discord ID</label>
+              <input type="text" id="bl-user-id" placeholder="e.g. 1219266886143967245" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+            </div>
+            <div>
+              <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Reason</label>
+              <input type="text" id="bl-reason" placeholder="e.g. Ticket spamming / harassment" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            </div>
+            <div class="flex justify-end pt-1">
+              <button id="btn-add-bl-user" onclick="addBlacklistUserWeb(this)" class="bg-red-600 hover:bg-red-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow">
+                Blacklist User
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-7">
+          <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-3 shadow-2xl">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-white border-b border-white/5 pb-2 flex items-center justify-between">
+              <span><i class="fa-solid fa-list text-red-400"></i> Blacklisted Users Log</span>
+              <button onclick="loadBlacklistUsersList()" class="text-orca-accent text-xs"><i class="fa-solid fa-rotate"></i></button>
+            </h3>
+            <div id="blacklist-users-container" class="space-y-2.5 max-h-96 overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 11: CLIENT REVIEWS ENGINE -->
+    <section id="tab-reviews-engine" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Commission Review & Feedback Showcase Setup</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Select the channel where client 1-5 star ticket feedback automatically posts.</p>
+        </div>
+        <span class="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-star"></i> Reviews
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div>
+          <label class="block text-[10px] font-extrabold text-yellow-400 uppercase tracking-widest mb-1">Reviews Target Channel</label>
+          <select id="review-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+        </div>
+        <div class="flex justify-end pt-2">
+          <button id="btn-save-reviews" onclick="saveReviewConfig(this)" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">
+            <i class="fa-solid fa-floppy-disk"></i> Save Review Channel
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 12: PUBLISHER -->
+    <section id="tab-announcements" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Announcement & Patch Notes Publisher</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Draft rich Discord embeds with custom headers, image attachments, thumbnail icons, and pings.</p>
+        </div>
+        <span class="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-bullhorn"></i> Publisher
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-purple-400 uppercase tracking-widest mb-1">Target Channel</label>
+            <select id="pub-channel-id" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Ping Option</label>
+            <select id="pub-ping-opt" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+              <option value="none">No Ping</option>
+              <option value="everyone">@everyone</option>
+              <option value="here">@here</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Embed Title</label>
+          <input type="text" id="pub-title" placeholder="📢 ORCA STUDIO ANNOUNCEMENT" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Embed Description</label>
+          <textarea id="pub-desc" rows="4" placeholder="Type announcement here..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Main Banner Image URL (Optional)</label>
+            <input type="url" id="pub-image-url" placeholder="https://i.imgur.com/example.png" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+          </div>
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Thumbnail / Icon URL (Optional)</label>
+            <input type="url" id="pub-thumbnail-url" placeholder="https://i.imgur.com/icon.png" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-mono focus:outline-none focus:border-orca-accent">
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/5 flex justify-end">
+          <button id="btn-publish-embed" onclick="publishAnnouncementEmbed(this)" class="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow flex items-center justify-center gap-2">
+            <i class="fa-solid fa-paper-plane"></i> Publish Announcement
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 13: DOWNTIME REPORT FORM ENGINE -->
+    <section id="tab-downtime-form" class="space-y-4 md:space-y-6 hidden animate-fade-in">
+      <div class="glass-panel p-4 sm:p-6 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">Downtime Incident Report Form Engine</h2>
+          <p class="text-xs text-orca-muted mt-0.5">Deploy an interactive incident report form panel where designated roles can log bot downtime reports.</p>
+        </div>
+        <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs px-3 py-1 rounded-xl font-bold">
+          <i class="fa-solid fa-triangle-exclamation"></i> Downtime Engine
+        </span>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 rounded-2xl md:rounded-3xl space-y-4 shadow-2xl max-w-3xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-amber-400 uppercase tracking-widest mb-1">Target Form Panel Channel</label>
+            <select id="dt-panel-channel" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Incident Log Channel</label>
+            <select id="dt-log-channel" class="hierarchy-channel-select w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent"></select>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-white/5">
+          <div class="flex items-center justify-between">
+            <label class="block text-[10px] font-extrabold text-amber-400 uppercase tracking-widest">
+              <i class="fa-solid fa-user-shield"></i> Allowed Roles Permitted to Submit Reports
+            </label>
+            <button onclick="addDowntimeRoleDropdown()" class="text-xs bg-orca-card hover:bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Add Role
+            </button>
+          </div>
+          <div id="dt-roles-container" class="space-y-2"></div>
+        </div>
+
+        <div class="space-y-3 border-t border-white/5 pt-3">
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Title</label>
+            <input type="text" id="dt-panel-title" value="🚨 BOT DOWNTIME INCIDENT REPORT" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          </div>
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Panel Description</label>
+            <textarea id="dt-panel-desc" rows="2" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent resize-none">Click the button below to submit a bot downtime report to staff.</textarea>
+          </div>
+          <div>
+            <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Button Label</label>
+            <input type="text" id="dt-button-label" value="⚠️ Report Bot Outage" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
+          <button id="btn-deploy-dt" onclick="deployDowntimePanel(this)" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-500 text-white font-extrabold px-6 py-3 rounded-xl text-xs shadow flex items-center justify-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Deploy Downtime Panel
+          </button>
+          <button id="btn-save-dt" onclick="saveDowntimeConfig(this)" class="w-full sm:w-auto bg-orca-accent hover:bg-orca-accent/80 text-white font-bold px-6 py-3 rounded-xl text-xs shadow glow-blue flex items-center justify-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Save Downtime Setup
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal: Add / Edit Question Field -->
+  <div id="question-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden z-50">
+    <div class="glass-panel border border-white/10 w-full max-w-[92vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-3.5 shadow-2xl animate-fade-in">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <h3 class="text-base sm:text-lg font-extrabold text-white" id="modal-question-title">Add Ticket Question Field</h3>
+        <button onclick="closeAddQuestionModal()" class="text-orca-muted hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div>
+        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Question Prompt</label>
+        <input type="text" id="q-label-input" placeholder="e.g. Describe your commission requirements in detail" class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+      </div>
+      <div>
+        <label class="block text-[10px] font-extrabold text-orca-muted uppercase tracking-widest mb-1">Placeholder Text</label>
+        <input type="text" id="q-placeholder-input" placeholder="e.g. Type your details here..." class="w-full bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+      </div>
+      <div class="flex justify-end gap-2.5 pt-2 border-t border-white/5">
+        <button onclick="closeAddQuestionModal()" class="px-3.5 py-2 text-xs font-bold text-orca-muted hover:text-white transition">Cancel</button>
+        <button onclick="saveFormQuestionModal()" class="px-4 py-2 text-xs bg-orca-success hover:bg-emerald-600 text-white rounded-xl font-bold transition active:scale-95 flex items-center gap-1.5 shadow">Save Question</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification System with Green Check / Red X Badges -->
+  <div id="toast" class="fixed bottom-16 md:bottom-6 right-3 sm:right-6 glass-panel text-white px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl shadow-2xl text-xs font-semibold transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4 flex items-center gap-2.5 z-50 border border-white/10 max-w-[90vw]">
+    <div id="toast-badge" class="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
+      <i id="toast-icon" class="text-xs"></i>
+    </div>
+    <span id="toast-message" class="truncate">Operation completed</span>
+  </div>
+
+  <script>
+    let activeTicketCategory = "";
+    let editingQuestionIdx = null;
+    let shopCatalogList = [];
+    let statusRotatorList = [];
+    let selectedDowntimeRoleIds = [];
+    let selectedStaffHeaderRoleIds = [];
+    let selectedVerificationRoleIds = [];
+    let serverDiscordCategories = [];
+    let serverDiscordRoles = [];
+    let staffMembersList = [];
+    let blacklistUsersList = [];
+    let ticketCategoryMap = {};
+    let chartInstance = null;
+
+    function togglePasswordVisibility() {
+      const input = document.getElementById("auth-password-input");
+      const icon = document.getElementById("auth-eye-icon");
+      if (input.type === "password") {
+        input.type = "text";
+        icon.className = "fa-solid fa-eye-slash text-xs";
+      } else {
+        input.type = "password";
+        icon.className = "fa-solid fa-eye text-xs";
+      }
+    }
+
+    function verifyDashboardAuth(btn) {
+      const pwd = document.getElementById("auth-password-input").value.trim();
+      const err = document.getElementById("auth-error-msg");
+      if (pwd === "Minions") {
+        document.getElementById("auth-gate-overlay").classList.add("hidden");
+        sessionStorage.setItem("orca_auth", "true");
+        if (err) err.classList.add("hidden");
+      } else {
+        if (err) err.classList.remove("hidden");
+      }
+    }
+
+    if (sessionStorage.getItem("orca_auth") === "true") {
+      document.addEventListener("DOMContentLoaded", () => {
+        const gate = document.getElementById("auth-gate-overlay");
+        if (gate) gate.classList.add("hidden");
+      });
+    }
+
+    function setBtnLoading(btn, isLoading, originalHtml) {
+      if (!btn) return;
+      if (isLoading) {
+        btn.dataset.originalContent = originalHtml || btn.innerHTML;
+        btn.disabled = true;
+        btn.classList.add("opacity-75", "cursor-not-allowed");
+        btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Processing...`;
+      } else {
+        btn.disabled = false;
+        btn.classList.remove("opacity-75", "cursor-not-allowed");
+        btn.innerHTML = btn.dataset.originalContent || originalHtml;
+      }
+    }
+
+    function initChart() {
+      const ctx = document.getElementById('uptimeChart');
+      if (!ctx) return;
+      chartInstance = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: ['9s ago', '8s ago', '7s ago', '6s ago', '5s ago', '4s ago', '3s ago', '2s ago', '1s ago', 'Now'],
+          datasets: [{
+            label: 'WebSocket Ping (ms)',
+            data: [15, 18, 16, 17, 19, 16, 18, 16, 17, 16],
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    async function fetchTelemetryStats(manual = false) {
+      try {
+        const res = await fetch('/api/stats');
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        document.getElementById('stat-ping').innerText = `${data.ping} ms`;
+        document.getElementById('stat-ram').innerText = data.ram;
+        document.getElementById('stat-cpu').innerText = data.cpu;
+        
+        const sec = data.uptime_seconds || 0;
+        const d = Math.floor(sec / 86400);
+        const h = Math.floor((sec % 86400) / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = sec % 60;
+        document.getElementById('stat-uptime').innerText = `${d}d ${h}h ${m}m ${s}s`;
+
+        if (chartInstance) {
+          chartInstance.data.datasets[0].data.shift();
+          chartInstance.data.datasets[0].data.push(data.ping);
+          chartInstance.update();
+        }
+
+        if (manual) showToast("Telemetry stats updated!", "Sync Stats");
+      } catch (e) {
+        console.error("Telemetry fetch error:", e);
+      }
+    }
+
+    function renderShopItemRows() {
+      const container = document.getElementById("shop-catalog-rows");
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (shopCatalogList.length === 0) {
+        shopCatalogList = [
+          { name: "Custom Discord Bot", price: 35, emoji: "🤖", desc: "Full custom bot development" },
+          { name: "Roblox 2D Assets & Audio", price: 15, emoji: "🎨", desc: "Classic T-Shirts, Decals, & Boombox Audio IDs" },
+          { name: "Web Control Dashboard", price: 25, emoji: "🌐", desc: "Flask/React admin panel" }
+        ];
+      }
+
+      shopCatalogList.forEach((item, idx) => {
+        const div = document.createElement("div");
+        div.className = "p-3 bg-orca-surface border border-white/5 rounded-xl space-y-2";
+        div.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <input type="text" value="${item.emoji || '📦'}" placeholder="Emoji" onchange="shopCatalogList[${idx}].emoji=this.value" class="sm:col-span-2 bg-orca-base border border-orca-border rounded-xl p-2 text-white text-xs text-center">
+            <input type="text" value="${item.name || ''}" placeholder="Category Name" onchange="shopCatalogList[${idx}].name=this.value" class="sm:col-span-6 bg-orca-base border border-orca-border rounded-xl p-2 text-white text-xs font-semibold">
+            <input type="number" value="${item.price || 0}" placeholder="Price" onchange="shopCatalogList[${idx}].price=parseFloat(this.value)" class="sm:col-span-3 bg-orca-base border border-orca-border rounded-xl p-2 text-white text-xs font-semibold">
+            <button onclick="shopCatalogList.splice(${idx},1); renderShopItemRows()" class="sm:col-span-1 p-2 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+          </div>
+          <input type="text" value="${item.desc || ''}" placeholder="Short Description" onchange="shopCatalogList[${idx}].desc=this.value" class="w-full bg-orca-base border border-orca-border rounded-xl p-2 text-white text-xs">
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addShopItemRow() {
+      shopCatalogList.push({ name: "", price: 0, emoji: "📦", desc: "" });
+      renderShopItemRows();
+    }
+
+    async function saveShopConfig(btn) {
+      if (btn) setBtnLoading(btn, true);
+      const validItems = shopCatalogList.filter(s => s.name && s.name.trim() !== '');
+      const payload = {
+        channel_id: document.getElementById('shop-channel-id').value,
+        currency: document.getElementById('shop-currency').value || "$",
+        catalog: validItems
+      };
+
+      try {
+        const res = await fetch('/api/save-shop-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("Shop Catalog saved!", "Save Setup");
+        else showToast("Failed to save shop catalog", "Save Setup", true);
+      } catch (e) {
+        showToast("Error saving shop config", "Save Setup", true);
+      } finally {
+        if (btn) setBtnLoading(btn, false);
+      }
+    }
+
+    async function deployShopPanel(btn) {
+      setBtnLoading(btn, true);
+      await saveShopConfig(null);
+      const chId = document.getElementById('shop-channel-id').value;
+
+      if (!chId) {
+        showToast("Select a Target Shop Panel Channel first!", "Deploy Shop", true);
+        setBtnLoading(btn, false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/deploy-shop-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel_id: chId })
+        });
+        const data = await res.json();
+        if (data.success) showToast("Shop Panel deployed to channel!", "Deploy Shop");
+        else showToast(data.error || "Shop deployment failed", "Deploy Shop", true);
+      } catch (e) {
+        showToast("Error deploying shop panel", "Deploy Shop", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveAIConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        enabled: document.getElementById('ai-enabled').checked,
+        knowledge_base: document.getElementById('ai-knowledge-base').value
+      };
+
+      try {
+        const res = await fetch('/api/save-ai-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("AI Brain configuration saved!", "AI Brain");
+        else showToast("Failed to save AI config", "AI Brain", true);
+      } catch (e) {
+        showToast("Error saving AI configuration", "AI Brain", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    function renderStatusRotatorRows() {
+      const container = document.getElementById("status-rotator-rows");
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (statusRotatorList.length === 0) {
+        statusRotatorList = [
+          { type: "watching", text: "45 Active Commissions" },
+          { type: "playing", text: "ORCA Studio v27" },
+          { type: "listening", text: "/dashboard" }
+        ];
+      }
+
+      statusRotatorList.forEach((st, idx) => {
+        const div = document.createElement("div");
+        div.className = "flex items-center gap-2";
+        div.innerHTML = `
+          <select onchange="statusRotatorList[${idx}].type=this.value" class="bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent w-32">
+            <option value="playing" ${st.type==='playing'?'selected':''}>Playing</option>
+            <option value="watching" ${st.type==='watching'?'selected':''}>Watching</option>
+            <option value="listening" ${st.type==='listening'?'selected':''}>Listening</option>
+            <option value="competing" ${st.type==='competing'?'selected':''}>Competing</option>
+          </select>
+          <input type="text" value="${st.text || ''}" placeholder="Status Text" onchange="statusRotatorList[${idx}].text=this.value" class="flex-1 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+          <button onclick="statusRotatorList.splice(${idx},1); renderStatusRotatorRows()" class="p-2 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addStatusRotatorRow() {
+      statusRotatorList.push({ type: "playing", text: "" });
+      renderStatusRotatorRows();
+    }
+
+    async function saveStatusRotatorConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        enabled: document.getElementById('rotator-enabled').checked,
+        statuses: statusRotatorList.filter(s => s.text && s.text.trim() !== '')
+      };
+
+      try {
+        const res = await fetch('/api/save-rotator-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("Status Rotator setup saved!", "Rotator Setup");
+        else showToast("Rotator save failed", "Rotator Setup", true);
+      } catch (e) {
+        showToast("Save error", "Rotator Setup", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    function renderDowntimeRoleDropdowns() {
+      const container = document.getElementById('dt-roles-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (selectedDowntimeRoleIds.length === 0) selectedDowntimeRoleIds = [''];
+
+      selectedDowntimeRoleIds.forEach((roleId, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+
+        let optionsHtml = `<option value="">-- Select Allowed Role --</option>`;
+        serverDiscordRoles.forEach(r => {
+          optionsHtml += `<option value="${r.id}" ${r.id === roleId ? 'selected' : ''}>${r.name}</option>`;
+        });
+
+        div.innerHTML = `
+          <select onchange="selectedDowntimeRoleIds[${index}]=this.value" class="hierarchy-role-select flex-1 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            ${optionsHtml}
+          </select>
+          ${selectedDowntimeRoleIds.length > 1 ? `
+            <button onclick="selectedDowntimeRoleIds.splice(${index},1); renderDowntimeRoleDropdowns()" class="text-orca-danger hover:bg-orca-danger/10 p-2 rounded-lg text-xs">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          ` : ''}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addDowntimeRoleDropdown() {
+      selectedDowntimeRoleIds.push('');
+      renderDowntimeRoleDropdowns();
+    }
+
+    async function saveDowntimeConfig(btn) {
+      if (btn) setBtnLoading(btn, true);
+      const roles = selectedDowntimeRoleIds.filter(r => r && r.trim() !== '');
+
+      const payload = {
+        panel_channel_id: document.getElementById('dt-panel-channel').value,
+        log_channel_id: document.getElementById('dt-log-channel').value,
+        allowed_roles: roles,
+        title: document.getElementById('dt-panel-title').value,
+        description: document.getElementById('dt-panel-desc').value,
+        button_label: document.getElementById('dt-button-label').value
+      };
+
+      try {
+        const res = await fetch('/api/save-downtime-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("Downtime Report Form setup saved!", "Downtime Engine");
+        else showToast("Failed to save downtime setup", "Downtime Engine", true);
+      } catch (e) {
+        showToast("Save error", "Downtime Engine", true);
+      } finally {
+        if (btn) setBtnLoading(btn, false);
+      }
+    }
+
+    async function deployDowntimePanel(btn) {
+      setBtnLoading(btn, true);
+      await saveDowntimeConfig(null);
+
+      const chId = document.getElementById('dt-panel-channel').value;
+      if (!chId) {
+        showToast("Select a Target Form Panel Channel first!", "Deploy Downtime", true);
+        setBtnLoading(btn, false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/deploy-downtime-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel_id: chId })
+        });
+        const data = await res.json();
+        if (data.success) showToast("Deployed Downtime Report Panel!", "Deploy Downtime");
+        else showToast(data.error || "Deployment failed", "Deploy Downtime", true);
+      } catch (e) {
+        showToast("Deployment error", "Deploy Downtime", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    function renderStaffHeaderDropdowns() {
+      const container = document.getElementById('staff-headers-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (selectedStaffHeaderRoleIds.length === 0) selectedStaffHeaderRoleIds = [''];
+
+      selectedStaffHeaderRoleIds.forEach((roleId, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+
+        let optionsHtml = `<option value="">-- Select Staff Header Role --</option>`;
+        serverDiscordRoles.forEach(r => {
+          optionsHtml += `<option value="${r.id}" ${r.id === roleId ? 'selected' : ''}>${r.name}</option>`;
+        });
+
+        div.innerHTML = `
+          <select onchange="selectedStaffHeaderRoleIds[${index}]=this.value" class="hierarchy-role-select flex-1 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            ${optionsHtml}
+          </select>
+          ${selectedStaffHeaderRoleIds.length > 1 ? `
+            <button onclick="selectedStaffHeaderRoleIds.splice(${index},1); renderStaffHeaderDropdowns()" class="text-orca-danger hover:bg-orca-danger/10 p-2 rounded-lg text-xs">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          ` : ''}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addStaffHeaderDropdown() {
+      selectedStaffHeaderRoleIds.push('');
+      renderStaffHeaderDropdowns();
+    }
+
+    function renderVerificationRoleDropdowns() {
+      const container = document.getElementById('verify-roles-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (selectedVerificationRoleIds.length === 0) selectedVerificationRoleIds = [''];
+
+      selectedVerificationRoleIds.forEach((roleId, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+
+        let optionsHtml = `<option value="">-- Select Granted Role --</option>`;
+        serverDiscordRoles.forEach(r => {
+          optionsHtml += `<option value="${r.id}" ${r.id === roleId ? 'selected' : ''}>${r.name}</option>`;
+        });
+
+        div.innerHTML = `
+          <select onchange="selectedVerificationRoleIds[${index}]=this.value" class="hierarchy-role-select flex-1 bg-orca-base border border-orca-border rounded-xl p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-orca-accent">
+            ${optionsHtml}
+          </select>
+          ${selectedVerificationRoleIds.length > 1 ? `
+            <button onclick="selectedVerificationRoleIds.splice(${index},1); renderVerificationRoleDropdowns()" class="text-orca-danger hover:bg-orca-danger/10 p-2 rounded-lg text-xs">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          ` : ''}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addVerificationRoleDropdown() {
+      selectedVerificationRoleIds.push('');
+      renderVerificationRoleDropdowns();
+    }
+
+    async function loadStaffUsersList() {
+      const container = document.getElementById("staff-members-list");
+      if (!container) return;
+      container.innerHTML = `<p class="text-xs text-orca-muted p-2">Loading staff users...</p>`;
+
+      try {
+        const res = await fetch('/api/staff-members');
+        if (!res.ok) return;
+        const data = await res.json();
+        staffMembersList = data.staff || [];
+
+        const roleFilterSel = document.getElementById("activity-role-filter");
+        if (roleFilterSel) {
+          const currFilter = roleFilterSel.value;
+          roleFilterSel.innerHTML = `<option value="all">All Roles</option>`;
+          serverDiscordRoles.forEach(r => {
+            roleFilterSel.innerHTML += `<option value="${r.id}" ${r.id === currFilter ? 'selected' : ''}>${r.name}</option>`;
+          });
+        }
+
+        container.innerHTML = "";
+        if (staffMembersList.length === 0) {
+          container.innerHTML = `<p class="text-xs text-orca-muted p-2">No staff members found.</p>`;
+          return;
+        }
+
+        staffMembersList.forEach(s => {
+          const div = document.createElement("div");
+          div.className = "flex items-center justify-between p-3 bg-orca-surface border border-white/5 rounded-xl";
+          
+          const roleColorHex = s.color || "#3b82f6";
+          const pfpUrl = s.avatar || "https://cdn.discordapp.com/embed/avatars/0.png";
+          const cleanTag = (s.role || "Staff").replace(/staff/gi, '').trim() || "Staff";
+
+          div.innerHTML = `
+            <div class="flex items-center gap-3">
+              <img src="${pfpUrl}" class="w-9 h-9 rounded-full border border-white/10">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white">${s.name}</span>
+                  <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border" style="color: ${roleColorHex}; border-color: ${roleColorHex}44; background: ${roleColorHex}11;">${cleanTag}</span>
+                </div>
+                <p class="text-[10px] text-orca-muted font-mono mt-0.5">ID: ${s.id}</p>
+              </div>
+            </div>
+            <button onclick="removeStaffMemberWeb('${s.id}')" class="p-1.5 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+          `;
+          container.appendChild(div);
+        });
+      } catch (e) {
+        container.innerHTML = `<p class="text-xs text-orca-danger p-2">Failed to load staff list.</p>`;
+      }
+    }
+
+    async function loadStaffActivityLogs() {
+      const container = document.getElementById("staff-activity-logs");
+      if (!container) return;
+      container.innerHTML = `<p class="text-xs text-orca-muted p-2">Loading activity...</p>`;
+
+      const timeFilter = document.getElementById("activity-time-filter")?.value || "total";
+      const roleFilter = document.getElementById("activity-role-filter")?.value || "all";
+
+      try {
+        const res = await fetch(`/api/staff-activity-logs?time_filter=${timeFilter}&role_id=${roleFilter}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const logs = data.logs || [];
+
+        container.innerHTML = "";
+        if (logs.length === 0) {
+          container.innerHTML = `<p class="text-xs text-orca-muted p-2">No activity logged for this filter.</p>`;
+          return;
+        }
+
+        logs.forEach(l => {
+          const div = document.createElement("div");
+          div.className = "p-2.5 bg-orca-surface border border-white/5 rounded-xl text-xs space-y-0.5";
+          div.innerHTML = `
+            <div class="flex items-center justify-between font-bold">
+              <span class="text-white">${l.staff_name} <span class="text-[9px] text-orca-accent font-extrabold uppercase font-mono">(${l.staff_role})</span></span>
+              <span class="text-[9px] text-orca-muted font-mono">${l.timestamp}</span>
+            </div>
+            <p class="text-orca-muted text-[11px]"><strong class="text-white">${l.action}:</strong> ${l.details}</p>
+          `;
+          container.appendChild(div);
+        });
+      } catch (e) {
+        container.innerHTML = `<p class="text-xs text-orca-danger p-2">Failed to load activity logs.</p>`;
+      }
+    }
+
+    async function addStaffMemberWeb(btn) {
+      setBtnLoading(btn, true);
+      const uid = document.getElementById("add-staff-user-id").value.trim();
+      const rid = document.getElementById("add-staff-role-id").value;
+
+      if (!uid || !rid) {
+        showToast("User ID and Role required!", "Promote Staff", true);
+        setBtnLoading(btn, false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/add-staff-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: uid, role_id: rid })
+        });
+        if (res.ok) {
+          showToast("Staff member promoted!", "Promote Staff");
+          document.getElementById("add-staff-user-id").value = "";
+          loadStaffUsersList();
+        } else {
+          showToast("Promotion failed", "Promote Staff", true);
+        }
+      } catch (e) {
+        showToast("Error promoting staff", "Promote Staff", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function removeStaffMemberWeb(userId) {
+      try {
+        const res = await fetch('/api/remove-staff-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId })
+        });
+        if (res.ok) {
+          showToast("Staff member demoted!", "Demote Staff");
+          loadStaffUsersList();
+        } else {
+          showToast("Demotion failed", "Demote Staff", true);
+        }
+      } catch (e) {
+        showToast("Error demoting staff", "Demote Staff", true);
+      }
+    }
+
+    async function loadBlacklistUsersList() {
+      const container = document.getElementById("blacklist-users-container");
+      if (!container) return;
+      container.innerHTML = `<p class="text-xs text-orca-muted p-2">Loading blacklist...</p>`;
+
+      try {
+        const res = await fetch('/api/blacklist-users');
+        if (!res.ok) return;
+        const data = await res.json();
+        blacklistUsersList = data.blacklist || [];
+
+        container.innerHTML = "";
+        if (blacklistUsersList.length === 0) {
+          container.innerHTML = `<p class="text-xs text-orca-muted p-2">No blacklisted users.</p>`;
+          return;
+        }
+
+        blacklistUsersList.forEach(u => {
+          const div = document.createElement("div");
+          div.className = "flex items-center justify-between p-3 bg-orca-surface border border-white/5 rounded-xl";
+          const pfpUrl = u.avatar || "https://cdn.discordapp.com/embed/avatars/0.png";
+
+          div.innerHTML = `
+            <div class="flex items-center gap-3">
+              <img src="${pfpUrl}" class="w-8 h-8 rounded-full border border-white/10">
+              <div>
+                <span class="text-xs font-bold text-white">${u.username || 'User ID: ' + u.user_id}</span>
+                <p class="text-[10px] text-red-400 font-medium">Reason: "${u.reason || 'No reason provided'}"</p>
+                <p class="text-[9px] text-orca-muted font-mono">ID: ${u.user_id}</p>
+              </div>
+            </div>
+            <button onclick="removeBlacklistUserWeb('${u.user_id}')" class="p-1.5 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+          `;
+          container.appendChild(div);
+        });
+      } catch (e) {
+        container.innerHTML = `<p class="text-xs text-orca-danger p-2">Failed to load blacklist.</p>`;
+      }
+    }
+
+    async function addBlacklistUserWeb(btn) {
+      setBtnLoading(btn, true);
+      const uid = document.getElementById("bl-user-id").value.trim();
+      const reason = document.getElementById("bl-reason").value.trim() || "No reason provided";
+
+      if (!uid) {
+        showToast("User ID required!", "Blacklist User", true);
+        setBtnLoading(btn, false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/add-blacklist-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: uid, reason })
+        });
+        if (res.ok) {
+          showToast("User blacklisted!", "Blacklist User");
+          document.getElementById("bl-user-id").value = "";
+          document.getElementById("bl-reason").value = "";
+          loadBlacklistUsersList();
+        } else {
+          showToast("Failed to blacklist user", "Blacklist User", true);
+        }
+      } catch (e) {
+        showToast("Error blacklisting user", "Blacklist User", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function removeBlacklistUserWeb(userId) {
+      try {
+        const res = await fetch('/api/remove-blacklist-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId })
+        });
+        if (res.ok) {
+          showToast("User unblacklisted!", "Remove Blacklist");
+          loadBlacklistUsersList();
+        } else {
+          showToast("Failed to unblacklist user", "Remove Blacklist", true);
+        }
+      } catch (e) {
+        showToast("Error unblacklisting user", "Remove Blacklist", true);
+      }
+    }
+
+    async function saveWelcomerConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        enabled: document.getElementById('welcomer-enabled').checked,
+        channel_id: document.getElementById('welcomer-channel-id').value,
+        message: document.getElementById('welcomer-msg-text').value,
+        dm_enabled: document.getElementById('welcomer-dm-enabled').checked,
+        dm_message: document.getElementById('welcomer-dm-text').value
+      };
+
+      try {
+        const res = await fetch('/api/save-welcomer-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("Welcomer settings saved!", "Welcomer Setup");
+        else showToast("Welcomer save failed", "Welcomer Setup", true);
+      } catch (e) {
+        showToast("Save error", "Welcomer Setup", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveVerificationConfig(btn) {
+      if (btn) setBtnLoading(btn, true);
+      const roles = selectedVerificationRoleIds.filter(r => r && r.trim() !== '');
+
+      const payload = {
+        channel_id: document.getElementById('verify-channel-id').value,
+        log_channel_id: document.getElementById('verify-log-channel-id').value,
+        roles: roles,
+        title: document.getElementById('verify-panel-title').value,
+        description: document.getElementById('verify-panel-desc').value,
+        button_label: document.getElementById('verify-button-label').value
+      };
+
+      try {
+        const res = await fetch('/api/save-verification-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("Verification settings saved!", "Verification Engine");
+        else showToast("Failed to save verification settings", "Verification Engine", true);
+      } catch (e) {
+        showToast("Error saving verification settings", "Verification Engine", true);
+      } finally {
+        if (btn) setBtnLoading(btn, false);
+      }
+    }
+
+    async function deployVerificationPanel(btn) {
+      setBtnLoading(btn, true);
+      await saveVerificationConfig(null);
+
+      const chId = document.getElementById('verify-channel-id').value;
+      if (!chId) {
+        showToast("Select a Target Verification Channel first!", "Deploy Verification", true);
+        setBtnLoading(btn, false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/deploy-verification-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel_id: chId })
+        });
+        const data = await res.json();
+        if (data.success) showToast("Deployed Verification Panel!", "Deploy Verification");
+        else showToast(data.error || "Deployment failed", "Deploy Verification", true);
+      } catch (e) {
+        showToast("Deployment error", "Deploy Verification", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveAutoModConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = {
+        anti_link: document.getElementById('automod-anti-link').checked,
+        anti_spam: document.getElementById('automod-anti-spam').checked,
+        anti_ping: document.getElementById('automod-anti-ping').checked,
+        banned_words: document.getElementById('automod-banned-words').value
+      };
+
+      try {
+        const res = await fetch('/api/save-automod-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("AutoMod rules saved!", "AutoMod Protocol");
+        else showToast("AutoMod save failed", "AutoMod Protocol", true);
+      } catch (e) {
+        showToast("Save error", "AutoMod Protocol", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveReviewConfig(btn) {
+      setBtnLoading(btn, true);
+      const payload = { channel_id: document.getElementById('review-channel-id').value };
+      try {
+        const res = await fetch('/api/save-review-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("Review Showcase Channel saved!", "Reviews Engine");
+        else showToast("Reviews save failed", "Reviews Engine", true);
+      } catch (e) {
+        showToast("Save error", "Reviews Engine", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function saveStaffConfig(btn) {
+      setBtnLoading(btn, true);
+      const headers = selectedStaffHeaderRoleIds.filter(r => r && r.trim() !== '');
+      const payload = { staff_header_role_ids: headers };
+
+      try {
+        const res = await fetch('/api/save-staff-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) showToast("Staff Headers saved!", "Staff Config");
+        else showToast("Failed to save staff headers", "Staff Config", true);
+      } catch (e) {
+        showToast("Save error", "Staff Config", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function publishAnnouncementEmbed(btn) {
+      setBtnLoading(btn, true);
+      const titleInput = document.getElementById('pub-title');
+      const descInput = document.getElementById('pub-desc');
+      const imgInput = document.getElementById('pub-image-url');
+      const thumbInput = document.getElementById('pub-thumbnail-url');
+
+      const payload = {
+        channel_id: document.getElementById('pub-channel-id').value,
+        ping: document.getElementById('pub-ping-opt').value,
+        title: titleInput.value,
+        description: descInput.value,
+        image_url: imgInput ? imgInput.value : '',
+        thumbnail_url: thumbInput ? thumbInput.value : ''
+      };
+
+      try {
+        const res = await fetch('/api/publish-announcement', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          showToast("Announcement Published!", "Embed Publisher");
+          titleInput.value = "";
+          descInput.value = "";
+          if (imgInput) imgInput.value = "";
+          if (thumbInput) thumbInput.value = "";
+        } else {
+          showToast("Publishing failed", "Embed Publisher", true);
+        }
+      } catch (e) {
+        showToast("Publish error", "Embed Publisher", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    async function loadAllData() {
+      try {
+        const res = await fetch('/api/guild-data');
+        if (!res.ok) return;
+        const gData = await res.json();
+        serverDiscordCategories = gData.categories || [];
+        serverDiscordRoles = gData.roles || [];
+        ticketCategoryMap = gData.category_configs || {};
+
+        if (gData.bot_avatar) {
+          const m = document.getElementById('bot-avatar-mobile');
+          const d = document.getElementById('bot-avatar-desktop');
+          if (m) m.src = gData.bot_avatar;
+          if (d) d.src = gData.bot_avatar;
+        }
+
+        if (gData.verification_config) {
+          const v = gData.verification_config;
+          document.getElementById('verify-channel-id').value = v.channel_id || '';
+          document.getElementById('verify-log-channel-id').value = v.log_channel_id || '';
+          document.getElementById('verify-panel-title').value = v.title || '🛡️ MEMBER VERIFICATION PORTAL';
+          document.getElementById('verify-panel-desc').value = v.description || 'Click the button below to complete verification!';
+          document.getElementById('verify-button-label').value = v.button_label || '✅ Verify Access';
+          selectedVerificationRoleIds = v.roles || [];
+        }
+
+        if (gData.shop_config) {
+          const sc = gData.shop_config;
+          document.getElementById('shop-channel-id').value = sc.channel_id || '';
+          document.getElementById('shop-currency').value = sc.currency || '$';
+          shopCatalogList = sc.catalog || [];
+        }
+
+        if (gData.ai_config) {
+          const ac = gData.ai_config;
+          document.getElementById('ai-enabled').checked = ac.enabled !== false;
+          document.getElementById('ai-knowledge-base').value = ac.knowledge_base || '';
+        }
+
+        if (gData.rotator_config) {
+          const rc = gData.rotator_config;
+          document.getElementById('rotator-enabled').checked = rc.enabled || false;
+          statusRotatorList = rc.statuses || [];
+        }
+
+        if (gData.welcomer_config) {
+          const wc = gData.welcomer_config;
+          document.getElementById('welcomer-enabled').checked = wc.enabled || false;
+          document.getElementById('welcomer-channel-id').value = wc.channel_id || '';
+          document.getElementById('welcomer-msg-text').value = wc.message || '';
+          document.getElementById('welcomer-dm-enabled').checked = wc.dm_enabled || false;
+          document.getElementById('welcomer-dm-text').value = wc.dm_message || '';
+        }
+
+        if (gData.downtime_config) {
+          const dc = gData.downtime_config;
+          document.getElementById('dt-panel-channel').value = dc.panel_channel_id || '';
+          document.getElementById('dt-log-channel').value = dc.log_channel_id || '';
+          document.getElementById('dt-panel-title').value = dc.title || '🚨 BOT DOWNTIME INCIDENT REPORT';
+          document.getElementById('dt-panel-desc').value = dc.description || 'Click the button below to submit a bot downtime report to staff.';
+          document.getElementById('dt-button-label').value = dc.button_label || '⚠️ Report Bot Outage';
+          selectedDowntimeRoleIds = dc.allowed_roles || [];
+        }
+
+        if (gData.staff_config) {
+          const sc = gData.staff_config;
+          selectedStaffHeaderRoleIds = sc.staff_header_role_ids || (sc.staff_header_role_id ? [sc.staff_header_role_id] : []);
+        }
+
+        if (gData.automod_config) {
+          const am = gData.automod_config;
+          document.getElementById('automod-anti-link').checked = am.anti_link || false;
+          document.getElementById('automod-anti-spam').checked = am.anti_spam || false;
+          document.getElementById('automod-anti-ping').checked = am.anti_ping || false;
+          document.getElementById('automod-banned-words').value = am.banned_words || '';
+        }
+
+        renderHierarchicalChannelDropdowns();
+        renderOpenedCategoryDropdown();
+        renderShopItemRows();
+        renderStaffHeaderDropdowns();
+        renderVerificationRoleDropdowns();
+        renderDowntimeRoleDropdowns();
+        renderStatusRotatorRows();
+        renderCategorySelectorDropdown();
+        loadStaffUsersList();
+        loadStaffActivityLogs();
+        loadBlacklistUsersList();
+      } catch (e) {
+        console.error("Load error:", e);
+      }
+    }
+
+    function renderHierarchicalChannelDropdowns() {
+      const channelSelects = document.querySelectorAll('.hierarchy-channel-select');
+      channelSelects.forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = `<option value="">-- Select Server Channel --</option>`;
+        serverDiscordCategories.forEach(cat => {
+          const optGroup = document.createElement('optgroup');
+          optGroup.label = `📁 ${cat.name}`;
+          cat.channels.forEach(ch => {
+            const opt = document.createElement('option');
+            opt.value = ch.id;
+            opt.innerText = `# ${ch.name}`;
+            optGroup.appendChild(opt);
+          });
+          select.appendChild(optGroup);
+        });
+        if (currentVal) select.value = currentVal;
+      });
+
+      const roleSelects = document.querySelectorAll('.hierarchy-role-select');
+      roleSelects.forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = `<option value="">-- Select Role --</option>`;
+        serverDiscordRoles.forEach(role => {
+          const opt = document.createElement('option');
+          opt.value = role.id;
+          opt.innerText = role.name;
+          select.appendChild(opt);
+        });
+        if (currentVal) select.value = currentVal;
+      });
+    }
+
+    function renderOpenedCategoryDropdown() {
+      const select = document.getElementById("ticket-opened-category");
+      if (!select) return;
+      select.innerHTML = `<option value="">-- Created Uncategorized or Under Selected Category --</option>`;
+      serverDiscordCategories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id || cat.name;
+        opt.innerText = `📁 ${cat.name}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderCategorySelectorDropdown() {
+      const select = document.getElementById("ticket-category-select");
+      if (!select) return;
+
+      if (Object.keys(ticketCategoryMap).length === 0) {
+        ticketCategoryMap["Custom Bot Commission"] = {
+          panelTitle: "📋 CUSTOM BOT COMMISSION PANEL",
+          panelDesc: "Click below to open a Custom Bot ticket.",
+          buttonLabel: "📝 Open Bot Ticket",
+          tosEnabled: true,
+          reviewEnabled: true,
+          questions: [{ label: "Explain your bot requirements", placeholder: "Type here...", style: "paragraph", required: true }]
+        };
+        ticketCategoryMap["Roblox 2D Assets & Audio"] = {
+          panelTitle: "🎨 ROBLOX 2D ASSETS & AUDIO PANEL",
+          panelDesc: "Click below to order Classic T-Shirts, Decals, or Boombox Audio IDs.",
+          buttonLabel: "🎨 Order Roblox Assets",
+          tosEnabled: true,
+          reviewEnabled: true,
+          questions: [
+            { label: "Asset Type (T-Shirt/Decal/Audio ID)", placeholder: "e.g. T-Shirt Design / Boombox Audio Bypass", style: "short", required: true },
+            { label: "Requirements & Roblox Links", placeholder: "Paste details or links...", style: "paragraph", required: true }
+          ]
+        };
+      }
+
+      select.innerHTML = `<option value="">-- Choose Ticket Category First --</option>`;
+      Object.keys(ticketCategoryMap).forEach(catName => {
+        const opt = document.createElement("option");
+        opt.value = catName;
+        opt.innerText = `📁 ${catName}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function switchActiveTicketCategory() {
+      const select = document.getElementById("ticket-category-select");
+      const val = select.value;
+      const workspace = document.getElementById("ticket-category-workspace");
+      const placeholder = document.getElementById("ticket-category-placeholder");
+
+      if (!val) {
+        activeTicketCategory = "";
+        if (workspace) workspace.classList.add("hidden");
+        if (placeholder) placeholder.classList.remove("hidden");
+        return;
+      }
+
+      activeTicketCategory = val;
+      if (workspace) workspace.classList.remove("hidden");
+      if (placeholder) placeholder.classList.add("hidden");
+
+      document.querySelectorAll(".active-cat-display").forEach(el => el.innerText = val);
+
+      const catData = ticketCategoryMap[val] || {};
+      document.getElementById("cat-tos-enabled").checked = catData.tosEnabled !== false;
+      document.getElementById("cat-review-enabled").checked = catData.reviewEnabled !== false;
+      document.getElementById("ticket-panel-channel").value = catData.panelChannel || catData.channel_id || "";
+      document.getElementById("ticket-log-channel").value = catData.logChannel || catData.log_channel_id || "";
+      document.getElementById("ticket-opened-category").value = catData.openedCategory || "";
+      document.getElementById("ticket-buyer-role").value = catData.buyerRole || "";
+      document.getElementById("ticket-staff-role").value = catData.staffRole || "";
+      document.getElementById("ticket-panel-title").value = catData.panelTitle || `📋 ${val.toUpperCase()} TICKET PANEL`;
+      document.getElementById("ticket-panel-desc").value = catData.panelDesc || `Click below to open a ${val} ticket!`;
+      document.getElementById("ticket-button-label").value = catData.buttonLabel || "📝 Open Ticket";
+
+      renderCategoryQuestionsList();
+    }
+
+    function renderCategoryQuestionsList() {
+      const container = document.getElementById("ticket-questions-container");
+      if (!container || !activeTicketCategory) return;
+      container.innerHTML = "";
+
+      const catData = ticketCategoryMap[activeTicketCategory] || {};
+      const questions = catData.questions || [
+        { label: "Please describe your ticket details", placeholder: "Type your details here...", style: "paragraph", required: true }
+      ];
+
+      questions.forEach((q, idx) => {
+        const div = document.createElement("div");
+        div.className = "flex items-center justify-between p-3 bg-orca-surface border border-white/5 rounded-xl";
+        div.innerHTML = `
+          <div>
+            <span class="text-xs font-bold text-white">${q.label}</span>
+            <p class="text-[10px] text-orca-muted">Placeholder: "${q.placeholder || ''}"</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="editQuestionField(${idx})" class="p-1.5 text-orca-accent hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteQuestionField(${idx})" class="p-1.5 text-orca-danger hover:bg-white/5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function openAddQuestionModal() {
+      editingQuestionIdx = null;
+      document.getElementById("modal-question-title").innerText = "Add Ticket Question Field";
+      document.getElementById("q-label-input").value = "";
+      document.getElementById("q-placeholder-input").value = "";
+      document.getElementById("question-modal").classList.remove("hidden");
+    }
+
+    function closeAddQuestionModal() {
+      document.getElementById("question-modal").classList.add("hidden");
+    }
+
+    function editQuestionField(idx) {
+      editingQuestionIdx = idx;
+      const catData = ticketCategoryMap[activeTicketCategory] || {};
+      const q = (catData.questions || [])[idx];
+      if (!q) return;
+
+      document.getElementById("modal-question-title").innerText = "Edit Question Field";
+      document.getElementById("q-label-input").value = q.label || "";
+      document.getElementById("q-placeholder-input").value = q.placeholder || "";
+      document.getElementById("question-modal").classList.remove("hidden");
+    }
+
+    function deleteQuestionField(idx) {
+      if (!activeTicketCategory) return;
+      const catData = ticketCategoryMap[activeTicketCategory] || {};
+      if (catData.questions) {
+        catData.questions.splice(idx, 1);
+        renderCategoryQuestionsList();
+        showToast("Question field deleted!", "Ticket Questions");
+      }
+    }
+
+    function saveFormQuestionModal() {
+      if (!activeTicketCategory) return;
+      const label = document.getElementById("q-label-input").value.trim();
+      const placeholder = document.getElementById("q-placeholder-input").value.trim();
+
+      if (!label) {
+        showToast("Question label required!", "Ticket Questions", true);
+        return;
+      }
+
+      if (!ticketCategoryMap[activeTicketCategory].questions) {
+        ticketCategoryMap[activeTicketCategory].questions = [];
+      }
+
+      if (editingQuestionIdx !== null) {
+        ticketCategoryMap[activeTicketCategory].questions[editingQuestionIdx] = { label, placeholder, style: "paragraph", required: true };
+      } else {
+        ticketCategoryMap[activeTicketCategory].questions.push({ label, placeholder, style: "paragraph", required: true });
+      }
+
+      closeAddQuestionModal();
+      renderCategoryQuestionsList();
+      showToast("Question saved!", "Ticket Questions");
+    }
+
+    function createNewTicketCategoryPrompt() {
+      const name = prompt("Enter new Ticket Category Name:");
+      if (!name || !name.trim()) return;
+
+      const cleanName = name.trim();
+      if (ticketCategoryMap[cleanName]) {
+        showToast("Category already exists!", "New Category", true);
+        return;
+      }
+
+      ticketCategoryMap[cleanName] = {
+        panelTitle: `📋 ${cleanName.toUpperCase()} TICKET PANEL`,
+        panelDesc: `Click below to open a ${cleanName} ticket.`,
+        buttonLabel: "📝 Open Ticket",
+        tosEnabled: true,
+        reviewEnabled: true,
+        questions: [{ label: "Explain your requirements in detail", placeholder: "Type here...", style: "paragraph", required: true }]
+      };
+
+      renderCategorySelectorDropdown();
+      document.getElementById("ticket-category-select").value = cleanName;
+      switchActiveTicketCategory();
+      showToast(`Category "${cleanName}" created!`, "New Category");
+    }
+
+    async function saveCategoryData(btn) {
+      if (!activeTicketCategory) return;
+      if (btn) setBtnLoading(btn, true);
+
+      const payload = {
+        category_name: activeTicketCategory,
+        config: {
+          tosEnabled: document.getElementById("cat-tos-enabled").checked,
+          reviewEnabled: document.getElementById("cat-review-enabled").checked,
+          panelChannel: document.getElementById("ticket-panel-channel").value,
+          logChannel: document.getElementById("ticket-log-channel").value,
+          openedCategory: document.getElementById("ticket-opened-category").value,
+          buyerRole: document.getElementById("ticket-buyer-role").value,
+          staffRole: document.getElementById("ticket-staff-role").value,
+          panelTitle: document.getElementById("ticket-panel-title").value,
+          panelDesc: document.getElementById("ticket-panel-desc").value,
+          buttonLabel: document.getElementById("ticket-button-label").value,
+          questions: (ticketCategoryMap[activeTicketCategory] || {}).questions || []
+        }
+      };
+
+      try {
+        const res = await fetch('/api/save-category', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          ticketCategoryMap[activeTicketCategory] = payload.config;
+          showToast(`Saved settings for ${activeTicketCategory}!`, "Save Category");
+        } else {
+          showToast("Failed to save category", "Save Category", true);
+        }
+      } catch (e) {
+        showToast("Error saving category data", "Save Category", true);
+      } finally {
+        if (btn) setBtnLoading(btn, false);
+      }
+    }
+
+    async function deployTicketPanel(btn) {
+      if (!activeTicketCategory) return;
+      setBtnLoading(btn, true);
+      await saveCategoryData(null);
+
+      const chId = document.getElementById("ticket-panel-channel").value;
+      if (!chId) {
+        showToast("Select a Target Panel Channel first!", "Deploy Panel", true);
+        setBtnLoading(btn, false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/deploy-form-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel_id: chId, category: activeTicketCategory })
+        });
+        const data = await res.json();
+        if (data.success) showToast(`Deployed ${activeTicketCategory} Panel!`, "Deploy Panel");
+        else showToast(data.error || "Deployment failed", "Deploy Panel", true);
+      } catch (e) {
+        showToast("Deployment error", "Deploy Panel", true);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+    }
+
+    function switchTab(tabKey) {
+      const allTabs = ['overview', 'ticket-engine', 'shop-system', 'ai-brain', 'staff-mgmt', 'welcomer', 'status-rotator', 'verification-engine', 'automod', 'blacklist-tab', 'reviews-engine', 'announcements', 'downtime-form'];
+
+      allTabs.forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        if (sec) sec.classList.add('hidden');
+
+        const dBtn = document.getElementById(`nav-${t}`);
+        if (dBtn) dBtn.className = "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-orca-muted hover:bg-white/5 hover:text-white transition-all";
+      });
+
+      const targetSec = document.getElementById(`tab-${tabKey}`);
+      if (targetSec) targetSec.classList.remove('hidden');
+
+      const activeDesktop = document.getElementById(`nav-${tabKey}`);
+      if (activeDesktop) activeDesktop.className = "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-xs tracking-wide uppercase text-white bg-orca-accent glow-blue transition-all";
+    }
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function showToast(msg, jobName = "Operation", isError = false) {
+      const toast = document.getElementById("toast");
+      const badge = document.getElementById("toast-badge");
+      const icon = document.getElementById("toast-icon");
+      const message = document.getElementById("toast-message");
+
+      if (isError) {
+        badge.className = "w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-orca-danger/20 text-orca-danger border border-orca-danger/40";
+        icon.className = "fa-solid fa-xmark text-xs";
+        message.innerText = `❌ Failed (${jobName}): ${msg}`;
+      } else {
+        badge.className = "w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-orca-success/20 text-orca-success border border-orca-success/40";
+        icon.className = "fa-solid fa-check text-xs";
+        message.innerText = `✅ Succeeded (${jobName}): ${msg}`;
+      }
+
+      toast.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
+      setTimeout(() => toast.classList.add("opacity-0", "translate-y-4", "pointer-events-none"), 3500);
+    }
+
+    initChart();
+    loadAllData();
+    setInterval(fetchTelemetryStats, 1000);
+  </script>
+</body>
+</html>
+
 
