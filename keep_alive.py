@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+from datetime import datetime, timedelta
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
 
@@ -19,7 +20,6 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.CRITICAL)
 log.disabled = True
 
-# Suppress Flask CLI server banner safely
 try:
     import flask.cli
     flask.cli.show_server_banner = lambda *args, **kwargs: None
@@ -44,7 +44,6 @@ def get_db():
         return None
 
 
-# Lightweight endpoint for cron-job.org and keep-alive pingers
 @app.route('/ping')
 @app.route('/health')
 @app.route('/cron')
@@ -67,7 +66,6 @@ def home():
     return "OK", 200
 
 
-# Hosted Long Screenshot Web Transcript Browser Viewer
 @app.route('/transcript/<transcript_id>')
 def view_transcript(transcript_id):
     db = get_db()
@@ -144,13 +142,31 @@ def get_guild_data():
         "category_configs": config.get("category_configs", {}),
         "verification_config": config.get("verification_config", {}),
         "staff_config": config.get("staff_config", {}),
-        "estimator_config": config.get("estimator_config", {}),
+        "shop_config": config.get("shop_config", {}),
         "downtime_config": config.get("downtime_config", {}),
         "automod_config": config.get("automod_config", {}),
         "welcomer_config": config.get("welcomer_config", {}),
         "rotator_config": config.get("rotator_config", {}),
-        "review_config": config.get("review_config", {})
+        "review_config": config.get("review_config", {}),
+        "ai_config": config.get("ai_config", {})
     })
+
+
+@app.route('/api/save-ai-config', methods=['POST'])
+def save_ai_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"ai_config": data}},
+        upsert=True
+    )
+    return jsonify({"success": True})
 
 
 @app.route('/api/staff-members', methods=['GET'])
@@ -193,15 +209,33 @@ def get_staff_activity_logs():
     if db is None:
         return jsonify({"logs": []})
 
+    time_filter = request.args.get("time_filter", "total")
+    role_filter = request.args.get("role_id", "all")
+
+    query = {}
+    now = datetime.utcnow()
+
+    if time_filter == "today":
+        query["timestamp"] = {"$gte": now - timedelta(days=1)}
+    elif time_filter == "weekly":
+        query["timestamp"] = {"$gte": now - timedelta(days=7)}
+    elif time_filter == "monthly":
+        query["timestamp"] = {"$gte": now - timedelta(days=30)}
+    elif time_filter == "yearly":
+        query["timestamp"] = {"$gte": now - timedelta(days=365)}
+
+    if role_filter != "all":
+        query["role_id"] = str(role_filter)
+
     logs = []
     try:
-        for doc in db["staff_activity"].find().sort("timestamp", -1).limit(30):
+        for doc in db["staff_activity"].find(query).sort("timestamp", -1).limit(40):
             logs.append({
                 "staff_name": doc.get("staff_name", "Staff"),
                 "staff_role": doc.get("staff_role", "Staff"),
                 "action": doc.get("action", "Action"),
                 "details": doc.get("details", ""),
-                "timestamp": doc.get("timestamp").strftime("%H:%M UTC") if doc.get("timestamp") else "Recent"
+                "timestamp": doc.get("timestamp").strftime("%Y-%m-%d %H:%M UTC") if doc.get("timestamp") else "Recent"
             })
     except Exception:
         pass
@@ -216,7 +250,7 @@ def add_staff_user():
     role_id = data.get("role_id")
 
     if not _bot_ref or not _bot_ref.guilds or not user_id or not role_id:
-        return jsonify({"error": "Invalid user ID or role parameter"}), 400
+        return jsonify({"error": "Invalid request parameters"}), 400
 
     guild = _bot_ref.guilds[0]
     db = get_db()
@@ -351,6 +385,46 @@ def remove_blacklist_user():
     return jsonify({"success": True})
 
 
+@app.route('/api/save-shop-config', methods=['POST'])
+def save_shop_config():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    db["guild_config"].update_one(
+        {"guild_id": guild_id},
+        {"$set": {"shop_config": data}},
+        upsert=True
+    )
+    return jsonify({"success": True})
+
+
+@app.route('/api/deploy-shop-panel', methods=['POST'])
+def deploy_shop_panel():
+    if _bot_ref is None or not _bot_ref.is_ready():
+        return jsonify({"error": "Bot not ready"}), 500
+
+    data = request.json or {}
+    channel_id = data.get("channel_id")
+    cog = _bot_ref.get_cog("Orca")
+
+    if not cog or not channel_id:
+        return jsonify({"error": "Channel ID missing"}), 400
+
+    future = asyncio.run_coroutine_threadsafe(
+        cog.deploy_shop_panel_from_web(int(channel_id)),
+        _bot_ref.loop
+    )
+    try:
+        future.result(timeout=10)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/save-downtime-config', methods=['POST'])
 def save_downtime_config():
     db = get_db()
@@ -440,46 +514,6 @@ def save_automod_config():
         upsert=True
     )
     return jsonify({"success": True})
-
-
-@app.route('/api/save-estimator-config', methods=['POST'])
-def save_estimator_config():
-    db = get_db()
-    if db is None:
-        return jsonify({"error": "Database unavailable"}), 500
-
-    data = request.json or {}
-    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
-
-    db["guild_config"].update_one(
-        {"guild_id": guild_id},
-        {"$set": {"estimator_config": data}},
-        upsert=True
-    )
-    return jsonify({"success": True})
-
-
-@app.route('/api/deploy-estimator-panel', methods=['POST'])
-def deploy_estimator_panel():
-    if _bot_ref is None or not _bot_ref.is_ready():
-        return jsonify({"error": "Bot not ready"}), 500
-
-    data = request.json or {}
-    channel_id = data.get("channel_id")
-    cog = _bot_ref.get_cog("Orca")
-
-    if not cog or not channel_id:
-        return jsonify({"error": "Invalid channel ID"}), 400
-
-    future = asyncio.run_coroutine_threadsafe(
-        cog.deploy_estimator_panel_from_web(int(channel_id)),
-        _bot_ref.loop
-    )
-    try:
-        future.result(timeout=10)
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/publish-announcement', methods=['POST'])
