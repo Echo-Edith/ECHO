@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import asyncio
 from datetime import datetime, timedelta
 from threading import Thread
 from flask import Flask, render_template_string, jsonify, request
@@ -64,6 +65,40 @@ def home():
         except Exception as e:
             return f"Error loading dashboard: {e}", 500
     return "OK", 200
+
+
+# ----------------------------------------------------------------------
+# 🔒 LOCKDOWN SYSTEM ENDPOINTS (Used by Vercel Site & Staff Panel)
+# ----------------------------------------------------------------------
+@app.route('/api/system-status', methods=['GET'])
+def system_status():
+    db = get_db()
+    if db is not None:
+        guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+        config = db["guild_config"].find_one({"guild_id": guild_id}) or db["guild_config"].find_one({}) or {}
+        return jsonify({"lockdown": config.get("lockdown", False)})
+    return jsonify({"lockdown": False})
+
+
+@app.route('/api/toggle-lockdown', methods=['POST'])
+def toggle_lockdown():
+    db = get_db()
+    if db is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.json or {}
+    new_state = data.get("lockdown", False)
+    guild_id = _bot_ref.guilds[0].id if (_bot_ref and _bot_ref.guilds) else 0
+
+    try:
+        db["guild_config"].update_one(
+            {"guild_id": guild_id},
+            {"$set": {"lockdown": new_state}},
+            upsert=True
+        )
+        return jsonify({"success": True, "lockdown": new_state})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/transcript/<transcript_id>')
@@ -139,6 +174,7 @@ def get_guild_data():
         "roles": roles,
         "bot_avatar": _bot_ref.user.display_avatar.url if (_bot_ref and _bot_ref.user) else "",
         "bot_name": _bot_ref.user.name if (_bot_ref and _bot_ref.user) else "ORCA",
+        "lockdown": config.get("lockdown", False),
         "category_configs": config.get("category_configs", {}),
         "verification_config": config.get("verification_config", {}),
         "staff_config": config.get("staff_config", {}),
@@ -668,4 +704,3 @@ def keep_alive(bot=None):
     t = Thread(target=run)
     t.daemon = True
     t.start()
-
