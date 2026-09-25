@@ -5,7 +5,6 @@ import asyncio
 import urllib.request
 from threading import Thread
 from flask import Flask, render_template, jsonify, request
-from ai_brain import AIBrain
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -102,13 +101,11 @@ MAINTENANCE_HTML = """
                 ctx.save();
                 ctx.translate(this.x, this.y);
 
-                // Body
                 ctx.fillStyle = '#09131d';
                 ctx.beginPath();
                 ctx.ellipse(0, 0, this.size, this.size * 0.7, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Tail
                 ctx.beginPath();
                 ctx.moveTo(-this.size, 0);
                 ctx.lineTo(-this.size - 25, -15);
@@ -117,7 +114,6 @@ MAINTENANCE_HTML = """
                 ctx.fillStyle = '#061a2c';
                 ctx.fill();
 
-                // Teeth & Mouth
                 ctx.strokeStyle = '#e2e8f0';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -126,7 +122,6 @@ MAINTENANCE_HTML = """
                 ctx.lineTo(this.size * 0.4, 15);
                 ctx.stroke();
 
-                // Lure Stalk
                 ctx.beginPath();
                 ctx.moveTo(this.size * 0.3, -this.size * 0.5);
                 ctx.quadraticCurveTo(this.size * 0.8, -this.size * 1.2, this.size * 1.2, -this.size * 0.2);
@@ -134,7 +129,6 @@ MAINTENANCE_HTML = """
                 ctx.lineWidth = 3;
                 ctx.stroke();
 
-                // Lure Glow Light
                 const glow = Math.sin(this.lightPulse) * 5 + 12;
                 const grad = ctx.createRadialGradient(this.size * 1.2, -this.size * 0.2, 2, this.size * 1.2, -this.size * 0.2, glow * 2);
                 grad.addColorStop(0, '#38bdf8');
@@ -170,7 +164,6 @@ MAINTENANCE_HTML = """
                 ctx.translate(this.x, this.y);
                 const currentRadius = this.radius + Math.sin(this.pulse) * 3;
 
-                // Umbrella cap
                 const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, currentRadius);
                 grad.addColorStop(0, 'rgba(147, 51, 234, 0.8)');
                 grad.addColorStop(1, 'rgba(6, 182, 212, 0.1)');
@@ -179,7 +172,6 @@ MAINTENANCE_HTML = """
                 ctx.arc(0, 0, currentRadius, Math.PI, 0);
                 ctx.fill();
 
-                // Tentacles
                 ctx.strokeStyle = 'rgba(147, 51, 234, 0.4)';
                 ctx.lineWidth = 1.5;
                 for (let i = -currentRadius + 5; i <= currentRadius - 5; i += 6) {
@@ -193,48 +185,18 @@ MAINTENANCE_HTML = """
             }
         }
 
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2 + 0.5;
-                this.speedY = -Math.random() * 0.3 - 0.1;
-                this.opacity = Math.random() * 0.5 + 0.2;
-            }
-            update() {
-                this.y += this.speedY;
-                if (this.y < 0) {
-                    this.y = canvas.height;
-                    this.x = Math.random() * canvas.width;
-                }
-            }
-            draw() {
-                ctx.fillStyle = `rgba(56, 189, 248, ${this.opacity})`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
         const creatures = [
             new Anglerfish(),
             new Anglerfish(),
-            ...Array.from({ length: 8 }, () => new Jellyfish()),
-            ...Array.from({ length: 60 }, () => new Particle())
+            ...Array.from({ length: 8 }, () => new Jellyfish())
         ];
 
         function animate() {
             ctx.fillStyle = 'rgba(1, 4, 9, 0.25)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            creatures.forEach(c => {
-                c.update();
-                c.draw();
-            });
-
+            creatures.forEach(c => { c.update(); c.draw(); });
             requestAnimationFrame(animate);
         }
-
         animate();
     </script>
 </body>
@@ -250,7 +212,6 @@ def send_discord_webhook_notification(payload):
     order_id = payload.get("order_id", "#ORD-0000")
     blueprint = payload.get("blueprint", {})
     guild_name = blueprint.get("guild_name", "Custom Server")
-    guild_id = blueprint.get("guild_id", "") or "Not Provided"
     categories = blueprint.get("categories", [])
     roles = blueprint.get("roles", [])
 
@@ -262,7 +223,6 @@ def send_discord_webhook_notification(payload):
         "color": 437012,
         "fields": [
             {"name": "Server Name", "value": f"`{guild_name}`", "inline": True},
-            {"name": "Target Guild ID", "value": f"`{guild_id}`", "inline": True},
             {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
             {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": True}
         ],
@@ -308,7 +268,6 @@ def send_discord_webhook_notification(payload):
 
 @app.before_request
 def check_lockdown():
-    """Global request handler: Blocks all traffic when site_locked is active, except the lockdown toggle API itself."""
     if site_locked and request.path != '/api/lockdown':
         if request.path.startswith('/api/'):
             return jsonify({"success": False, "error": "Website is under maintenance."}), 535
@@ -320,29 +279,12 @@ def buyer_index():
     return render_template('index.html')
 
 
-@app.route('/api/generate_server', methods=['POST'])
-def api_generate_server():
-    data = request.json or {}
-    prompt = data.get('prompt', '')
-    guild_name = data.get('guild_name', 'My Custom Discord Server')
-    
-    try:
-        blueprint = asyncio.run(AIBrain.generate_discord_blueprint(prompt, guild_name))
-        return jsonify(blueprint)
-    except Exception as e:
-        print(f"[ERROR] AI Generation failed: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route('/api/lockdown', methods=['POST', 'GET'])
 def toggle_lockdown():
     global site_locked
     state = request.args.get('state') or (request.json.get('state') if request.is_json else None)
     if state is not None:
-        if isinstance(state, str):
-            site_locked = state.lower() in ['true', '1', 'yes', 'lock']
-        else:
-            site_locked = bool(state)
+        site_locked = str(state).lower() in ['true', '1', 'yes', 'lock']
     else:
         site_locked = not site_locked
 
