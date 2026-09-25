@@ -14,12 +14,10 @@ ORCA_EMERALD = discord.Color.from_rgb(16, 185, 129)
 ORCA_RED = discord.Color.from_rgb(239, 68, 68)
 ORCA_PURPLE = discord.Color.from_rgb(147, 51, 234)
 
-# Strictly restricts emergency commands to your User ID
 AUTHORIZED_OWNER_ID = 1219266886143967245
 
 
 def create_orca_embed(title: str, description: str, color=ORCA_CYAN) -> discord.Embed:
-    """Helper function to build uniform, styled Discord embeds for all bot responses."""
     embed = discord.Embed(
         title=title,
         description=description,
@@ -32,7 +30,6 @@ def create_orca_embed(title: str, description: str, color=ORCA_CYAN) -> discord.
 
 
 class OrcaCog(commands.Cog):
-    """Core Cog for ORCA AI handling server generation, builder access, and site administration."""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -43,7 +40,6 @@ class OrcaCog(commands.Cog):
         print("[INFO] ORCA Cog successfully initialized and active.")
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        """Global error handler for commands in this cog to ensure embed response on permission failure."""
         if isinstance(error, app_commands.MissingPermissions):
             embed = create_orca_embed(
                 title="Access Denied",
@@ -60,7 +56,6 @@ class OrcaCog(commands.Cog):
         description="Launch the interactive website portal to visually design and build your server"
     )
     async def custom_server_builder_command(self, interaction: discord.Interaction):
-        """Sends a rich embedded link to the custom server builder web portal."""
         builder_url = "https://echo-dashboard-qn39.onrender.com/"
 
         embed = create_orca_embed(
@@ -93,7 +88,6 @@ class OrcaCog(commands.Cog):
     )
     @app_commands.checks.has_permissions(administrator=True)
     async def build_command(self, interaction: discord.Interaction, file: discord.Attachment = None):
-        """Executes full server build from JSON structure."""
         await interaction.response.defer(ephemeral=True)
 
         if not file:
@@ -180,7 +174,6 @@ class OrcaCog(commands.Cog):
         description="Toggle emergency deep-sea maintenance lockdown for the web server (Owner Only)"
     )
     async def lockdown_command(self, interaction: discord.Interaction, state: bool):
-        """Restricted command allowing ONLY user ID 1219266886143967245 to toggle site lockdown."""
         if interaction.user.id != AUTHORIZED_OWNER_ID:
             denied_embed = create_orca_embed(
                 title="Access Denied",
@@ -220,7 +213,6 @@ class OrcaCog(commands.Cog):
         description="Inspect ORCA bot operational metrics, WebSocket latency, and active clusters"
     )
     async def status_command(self, interaction: discord.Interaction):
-        """Displays system status in an embed for all users."""
         latency = round(self.bot.latency * 1000)
         
         embed = create_orca_embed(
@@ -239,7 +231,6 @@ class OrcaCog(commands.Cog):
         description="Display the master directory of available ORCA AI administrative and user commands"
     )
     async def help_command(self, interaction: discord.Interaction):
-        """Displays formatted help directory in a Discord Embed."""
         embed = create_orca_embed(
             title="ORCA AI -- Command Reference Directory",
             description="Overview of available slash commands for building and managing server structures.",
