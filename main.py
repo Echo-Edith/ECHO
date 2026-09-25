@@ -1,17 +1,16 @@
 import os
 import sys
 import time
-import asyncio
 import logging
 import discord
 from discord.ext import commands
 from keep_alive import keep_alive
 
-# Suppress non-critical discord logs to maintain a clean terminal
+# Suppress non-critical discord logging
 logging.getLogger('discord').setLevel(logging.ERROR)
 logging.getLogger('discord.http').setLevel(logging.ERROR)
 
-# Initialize standard bot intents required for Welcomer and Guild operations
+# Initialize standard Discord Bot intents
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
@@ -23,41 +22,46 @@ class OrcaClient(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
-        # Dynamically attempt loading the orca cog file
+        """Asynchronous setup hook for loading cogs and syncing slash commands."""
         loaded = False
         for ext in ['cogs.orca', 'orca']:
             try:
                 await self.load_extension(ext)
-                print(f"✅ Extension loaded: {ext}")
+                print(f"[SUCCESS] Extension loaded: {ext}")
                 loaded = True
                 break
             except commands.ExtensionAlreadyLoaded:
                 loaded = True
                 break
             except Exception as e:
-                print(f"⚠️ Extension load issue {ext}: {e}")
+                print(f"[WARNING] Extension load issue {ext}: {e}")
 
-        # Global sync for slash commands (including /lockdown)
         try:
             synced = await self.tree.sync()
-            print(f"🔁 Synced {len(synced)} slash command(s) globally.")
+            print(f"[INFO] Synced {len(synced)} slash command(s) globally.")
         except Exception as e:
-            print(f"❌ Failed to sync slash commands: {e}")
+            print(f"[ERROR] Failed to sync slash commands: {e}")
 
     async def on_ready(self):
-        print(f"👑 ORCA Bot online as: {self.user} (ID: {self.user.id})")
+        """Triggered when the Discord Bot connects successfully."""
+        print(f"[INFO] ORCA Bot online as: {self.user} (ID: {self.user.id})")
+        await self.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name="/custom-server | ORCA AI"
+            )
+        )
 
 
 bot = OrcaClient()
 
-
 def start_bot():
     token = os.getenv("DISCORD_TOKEN")
     if not token:
-        print("❌ CRITICAL: 'DISCORD_TOKEN' environment variable is missing!")
+        print("[CRITICAL] 'DISCORD_TOKEN' environment variable is missing!")
         sys.exit(1)
 
-    # Initialize Flask server & pass bot reference for /api endpoints
+    # Initialize Flask server for Render host & staff dashboard
     keep_alive(bot)
 
     retry_delay = 15
@@ -67,16 +71,17 @@ def start_bot():
             break
         except discord.errors.HTTPException as e:
             if getattr(e, 'status', 0) == 429:
-                print(f"⚠️ Discord 429 Rate Limit. Sleeping {retry_delay}s...")
+                print(f"[WARNING] Discord 429 Rate Limit encountered. Sleeping for {retry_delay}s...")
                 time.sleep(retry_delay)
                 retry_delay = min(retry_delay * 2, 300)
             else:
-                print(f"❌ Discord HTTP Error: {e}")
+                print(f"[ERROR] Discord HTTP Error: {e}")
                 time.sleep(10)
         except Exception as e:
-            print(f"❌ Bot runtime error: {e}")
+            print(f"[ERROR] Bot runtime error: {e}")
             time.sleep(10)
 
 
 if __name__ == "__main__":
     start_bot()
+
