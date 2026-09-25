@@ -17,16 +17,19 @@ site_locked = False
 
 
 def send_discord_webhook_notification(payload):
-    """Sends submitted server design payload directly to a Discord Channel via Webhook."""
+    """
+    Sends submitted server design payload directly to a Discord Channel via Webhook,
+    attaching the blueprint as a downloadable JSON file for immediate use with /build.
+    """
     webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
     if not webhook_url:
-        print("[INFO] DISCORD_WEBHOOK_URL not set. Skipping automated Discord message.")
+        print("[INFO] DISCORD_WEBHOOK_URL not set in environment variables. Skipping webhook dispatch.")
         return
 
     order_id = payload.get("order_id", "#ORD-0000")
     blueprint = payload.get("blueprint", {})
     guild_name = blueprint.get("guild_name", "Custom Server")
-    guild_id = blueprint.get("guild_id", "Unknown")
+    guild_id = blueprint.get("guild_id", "") or "Not Provided"
     categories = blueprint.get("categories", [])
     roles = blueprint.get("roles", [])
 
@@ -34,37 +37,61 @@ def send_discord_webhook_notification(payload):
 
     embed = {
         "title": f"📥 New Server Layout Submitted — {order_id}",
-        "description": f"A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.",
+        "description": (
+            f"A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.\n\n"
+            f"📎 **Download the attached `.json` blueprint file below** and attach it to the `/build` command in Discord."
+        ),
         "color": 437012,  # Cyan
         "fields": [
-            {"name": "Blueprint Name", "value": f"`{guild_name}`", "inline": True},
+            {"name": "Server Name", "value": f"`{guild_name}`", "inline": True},
             {"name": "Target Guild ID", "value": f"`{guild_id}`", "inline": True},
-            {"name": "Categories / Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
+            {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
             {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": True},
-            {"name": "Deployment Command", "value": f"Download the JSON file or copy it from dashboard and run `/build` in Discord.", "inline": False}
+            {"name": "Deployment Command", "value": "Run `/build` in Discord and upload the attached JSON file.", "inline": False}
         ],
-        "footer": {"text": "ORCA AI Automated Layout Logger"}
+        "footer": {"text": "ORCA AI Automated Server Infrastructure"}
     }
 
-    # Prepare attached JSON blueprint snippet
-    discord_payload = {
+    payload_json = {
         "username": "ORCA AI Dispatcher",
         "avatar_url": "https://cdn-icons-png.flaticon.com/512/4712/4712109.png",
         "embeds": [embed]
     }
 
+    # Format JSON attachment file
+    file_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
+    filename = f"blueprint_{order_id.replace('#', '')}.json"
+
+    # Construct multipart/form-data boundary for sending JSON payload + file attachment
+    boundary = f"----ORCAFormBoundary{os.urandom(12).hex()}"
+    body = bytearray()
+
+    # Part 1: payload_json metadata
+    body.extend(f"--{boundary}\r\n".encode('utf-8'))
+    body.extend(b'Content-Disposition: form-data; name="payload_json"\r\n')
+    body.extend(b'Content-Type: application/json\r\n\r\n')
+    body.extend(json.dumps(payload_json).encode('utf-8'))
+    body.extend(b"\r\n")
+
+    # Part 2: attached blueprint JSON file
+    body.extend(f"--{boundary}\r\n".encode('utf-8'))
+    body.extend(f'Content-Disposition: form-data; name="files[0]"; filename="{filename}"\r\n'.encode('utf-8'))
+    body.extend(b'Content-Type: application/json\r\n\r\n')
+    body.extend(file_bytes)
+    body.extend(b"\r\n")
+
+    # End boundary
+    body.extend(f"--{boundary}--\r\n".encode('utf-8'))
+
+    headers = {
+        'Content-Type': f'multipart/form-data; boundary={boundary}',
+        'User-Agent': 'ORCA-AI-Webhook-Client/1.0'
+    }
+
     try:
-        req = urllib.request.Request(
-            webhook_url,
-            data=json.dumps(discord_payload).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-                'User-Agent': 'ORCA-AI-Webhook'
-            }
-        )
-        with urllib.request.urlopen(req) as resp:
-            pass
-        print(f"[SUCCESS] Sent layout {order_id} to Discord Webhook channel.")
+        req = urllib.request.Request(webhook_url, data=bytes(body), headers=headers, method='POST')
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print(f"[SUCCESS] Sent layout {order_id} with attached JSON file to Discord Webhook channel.")
     except Exception as e:
         print(f"[ERROR] Webhook dispatch failed: {e}")
 
@@ -156,7 +183,7 @@ def submit_build():
         build_requests.append(data)
         total_layouts_created += 1
 
-        # Dispatch notification to Discord Webhook channel
+        # Dispatch webhook notification with attached blueprint JSON file
         send_discord_webhook_notification(data)
 
         return jsonify({"success": True, "message": "Design payload received successfully!"}), 200
