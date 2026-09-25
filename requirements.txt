@@ -1,5 +1,5 @@
-discord.py
-flask
-pymongo
-dnspython
-psutil
+discord.py>=2.3.0
+flask>=3.0.0
+pymongo>=4.5.0
+dnspython>=2.4.0
+psutil>=5.9.0
