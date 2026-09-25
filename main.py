@@ -7,9 +7,11 @@ import discord
 from discord.ext import commands
 from keep_alive import keep_alive
 
+# Suppress non-critical discord logs to maintain a clean terminal
 logging.getLogger('discord').setLevel(logging.ERROR)
 logging.getLogger('discord.http').setLevel(logging.ERROR)
 
+# Initialize standard bot intents required for Welcomer and Guild operations
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
@@ -21,6 +23,7 @@ class OrcaClient(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
+        # Dynamically attempt loading the orca cog file
         loaded = False
         for ext in ['cogs.orca', 'orca']:
             try:
@@ -34,9 +37,10 @@ class OrcaClient(commands.Bot):
             except Exception as e:
                 print(f"⚠️ Extension load issue {ext}: {e}")
 
+        # Global sync for slash commands (including /lockdown)
         try:
             synced = await self.tree.sync()
-            print(f"🔁 Synced {len(synced)} slash commands globally.")
+            print(f"🔁 Synced {len(synced)} slash command(s) globally.")
         except Exception as e:
             print(f"❌ Failed to sync slash commands: {e}")
 
@@ -53,6 +57,7 @@ def start_bot():
         print("❌ CRITICAL: 'DISCORD_TOKEN' environment variable is missing!")
         sys.exit(1)
 
+    # Initialize Flask server & pass bot reference for /api endpoints
     keep_alive(bot)
 
     retry_delay = 15
@@ -75,4 +80,3 @@ def start_bot():
 
 if __name__ == "__main__":
     start_bot()
-
