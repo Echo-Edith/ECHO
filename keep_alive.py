@@ -1,9 +1,11 @@
 import os
 import json
 import logging
+import asyncio
 import urllib.request
 from threading import Thread
 from flask import Flask, render_template, jsonify, request
+from ai_brain import AIBrain
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -17,13 +19,9 @@ site_locked = False
 
 
 def send_discord_webhook_notification(payload):
-    """
-    Sends submitted server design payload directly to a Discord Channel via Webhook,
-    attaching the blueprint as a downloadable JSON file for immediate use with /build.
-    """
     webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
     if not webhook_url:
-        print("[INFO] DISCORD_WEBHOOK_URL not set in environment variables. Skipping webhook dispatch.")
+        print("[INFO] DISCORD_WEBHOOK_URL not set. Skipping webhook dispatch.")
         return
 
     order_id = payload.get("order_id", "#ORD-0000")
@@ -37,17 +35,13 @@ def send_discord_webhook_notification(payload):
 
     embed = {
         "title": f"📥 New Server Layout Submitted — {order_id}",
-        "description": (
-            f"A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.\n\n"
-            f"📎 **Download the attached `.json` blueprint file below** and attach it to the `/build` command in Discord."
-        ),
-        "color": 437012,  # Cyan
+        "description": "A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.\n\n📎 **Download the attached `.json` blueprint file below** and attach it to the `/build` command in Discord.",
+        "color": 437012,
         "fields": [
             {"name": "Server Name", "value": f"`{guild_name}`", "inline": True},
             {"name": "Target Guild ID", "value": f"`{guild_id}`", "inline": True},
             {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
-            {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": True},
-            {"name": "Deployment Command", "value": "Run `/build` in Discord and upload the attached JSON file.", "inline": False}
+            {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": True}
         ],
         "footer": {"text": "ORCA AI Automated Server Infrastructure"}
     }
@@ -58,29 +52,22 @@ def send_discord_webhook_notification(payload):
         "embeds": [embed]
     }
 
-    # Format JSON attachment file
     file_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
     filename = f"blueprint_{order_id.replace('#', '')}.json"
-
-    # Construct multipart/form-data boundary for sending JSON payload + file attachment
     boundary = f"----ORCAFormBoundary{os.urandom(12).hex()}"
     body = bytearray()
 
-    # Part 1: payload_json metadata
     body.extend(f"--{boundary}\r\n".encode('utf-8'))
     body.extend(b'Content-Disposition: form-data; name="payload_json"\r\n')
     body.extend(b'Content-Type: application/json\r\n\r\n')
     body.extend(json.dumps(payload_json).encode('utf-8'))
     body.extend(b"\r\n")
 
-    # Part 2: attached blueprint JSON file
     body.extend(f"--{boundary}\r\n".encode('utf-8'))
     body.extend(f'Content-Disposition: form-data; name="files[0]"; filename="{filename}"\r\n'.encode('utf-8'))
     body.extend(b'Content-Type: application/json\r\n\r\n')
     body.extend(file_bytes)
     body.extend(b"\r\n")
-
-    # End boundary
     body.extend(f"--{boundary}--\r\n".encode('utf-8'))
 
     headers = {
@@ -91,89 +78,38 @@ def send_discord_webhook_notification(payload):
     try:
         req = urllib.request.Request(webhook_url, data=bytes(body), headers=headers, method='POST')
         with urllib.request.urlopen(req, timeout=10) as resp:
-            print(f"[SUCCESS] Sent layout {order_id} with attached JSON file to Discord Webhook channel.")
+            print(f"[SUCCESS] Sent layout {order_id} to Discord Webhook channel.")
     except Exception as e:
         print(f"[ERROR] Webhook dispatch failed: {e}")
 
 
 @app.route('/')
-@app.route('/staff')
-def staff_index():
-    """Renders staff control panel unless site lockdown is active."""
-    if site_locked:
-        return """
-        <body style="background:#020617;color:#06b6d4;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-            <div style="text-align:center;border:1px solid #06b6d4;padding:40px;border-radius:24px;background:#0b1329;">
-                <h1>ORCA AI -- ACCESS LOCKED</h1>
-                <p style="color:#94a3b8;">This website portal is currently under administrator lockdown.</p>
-            </div>
-        </body>
-        """, 535
-    try:
-        return render_template('index.html')
-    except Exception as e:
-        return f"Error loading staff template: {str(e)}", 500
-
-
-@app.route('/buyer')
 def buyer_index():
-    """Renders buyer server builder."""
     if site_locked:
-        return """
-        <body style="background:#020617;color:#ef4444;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-            <div style="text-align:center;border:1px solid #ef4444;padding:40px;border-radius:24px;background:#0b1329;">
-                <h1>BUILDER UNDER LOCKDOWN</h1>
-                <p style="color:#94a3b8;">The interactive server builder has been temporarily locked by administrators.</p>
-            </div>
-        </body>
-        """, 535
+        return "<body style='background:#020617;color:#ef4444;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;'><div style='text-align:center;border:1px solid #ef4444;padding:40px;border-radius:24px;background:#0b1329;'><h1>BUILDER LOCKED</h1></div></body>", 535
+    
+    # As per image_2.png, index.html is located in the templates folder
+    return render_template('index.html')
+
+
+@app.route('/api/generate_server', methods=['POST'])
+def api_generate_server():
+    """Hooks the frontend builder to the AI Python logic."""
+    data = request.json or {}
+    prompt = data.get('prompt', '')
+    guild_name = data.get('guild_name', 'My Custom Discord Server')
+    
     try:
-        return render_template('buyer/index.html')
-    except Exception:
-        return render_template('buyer.html')
-
-
-@app.route('/healthz')
-def health_check():
-    """Dedicated endpoint for Render automated health checks."""
-    return "OK", 200
-
-
-@app.route('/api/stats', methods=['GET'])
-def get_stats():
-    """Fetches real-time bot statistics and system information."""
-    total_guilds = len(bot_ref.guilds) if bot_ref and hasattr(bot_ref, 'guilds') else 0
-    total_users = sum(g.member_count or 0 for g in bot_ref.guilds) if bot_ref and hasattr(bot_ref, 'guilds') else 0
-    latency = round(bot_ref.latency * 1000) if bot_ref and hasattr(bot_ref, 'latency') else 0
-
-    return jsonify({
-        "success": True,
-        "layouts_created": total_layouts_created,
-        "total_guilds": total_guilds,
-        "total_users": total_users,
-        "bot_latency": latency
-    }), 200
-
-
-@app.route('/api/lockdown', methods=['POST', 'GET'])
-def toggle_lockdown():
-    """Endpoint for Discord Bot or Dashboard to toggle website access lockdown."""
-    global site_locked
-    state = request.args.get('state') or (request.json.get('state') if request.is_json else None)
-    if state is not None:
-        if isinstance(state, str):
-            site_locked = state.lower() in ['true', '1', 'yes', 'lock']
-        else:
-            site_locked = bool(state)
-    else:
-        site_locked = not site_locked
-
-    return jsonify({"success": True, "site_locked": site_locked}), 200
+        # Run the async AI generation within the sync Flask route
+        blueprint = asyncio.run(AIBrain.generate_discord_blueprint(prompt, guild_name))
+        return jsonify(blueprint)
+    except Exception as e:
+        print(f"[ERROR] AI Generation failed: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/submit_build', methods=['POST'])
 def submit_build():
-    """Endpoint for buyer webpage to submit a server design payload."""
     global total_layouts_created
     try:
         data = request.json
@@ -182,19 +118,15 @@ def submit_build():
 
         build_requests.append(data)
         total_layouts_created += 1
-
-        # Dispatch webhook notification with attached blueprint JSON file
         send_discord_webhook_notification(data)
-
         return jsonify({"success": True, "message": "Design payload received successfully!"}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route('/api/requests', methods=['GET'])
-def get_requests():
-    """Endpoint for staff control panel to fetch pending build requests."""
-    return jsonify({"success": True, "requests": build_requests}), 200
+@app.route('/healthz')
+def health_check():
+    return "OK", 200
 
 
 def run():
@@ -208,4 +140,3 @@ def keep_alive(bot=None):
     t = Thread(target=run)
     t.daemon = True
     t.start()
-
