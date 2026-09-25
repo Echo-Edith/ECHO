@@ -14,6 +14,10 @@ ORCA_EMERALD = discord.Color.from_rgb(16, 185, 129)
 ORCA_RED = discord.Color.from_rgb(239, 68, 68)
 ORCA_PURPLE = discord.Color.from_rgb(147, 51, 234)
 
+# Strictly restricts emergency commands to your User ID
+AUTHORIZED_OWNER_ID = 1219266886143967245
+
+
 def create_orca_embed(title: str, description: str, color=ORCA_CYAN) -> discord.Embed:
     """Helper function to build uniform, styled Discord embeds for all bot responses."""
     embed = discord.Embed(
@@ -28,12 +32,11 @@ def create_orca_embed(title: str, description: str, color=ORCA_CYAN) -> discord.
 
 
 class OrcaCog(commands.Cog):
-    """Core Cog for ORCA AI handling server generation, custom-server linking, dashboard access, and moderation."""
+    """Core Cog for ORCA AI handling server generation, builder access, and site administration."""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.web_url = os.getenv("WEB_URL", "https://orca-seven-opal.vercel.app").rstrip("/")
-        self.dashboard_url = os.getenv("DASHBOARD_URL", "https://echo-dashboard-qn39.onrender.com").rstrip("/")
+        self.web_url = os.getenv("WEB_URL", "https://echo-dashboard-qn39.onrender.com").rstrip("/")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -53,68 +56,40 @@ class OrcaCog(commands.Cog):
                 await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(
-        name="custom-server",
-        description="Get the interactive design link to build your custom Discord server layout"
+        name="custom-server-builder",
+        description="Launch the interactive website portal to visually design and build your server"
     )
-    async def custom_server_command(self, interaction: discord.Interaction):
-        """Sends a rich embedded link to the custom server builder UI for all users."""
-        buyer_url = f"{self.web_url}/"
+    async def custom_server_builder_command(self, interaction: discord.Interaction):
+        """Sends a rich embedded link to the custom server builder web portal."""
+        builder_url = "https://echo-dashboard-qn39.onrender.com/"
 
         embed = create_orca_embed(
-            title="ORCA AI -- Custom Server Builder",
+            title="ORCA AI -- Custom Server Builder Portal",
             description=(
-                "Design your ideal Discord server structure in real-time.\n\n"
-                "Features:\n"
-                "- Live visual channel and role builder\n"
-                "- Custom categories and channels up to Discord limits\n"
-                "- AI layout prompt regenerator with named channels\n"
-                "- Direct payload submission to staff command & Webhook logger\n\n"
-                "Click the 'Open Server Builder' button below to start building."
+                "Access our web-based studio to visually model your Discord server layout.\n\n"
+                "**Builder Capabilities:**\n"
+                "- Live preview of channels, voice lounges, and roles\n"
+                "- Fine-tuned role permissions per channel\n"
+                "- AI prompt generation engine for custom topic layouts\n"
+                "- Instant JSON blueprint export for automated bot deployment\n\n"
+                "Click the **Open Server Builder** button below to launch the portal."
             ),
             color=ORCA_CYAN
         )
-        embed.add_field(name="Portal Link", value=f"`{buyer_url}`", inline=False)
+        embed.add_field(name="Builder Web Portal", value=f"`{builder_url}`", inline=False)
 
         view = discord.ui.View()
         view.add_item(discord.ui.Button(
             label="Open Server Builder",
             style=discord.ButtonStyle.link,
-            url=buyer_url
-        ))
-
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-    @app_commands.command(
-        name="dashboard",
-        description="Access the staff administration dashboard"
-    )
-    @app_commands.checks.has_permissions(administrator=True)
-    async def dashboard_command(self, interaction: discord.Interaction):
-        """Sends a rich embedded link to the staff control panel dashboard."""
-        dashboard_url = f"{self.dashboard_url}/"
-
-        embed = create_orca_embed(
-            title="ORCA AI -- Staff Dashboard",
-            description=(
-                "Access the staff administration panel to view pending server build requests and retrieve buyer deployment payloads.\n\n"
-                "Click the 'Open Staff Dashboard' button below to access the panel."
-            ),
-            color=ORCA_PURPLE
-        )
-        embed.add_field(name="Dashboard Link", value=f"`{dashboard_url}`", inline=False)
-
-        view = discord.ui.View()
-        view.add_item(discord.ui.Button(
-            label="Open Staff Dashboard",
-            style=discord.ButtonStyle.link,
-            url=dashboard_url
+            url=builder_url
         ))
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @app_commands.command(
         name="build",
-        description="Deploy a server blueprint onto this guild from an uploaded JSON file"
+        description="Automatically construct channels, categories, and roles from an uploaded JSON blueprint"
     )
     @app_commands.checks.has_permissions(administrator=True)
     async def build_command(self, interaction: discord.Interaction, file: discord.Attachment = None):
@@ -124,7 +99,7 @@ class OrcaCog(commands.Cog):
         if not file:
             error_embed = create_orca_embed(
                 title="Missing Blueprint File",
-                description="Please attach a valid `.json` blueprint file generated by the ORCA Web Builder or downloaded from the Webhook channel.",
+                description="Please attach a valid `.json` blueprint file exported from the ORCA Server Builder web app.",
                 color=ORCA_RED
             )
             await interaction.followup.send(embed=error_embed)
@@ -202,14 +177,22 @@ class OrcaCog(commands.Cog):
 
     @app_commands.command(
         name="lockdown",
-        description="Toggle emergency website portal lockdown on Vercel"
+        description="Toggle emergency deep-sea maintenance lockdown for the web server (Owner Only)"
     )
-    @app_commands.checks.has_permissions(administrator=True)
     async def lockdown_command(self, interaction: discord.Interaction, state: bool):
-        """Toggles the Vercel builder website lockdown status via API call."""
+        """Restricted command allowing ONLY user ID 1219266886143967245 to toggle site lockdown."""
+        if interaction.user.id != AUTHORIZED_OWNER_ID:
+            denied_embed = create_orca_embed(
+                title="Access Denied",
+                description="This emergency command is strictly restricted to the primary system administrator.",
+                color=ORCA_RED
+            )
+            await interaction.response.send_message(embed=denied_embed, ephemeral=True)
+            return
+
         await interaction.response.defer(ephemeral=True)
 
-        status_str = "LOCKED" if state else "UNLOCKED"
+        status_str = "ACTIVATED" if state else "DEACTIVATED"
         color = ORCA_RED if state else ORCA_EMERALD
 
         try:
@@ -221,11 +204,12 @@ class OrcaCog(commands.Cog):
             logger.warning(f"Could not trigger remote web lockdown API: {e}")
 
         embed = create_orca_embed(
-            title=f"Vercel Website Lockdown: {status_str}",
+            title=f"Website Lockdown Protocol: {status_str}",
             description=(
-                f"The Vercel builder website portal has been **{status_str.lower()}**.\n\n"
-                f"- **Target URL:** `{self.web_url}`\n"
-                f"- **Lockdown State:** `{status_str}`"
+                f"The web application status has been updated to **{status_str}**.\n\n"
+                f"- **Target Domain:** `{self.web_url}`\n"
+                f"- **Maintenance Screen:** `Deep-Sea Abyss Mode`\n"
+                f"- **Executed By:** <@{interaction.user.id}>"
             ),
             color=color
         )
@@ -233,58 +217,52 @@ class OrcaCog(commands.Cog):
 
     @app_commands.command(
         name="status",
-        description="View ORCA AI system health, latency, and operational parameters"
+        description="Inspect ORCA bot operational metrics, WebSocket latency, and active clusters"
     )
     async def status_command(self, interaction: discord.Interaction):
         """Displays system status in an embed for all users."""
         latency = round(self.bot.latency * 1000)
         
         embed = create_orca_embed(
-            title="ORCA AI -- System Status",
-            description="Current system metrics and connection status.",
+            title="ORCA AI -- Operational Status",
+            description="Real-time bot performance and platform metrics.",
             color=ORCA_CYAN
         )
-        embed.add_field(name="API Latency", value=f"`{latency} ms`", inline=True)
-        embed.add_field(name="Guild Count", value=f"`{len(self.bot.guilds)}`", inline=True)
-        embed.add_field(name="Status", value="`ONLINE & OPERATIONAL`", inline=True)
+        embed.add_field(name="Bot Latency", value=f"`{latency} ms`", inline=True)
+        embed.add_field(name="Connected Guilds", value=f"`{len(self.bot.guilds)}`", inline=True)
+        embed.add_field(name="System Health", value="`ONLINE & OPERATIONAL`", inline=True)
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(
         name="help",
-        description="View all available ORCA AI slash commands"
+        description="Display the master directory of available ORCA AI administrative and user commands"
     )
-    @app_commands.checks.has_permissions(administrator=True)
     async def help_command(self, interaction: discord.Interaction):
-        """Displays formatted help menu in a Discord Embed for administrators."""
+        """Displays formatted help directory in a Discord Embed."""
         embed = create_orca_embed(
-            title="ORCA AI -- Command Directory",
-            description="Explore available slash commands for server creation and maintenance.",
+            title="ORCA AI -- Command Reference Directory",
+            description="Overview of available slash commands for building and managing server structures.",
             color=ORCA_PURPLE
         )
         embed.add_field(
-            name="`/custom-server`",
-            value="Generates link to the interactive web builder.",
-            inline=False
-        )
-        embed.add_field(
-            name="`/dashboard`",
-            value="Generates link to the staff administration panel.",
+            name="`/custom-server-builder`",
+            value="Provides link to the web-based interactive Discord server layout tool.",
             inline=False
         )
         embed.add_field(
             name="`/build [file]`",
-            value="Deploys an uploaded JSON blueprint into channels and roles.",
+            value="Builds server categories, channels, and roles directly from an uploaded JSON blueprint.",
             inline=False
         )
         embed.add_field(
             name="`/lockdown [state]`",
-            value="Toggle emergency access lockdown for the Vercel website builder.",
+            value="Toggles web portal maintenance screen with deep-sea anomalies *(Restricted to Owner)*.",
             inline=False
         )
         embed.add_field(
             name="`/status`",
-            value="Check bot latency and server metrics.",
+            value="Displays real-time bot latency and operational statistics.",
             inline=False
         )
         
@@ -293,4 +271,3 @@ class OrcaCog(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(OrcaCog(bot))
-
