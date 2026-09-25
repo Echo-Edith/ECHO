@@ -15,8 +15,7 @@ def get_api_key():
 
 async def call_gemini_api(user_prompt: str, system_prompt: str = "") -> str:
     """
-    Calls Gemini API with exponential backoff:
-    Retries up to 5 times with delays of 1s, 2s, 4s, 8s, 16s.
+    Tier 1 Network Call: Calls Gemini API with exponential backoff retries.
     """
     api_key = get_api_key()
     if not api_key:
@@ -74,106 +73,261 @@ async def call_gemini_api(user_prompt: str, system_prompt: str = "") -> str:
 class AIBrain:
     """
     Autonomous AI Architect for ORCA Studio:
-    Handles automated website generation, custom Vercel landing pages,
-    and technical site specification building.
+    Implements a 3-tier fallback pipeline for generating Discord blueprints.
     """
 
     @staticmethod
     def _clean_code_block(raw_code: str) -> str:
-        """Strips markdown code fences (```html ... ```) from output."""
+        """Strips markdown code fences (```json ... ```) from output."""
         cleaned = re.sub(r"^```[a-zA-Z]*\n", "", raw_code.strip())
         cleaned = re.sub(r"\n```$", "", cleaned.strip())
         return cleaned.strip()
 
-    @staticmethod
-    async def generate_vercel_site(site_title: str, description: str, theme_style: str = "Deep Sea Ocean", features: list = None) -> str:
+    @classmethod
+    async def generate_discord_blueprint(cls, prompt_details: str, guild_name: str = "My Custom Server") -> dict:
         """
-        Generates a complete standalone index.html page tailored for Vercel deployment.
+        Executes the 3-Tier Fallback Generation Strategy.
         """
-        features_str = ", ".join(features) if features else "Interactive UI, Modern Responsive Layout, Smooth Animations"
+        # ==========================================
+        # TIER 1: LIVE GEMINI API (PRIMARY)
+        # ==========================================
+        if get_api_key():
+            system_prompt = (
+                "You are the Lead Discord Architect for ORCA AI. Generate a customized Discord server blueprint based on the user's prompt.\n"
+                "Output ONLY a valid raw JSON object matching this schema EXACTLY without markdown formatting:\n\n"
+                "{\n"
+                '  "blueprint": {\n'
+                '    "guild_name": "String",\n'
+                '    "roles": [\n'
+                '      {"name": "String", "color": "#HEXCOLOR"}\n'
+                '    ],\n'
+                '    "categories": [\n'
+                '      {\n'
+                '        "name": "CATEGORY NAME IN ALL CAPS",\n'
+                '        "channels": [\n'
+                '          {\n'
+                '            "name": "channel-name",\n'
+                '            "type": "text" | "voice",\n'
+                '            "permissions": {\n'
+                '              "RoleName": {"view": true/false, "send": true/false, "connect": true/false}\n'
+                '            }\n'
+                '          }\n'
+                '        ]\n'
+                '      }\n'
+                '    ]\n'
+                '  }\n'
+                "}\n\n"
+                "Rules:\n"
+                "1. Make channel names, categories, and roles EXTREMELY specific to the topic in the prompt.\n"
+                "2. Lowercase text channels with dashes (e.g. 'scrim-schedules'). Capitalize voice channels (e.g. 'Lounge Voice 1').\n"
+                "3. Provide realistic permissions per role for each channel."
+            )
+
+            user_prompt = f"Server Name: {guild_name}\nPrompt / Vision: {prompt_details}"
+
+            raw_res = await call_gemini_api(user_prompt, system_prompt)
+            if raw_res:
+                try:
+                    cleaned = cls._clean_code_block(raw_res)
+                    parsed_data = json.loads(cleaned)
+                    if "blueprint" in parsed_data:
+                        parsed_data["tier_used"] = "Tier 1 (Gemini AI)"
+                        return parsed_data
+                except Exception:
+                    pass  # Fall through to Tier 2 on JSON parse error
+
+        # ==========================================
+        # TIER 2: ALGORITHMIC PROMPT MATCHER (SECONDARY)
+        # ==========================================
+        tier_2_result = cls._tier2_keyword_matcher(prompt_details, guild_name)
+        if tier_2_result:
+            tier_2_result["tier_used"] = "Tier 2 (Keyword Intent Matcher)"
+            return tier_2_result
+
+        # ==========================================
+        # TIER 3: MODULAR SKELETON SYNTHESIZER (TERTIARY)
+        # ==========================================
+        tier_3_result = cls._tier3_synthesizer(prompt_details, guild_name)
+        tier_3_result["tier_used"] = "Tier 3 (Dynamic Structural Fallback)"
+        return tier_3_result
+
+    @classmethod
+    def _tier2_keyword_matcher(cls, prompt: str, guild_name: str) -> dict:
+        """Tier 2: Matches intent domains using comprehensive topic mapping."""
+        p = prompt.lower()
         
-        prompt = (
-            f"Site Title: {site_title}\n"
-            f"Description/Purpose: {description}\n"
-            f"Visual Theme Style: {theme_style}\n"
-            f"Required Features: {features_str}"
-        )
+        # Gaming / Esports Domain
+        if any(k in p for k in ["valorant", "gaming", "esports", "scrim", "fps", "clan", "guild", "fortnite", "league"]):
+            roles = [
+                {"name": "Owner", "color": "#f59e0b"},
+                {"name": "Admin", "color": "#06b6d4"},
+                {"name": "Moderator", "color": "#3b82f6"},
+                {"name": "VIP Player", "color": "#9333ea"},
+                {"name": "Member", "color": "#10b981"}
+            ]
+            categories = [
+                {
+                    "name": "📌 INFORMATION HUB",
+                    "channels": [
+                        {"name": "rules-and-announcements", "type": "text"},
+                        {"name": "role-assignment", "type": "text"}
+                    ]
+                },
+                {
+                    "name": "⚔️ COMPETITIVE & SCRIMS",
+                    "channels": [
+                        {"name": "lfg-find-team", "type": "text"},
+                        {"name": "scrim-schedules", "type": "text"},
+                        {"name": "vod-reviews", "type": "text"},
+                        {"name": "Squad Voice Alpha", "type": "voice"},
+                        {"name": "Squad Voice Bravo", "type": "voice"}
+                    ]
+                },
+                {
+                    "name": "💬 COMMUNITY LOUNGE",
+                    "channels": [
+                        {"name": "general-chat", "type": "text"},
+                        {"name": "clips-and-highlights", "type": "text"},
+                        {"name": "Casual Lounge Voice", "type": "voice"}
+                    ]
+                }
+            ]
+            return cls._wrap_blueprint(guild_name, roles, categories)
 
-        system_prompt = (
-            "You are the Lead Web Architect at ORCA Studio. Output ONLY raw, production-ready HTML code for a complete index.html file. "
-            "Requirements:\n"
-            "1. Use Tailwind CSS via CDN (<script src=\"https://cdn.tailwindcss.com\"></script>).\n"
-            "2. Include FontAwesome for icons (<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\">).\n"
-            "3. Ensure full mobile responsiveness and dark mode styling matched to the requested theme.\n"
-            "4. Include interactive client-side JavaScript for animations, modal toggles, or dynamic features.\n"
-            "5. Do NOT include any markdown formatting or explanatory prose outside the raw code."
-        )
+        # Store / E-commerce / Service Domain
+        if any(k in p for k in ["store", "shop", "market", "vouch", "service", "sell", "crypto", "nft"]):
+            roles = [
+                {"name": "Founder", "color": "#e11d48"},
+                {"name": "Staff", "color": "#2563eb"},
+                {"name": "Customer", "color": "#10b981"},
+                {"name": "Verified Buyer", "color": "#f59e0b"},
+                {"name": "@everyone", "color": "#94a3b8"}
+            ]
+            categories = [
+                {
+                    "name": "🛒 STOREFRONT",
+                    "channels": [
+                        {"name": "terms-of-service", "type": "text"},
+                        {"name": "products-and-pricing", "type": "text"},
+                        {"name": "customer-vouches", "type": "text"}
+                    ]
+                },
+                {
+                    "name": "🎟️ SUPPORT TICKETS",
+                    "channels": [
+                        {"name": "open-ticket", "type": "text"},
+                        {"name": "billing-support", "type": "text"}
+                    ]
+                },
+                {
+                    "name": "🔒 STAFF ONLY",
+                    "channels": [
+                        {"name": "order-logs", "type": "text"},
+                        {"name": "Staff Meeting Voice", "type": "voice"}
+                    ]
+                }
+            ]
+            return cls._wrap_blueprint(guild_name, roles, categories)
 
-        raw_res = await call_gemini_api(prompt, system_prompt)
-        if raw_res:
-            return AIBrain._clean_code_block(raw_res)
+        # Education / Study / Homework Domain
+        if any(k in p for k in ["study", "school", "class", "course", "learn", "student", "code", "dev"]):
+            roles = [
+                {"name": "Instructor", "color": "#dc2626"},
+                {"name": "TA / Helper", "color": "#ea580c"},
+                {"name": "Student", "color": "#0284c7"},
+                {"name": "@everyone", "color": "#94a3b8"}
+            ]
+            categories = [
+                {
+                    "name": "📚 COURSE RESOURCES",
+                    "channels": [
+                        {"name": "announcements", "type": "text"},
+                        {"name": "syllabus-and-links", "type": "text"}
+                    ]
+                },
+                {
+                    "name": "💬 DISCUSSION & HELP",
+                    "channels": [
+                        {"name": "homework-help", "type": "text"},
+                        {"name": "general-discussion", "type": "text"},
+                        {"name": "Study Room 1", "type": "voice"},
+                        {"name": "Study Room 2", "type": "voice"}
+                    ]
+                }
+            ]
+            return cls._wrap_blueprint(guild_name, roles, categories)
 
-        # Emergency Fallback HTML Page
-        return f"""<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{site_title}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-center p-6 text-center">
-  <div class="max-w-md p-8 rounded-2xl bg-slate-900 border border-cyan-500/30 shadow-2xl space-y-4">
-    <h1 class="text-3xl font-black text-cyan-400">{site_title}</h1>
-    <p class="text-sm text-slate-300">{description}</p>
-    <div class="pt-4">
-      <a href="#" class="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition-colors">
-        Get Started
-      </a>
-    </div>
-  </div>
-</body>
-</html>"""
+        return None  # Pass through to Tier 3 if no keyword matches
 
-    @staticmethod
-    async def generate_site_config(prompt_details: str) -> dict:
-        """
-        Parses raw user ticket requirements into a structured JSON payload for site setup.
-        """
-        prompt = f"User Request: {prompt_details}"
-        system_prompt = (
-            "Analyze the site requirements and output ONLY a valid JSON object with keys:\n"
-            "- 'title': (String)\n"
-            "- 'theme': (String - e.g., 'Deep Sea', 'Cyberpunk', 'Minimalist Dark')\n"
-            "- 'sections': (Array of Strings - e.g., ['Hero', 'Features', 'Pricing', 'Discord Invite'])\n"
-            "- 'has_lockdown_gate': (Boolean)"
-        )
+    @classmethod
+    def _tier3_synthesizer(cls, prompt: str, guild_name: str) -> dict:
+        """Tier 3: Extracts keywords dynamically from user input to assemble a custom server structure."""
+        # Clean words from prompt
+        words = re.findall(r'\b[a-zA-Z]{4,}\b', prompt.lower())
+        stop_words = {"this", "that", "with", "from", "have", "make", "want", "server", "discord", "need", "like", "some", "your"}
+        filtered_words = [w for w in words if w not in stop_words]
 
-        res = await call_gemini_api(prompt, system_prompt)
-        try:
-            cleaned_json = AIBrain._clean_code_block(res)
-            return json.loads(cleaned_json)
-        except Exception:
-            return {
-                "title": "ORCA Custom Web Project",
-                "theme": "Deep Sea Ocean",
-                "sections": ["Hero", "Features", "Contact"],
-                "has_lockdown_gate": True
+        # Dynamic topic derivation
+        topic_1 = filtered_words[0] if len(filtered_words) > 0 else "general"
+        topic_2 = filtered_words[1] if len(filtered_words) > 1 else "lounge"
+        topic_3 = filtered_words[2] if len(filtered_words) > 2 else "topics"
+
+        roles = [
+            {"name": "Owner", "color": "#f59e0b"},
+            {"name": "Admin", "color": "#06b6d4"},
+            {"name": "Moderator", "color": "#3b82f6"},
+            {"name": f"{topic_1.capitalize()} Specialist", "color": "#8b5cf6"},
+            {"name": "Member", "color": "#10b981"}
+        ]
+
+        categories = [
+            {
+                "name": "📌 INFORMATION",
+                "channels": [
+                    {"name": "welcome-and-rules", "type": "text"},
+                    {"name": "announcements", "type": "text"}
+                ]
+            },
+            {
+                "name": f"💬 {topic_1.upper()} & DISCUSSION",
+                "channels": [
+                    {"name": f"{topic_1}-chat", "type": "text"},
+                    {"name": f"{topic_2}-discussion", "type": "text"},
+                    {"name": f"{topic_3}-gallery", "type": "text"}
+                ]
+            },
+            {
+                "name": "🔊 VOICE CHANNELS",
+                "channels": [
+                    {"name": f"{topic_1.capitalize()} Voice Lounge", "type": "voice"},
+                    {"name": "General Voice 1", "type": "voice"}
+                ]
+            },
+            {
+                "name": "🛡️ STAFF HQ",
+                "channels": [
+                    {"name": "mod-logs", "type": "text"},
+                    {"name": "Staff Meeting", "type": "voice"}
+                ]
             }
+        ]
+
+        return cls._wrap_blueprint(guild_name, roles, categories)
 
     @staticmethod
-    async def answer_dev_query(client_query: str, project_context: str = "") -> str:
-        """
-        Answers client questions regarding their custom Vercel deployment and specs.
-        """
-        prompt = f"Project Context:\n{project_context}\n\nClient Question: {client_query}"
-        system_prompt = (
-            "You are ORCA Studio's Web Deployment AI. Answer client queries regarding Vercel deployments, "
-            "site features, domain setups, or custom UI modifications. Keep responses clear, helpful, and under 150 words."
-        )
+    def _wrap_blueprint(guild_name: str, roles: list, categories: list) -> dict:
+        """Injects default role permissions across all channels and formats payload."""
+        for cat in categories:
+            for ch in cat["channels"]:
+                ch["permissions"] = {
+                    r["name"]: {"view": True, "send": True, "connect": True}
+                    for r in roles
+                }
 
-        res = await call_gemini_api(prompt, system_prompt)
-        if res:
-            return res
-
-        return "Thank you for reaching out! Our web development team will review your project configuration and answer your questions shortly."
+        return {
+            "blueprint": {
+                "guild_name": guild_name,
+                "roles": roles,
+                "categories": categories
+            }
+        }
