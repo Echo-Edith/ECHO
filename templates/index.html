@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Layout Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SortableJS library for robust drag-and-drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
@@ -70,14 +72,16 @@
             box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
         }
 
-        .draggable-category {
+        .drag-handle {
             cursor: grab;
             user-select: none;
-            -webkit-user-select: none;
         }
-        .draggable-category:active {
+        .drag-handle:active {
             cursor: grabbing;
-            opacity: 0.7;
+        }
+        .sortable-ghost {
+            opacity: 0.3;
+            background: rgba(168, 85, 247, 0.2);
         }
     </style>
 </head>
@@ -85,7 +89,7 @@
 
     <div class="glass-aura"></div>
 
-    <!-- 1. FORM BUILDER -->
+    <!-- 1. BUILDER FORM -->
     <main id="page-builder" class="relative z-10 w-full max-w-xl mx-auto space-y-6 my-auto">
         <div class="text-center space-y-1">
             <h1 class="text-3xl font-extrabold tracking-tight text-white">Discord Infrastructure</h1>
@@ -111,7 +115,6 @@
                         class="glass-input w-full rounded-2xl p-3.5 text-xs font-mono transition" />
                 </div>
 
-                <!-- Channel Separator Input -->
                 <div class="space-y-2 col-span-1">
                     <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
                         Separator
@@ -136,7 +139,7 @@
         </div>
     </main>
 
-    <!-- 2. PREVIEW & EDITING PAGE -->
+    <!-- 2. PREVIEW PAGE -->
     <main id="page-preview" class="hidden relative z-10 w-full max-w-4xl mx-auto space-y-6 my-auto">
         <div class="flex justify-between items-center border-b border-white/10 pb-4">
             <h2 id="preview-server-name" class="text-2xl font-bold tracking-tight text-white">Server Blueprint</h2>
@@ -146,7 +149,6 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <!-- Left Panel: Drag-and-Drop Categories -->
             <div class="glass-card rounded-2xl p-4 space-y-4">
                 <div class="flex justify-between items-center">
                     <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Server Structure</span>
@@ -154,12 +156,10 @@
                         + Add Category
                     </button>
                 </div>
-                <div id="discord-structure-list" class="space-y-4 text-xs max-h-[480px] overflow-y-auto pr-1 select-none"></div>
+                <div id="discord-structure-list" class="space-y-3 text-xs max-h-[480px] overflow-y-auto pr-1"></div>
             </div>
 
-            <!-- Right Panel: Roles & Channel Config -->
             <div class="space-y-4">
-                <!-- Roles Box with Add Role Button -->
                 <div class="glass-card rounded-2xl p-4 space-y-3">
                     <div class="flex justify-between items-center">
                         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Configured Roles</span>
@@ -220,7 +220,7 @@
         </div>
     </main>
 
-    <!-- 3. SUCCESS PAGE (GLOWING SECURITY SHIELD ICON) -->
+    <!-- 3. SUCCESS PAGE -->
     <main id="page-success" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
         <div class="glass-card rounded-3xl p-8 space-y-6 relative overflow-hidden border border-purple-500/30">
             <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-600/30 to-blue-500/20 border border-purple-400/30 shadow-[0_0_30px_rgba(168,85,247,0.35)]">
@@ -232,7 +232,7 @@
             <div class="space-y-2">
                 <h2 class="text-2xl font-bold text-white tracking-tight">Design Submitted</h2>
                 <p class="text-xs text-gray-400 leading-relaxed">
-                    Your server blueprint and channel permissions have been dispatched to the webhook queue for creation.
+                    Your layout and permissions have been transmitted through your Discord webhook.
                 </p>
             </div>
 
@@ -246,7 +246,7 @@
         let serverBlueprint = null;
         let activeCatIndex = 0;
         let activeChIndex = 0;
-        let draggedCategoryIndex = null;
+        let sortableInstance = null;
 
         const DISCORD_PERMISSIONS = [
             { key: "view_channel", label: "View Channel" },
@@ -341,7 +341,7 @@
                  </span>`
             ).join('');
 
-            // Role Select Options
+            // Select Role List Options
             const roleSelect = document.getElementById('perm-role-select');
             const currentSelectedRole = roleSelect.value;
             roleSelect.innerHTML = (serverBlueprint.roles || []).map(r => 
@@ -357,14 +357,11 @@
 
             (serverBlueprint.categories || []).forEach((cat, catIdx) => {
                 const catDiv = document.createElement('div');
-                catDiv.className = 'draggable-category glass-card rounded-xl p-2.5 space-y-2 border border-white/5 select-none';
-                catDiv.draggable = true;
-                catDiv.ondragstart = (e) => handleDragStart(e, catIdx);
-                catDiv.ondragover = (e) => handleDragOver(e);
-                catDiv.ondrop = (e) => handleDrop(e, catIdx);
+                catDiv.className = 'glass-card rounded-xl p-2.5 space-y-2 border border-white/5';
+                catDiv.setAttribute('data-id', catIdx);
 
                 let catHtml = `
-                    <div class="flex justify-between items-center cursor-grab select-none">
+                    <div class="flex justify-between items-center drag-handle py-1">
                         <span class="font-semibold text-purple-300 uppercase text-[10px]">⋮⋮ ${escapeHtml(cat.name)}</span>
                         <button onclick="addChannel(${catIdx})" class="text-[9px] text-purple-400 hover:text-purple-300 font-semibold px-2 py-0.5 rounded bg-purple-500/10">
                             + Add Channel
@@ -387,27 +384,26 @@
                 listContainer.appendChild(catDiv);
             });
 
+            initSortable();
             loadEditorValues();
         }
 
-        /* Category Drag-and-Drop Handlers */
-        function handleDragStart(e, index) {
-            draggedCategoryIndex = index;
-            e.dataTransfer.effectAllowed = 'move';
-        }
+        // Initialize SortableJS on Category List
+        function initSortable() {
+            const listContainer = document.getElementById('discord-structure-list');
+            if (sortableInstance) sortableInstance.destroy();
 
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-        }
-
-        function handleDrop(e, targetIndex) {
-            e.preventDefault();
-            if (draggedCategoryIndex === null || draggedCategoryIndex === targetIndex) return;
-            const catToMove = serverBlueprint.categories.splice(draggedCategoryIndex, 1)[0];
-            serverBlueprint.categories.splice(targetIndex, 0, catToMove);
-            draggedCategoryIndex = null;
-            renderPreview();
+            sortableInstance = new Sortable(listContainer, {
+                handle: '.drag-handle',
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                onEnd: function (evt) {
+                    const movedItem = serverBlueprint.categories.splice(evt.oldIndex, 1)[0];
+                    serverBlueprint.categories.splice(evt.newIndex, 0, movedItem);
+                    activeCatIndex = evt.newIndex;
+                    renderPreview();
+                }
+            });
         }
 
         function addRole() {
@@ -529,11 +525,13 @@
             if (btn) btn.disabled = true;
 
             try {
-                await fetch('/api/submit-design', {
+                const res = await fetch('/api/submit-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(serverBlueprint)
                 });
+                const responseData = await res.json();
+                console.log('Submission Response:', responseData);
             } catch (err) {
                 console.error("Webhook submission error:", err);
             } finally {
