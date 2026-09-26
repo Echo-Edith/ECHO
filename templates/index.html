@@ -22,7 +22,33 @@
                             700: '#0e7490',
                             800: '#155e75',
                             900: '#164e63',
-                            950: '#083344',
+                            950: '#031726',
+                        }
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 4s infinite ease-in-out',
+                        'float-slow': 'floatSlow 12s infinite ease-in-out',
+                        'jelly-swim': 'jellySwim 14s infinite ease-in-out',
+                        'angler-sway': 'anglerSway 8s infinite ease-in-out',
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: '0.4', filter: 'drop-shadow(0 0 15px rgba(6,182,212,0.4))' },
+                            '50%': { opacity: '0.9', filter: 'drop-shadow(0 0 35px rgba(34,211,238,0.8))' },
+                        },
+                        floatSlow: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-25px) rotate(3deg)' },
+                        },
+                        jellySwim: {
+                            '0%': { transform: 'translateY(100vh) scale(0.8)', opacity: '0' },
+                            '20%': { opacity: '0.6' },
+                            '80%': { opacity: '0.6' },
+                            '100%': { transform: 'translateY(-20vh) scale(1.1)', opacity: '0' },
+                        },
+                        anglerSway: {
+                            '0%, 100%': { transform: 'translateX(0px) translateY(0px)' },
+                            '50%': { transform: 'translateX(15px) translateY(-10px)' },
                         }
                     }
                 }
@@ -31,259 +57,482 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #030712;
+            background: radial-gradient(circle at 50% 0%, #082f49 0%, #031726 40%, #020617 100%);
             color: #f3f4f6;
+            overflow-x: hidden;
         }
+
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #111827;
+            background: #020617;
         }
         ::-webkit-scrollbar-thumb {
-            background: #1f2937;
+            background: #0e7490;
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #374151;
+            background: #06b6d4;
+        }
+
+        /* Octopus Glass Tank Wall Sticky Easter Egg */
+        #easter-egg-octopus {
+            position: fixed;
+            bottom: 20px;
+            right: -150px;
+            width: 140px;
+            height: 140px;
+            pointer-events: none;
+            z-index: 10;
+            transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.5));
+        }
+
+        #easter-egg-octopus.stuck {
+            right: 20px;
+            opacity: 0.85;
+            transform: scale(1.05) rotate(-5deg);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col bg-gray-950 text-gray-100 antialiased selection:bg-cyan-500 selection:text-white">
+<body class="min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-white relative">
 
-    <!-- Top Header Navigation -->
-    <header class="w-full border-b border-gray-800/80 bg-gray-900/60 backdrop-blur-xl sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 ring-1 ring-white/20">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">ORCA AI</h1>
-                    <p class="text-xs text-gray-400 font-medium">Server Studio & Infrastructure Engine</p>
-                </div>
-            </div>
+    <!-- DEEP SEA REALISTIC ANIMATED BACKGROUND LAYER -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <!-- Floating Light Rays -->
+        <div class="absolute -top-40 left-1/4 w-96 h-[800px] bg-gradient-to-b from-cyan-500/10 via-teal-500/5 to-transparent blur-3xl transform -rotate-12 animate-pulse-glow"></div>
+        <div class="absolute -top-40 right-1/4 w-96 h-[800px] bg-gradient-to-b from-blue-500/10 via-cyan-500/5 to-transparent blur-3xl transform rotate-12 animate-pulse-glow"></div>
 
-            <div class="flex items-center space-x-3">
-                <button onclick="resetStudio()" class="px-3.5 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold border border-gray-700 transition duration-150">
-                    Clear Studio
-                </button>
-                <button onclick="exportBlueprintJSON()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white text-xs font-semibold shadow-lg shadow-cyan-500/25 transition duration-150 flex items-center space-x-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                    <span>Export JSON</span>
-                </button>
-            </div>
+        <!-- Realistic Deep Sea Bioluminescent Jellyfish -->
+        <svg class="absolute left-[10%] w-32 h-44 animate-jelly-swim opacity-40" style="animation-delay: 0s;" viewBox="0 0 100 140" fill="none">
+            <path d="M10 40 C 10 10, 90 10, 90 40 C 90 55, 70 60, 50 60 C 30 60, 10 55, 10 40 Z" fill="url(#jelly-grad)" />
+            <path d="M20 55 Q 15 90 25 130" stroke="#38bdf8" stroke-width="2" stroke-dasharray="2 2"/>
+            <path d="M35 58 Q 45 95 30 135" stroke="#22d3ee" stroke-width="2.5"/>
+            <path d="M50 60 Q 50 100 55 140" stroke="#818cf8" stroke-width="2"/>
+            <path d="M65 58 Q 55 95 70 135" stroke="#22d3ee" stroke-width="2.5"/>
+            <path d="M80 55 Q 85 90 75 130" stroke="#38bdf8" stroke-width="2" stroke-dasharray="2 2"/>
+            <defs>
+                <linearGradient id="jelly-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+                    <stop offset="100%" stop-color="#818cf8" stop-opacity="0.1"/>
+                </linearGradient>
+            </defs>
+        </svg>
+
+        <!-- Deep Sea Anglerfish Silhouette with Bioluminescent Lure -->
+        <div class="absolute bottom-12 left-8 animate-angler-sway opacity-50 hidden md:block">
+            <svg class="w-48 h-32" viewBox="0 0 200 130" fill="none">
+                <!-- Lure Globe -->
+                <circle cx="160" cy="25" r="7" fill="#67e8f9" class="animate-ping" />
+                <circle cx="160" cy="25" r="5" fill="#a5f3fc" />
+                <!-- Stalk -->
+                <path d="M 60 45 Q 110 -10 160 25" stroke="#0891b2" stroke-width="3" fill="none" />
+                <!-- Fish Body -->
+                <path d="M 20 60 C 10 20, 90 20, 100 50 C 110 80, 70 110, 30 90 Z" fill="#031726" stroke="#0e7490" stroke-width="2" />
+                <!-- Teeth -->
+                <path d="M 85 55 L 90 65 L 80 63 L 88 72 L 75 70" stroke="#cffefb" stroke-width="2" />
+                <!-- Eye -->
+                <circle cx="75" cy="42" r="3" fill="#38bdf8" />
+            </svg>
         </div>
-    </header>
 
-    <!-- Main Workspace Grid -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Sticky Tank Octopus Easter Egg -->
+        <div id="easter-egg-octopus">
+            <svg viewBox="0 0 120 120" fill="none">
+                <!-- Octopus Head -->
+                <ellipse cx="60" cy="45" rx="35" ry="30" fill="#0891b2" opacity="0.9" />
+                <!-- Eyes -->
+                <circle cx="48" cy="45" r="5" fill="#f3f4f6" />
+                <circle cx="48" cy="45" r="2" fill="#020617" />
+                <circle cx="72" cy="45" r="5" fill="#f3f4f6" />
+                <circle cx="72" cy="45" r="2" fill="#020617" />
+                <!-- Tentacles sticking to glass -->
+                <path d="M 35 65 Q 10 80 15 110 Q 25 100 40 75" fill="#06b6d4"/>
+                <path d="M 45 70 Q 30 95 35 115 Q 50 100 52 75" fill="#0891b2"/>
+                <path d="M 60 72 Q 60 100 65 118 Q 72 100 68 72" fill="#06b6d4"/>
+                <path d="M 75 70 Q 90 95 85 115 Q 70 100 68 75" fill="#0891b2"/>
+                <path d="M 85 65 Q 110 80 105 110 Q 95 100 80 75" fill="#06b6d4"/>
+                <!-- Suction Cups -->
+                <circle cx="18" cy="100" r="3" fill="#cffefb" opacity="0.8"/>
+                <circle cx="36" cy="108" r="3" fill="#cffefb" opacity="0.8"/>
+                <circle cx="65" cy="110" r="3" fill="#cffefb" opacity="0.8"/>
+                <circle cx="86" cy="108" r="3" fill="#cffefb" opacity="0.8"/>
+                <circle cx="102" cy="100" r="3" fill="#cffefb" opacity="0.8"/>
+            </svg>
+        </div>
+    </div>
 
-        <!-- Left Controls & AI Design Generator (5 Columns) -->
-        <section class="lg:col-span-5 flex flex-col space-y-6">
+    <!-- MAIN APP WRAPPER -->
+    <div class="relative z-10 flex-1 flex flex-col">
 
-            <!-- Prompt & Description Generator Block -->
-            <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-5 shadow-xl backdrop-blur-md relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-emerald-500"></div>
-
-                <div class="flex items-center justify-between mb-3">
-                    <label for="prompt-input" class="text-sm font-semibold text-gray-200 flex items-center space-x-2">
-                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        <span>Describe Your Server Concept</span>
-                    </label>
-                    <span class="text-[10px] font-mono uppercase bg-cyan-950 text-cyan-400 px-2 py-0.5 rounded border border-cyan-800/50">Gemini Powered</span>
-                </div>
-
-                <!-- Chat Box Text Area Input -->
-                <div class="relative mb-4">
-                    <textarea id="prompt-input" rows="5" 
-                        class="w-full p-3.5 rounded-xl bg-gray-950/80 text-gray-100 placeholder-gray-500 border border-gray-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-sm transition resize-none" 
-                        placeholder="e.g., A futuristic cyberpunk esports hub with tactical callout channels, team lobbies, streaming rooms, and automated VIP rank progression..."></textarea>
-                </div>
-
-                <!-- Theme Selector Modal Dropdown Directly BELOW the Description Chat Box -->
-                <div class="mb-5 bg-gray-950/90 p-3.5 rounded-xl border border-gray-800/80 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <label for="theme-select" class="text-xs font-semibold text-gray-300">Preset Theme Visuals & Icon Overrides</label>
-                        <span class="text-[10px] text-gray-500">Optional Modifier</span>
-                    </div>
-                    <select id="theme-select" class="w-full p-2.5 rounded-lg bg-gray-900 text-gray-200 text-xs border border-gray-700 focus:border-cyan-500 outline-none transition cursor-pointer">
-                        <option value="custom" selected>Dynamic AI Generative Mode (Fully Custom)</option>
-                        <option value="gaming">Gaming & Competitive Esports Community</option>
-                        <option value="anime">Anime, Lofi & Music Hangout Lounge</option>
-                        <option value="cyberpunk">Cyberpunk, Software Dev & Hacker Matrix</option>
-                        <option value="chill">Chill Social Study & Creative Art Hub</option>
-                    </select>
-                </div>
-
-                <!-- Attach Photo Button & Main AI Generate Action -->
+        <!-- Top Header Navigation -->
+        <header class="w-full border-b border-cyan-900/40 bg-slate-950/70 backdrop-blur-xl sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <div class="flex items-center space-x-3">
-                    <button type="button" onclick="openPhotoPickerActionSheet()" class="flex-1 py-2.5 px-3 rounded-xl bg-gray-800 hover:bg-gray-700/80 text-gray-300 border border-gray-700 text-xs font-medium transition duration-150 flex items-center justify-center space-x-2">
-                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-700 via-teal-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 ring-1 ring-white/20">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                         </svg>
-                        <span>Attach Image</span>
-                    </button>
-
-                    <button type="button" id="btn-generate" onclick="generateLayoutFromAI()" class="flex-[1.5] py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white text-xs font-bold shadow-lg shadow-cyan-600/20 transition duration-150 flex items-center justify-center space-x-2">
-                        <svg id="generate-spinner" class="w-4 h-4 hidden animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span id="generate-btn-text">Build Custom Architecture</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Global Guild Settings Panel -->
-            <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-5 shadow-xl space-y-4">
-                <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">Guild Infrastructure Settings</h2>
-
-                <div>
-                    <label class="block text-xs font-medium text-gray-300 mb-1">Server Title</label>
-                    <input type="text" id="guild-name-input" value="Custom Community Realm" class="w-full p-2.5 rounded-lg bg-gray-950 text-gray-100 border border-gray-800 text-xs focus:border-cyan-500 outline-none">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-300 mb-1">Channel Separator</label>
-                        <input type="text" id="separator-input" value="│" class="w-full p-2.5 rounded-lg bg-gray-950 text-gray-100 border border-gray-800 text-xs focus:border-cyan-500 outline-none text-center">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-300 mb-1">Server Icon URL</label>
-                        <input type="text" id="guild-icon-input" placeholder="https://..." class="w-full p-2.5 rounded-lg bg-gray-950 text-gray-100 border border-gray-800 text-xs focus:border-cyan-500 outline-none">
+                        <h1 class="text-lg font-bold bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">ORCA AI</h1>
+                        <p class="text-xs text-cyan-300/70 font-medium">Deep-Sea Server Architecture Engine</p>
                     </div>
                 </div>
-            </div>
 
-            <!-- Role Management Sandbox -->
-            <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">Server Roles Hierarchy</h2>
-                    <button onclick="addRolePrompt()" class="px-2.5 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-400 border border-cyan-800/60 text-[11px] font-semibold transition">
-                        + Add Role
+                <div class="flex items-center space-x-3">
+                    <button id="nav-back-btn" onclick="goBackPage()" class="hidden px-3.5 py-2 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 text-xs font-semibold border border-cyan-800/80 transition duration-150 flex items-center space-x-1">
+                        <span>← Go Back</span>
+                    </button>
+                    <button onclick="resetStudio()" class="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-gray-300 text-xs font-semibold border border-slate-700 transition duration-150">
+                        Clear Studio
+                    </button>
+                    <button onclick="exportBlueprintJSON()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-500 hover:from-cyan-500 hover:to-teal-400 text-white text-xs font-semibold shadow-lg shadow-cyan-500/25 transition duration-150 flex items-center space-x-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        <span>Export JSON</span>
                     </button>
                 </div>
-
-                <div id="roles-list-container" class="space-y-2 overflow-y-auto max-h-64 pr-1">
-                    <!-- Dynamic Roles Injected Here -->
-                </div>
             </div>
+        </header>
 
-        </section>
-
-        <!-- Right Discord Layout Visual Preview Studio (7 Columns) -->
-        <section class="lg:col-span-7 flex flex-col space-y-4">
-
-            <div class="bg-gray-900/90 border border-gray-800 rounded-2xl flex-1 flex flex-col shadow-2xl overflow-hidden min-h-[600px]">
+        <!-- PAGE 1: LANDING PAGE -->
+        <section id="page-1" class="page-view flex-1 max-w-5xl mx-auto w-full px-4 py-12 flex flex-col items-center justify-center text-center">
+            <div class="p-8 md:p-12 rounded-3xl bg-slate-900/60 border border-cyan-900/50 backdrop-blur-2xl shadow-2xl space-y-6 max-w-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400"></div>
                 
-                <!-- Mock Discord Guild Banner -->
-                <div class="h-20 bg-gradient-to-r from-slate-900 via-cyan-950 to-gray-900 border-b border-gray-800 p-4 flex items-center justify-between relative">
-                    <div class="flex items-center space-x-3 z-10">
-                        <div id="preview-icon-box" class="w-12 h-12 rounded-2xl bg-cyan-600 border-2 border-gray-800 flex items-center justify-center font-bold text-white shadow-lg text-lg overflow-hidden">
-                            C
-                        </div>
-                        <div>
-                            <h2 id="preview-guild-name" class="text-sm font-bold text-gray-100 flex items-center space-x-1.5">
-                                <span>Custom Community Realm</span>
-                                <svg class="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                            </h2>
-                            <p class="text-[11px] text-gray-400">Interactive Infrastructure Blueprint Preview</p>
-                        </div>
-                    </div>
-
-                    <button onclick="addCategoryPrompt()" class="z-10 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-200 border border-gray-700 transition">
-                        + Add Category
-                    </button>
+                <div class="w-20 h-20 mx-auto rounded-2xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center shadow-inner text-cyan-400">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
                 </div>
 
-                <!-- Main Discord Interactive Channel Workspace -->
-                <div id="discord-canvas" class="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-950/60">
-                    <!-- Dynamic Interactive Categories and Channels rendering area -->
+                <h2 class="text-3xl font-extrabold text-white tracking-tight">Welcome to <span class="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">ORCA AI</span> Studio</h2>
+                
+                <p class="text-sm text-cyan-100/80 leading-relaxed">
+                    Craft high-performance Discord server blueprints, role hierarchies, dynamic channel setups, and strict permission maps powered directly by the ORCA AI engine.
+                </p>
+
+                <div class="pt-4">
+                    <button onclick="navigateToPage(2)" class="px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-bold text-sm shadow-xl shadow-cyan-500/20 transform hover:-translate-y-0.5 transition duration-200 flex items-center justify-center space-x-2 mx-auto">
+                        <span>Design Server</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 2: DESIGNING PAGE -->
+        <section id="page-2" class="page-view hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Controls (5 Columns) -->
+            <div class="lg:col-span-5 flex flex-col space-y-6">
+
+                <!-- 1. GUILD INFRASTRUCTURE SETTINGS (PLACED ON TOP) -->
+                <div class="bg-slate-900/70 border border-cyan-900/50 rounded-2xl p-5 shadow-xl backdrop-blur-xl space-y-4">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        </svg>
+                        <span>GUILD INFRASTRUCTURE SETTINGS</span>
+                    </h2>
+
+                    <div>
+                        <label class="block text-xs font-medium text-cyan-200 mb-1">Server Title</label>
+                        <input type="text" id="guild-name-input" value="Custom Community Realm" class="w-full p-2.5 rounded-lg bg-slate-950 text-gray-100 border border-cyan-900/80 text-xs focus:border-cyan-400 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-cyan-200 mb-1">Channel Separator Symbol</label>
+                        <input type="text" id="separator-input" value="│" class="w-full p-2.5 rounded-lg bg-slate-950 text-gray-100 border border-cyan-900/80 text-xs focus:border-cyan-400 outline-none text-center">
+                    </div>
+                </div>
+
+                <!-- 2. DESCRIBE YOUR SERVER CONCEPT -->
+                <div class="bg-slate-900/70 border border-cyan-900/50 rounded-2xl p-5 shadow-xl backdrop-blur-xl relative overflow-hidden space-y-4">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-emerald-500"></div>
+
+                    <div class="flex items-center justify-between">
+                        <label for="prompt-input" class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            <span>Describe Your Server Concept</span>
+                        </label>
+                        <span class="text-[10px] font-mono uppercase bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-800">ORCA AI Engine</span>
+                    </div>
+
+                    <textarea id="prompt-input" rows="4" 
+                        class="w-full p-3.5 rounded-xl bg-slate-950/90 text-gray-100 placeholder-gray-500 border border-cyan-900/80 focus:border-cyan-400 outline-none text-xs transition resize-none" 
+                        placeholder="e.g., Tactical esports guild with team lobbies, announcement hubs, and automated VIP rank structures..."></textarea>
+
+                    <div class="bg-slate-950/80 p-3 rounded-xl border border-cyan-900/60 space-y-1.5">
+                        <label for="theme-select" class="text-xs font-semibold text-cyan-200">Preset Theme Modifiers</label>
+                        <select id="theme-select" class="w-full p-2 rounded-lg bg-slate-900 text-gray-200 text-xs border border-cyan-900 outline-none cursor-pointer">
+                            <option value="custom" selected>ORCA Generative Engine (Custom)</option>
+                            <option value="gaming">Esports & Competitive Gaming</option>
+                            <option value="anime">Anime, Lofi & Music Lounge</option>
+                            <option value="cyberpunk">Cyberpunk, Software Dev & Hacker Matrix</option>
+                            <option value="chill">Chill Social Study & Creative Hub</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center space-x-3">
+                        <button type="button" onclick="openPhotoPickerActionSheet()" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700 text-xs font-medium transition flex items-center justify-center space-x-2">
+                            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span>Attach Image</span>
+                        </button>
+
+                        <button type="button" id="btn-generate" onclick="generateLayoutFromAI()" class="flex-[1.5] py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white text-xs font-bold shadow-lg shadow-cyan-600/20 transition flex items-center justify-center space-x-2">
+                            <svg id="generate-spinner" class="w-4 h-4 hidden animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span id="generate-btn-text">Generate Blueprint</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Roles Sandbox -->
+                <div class="bg-slate-900/70 border border-cyan-900/50 rounded-2xl p-5 shadow-xl backdrop-blur-xl flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-cyan-400">Server Roles Hierarchy</h2>
+                        <button onclick="addRolePrompt()" class="px-2.5 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-[11px] font-semibold transition">
+                            + Add Role
+                        </button>
+                    </div>
+                    <div id="roles-list-container" class="space-y-2 overflow-y-auto max-h-48 pr-1"></div>
                 </div>
 
             </div>
 
+            <!-- Preview Pane (7 Columns) -->
+            <div class="lg:col-span-7 flex flex-col space-y-4">
+                <div class="bg-slate-900/80 border border-cyan-900/60 rounded-2xl flex-1 flex flex-col shadow-2xl overflow-hidden min-h-[550px]">
+                    <div class="h-16 bg-slate-950/90 border-b border-cyan-900/40 p-4 flex items-center justify-between">
+                        <h3 id="preview-guild-name" class="text-sm font-bold text-gray-100 flex items-center space-x-2">
+                            <span>Custom Community Realm</span>
+                        </h3>
+                        <button onclick="addCategoryPrompt()" class="px-3 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-xs font-semibold text-cyan-300 border border-cyan-800 transition">
+                            + Add Category
+                        </button>
+                    </div>
+
+                    <div id="discord-canvas" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-950/70"></div>
+
+                    <!-- Generate Server Action to go to Layout Preview Page -->
+                    <div class="p-4 border-t border-cyan-900/50 bg-slate-950/90 flex justify-end">
+                        <button onclick="navigateToPage(3)" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition">
+                            Generate Server →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
-    </main>
+        <!-- PAGE 3: DISCORD LAYOUT PAGE -->
+        <section id="page-3" class="page-view hidden flex-1 max-w-4xl w-full mx-auto px-4 py-8 flex flex-col space-y-6">
+            <div class="bg-slate-900/80 border border-cyan-900/60 rounded-2xl p-6 shadow-2xl backdrop-blur-2xl space-y-6">
+                <div class="border-b border-cyan-900/40 pb-4 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-cyan-300">Final Architecture Layout</h2>
+                        <p class="text-xs text-cyan-100/70">Review structure, categories, and channels before sending to staff.</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 text-xs font-mono">Ready for Dispatch</span>
+                </div>
 
-    <!-- iOS Native Style Photo Action Sheet Popup Modal (Matching Uploaded Image) -->
+                <div id="layout-summary-canvas" class="space-y-4 max-h-[450px] overflow-y-auto pr-2"></div>
+
+                <div class="pt-4 flex items-center justify-between border-t border-cyan-900/40">
+                    <button onclick="navigateToPage(2)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs font-semibold transition">
+                        ← Edit Blueprint
+                    </button>
+                    <button onclick="navigateToPage(4)" class="px-7 py-3 rounded-xl bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 transition">
+                        Send to Staff
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 4: DISPATCH CONFIRMATION PAGE -->
+        <section id="page-4" class="page-view hidden flex-1 max-w-3xl mx-auto w-full px-4 py-16 flex flex-col items-center justify-center text-center">
+            <div class="p-10 rounded-3xl bg-slate-900/80 border border-cyan-900/60 backdrop-blur-2xl shadow-2xl space-y-6 max-w-lg relative overflow-hidden">
+                <div class="w-16 h-16 mx-auto rounded-full bg-emerald-950 border border-emerald-500/50 flex items-center justify-center text-emerald-400">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+
+                <h2 class="text-2xl font-bold text-white">Blueprint Sent to Staff!</h2>
+                <p class="text-xs text-cyan-100/80 leading-relaxed">
+                    Your custom server architecture has been successfully submitted to the ORCA AI team. Our deployment bots and staff will begin construction immediately.
+                </p>
+
+                <div class="pt-4">
+                    <button onclick="resetAndReturnLanding()" class="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg transition">
+                        Design a New Server
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- FULL DISCORD PERMISSION MATRIX EDIT MODAL -->
+    <div id="permission-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl bg-slate-900 border border-cyan-900/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div class="p-4 border-b border-cyan-900/60 bg-slate-950 flex items-center justify-between">
+                <div>
+                    <h3 id="modal-target-title" class="text-sm font-bold text-cyan-300">Edit Permissions</h3>
+                    <p class="text-[11px] text-gray-400">Configure Discord role access controls with 1-click toggles</p>
+                </div>
+                <button onclick="closePermissionModal()" class="text-gray-400 hover:text-white font-bold text-base">✕</button>
+            </div>
+
+            <!-- Role Selector Tabs inside Modal -->
+            <div id="modal-role-tabs" class="flex border-b border-cyan-900/40 bg-slate-950/60 overflow-x-auto p-2 space-x-2"></div>
+
+            <!-- Permissions Toggle Grid -->
+            <div class="p-5 overflow-y-auto flex-1 space-y-6">
+                <div id="modal-permissions-list" class="space-y-4"></div>
+            </div>
+
+            <div class="p-4 border-t border-cyan-900/60 bg-slate-950 flex justify-end">
+                <button onclick="closePermissionModal()" class="px-5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition">
+                    Save & Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PHOTO PICKER ACTION SHEET -->
     <div id="photo-picker-sheet" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center p-4">
-        <div class="w-full max-w-sm bg-neutral-200 dark:bg-neutral-800/95 rounded-2xl overflow-hidden shadow-2xl mb-2 sm:mb-0 divide-y divide-neutral-300 dark:divide-neutral-700 border border-neutral-700/50">
-            <button type="button" onclick="triggerPicker('library')" class="w-full px-5 py-4 text-left flex items-center justify-between text-base font-normal text-neutral-900 dark:text-neutral-100 active:bg-neutral-300 dark:active:bg-neutral-700 transition">
+        <div class="w-full max-w-sm bg-slate-900 border border-cyan-900/80 rounded-2xl overflow-hidden shadow-2xl divide-y divide-slate-800">
+            <button type="button" onclick="triggerPicker('library')" class="w-full px-5 py-4 text-left flex items-center justify-between text-sm text-gray-200 hover:bg-slate-800 transition">
                 <span>Photo Library</span>
-                <svg class="w-6 h-6 text-neutral-600 dark:text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
+                <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             </button>
-            <button type="button" onclick="triggerPicker('camera')" class="w-full px-5 py-4 text-left flex items-center justify-between text-base font-normal text-neutral-900 dark:text-neutral-100 active:bg-neutral-300 dark:active:bg-neutral-700 transition">
+            <button type="button" onclick="triggerPicker('camera')" class="w-full px-5 py-4 text-left flex items-center justify-between text-sm text-gray-200 hover:bg-slate-800 transition">
                 <span>Take Photo or Video</span>
-                <svg class="w-6 h-6 text-neutral-600 dark:text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 00-2-2V9z"/>
-                    <circle cx="12" cy="13" r="3"/>
-                </svg>
+                <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 00-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
             </button>
-            <button type="button" onclick="triggerPicker('file')" class="w-full px-5 py-4 text-left flex items-center justify-between text-base font-normal text-neutral-900 dark:text-neutral-100 active:bg-neutral-300 dark:active:bg-neutral-700 transition">
+            <button type="button" onclick="triggerPicker('file')" class="w-full px-5 py-4 text-left flex items-center justify-between text-sm text-gray-200 hover:bg-slate-800 transition">
                 <span>Choose File</span>
-                <svg class="w-6 h-6 text-neutral-600 dark:text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                </svg>
+                <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
             </button>
         </div>
-        <!-- Native Hidden HTML File Inputs -->
         <input type="file" id="input-library" class="hidden" accept="image/*" />
         <input type="file" id="input-camera" class="hidden" accept="image/*,video/*" capture="environment" />
         <input type="file" id="input-file" class="hidden" />
     </div>
 
-    <!-- Application JavaScript Engine -->
+    <!-- APPLICATION SCRIPT LOGIC -->
     <script>
-        // State Management
+        // DISCORD FULL PERMISSION DEFINITIONS
+        const DISCORD_PERMISSIONS = [
+            { key: "view_channel", label: "View Channels" },
+            { key: "manage_channels", label: "Manage Channels" },
+            { key: "manage_roles", label: "Manage Roles" },
+            { key: "send_messages", label: "Send Messages" },
+            { key: "embed_links", label: "Embed Links" },
+            { key: "attach_files", label: "Attach Files" },
+            { key: "add_reactions", label: "Add Reactions" },
+            { key: "use_external_emojis", label: "Use External Emojis" },
+            { key: "mention_everyone", label: "Mention @everyone" },
+            { key: "manage_messages", label: "Manage Messages" },
+            { key: "read_message_history", label: "Read Message History" },
+            { key: "connect", label: "Connect (Voice)" },
+            { key: "speak", label: "Speak (Voice)" },
+            { key: "stream", label: "Video / Stream" },
+            { key: "mute_members", label: "Mute Members" },
+            { key: "deafen_members", label: "Deafen Members" },
+            { key: "move_members", label: "Move Members text/voice" },
+            { key: "administrator", label: "Administrator" }
+        ];
+
+        // GLOBAL APP BLUEPRINT STATE
         let currentBlueprint = {
             guild_name: "Custom Community Realm",
-            guild_icon: "",
             separator: "│",
             roles: [
-                { name: "👑 Founder", color: "#8b5cf6", permissions: { admin: true } },
-                { name: "🛡️ Overseer", color: "#06b6d4", permissions: { manage: true } },
-                { name: "⭐ Member", color: "#10b981", permissions: { send: true, connect: true } }
+                { id: "r1", name: "👑 Founder", color: "#8b5cf6" },
+                { id: "r2", name: "🛡️ Overseer", color: "#06b6d4" },
+                { id: "r3", name: "⭐ Member", color: "#10b981" }
             ],
             categories: [
                 {
+                    id: "cat_1",
                     name: "📌 INFORMATION",
+                    permissions: { r1: { administrator: true }, r2: { view_channel: true }, r3: { view_channel: true, send_messages: false } },
                     channels: [
-                        { name: "welcome-rules", type: "text" },
-                        { name: "announcements", type: "text" }
+                        { id: "ch_1", name: "welcome-rules", type: "text", permissions: {} },
+                        { id: "ch_2", name: "announcements", type: "text", permissions: {} }
                     ]
                 },
                 {
+                    id: "cat_2",
                     name: "💬 GENERAL LOUNGE",
+                    permissions: { r1: { administrator: true }, r3: { view_channel: true, send_messages: true } },
                     channels: [
-                        { name: "general-chat", type: "text" },
-                        { name: "creations-and-media", type: "text" },
-                        { name: "Public Lounge", type: "voice" }
+                        { id: "ch_3", name: "general-chat", type: "text", permissions: {} },
+                        { id: "ch_4", name: "Public Lounge", type: "voice", permissions: {} }
                     ]
                 }
             ]
         };
 
-        // Initialize App
+        let currentPage = 1;
+        let selectedModalTarget = null; // { type: 'category'|'channel', catIdx, chIdx }
+        let selectedModalRoleId = "r1";
+
+        // PAGE NAVIGATION ENGINE
+        function navigateToPage(pageNum) {
+            currentPage = pageNum;
+            document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`page-${pageNum}`).classList.remove('hidden');
+
+            const backBtn = document.getElementById('nav-back-btn');
+            if (pageNum > 1) {
+                backBtn.classList.remove('hidden');
+            } else {
+                backBtn.classList.add('hidden');
+            }
+
+            if (pageNum === 3) {
+                renderSummaryCanvas();
+            }
+        }
+
+        function goBackPage() {
+            if (currentPage > 1) {
+                navigateToPage(currentPage - 1);
+            }
+        }
+
+        function resetAndReturnLanding() {
+            resetStudio();
+            navigateToPage(1);
+        }
+
+        // INITIALIZATION
         document.addEventListener('DOMContentLoaded', () => {
             bindInputs();
             renderAll();
+            startOctopusTimer();
         });
 
         function bindInputs() {
@@ -296,34 +545,20 @@
                 currentBlueprint.separator = e.target.value;
                 renderCanvas();
             });
-
-            document.getElementById('guild-icon-input').addEventListener('input', (e) => {
-                currentBlueprint.guild_icon = e.target.value;
-                renderPreviewHeader();
-            });
         }
 
-        // Action Sheet Photo Trigger Handling
-        function openPhotoPickerActionSheet() {
-            document.getElementById('photo-picker-sheet').classList.remove('hidden');
+        // OCTOPUS EASTER EGG TIMER (Every 10 seconds)
+        function startOctopusTimer() {
+            const octo = document.getElementById('easter-egg-octopus');
+            setInterval(() => {
+                octo.classList.add('stuck');
+                setTimeout(() => {
+                    octo.classList.remove('stuck');
+                }, 4000); // Stays stuck to glass for 4 seconds then retracts
+            }, 10000);
         }
 
-        function closePhotoPickerActionSheet() {
-            document.getElementById('photo-picker-sheet').classList.add('hidden');
-        }
-
-        function triggerPicker(type) {
-            closePhotoPickerActionSheet();
-            if (type === 'library') document.getElementById('input-library').click();
-            if (type === 'camera') document.getElementById('input-camera').click();
-            if (type === 'file') document.getElementById('input-file').click();
-        }
-
-        document.getElementById('photo-picker-sheet').addEventListener('click', function(e) {
-            if (e.target === this) closePhotoPickerActionSheet();
-        });
-
-        // AI Generation Call
+        // AI GENERATION CALL
         async function generateLayoutFromAI() {
             const prompt = document.getElementById('prompt-input').value.trim();
             const theme = document.getElementById('theme-select').value;
@@ -334,7 +569,7 @@
 
             btn.disabled = true;
             spinner.classList.remove('hidden');
-            btnText.innerText = "Architecting Infrastructure...";
+            btnText.innerText = "Architecting...";
 
             try {
                 const response = await fetch('/api/generate-layout', {
@@ -345,26 +580,23 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    currentBlueprint = data;
-                    
-                    document.getElementById('guild-name-input').value = currentBlueprint.guild_name || "Custom Server";
-                    document.getElementById('separator-input').value = currentBlueprint.separator || "│";
-                    document.getElementById('guild-icon-input').value = currentBlueprint.guild_icon || "";
-                    
-                    renderAll();
-                } else {
-                    alert("Failed to reach generation API. Applying generative fallback layout.");
+                    if (data.categories) {
+                        currentBlueprint = data;
+                        document.getElementById('guild-name-input').value = currentBlueprint.guild_name || "Custom Server";
+                        document.getElementById('separator-input').value = currentBlueprint.separator || "│";
+                    }
                 }
             } catch (err) {
-                console.error("API error:", err);
+                console.error("AI Generation error:", err);
             } finally {
                 btn.disabled = false;
                 spinner.classList.add('hidden');
-                btnText.innerText = "Build Custom Architecture";
+                btnText.innerText = "Generate Blueprint";
+                renderAll();
             }
         }
 
-        // Render Functions
+        // RENDERING FUNCTIONS
         function renderAll() {
             renderPreviewHeader();
             renderRoles();
@@ -372,16 +604,7 @@
         }
 
         function renderPreviewHeader() {
-            const nameEl = document.getElementById('preview-guild-name');
-            const iconBox = document.getElementById('preview-icon-box');
-
-            nameEl.querySelector('span').innerText = currentBlueprint.guild_name;
-
-            if (currentBlueprint.guild_icon) {
-                iconBox.innerHTML = `<img src="${currentBlueprint.guild_icon}" class="w-full h-full object-cover">`;
-            } else {
-                iconBox.innerHTML = (currentBlueprint.guild_name || 'C').charAt(0).toUpperCase();
-            }
+            document.getElementById('preview-guild-name').innerText = currentBlueprint.guild_name;
         }
 
         function renderRoles() {
@@ -390,7 +613,7 @@
 
             (currentBlueprint.roles || []).forEach((role, idx) => {
                 const roleEl = document.createElement('div');
-                roleEl.className = "flex items-center justify-between p-2 rounded-lg bg-gray-950 border border-gray-800 text-xs";
+                roleEl.className = "flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-cyan-900/60 text-xs";
                 roleEl.innerHTML = `
                     <div class="flex items-center space-x-2">
                         <span class="w-3 h-3 rounded-full" style="background-color: ${role.color || '#06b6d4'}"></span>
@@ -405,38 +628,43 @@
         function renderCanvas() {
             const canvas = document.getElementById('discord-canvas');
             canvas.innerHTML = '';
-
             const sep = currentBlueprint.separator ? `${currentBlueprint.separator} ` : '';
 
             (currentBlueprint.categories || []).forEach((cat, cIdx) => {
                 const catEl = document.createElement('div');
-                catEl.className = "bg-gray-900/60 border border-gray-800/80 rounded-xl p-3 space-y-2";
+                catEl.className = "bg-slate-900/80 border border-cyan-900/60 rounded-xl p-3 space-y-2";
                 
                 let channelsHtml = '';
                 (cat.channels || []).forEach((ch, chIdx) => {
                     const isVoice = ch.type === 'voice';
                     const icon = isVoice 
-                        ? `<svg class="w-4 h-4 text-gray-400 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/></svg>`
-                        : `<span class="text-gray-500 font-bold mr-1.5 text-sm">#</span>`;
+                        ? `<svg class="w-4 h-4 text-cyan-400/70 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/></svg>`
+                        : `<span class="text-cyan-500 font-bold mr-1.5 text-xs">#</span>`;
                     
                     const displayName = isVoice ? ch.name : `${sep}${ch.name}`;
 
                     channelsHtml += `
-                        <div class="flex items-center justify-between p-2 rounded-lg bg-gray-950/60 hover:bg-gray-800/50 text-xs text-gray-300 transition group">
+                        <div onclick="openPermissionModal('channel', ${cIdx}, ${chIdx})" class="flex items-center justify-between p-2 rounded-lg bg-slate-950/80 hover:bg-cyan-950/40 border border-transparent hover:border-cyan-800/60 text-xs text-gray-200 cursor-pointer transition group">
                             <div class="flex items-center">
                                 ${icon}
                                 <span class="font-medium">${displayName}</span>
                             </div>
-                            <button onclick="removeChannel(${cIdx}, ${chIdx})" class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 text-xs">✕</button>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[10px] text-cyan-400 opacity-0 group-hover:opacity-100 transition">⚙️ Permissions</span>
+                                <button onclick="event.stopPropagation(); removeChannel(${cIdx}, ${chIdx})" class="text-gray-500 hover:text-red-400 text-xs">✕</button>
+                            </div>
                         </div>
                     `;
                 });
 
                 catEl.innerHTML = `
-                    <div class="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider px-1">
-                        <span>${cat.name}</span>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="addChannelPrompt(${cIdx})" class="text-cyan-400 hover:text-cyan-300 font-medium text-[11px]">+ Channel</button>
+                    <div onclick="openPermissionModal('category', ${cIdx})" class="flex items-center justify-between text-xs font-bold text-cyan-400 uppercase tracking-wider px-1 cursor-pointer hover:text-cyan-300">
+                        <span class="flex items-center space-x-1">
+                            <span>📂 ${cat.name}</span>
+                            <span class="text-[10px] text-cyan-500 font-normal lowercase">(click permissions)</span>
+                        </span>
+                        <div class="flex items-center space-x-2" onclick="event.stopPropagation()">
+                            <button onclick="addChannelPrompt(${cIdx})" class="text-teal-400 hover:text-teal-300 font-medium text-[11px]">+ Channel</button>
                             <button onclick="removeCategory(${cIdx})" class="text-gray-500 hover:text-red-400">✕</button>
                         </div>
                     </div>
@@ -449,11 +677,119 @@
             });
         }
 
-        // Editing Helpers
+        function renderSummaryCanvas() {
+            const summary = document.getElementById('layout-summary-canvas');
+            summary.innerHTML = '';
+
+            (currentBlueprint.categories || []).forEach(cat => {
+                const block = document.createElement('div');
+                block.className = "bg-slate-950/80 p-4 rounded-xl border border-cyan-900/60 space-y-2";
+                
+                let chList = (cat.channels || []).map(ch => 
+                    `<li class="text-xs text-cyan-100/80 flex items-center space-x-2">
+                        <span>${ch.type === 'voice' ? '🔊' : '#'}</span>
+                        <span>${ch.name}</span>
+                    </li>`
+                ).join('');
+
+                block.innerHTML = `
+                    <h4 class="text-xs font-bold text-cyan-400 uppercase tracking-wider">${cat.name}</h4>
+                    <ul class="pl-2 space-y-1">${chList || '<li class="text-xs text-gray-500">No channels</li>'}</ul>
+                `;
+                summary.appendChild(block);
+            });
+        }
+
+        // PERMISSION MODAL SYSTEM
+        function openPermissionModal(type, catIdx, chIdx = null) {
+            selectedModalTarget = { type, catIdx, chIdx };
+            selectedModalRoleId = currentBlueprint.roles[0]?.id || "r1";
+            
+            const targetObj = type === 'category' 
+                ? currentBlueprint.categories[catIdx]
+                : currentBlueprint.categories[catIdx].channels[chIdx];
+
+            document.getElementById('modal-target-title').innerText = `Permissions: ${targetObj.name}`;
+            renderModalRoleTabs();
+            renderModalPermissions();
+            document.getElementById('permission-modal').classList.remove('hidden');
+        }
+
+        function closePermissionModal() {
+            document.getElementById('permission-modal').classList.add('hidden');
+        }
+
+        function renderModalRoleTabs() {
+            const tabs = document.getElementById('modal-role-tabs');
+            tabs.innerHTML = '';
+
+            (currentBlueprint.roles || []).forEach(role => {
+                const isActive = role.id === selectedModalRoleId;
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center space-x-1.5 whitespace-nowrap ${
+                    isActive 
+                    ? 'bg-cyan-900 text-white border-cyan-400 shadow' 
+                    : 'bg-slate-900 text-gray-400 border-slate-800 hover:bg-slate-800'
+                }`;
+                btn.onclick = () => {
+                    selectedModalRoleId = role.id;
+                    renderModalRoleTabs();
+                    renderModalPermissions();
+                };
+                btn.innerHTML = `<span class="w-2 h-2 rounded-full" style="background:${role.color}"></span><span>${role.name}</span>`;
+                tabs.appendChild(btn);
+            });
+        }
+
+        function renderModalPermissions() {
+            const list = document.getElementById('modal-permissions-list');
+            list.innerHTML = '';
+
+            const { type, catIdx, chIdx } = selectedModalTarget;
+            const targetObj = type === 'category' 
+                ? currentBlueprint.categories[catIdx]
+                : currentBlueprint.categories[catIdx].channels[chIdx];
+
+            if (!targetObj.permissions) targetObj.permissions = {};
+            if (!targetObj.permissions[selectedModalRoleId]) targetObj.permissions[selectedModalRoleId] = {};
+
+            const rolePerms = targetObj.permissions[selectedModalRoleId];
+
+            DISCORD_PERMISSIONS.forEach(perm => {
+                const isGranted = rolePerms[perm.key] === true;
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-3 rounded-xl bg-slate-950/80 border border-cyan-900/40";
+                row.innerHTML = `
+                    <span class="text-xs text-gray-200 font-medium">${perm.label}</span>
+                    <button onclick="togglePermission('${perm.key}')" class="px-4 py-1.5 rounded-lg text-xs font-bold border transition ${
+                        isGranted 
+                        ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500' 
+                        : 'bg-slate-800 text-gray-500 border-slate-700'
+                    }">
+                        ${isGranted ? 'ENABLED' : 'DISABLED'}
+                    </button>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function togglePermission(permKey) {
+            const { type, catIdx, chIdx } = selectedModalTarget;
+            const targetObj = type === 'category' 
+                ? currentBlueprint.categories[catIdx]
+                : currentBlueprint.categories[catIdx].channels[chIdx];
+
+            const currentVal = targetObj.permissions[selectedModalRoleId][permKey];
+            targetObj.permissions[selectedModalRoleId][permKey] = !currentVal;
+            renderModalPermissions();
+        }
+
+        // ROLE MANAGEMENT HELPER FUNCTIONS
         function addRolePrompt() {
             const name = prompt("Enter Role Name:");
             if (!name) return;
-            currentBlueprint.roles.push({ name, color: "#06b6d4", permissions: { send: true, connect: true } });
+            const newId = `r_${Date.now()}`;
+            currentBlueprint.roles.push({ id: newId, name, color: "#06b6d4" });
             renderRoles();
         }
 
@@ -465,7 +801,7 @@
         function addCategoryPrompt() {
             const name = prompt("Enter Category Name:");
             if (!name) return;
-            currentBlueprint.categories.push({ name: name.toUpperCase(), channels: [] });
+            currentBlueprint.categories.push({ id: `cat_${Date.now()}`, name: name.toUpperCase(), permissions: {}, channels: [] });
             renderCanvas();
         }
 
@@ -478,7 +814,7 @@
             const name = prompt("Enter Channel Name:");
             if (!name) return;
             const type = confirm("Click OK for Voice Channel, Cancel for Text Channel") ? "voice" : "text";
-            currentBlueprint.categories[cIdx].channels.push({ name, type });
+            currentBlueprint.categories[cIdx].channels.push({ id: `ch_${Date.now()}`, name, type, permissions: {} });
             renderCanvas();
         }
 
@@ -487,8 +823,18 @@
             renderCanvas();
         }
 
+        // ACTION SHEET ATTACHMENTS
+        function openPhotoPickerActionSheet() { document.getElementById('photo-picker-sheet').classList.remove('hidden'); }
+        function closePhotoPickerActionSheet() { document.getElementById('photo-picker-sheet').classList.add('hidden'); }
+        function triggerPicker(type) {
+            closePhotoPickerActionSheet();
+            if (type === 'library') document.getElementById('input-library').click();
+            if (type === 'camera') document.getElementById('input-camera').click();
+            if (type === 'file') document.getElementById('input-file').click();
+        }
+
         function resetStudio() {
-            if (confirm("Reset layout blueprint?")) {
+            if (confirm("Reset current architecture blueprint?")) {
                 location.reload();
             }
         }
