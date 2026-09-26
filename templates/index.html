@@ -13,7 +13,7 @@
             overflow-x: hidden;
         }
 
-        /* Ambient Glass Backdrop Aura */
+        /* Ambient Glass Glow */
         .glass-aura {
             position: fixed;
             top: 50%;
@@ -27,7 +27,7 @@
             z-index: 0;
         }
 
-        /* Frosted Glass Panels */
+        /* Glass Cards */
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(40px);
@@ -49,7 +49,7 @@
             box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
         }
 
-        /* Glass Pill Action Buttons */
+        /* Glass Buttons */
         .glass-btn {
             background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 100%);
             backdrop-filter: blur(25px);
@@ -66,7 +66,6 @@
 </head>
 <body class="min-h-screen flex flex-col justify-center items-center relative p-4 selection:bg-purple-500/30">
 
-    <!-- Ambient Aura -->
     <div class="glass-aura"></div>
 
     <!-- MAIN FORM VIEW -->
@@ -101,7 +100,7 @@
         </div>
     </main>
 
-    <!-- PREVIEW & GLASS EDITOR VIEW -->
+    <!-- PREVIEW VIEW -->
     <main id="page-preview" class="hidden relative z-10 w-full max-w-3xl mx-auto space-y-6 my-auto">
         <div class="flex justify-between items-center border-b border-white/10 pb-4">
             <h2 id="preview-server-name" class="text-2xl font-bold tracking-tight text-white">Server Blueprint</h2>
@@ -111,13 +110,11 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <!-- Left Structure -->
             <div class="glass-card rounded-2xl p-4 space-y-3">
                 <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Server Structure</div>
                 <div id="discord-structure-list" class="space-y-2 text-xs"></div>
             </div>
 
-            <!-- Right Controls -->
             <div class="space-y-4">
                 <div class="glass-card rounded-2xl p-4 space-y-2">
                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Configured Roles</div>
@@ -173,27 +170,16 @@
         }
 
         function validateForm() {
-            const promptEl = document.getElementById('prompt-input');
-            const guildIdEl = document.getElementById('guild-id-input');
-            const btnEl = document.getElementById('btn-generate');
-
-            if (!promptEl || !guildIdEl || !btnEl) return;
-
-            const promptVal = promptEl.value.trim();
-            const guildIdVal = guildIdEl.value.trim();
-            btnEl.disabled = (promptVal.length === 0 || guildIdVal.length === 0);
+            const promptVal = document.getElementById('prompt-input').value.trim();
+            const guildIdVal = document.getElementById('guild-id-input').value.trim();
+            document.getElementById('btn-generate').disabled = (promptVal.length === 0 || guildIdVal.length === 0);
         }
 
         async function handleGenerate() {
-            const promptEl = document.getElementById('prompt-input');
-            const guildIdEl = document.getElementById('guild-id-input');
+            const promptText = document.getElementById('prompt-input').value.trim();
+            const guildId = document.getElementById('guild-id-input').value.trim();
             const btnText = document.getElementById('btn-text');
             const btnEl = document.getElementById('btn-generate');
-
-            if (!promptEl || !guildIdEl) return;
-
-            const promptText = promptEl.value.trim();
-            const guildId = guildIdEl.value.trim();
 
             if (btnText) btnText.textContent = "⚡ Analyzing Layout...";
             if (btnEl) btnEl.disabled = true;
@@ -205,16 +191,11 @@
                     body: JSON.stringify({ prompt: promptText, guild_id: guildId })
                 });
 
-                if (!res.ok) {
-                    throw new Error("HTTP status " + res.status);
-                }
-
                 serverBlueprint = await res.json();
                 renderPreview();
                 switchPage('preview');
             } catch (err) {
                 console.error("Layout generation error:", err);
-                alert("Failed to generate layout. Please check input parameters.");
             } finally {
                 if (btnText) btnText.textContent = "⚡ Generate Server Layout";
                 validateForm();
@@ -223,34 +204,29 @@
 
         function renderPreview() {
             if (!serverBlueprint) return;
-            const nameEl = document.getElementById('preview-server-name');
-            if (nameEl) nameEl.textContent = serverBlueprint.server_name || "Community Blueprint";
+            document.getElementById('preview-server-name').textContent = serverBlueprint.server_name || "Community Blueprint";
 
             const rolesContainer = document.getElementById('roles-list');
-            if (rolesContainer) {
-                rolesContainer.innerHTML = (serverBlueprint.roles || []).map(r => 
-                    `<span class="px-2.5 py-1 rounded-full bg-white/10 text-[10px] text-white border border-white/10">● ${escapeHtml(r)}</span>`
-                ).join('');
-            }
+            rolesContainer.innerHTML = (serverBlueprint.roles || []).map(r => 
+                `<span class="px-2.5 py-1 rounded-full bg-white/10 text-[10px] text-white border border-white/10">● ${escapeHtml(r)}</span>`
+            ).join('');
 
             const listContainer = document.getElementById('discord-structure-list');
-            if (listContainer) {
-                listContainer.innerHTML = '';
-                (serverBlueprint.categories || []).forEach((cat, catIdx) => {
-                    let catHtml = `<div class="font-semibold text-purple-300 uppercase text-[10px] pt-1">${escapeHtml(cat.name)}</div>`;
-                    (cat.channels || []).forEach((ch, chIdx) => {
-                        const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
-                        const activeStyle = isSelected ? "bg-white/20 text-white font-semibold shadow-sm" : "text-gray-400 hover:text-white hover:bg-white/5";
-                        catHtml += `
-                            <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2 px-3 py-1.5 rounded-xl cursor-pointer transition ${activeStyle}">
-                                <span>${escapeHtml(ch.emoji || '#')}</span>
-                                <span>${escapeHtml(ch.name)}</span>
-                            </div>
-                        `;
-                    });
-                    listContainer.innerHTML += `<div class="space-y-1">${catHtml}</div>`;
+            listContainer.innerHTML = '';
+            (serverBlueprint.categories || []).forEach((cat, catIdx) => {
+                let catHtml = `<div class="font-semibold text-purple-300 uppercase text-[10px] pt-1">${escapeHtml(cat.name)}</div>`;
+                (cat.channels || []).forEach((ch, chIdx) => {
+                    const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
+                    const activeStyle = isSelected ? "bg-white/20 text-white font-semibold shadow-sm" : "text-gray-400 hover:text-white hover:bg-white/5";
+                    catHtml += `
+                        <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2 px-3 py-1.5 rounded-xl cursor-pointer transition ${activeStyle}">
+                            <span>${escapeHtml(ch.emoji || '#')}</span>
+                            <span>${escapeHtml(ch.name)}</span>
+                        </div>
+                    `;
                 });
-            }
+                listContainer.innerHTML += `<div class="space-y-1">${catHtml}</div>`;
+            });
 
             loadEditorValues();
         }
@@ -266,9 +242,7 @@
             const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
             if (!ch) return;
 
-            const titleEl = document.getElementById('editor-title');
-            if (titleEl) titleEl.textContent = `Channel — #${ch.name}`;
-
+            document.getElementById('editor-title').textContent = `Channel — #${ch.name}`;
             document.getElementById('edit-channel-emoji').value = ch.emoji || '';
             document.getElementById('edit-channel-name').value = ch.name || '';
             document.getElementById('edit-channel-type').value = ch.type || 'text';
