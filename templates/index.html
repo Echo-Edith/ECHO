@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord Server Builder</title>
+    <title>AI-Powered Discord Server Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -34,6 +34,7 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-discord-accent selection:text-white">
 
+    <!-- HEADER -->
     <header class="border-b border-discord-border bg-discord-sidebar px-4 py-3 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center space-x-2 cursor-pointer" onclick="switchPage('landing')">
             <span class="text-xl">🛠️</span>
@@ -44,14 +45,14 @@
         </button>
     </header>
 
-    <!-- LANDING PAGE -->
+    <!-- PAGE 1: LANDING HERO -->
     <main id="page-landing" class="max-w-xl mx-auto px-4 py-8 flex-1 space-y-8">
         <div class="text-center space-y-3">
             <h1 class="text-3xl font-extrabold text-white tracking-tight">
-                AI-Powered Discord Server Builder
+                AI-Powered <span class="text-discord-accent">Discord Server Builder</span>
             </h1>
             <p class="text-discord-textMuted text-xs leading-relaxed max-w-md mx-auto">
-                Describe your dream server. The AI designs the structure. You preview and edit it, then submit or download a build file. No account needed.
+                Describe your dream server. The AI designs the structure. You preview and edit it, then download a build file. No account needed — the build happens in Discord after you order.
             </p>
             <div class="flex justify-center space-x-3 pt-2">
                 <button onclick="switchPage('builder')" class="bg-discord-accent hover:bg-discord-accentHover text-white font-bold px-5 py-2.5 rounded text-xs transition">
@@ -59,31 +60,13 @@
                 </button>
             </div>
         </div>
-
-        <div class="space-y-6 pt-4 border-t border-discord-border">
-            <div class="space-y-1">
-                <div class="text-xl">🗣️</div>
-                <h3 class="text-lg font-bold text-white">1. Describe it</h3>
-                <p class="text-xs text-discord-textMuted">Tell the AI what your community needs — gaming, support, dev, anything.</p>
-            </div>
-            <div class="space-y-1">
-                <div class="text-xl">🧠</div>
-                <h3 class="text-lg font-bold text-white">2. AI designs the plan</h3>
-                <p class="text-xs text-discord-textMuted">The AI proposes categories, channels, roles and permissions as JSON.</p>
-            </div>
-            <div class="space-y-1">
-                <div class="text-xl">👀</div>
-                <h3 class="text-lg font-bold text-white">3. Preview & edit</h3>
-                <p class="text-xs text-discord-textMuted">See a Discord-style preview. Add or remove channels before submitting your layout.</p>
-            </div>
-        </div>
     </main>
 
-    <!-- BUILDER FORM -->
+    <!-- PAGE 2: FORM INTERFACE -->
     <main id="page-builder" class="hidden max-w-xl mx-auto px-4 py-8 flex-1 space-y-6">
         <div class="space-y-1">
             <h2 class="text-xl font-bold text-white">Describe your server</h2>
-            <p class="text-xs text-discord-textMuted">Fill out both required fields to generate your custom layout preview.</p>
+            <p class="text-xs text-discord-textMuted">No account needed. The AI proposes a layout — you approve it before anything else happens.</p>
         </div>
 
         <div class="bg-discord-card rounded-xl p-5 space-y-5 border border-discord-border">
@@ -94,6 +77,7 @@
                 <textarea id="prompt-input" rows="4" maxlength="4000" oninput="validateForm()"
                     class="w-full bg-discord-inputBg border border-discord-border rounded-lg p-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-discord-accent transition"
                     placeholder="I want a gaming community server for my Roblox game. I need announcement channels, general chat, support, staff channels, development channels, and roles for Owner, Admin, Moderator, Developer, and Member."></textarea>
+                <div class="text-right text-[10px] text-gray-500">0/4000</div>
             </div>
 
             <div class="space-y-2">
@@ -111,8 +95,8 @@
         </div>
     </main>
 
-    <!-- PREVIEW & EDITOR SECTION -->
-    <main id="page-preview" class="hidden max-w-2xl mx-auto px-4 py-8 flex-1 space-y-6">
+    <!-- PAGE 3: PREVIEW & CUSTOMIZATION EDITOR -->
+    <main id="page-preview" class="hidden max-w-3xl mx-auto px-4 py-8 flex-1 space-y-6">
         <div class="flex justify-between items-center border-b border-discord-border pb-4">
             <h2 id="preview-server-name" class="text-2xl font-extrabold text-white">Community Lounge</h2>
             <button onclick="downloadBuildFile()" class="px-3 py-1.5 rounded bg-discord-card hover:bg-discord-innerCard text-xs text-white font-semibold transition border border-discord-border">
@@ -121,7 +105,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Left Pane: Channels & Categories Structure -->
+            <!-- Left Pane: Discord Layout Navigation -->
             <div class="bg-discord-sidebar rounded-xl p-4 border border-discord-border space-y-4">
                 <div class="text-xs font-bold text-discord-textMuted uppercase tracking-wider flex justify-between">
                     <span>Structure</span>
@@ -130,15 +114,15 @@
                 <div id="discord-structure-list" class="space-y-3 font-sans text-xs"></div>
             </div>
 
-            <!-- Right Pane: Channel / Category Settings & Roles -->
+            <!-- Right Pane: Active Channel Properties -->
             <div class="space-y-4">
-                <!-- Roles -->
+                <!-- Roles Section -->
                 <div class="bg-discord-card rounded-xl p-4 border border-discord-border space-y-2">
                     <div class="text-[11px] font-bold text-discord-textMuted uppercase tracking-wider">Roles</div>
                     <div id="roles-list" class="flex flex-wrap gap-2"></div>
                 </div>
 
-                <!-- Channel Settings Modal/Panel -->
+                <!-- Channel Inspector Form -->
                 <div id="channel-editor-panel" class="bg-discord-card rounded-xl p-4 border border-discord-border space-y-3">
                     <div class="text-[11px] font-bold text-discord-textMuted uppercase tracking-wider" id="editor-title">
                         Channel Settings
@@ -171,7 +155,7 @@
             </div>
         </div>
 
-        <!-- Submit via Webhook -->
+        <!-- Submit to Webhook -->
         <div class="pt-4 border-t border-discord-border">
             <button onclick="submitLayoutToWebhook()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-xs transition">
                 🚀 Submit Design
@@ -179,10 +163,12 @@
         </div>
     </main>
 
+    <!-- FOOTER -->
     <footer class="border-t border-discord-border bg-discord-sidebar py-3 px-4 text-center text-[11px] text-discord-textMuted">
         Discord Server Builder Studio &copy; 2026
     </footer>
 
+    <!-- SCRIPT LOGIC -->
     <script>
         let serverBlueprint = null;
         let activeCatIndex = 0;
@@ -193,6 +179,7 @@
             document.getElementById(`page-${page}`).classList.remove('hidden');
         }
 
+        // Form Validation Rule: Requires BOTH fields to unlock the Generate button
         function validateForm() {
             const promptVal = document.getElementById('prompt-input').value.trim();
             const guildIdVal = document.getElementById('guild-id-input').value.trim();
@@ -200,52 +187,51 @@
             btn.disabled = !(promptVal.length > 0 && guildIdVal.length > 0);
         }
 
-        function handleGenerate() {
+        async function handleGenerate() {
             const promptText = document.getElementById('prompt-input').value.trim();
             const guildId = document.getElementById('guild-id-input').value.trim();
+            const btnText = document.getElementById('btn-text');
 
-            serverBlueprint = {
-                target_guild_id: guildId,
-                server_name: "Community Lounge",
-                roles: ["everyone", "Staff", "VIP"],
-                categories: [
-                    {
-                        name: "📌 INFORMATION",
-                        channels: [
-                            { emoji: "📜", name: "rules", type: "announcement", topic: "Rules channel" },
-                            { emoji: "📢", name: "announcements", type: "announcement", topic: "News" }
-                        ]
-                    },
-                    {
-                        name: "💬 COMMUNITY",
-                        channels: [
-                            { emoji: "💬", name: "general", type: "text", topic: "General chat" },
-                            { emoji: "🖼️", name: "media", type: "text", topic: "Media sharing" }
-                        ]
-                    }
-                ]
-            };
+            btnText.innerText = "⚡ Generating Layout...";
+            document.getElementById('btn-generate').disabled = true;
 
-            renderPreview();
-            switchPage('preview');
+            try {
+                const res = await fetch('/api/generate-layout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: promptText, guild_id: guildId })
+                });
+
+                if (!res.ok) throw new Error("Server generation failed");
+
+                serverBlueprint = await res.json();
+                renderPreview();
+                switchPage('preview');
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                btnText.innerText = "✨ Generate Server Layout";
+                validateForm();
+            }
         }
 
         function renderPreview() {
-            document.getElementById('preview-server-name').innerText = serverBlueprint.server_name;
-            
+            if (!serverBlueprint) return;
+            document.getElementById('preview-server-name').innerText = serverBlueprint.server_name || "Community Server";
+
             // Render Roles
             const rolesContainer = document.getElementById('roles-list');
-            rolesContainer.innerHTML = serverBlueprint.roles.map(r => 
+            rolesContainer.innerHTML = (serverBlueprint.roles || []).map(r => 
                 `<span class="px-2 py-1 rounded bg-discord-innerCard text-[11px] text-white border border-discord-border">● ${r}</span>`
             ).join('');
 
-            // Render Structure List
+            // Render Categories & Channels
             const listContainer = document.getElementById('discord-structure-list');
             listContainer.innerHTML = '';
 
-            serverBlueprint.categories.forEach((cat, catIdx) => {
+            (serverBlueprint.categories || []).forEach((cat, catIdx) => {
                 let catHtml = `<div class="font-bold text-gray-400 py-1 uppercase text-[11px]">${cat.name}</div>`;
-                cat.channels.forEach((ch, chIdx) => {
+                (cat.channels || []).forEach((ch, chIdx) => {
                     const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
                     const activeStyle = isSelected ? "bg-discord-innerCard text-white font-semibold" : "text-gray-400 hover:text-gray-200 hover:bg-discord-innerCard/50";
                     catHtml += `
@@ -268,7 +254,10 @@
         }
 
         function loadEditorValues() {
+            if (!serverBlueprint || !serverBlueprint.categories[activeCatIndex]) return;
             const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
+            if (!ch) return;
+
             document.getElementById('editor-title').innerText = `Channel Settings — #${ch.name}`;
             document.getElementById('edit-channel-emoji').value = ch.emoji || '';
             document.getElementById('edit-channel-name').value = ch.name || '';
@@ -277,7 +266,10 @@
         }
 
         function updateActiveChannel() {
+            if (!serverBlueprint || !serverBlueprint.categories[activeCatIndex]) return;
             const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
+            if (!ch) return;
+
             ch.emoji = document.getElementById('edit-channel-emoji').value;
             ch.name = document.getElementById('edit-channel-name').value;
             ch.type = document.getElementById('edit-channel-type').value;
@@ -297,10 +289,10 @@
         }
 
         async function submitLayoutToWebhook() {
-            const webhookUrl = "YOUR_DISCORD_WEBHOOK_URL_HERE"; // Replace with your webhook URL
+            const webhookUrl = "YOUR_DISCORD_WEBHOOK_URL_HERE";
 
             if (webhookUrl === "YOUR_DISCORD_WEBHOOK_URL_HERE") {
-                alert("Please configure your DISCORD_WEBHOOK_URL in the JavaScript code.");
+                alert("Please configure your DISCORD_WEBHOOK_URL in the index.html JavaScript section.");
                 return;
             }
 
