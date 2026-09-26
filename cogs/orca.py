@@ -2,191 +2,256 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import json
-import keep_alive
+import asyncio
+import time
+import os
 
-class OrcaBuilder(commands.Cog):
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
+# --- BOT SETUP ---
+intents = discord.Intents.default()
+intents.guilds = True
+intents.messages = True
+intents.message_content = True
 
-    # ==========================================
-    # 1. HELP COMMAND
-    # ==========================================
-    @app_commands.command(name="help", description="Displays full ORCA AI command reference directory.")
-    async def help_command(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="ORCA AI -- Command Reference Directory",
-            description="Overview of available slash commands for building and managing server structures.",
-            color=0x8A2BE2  # Purple theme matching reference
-        )
-        embed.add_field(
-            name="`/custom-server-builder`",
-            value="Provides link to the web-based interactive Discord server layout tool. *(Public)*",
-            inline=False
-        )
-        embed.add_field(
-            name="`/build [file]`",
-            value="Builds server categories, channels, and roles from JSON blueprint. *(Admin Only)*",
-            inline=False
-        )
-        embed.add_field(
-            name="`/lockdown [state]`",
-            value="Toggles web portal maintenance screen. *(Admin Only)*",
-            inline=False
-        )
-        embed.add_field(
-            name="`/status`",
-            value="Displays real-time bot latency and operational statistics. *(Admin Only)*",
-            inline=False
-        )
-        embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-    # ==========================================
-    # 2. PUBLIC /CUSTOM-SERVER-BUILDER COMMAND
-    # ==========================================
-    @app_commands.command(name="custom-server-builder", description="Provides link to interactive layout builder.")
-    async def custom_builder(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="🛠️ Interactive Server Layout Builder",
-            description="Click below to open the builder web app. Design your categories, channels, and permissions interactively.",
-            color=0x5865F2
-        )
-        embed.add_field(
-            name="Web App Link", 
-            value="[Open Builder Web Application](https://echo-dashboard-qn39.onrender.com/)", 
-            inline=False
-        )
-        embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
-        await interaction.response.send_message(embed=embed)
+# Global Maintenance Lockdown State
+is_lockdown = False
+start_time = time.time()
 
-    # ==========================================
-    # 3. BUILD COMMAND
-    # ==========================================
-    @app_commands.command(name="build", description="Builds server layout from JSON blueprint.")
-    @app_commands.describe(file="JSON blueprint content string")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def build(self, interaction: discord.Interaction, file: str):
-        await interaction.response.defer(ephemeral=True)
+# Configuration
+WEB_BUILDER_URL = "https://customserver-shadowspire.vercel.app/"
 
-        try:
-            data = json.loads(file)
-        except json.JSONDecodeError:
-            await interaction.followup.send("❌ Invalid JSON blueprint syntax.", ephemeral=True)
-            return
 
-        target_guild_id = str(data.get("target_guild_id", "")).strip()
-        current_guild_id = str(interaction.guild_id)
+@bot.event
+async def on_ready():
+    print(f"Logged in as {bot.user.name} ({bot.user.id})")
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} slash command(s)")
+    except Exception as e:
+        print(f"Failed to sync commands: {e}")
 
-        if target_guild_id != current_guild_id:
-            await interaction.followup.send(
-                f"⛔ **Guild Lockout Violation!** Blueprint target (`{target_guild_id}`) does not match current server ID (`{current_guild_id}`).",
-                ephemeral=True
-            )
-            return
 
-        guild = interaction.guild
+# --- 1. /help COMMAND ---
+@bot.tree.command(name="help", description="Displays the ORCA AI command reference directory.")
+async def help_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="ORCA AI -- Command Reference Directory",
+        description="Overview of available slash commands for building and managing server structures.",
+        color=0x5865F2
+    )
+    
+    embed.add_field(
+        name="`/custom-server-builder`",
+        value="Provides link to the web-based interactive Discord server layout tool. *(Public)*",
+        inline=False
+    )
+    embed.add_field(
+        name="`/build [file]`",
+        value="Builds server categories, channels, and roles from JSON blueprint. *(Admin Only)*",
+        inline=False
+    )
+    embed.add_field(
+        name="`/lockdown [state]`",
+        value="Toggles web portal maintenance screen. *(Admin Only)*",
+        inline=False
+    )
+    embed.add_field(
+        name="`/status`",
+        value="Displays real-time bot latency and operational statistics. *(Admin Only)*",
+        inline=False
+    )
+    embed.add_field(
+        name="`/nuke`",
+        value="Deletes all channels and categories, preserving only the current bot channel. *(Admin Only)*",
+        inline=False
+    )
+    
+    embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # Purge existing channels
-        for channel in list(guild.channels):
+
+# --- 2. /custom-server-builder COMMAND ---
+@bot.tree.command(name="custom-server-builder", description="Provides link to the web-based layout tool.")
+async def custom_server_builder(interaction: discord.Interaction):
+    if is_lockdown:
+        await interaction.response.send_message("⚠️ The web portal is currently under maintenance. Please try again later.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🛠️ Interactive Server Builder",
+        description=f"Click below to access our AI-powered web builder:\n{WEB_BUILDER_URL}",
+        color=0x5865F2
+    )
+    await interaction.response.send_message(embed=embed)
+
+
+# --- 3. /build COMMAND (Full Wipe & Construction) ---
+@bot.tree.command(name="build", description="Builds server categories, channels, and roles from JSON blueprint.")
+@app_commands.checks.has_permissions(administrator=True)
+async def build(interaction: discord.Interaction, file: discord.Attachment):
+    if not file.filename.endswith('.json'):
+        await interaction.response.send_message("❌ Error: Attached file must be a JSON blueprint.", ephemeral=True)
+        return
+
+    await interaction.response.defer(thinking=True)
+    
+    # Read attached JSON blueprint
+    try:
+        content = await file.read()
+        blueprint = json.loads(content.decode('utf-8'))
+    except Exception as e:
+        await interaction.followup.send(f"❌ Failed to parse JSON blueprint: {e}")
+        return
+
+    guild = interaction.guild
+
+    # 1. Purge Existing Channels (Keep current channel temporarily to log status)
+    current_channel = interaction.channel
+    for channel in guild.channels:
+        if channel.id != current_channel.id:
             try:
-                await channel.delete(reason="Wiping structure for ORCA AI rebuild.")
+                await channel.delete()
             except Exception:
                 pass
 
-        # Create roles
-        roles_created = 0
-        for role_name in data.get("roles", []):
-            if not discord.utils.get(guild.roles, name=role_name):
-                try:
-                    await guild.create_role(name=role_name)
-                    roles_created += 1
-                except Exception:
-                    pass
+    # 2. Purge Existing Roles (Excluding @everyone, managed bot roles, and top roles)
+    for role in guild.roles:
+        if role.name != "@everyone" and not role.managed and role < guild.me.top_role:
+            try:
+                await role.delete()
+            except Exception:
+                pass
 
-        # Create categories and channels
-        channels_created = 0
-        first_channel = None
+    roles_created = 0
+    channels_created = 0
 
-        for cat in data.get("categories", []):
-            category = await guild.create_category(cat.get("name", "CATEGORY"))
-            for ch in cat.get("channels", []):
-                ch_name = ch.get("name", "channel")
-                ch_type = ch.get("type", "text")
-                ch_topic = ch.get("topic", "")
+    # 3. Create Roles
+    role_map = {}
+    for role_name in blueprint.get("roles", []):
+        if role_name == "everyone":
+            continue
+        try:
+            new_role = await guild.create_role(name=role_name, mentionable=True)
+            role_map[role_name] = new_role
+            roles_created += 1
+        except Exception as e:
+            print(f"Error creating role {role_name}: {e}")
 
-                if ch_type == "voice":
-                    await guild.create_voice_channel(name=ch_name, category=category)
-                elif ch_type == "announcement":
-                    try:
-                        c = await guild.create_text_channel(name=ch_name, category=category, topic=ch_topic, news=True)
-                    except Exception:
-                        c = await guild.create_text_channel(name=ch_name, category=category, topic=ch_topic)
-                    if not first_channel:
-                        first_channel = c
-                else:
-                    c = await guild.create_text_channel(name=ch_name, category=category, topic=ch_topic)
-                    if not first_channel:
-                        first_channel = c
+    # 4. Create Categories & Channels
+    for cat_data in blueprint.get("categories", []):
+        category = await guild.create_category(name=cat_data.get("name", "Category"))
+        
+        for ch_data in cat_data.get("channels", []):
+            ch_name = f"{ch_data.get('emoji', '')} {ch_data.get('name', 'channel')}".strip()
+            ch_type = ch_data.get("type", "text")
+            topic = ch_data.get("topic", "")
 
-                channels_created += 1
+            if ch_type == "voice":
+                await guild.create_voice_channel(name=ch_name, category=category)
+            else:
+                news_type = (ch_type == "announcement")
+                await guild.create_text_channel(name=ch_name, category=category, topic=topic, news=news_type)
+            
+            channels_created += 1
 
-        # Completion embed matching exact UI specifications
+    # Delete original temp execution channel
+    try:
+        await current_channel.delete()
+    except Exception:
+        pass
+
+    # Find first available text channel to post completion status
+    target_channel = guild.text_channels[0] if guild.text_channels else None
+    
+    if target_channel:
         embed = discord.Embed(
             title="Server Build Complete",
-            description=f"Successfully deployed blueprint onto **{data.get('server_name', guild.name)}**.",
-            color=0x2ECC71  # Emerald green accent
+            description=f"Successfully deployed blueprint onto **{guild.name}**.",
+            color=0x2ECC71
         )
-        embed.add_field(
-            name="", 
-            value=f"• **Roles Created:** {roles_created}\n• **Channels Created:** {channels_created}", 
-            inline=False
-        )
+        embed.add_field(name="• Roles Created", value=str(roles_created), inline=False)
+        embed.add_field(name="• Channels Created", value=str(channels_created), inline=False)
         embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
+        
+        await target_channel.send(embed=embed)
 
-        if first_channel:
-            await first_channel.send(embed=embed)
 
-        await interaction.followup.send("✅ Server successfully built!", ephemeral=True)
+# --- 4. /lockdown COMMAND ---
+@bot.tree.command(name="lockdown", description="Toggles web portal maintenance screen.")
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.choices(state=[
+    app_commands.Choice(name="ON (Enable Maintenance)", value="on"),
+    app_commands.Choice(name="OFF (Disable Maintenance)", value="off")
+])
+async def lockdown(interaction: discord.Interaction, state: app_commands.Choice[str]):
+    global is_lockdown
+    is_lockdown = (state.value == "on")
+    
+    status_str = "ENABLED" if is_lockdown else "DISABLED"
+    embed = discord.Embed(
+        title="🔒 Web Portal Maintenance Screen",
+        description=f"Maintenance mode is now **{status_str}**.",
+        color=0xE74C3C if is_lockdown else 0x2ECC71
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # ==========================================
-    # 4. LOCKDOWN & STATUS COMMANDS
-    # ==========================================
-    @app_commands.command(name="lockdown", description="Toggles web portal maintenance screen.")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def lockdown(self, interaction: discord.Interaction, state: bool):
-        keep_alive.MAINTENANCE_MODE = state
-        status = "ENABLED (Web App Locked)" if state else "DISABLED (Web App Active)"
-        await interaction.response.send_message(f"🔒 Maintenance Mode is now **{status}**.", ephemeral=True)
 
-    @app_commands.command(name="status", description="Displays real-time bot latency and stats.")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def status(self, interaction: discord.Interaction):
-        latency = round(self.bot.latency * 1000)
-        embed = discord.Embed(title="ORCA AI -- Operational Status", color=0x5865F2)
-        embed.add_field(name="WebSocket Latency", value=f"`{latency}ms`", inline=True)
-        embed.add_field(name="Guilds Served", value=f"`{len(self.bot.guilds)}`", inline=True)
-        embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+# --- 5. /status COMMAND ---
+@bot.tree.command(name="status", description="Displays real-time bot latency and operational statistics.")
+@app_commands.checks.has_permissions(administrator=True)
+async def status(interaction: discord.Interaction):
+    latency = round(bot.latency * 1000)
+    uptime = round(time.time() - start_time)
+    
+    embed = discord.Embed(
+        title="⚡ System Operational Status",
+        color=0x5865F2
+    )
+    embed.add_field(name="Latency", value=f"{latency} ms", inline=True)
+    embed.add_field(name="Uptime", value=f"{uptime} seconds", inline=True)
+    embed.add_field(name="Maintenance Lock", value="ACTIVE" if is_lockdown else "INACTIVE", inline=True)
+    embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # ==========================================
-    # 5. OWNER NUKE COMMAND
-    # ==========================================
-    @app_commands.command(name="nuke", description="[OWNER ONLY] Wipes all channels and leaves 1 control channel.")
-    async def nuke(self, interaction: discord.Interaction):
-        if interaction.user.id != interaction.guild.owner_id:
-            await interaction.response.send_message("⛔ Only the server owner can execute this command.", ephemeral=True)
-            return
 
-        await interaction.response.defer(ephemeral=True)
-        for c in list(interaction.guild.channels):
+# --- 6. /nuke COMMAND ---
+@bot.tree.command(name="nuke", description="Deletes all channels/categories except the command channel.")
+@app_commands.checks.has_permissions(administrator=True)
+async def nuke(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    guild = interaction.guild
+    current_channel = interaction.channel
+
+    deleted_count = 0
+    for channel in guild.channels:
+        if channel.id != current_channel.id:
             try:
-                await c.delete()
-            except Exception:
-                pass
+                await channel.delete()
+                deleted_count += 1
+            except Exception as e:
+                print(f"Failed to delete channel {channel.name}: {e}")
 
-        control = await interaction.guild.create_text_channel(name="bot-commands")
-        await control.send(f"💥 Server wiped by {interaction.user.mention}. Ready for `/build`.")
-        await interaction.followup.send("✅ Server wiped.", ephemeral=True)
+    embed = discord.Embed(
+        title="💥 Server Nuked",
+        description=f"Purged **{deleted_count}** channels and categories. Only this channel was preserved.",
+        color=0xE74C3C
+    )
+    embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
+    await interaction.followup.send(embed=embed)
 
-async def setup(bot: commands.Bot):
-    await bot.add_cog(OrcaBuilder(bot))
+
+# --- ERROR HANDLERS ---
+@build.error
+@lockdown.error
+@status.error
+@nuke.error
+async def admin_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.MissingPermissions):
+        await interaction.response.send_message("❌ You do not have Permission to run this command. (Admin Only)", ephemeral=True)
+
+# Run the bot
+if __name__ == "__main__":
+    TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+    bot.run(TOKEN)
