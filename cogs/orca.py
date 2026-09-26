@@ -2,7 +2,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import json
-import time
 import keep_alive
 
 class OrcaBuilder(commands.Cog):
@@ -10,14 +9,14 @@ class OrcaBuilder(commands.Cog):
         self.bot = bot
 
     # ==========================================
-    # 1. HELP COMMAND MATCHING SCREENSHOT
+    # 1. HELP COMMAND
     # ==========================================
     @app_commands.command(name="help", description="Displays full ORCA AI command reference directory.")
     async def help_command(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="ORCA AI -- Command Reference Directory",
             description="Overview of available slash commands for building and managing server structures.",
-            color=0x8A2BE2 # Purple theme matching screenshot
+            color=0x8A2BE2  # Purple theme matching reference
         )
         embed.add_field(
             name="`/custom-server-builder`",
@@ -52,7 +51,11 @@ class OrcaBuilder(commands.Cog):
             description="Click below to open the builder web app. Design your categories, channels, and permissions interactively.",
             color=0x5865F2
         )
-        embed.add_field(name="Web App Link", value="[Open Builder Web Application](https://your-render-app-url.onrender.com)")
+        embed.add_field(
+            name="Web App Link", 
+            value="[Open Builder Web Application](https://echo-dashboard-qn39.onrender.com/)", 
+            inline=False
+        )
         embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
@@ -83,7 +86,7 @@ class OrcaBuilder(commands.Cog):
 
         guild = interaction.guild
 
-        # Purge channels
+        # Purge existing channels
         for channel in list(guild.channels):
             try:
                 await channel.delete(reason="Wiping structure for ORCA AI rebuild.")
@@ -100,7 +103,7 @@ class OrcaBuilder(commands.Cog):
                 except Exception:
                     pass
 
-        # Create channels
+        # Create categories and channels
         channels_created = 0
         first_channel = None
 
@@ -118,20 +121,26 @@ class OrcaBuilder(commands.Cog):
                         c = await guild.create_text_channel(name=ch_name, category=category, topic=ch_topic, news=True)
                     except Exception:
                         c = await guild.create_text_channel(name=ch_name, category=category, topic=ch_topic)
-                    if not first_channel: first_channel = c
+                    if not first_channel:
+                        first_channel = c
                 else:
                     c = await guild.create_text_channel(name=ch_name, category=category, topic=ch_topic)
-                    if not first_channel: first_channel = c
+                    if not first_channel:
+                        first_channel = c
 
                 channels_created += 1
 
-        # Match completion embed from screenshot
+        # Completion embed matching exact UI specifications
         embed = discord.Embed(
             title="Server Build Complete",
             description=f"Successfully deployed blueprint onto **{data.get('server_name', guild.name)}**.",
-            color=0x2ECC71 # Emerald Green accent line matching screenshot
+            color=0x2ECC71  # Emerald green accent
         )
-        embed.add_field(name="", value=f"• **Roles Created:** {roles_created}\n• **Channels Created:** {channels_created}", inline=False)
+        embed.add_field(
+            name="", 
+            value=f"• **Roles Created:** {roles_created}\n• **Channels Created:** {channels_created}", 
+            inline=False
+        )
         embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
 
         if first_channel:
@@ -170,8 +179,10 @@ class OrcaBuilder(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
         for c in list(interaction.guild.channels):
-            try: await c.delete()
-            except Exception: pass
+            try:
+                await c.delete()
+            except Exception:
+                pass
 
         control = await interaction.guild.create_text_channel(name="bot-commands")
         await control.send(f"💥 Server wiped by {interaction.user.mention}. Ready for `/build`.")
