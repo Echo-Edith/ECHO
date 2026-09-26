@@ -9,9 +9,8 @@ from google.genai import types
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
-# Configure Webhook and Gemini API
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "").strip()
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
 client = None
 if GEMINI_API_KEY:
@@ -85,7 +84,6 @@ def generate_layout():
 
     except Exception as e:
         logging.error(f"Error generating layout: {e}")
-        # Fallback schema if API fails
         fallback = {
             "server_name": "Generated Community",
             "target_guild_id": guild_id,
@@ -96,7 +94,7 @@ def generate_layout():
                     "name": "WELCOME",
                     "channels": [
                         {"emoji": "👋", "name": f"rules{separator}info", "type": "text", "topic": "Server rules"},
-                        {"emoji": "📢", "name": f"announcements", "type": "announcement", "topic": "Updates"}
+                        {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Updates"}
                     ]
                 },
                 {
@@ -124,7 +122,7 @@ def submit_design():
     total_channels = sum(len(cat.get("channels", [])) for cat in categories)
 
     embed = {
-        "title": f"🚀 New Server Layout Submitted: {server_name}",
+        "title": f"🚀 New Layout Submitted: {server_name}",
         "color": 0x9333EA,
         "fields": [
             {"name": "Target Guild ID", "value": f"`{target_guild}`", "inline": True},
@@ -133,14 +131,22 @@ def submit_design():
             {"name": "Separator Used", "value": f"`{blueprint.get('separator', '-')}`", "inline": True},
             {"name": "Roles Configured", "value": f"`{', '.join(roles) if roles else 'None'}`", "inline": False}
         ],
-        "footer": {"text": "Discord Layout Generator • Webhook Dispatch"}
+        "footer": {"text": "Discord Layout Generator"}
     }
 
     if WEBHOOK_URL:
         try:
-            requests.post(WEBHOOK_URL, json={"embeds": [embed]}, timeout=5)
+            res = requests.post(
+                WEBHOOK_URL,
+                json={"embeds": [embed]},
+                headers={"Content-Type": "application/json"},
+                timeout=8
+            )
+            logging.info(f"Discord Webhook Response: {res.status_code}")
         except Exception as e:
-            logging.error(f"Failed to send webhook log: {e}")
+            logging.error(f"Failed to post to webhook: {e}")
+    else:
+        logging.warning("WEBHOOK_URL environment variable is not set!")
 
     return jsonify({"status": "success", "message": "Blueprint submitted and logged successfully"}), 200
 
