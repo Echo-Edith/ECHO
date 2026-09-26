@@ -7,15 +7,19 @@ from google import genai
 from google.genai import types
 
 app = Flask(__name__)
+# Enable CORS for all routes so Vercel/Render frontend can call this backend
 CORS(app)
 
 logging.basicConfig(level=logging.INFO)
 
-# Initialize the Gemini API client
-# Ensures environment variable GEMINI_API_KEY is used
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+# Initialize Gemini API Client
+api_key = os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    logging.warning("GEMINI_API_KEY environment variable is not set!")
 
-# Enforced Response Schema for Structured Output
+client = genai.Client(api_key=api_key)
+
+# Response Schema Enforcement
 DISCORD_SCHEMA = {
     "type": "OBJECT",
     "properties": {
@@ -53,8 +57,7 @@ DISCORD_SCHEMA = {
 }
 
 def get_static_fallback(prompt: str, guild_id: str) -> dict:
-    """Tier 3 Fallback: Returns an immediate blueprint if API endpoints fail."""
-    logging.warning("Triggered Tier 3 Fallback layout generator.")
+    logging.warning("Triggered Tier 3 Static Fallback blueprint.")
     return {
         "target_guild_id": guild_id,
         "server_name": "Community Hub",
@@ -80,46 +83,27 @@ def get_static_fallback(prompt: str, guild_id: str) -> dict:
 
 @app.route('/api/generate-layout', methods=['POST'])
 def generate_layout():
-    data = request.json or {}
-    prompt = data.get('prompt', '').strip()
-    guild_id = data.get('guild_id', '').strip()
-
-    if not prompt or not guild_id:
-        return jsonify({"error": "Both prompt and guild_id are required."}), 400
-
-    system_instruction = (
-        "You are an expert Discord infrastructure architect. "
-        "Create a clean, well-organized Discord server layout matching the user's prompt. "
-        "Include suitable channel emojis, channel types, categories, and custom roles."
-    )
-
-    user_content = f"Target Server ID: {guild_id}\nUser Description: {prompt}"
-
-    # --- TIER 1: Gemini 2.5 Flash ---
     try:
-        logging.info("Attempting Tier 1: Gemini 2.5 Flash...")
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=user_content,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-                response_schema=DISCORD_SCHEMA,
-                temperature=0.7
-            )
+        data = request.get_json(force=True) or {}
+        prompt = data.get('prompt', '').strip()
+        guild_id = data.get('guild_id', '').strip()
+
+        if not prompt or not guild_id:
+            return jsonify({"error": "Both prompt and guild_id are required."}), 400
+
+        system_instruction = (
+            "You are an expert Discord infrastructure architect. "
+            "Create a clean, well-organized Discord server layout matching the user's prompt. "
+            "Include suitable channel emojis, channel types, categories, and custom roles."
         )
-        blueprint = json.loads(response.text)
-        blueprint['target_guild_id'] = guild_id
-        return jsonify(blueprint), 200
 
-    except Exception as e1:
-        logging.error(f"Tier 1 Generation Failed: {e1}")
+        user_content = f"Target Server ID: {guild_id}\nUser Description: {prompt}"
 
-        # --- TIER 2: Gemini 2.0 Flash ---
+        # TIER 1: Gemini 2.5 Flash
         try:
-            logging.info("Attempting Tier 2: Gemini 2.0 Flash...")
+            logging.info("Attempting Tier 1: Gemini 2.5 Flash...")
             response = client.models.generate_content(
-                model='gemini-2.0-flash',
+                model='gemini-2.5-flash',
                 contents=user_content,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
@@ -132,12 +116,37 @@ def generate_layout():
             blueprint['target_guild_id'] = guild_id
             return jsonify(blueprint), 200
 
-        except Exception as e2:
-            logging.error(f"Tier 2 Generation Failed: {e2}")
+        except Exception as e1:
+            logging.error(f"Tier 1 Generation Failed: {e1}")
 
-            # --- TIER 3: Static Pre-built Blueprint ---
-            fallback = get_static_fallback(prompt, guild_id)
-            return jsonify(fallback), 200
+            # TIER 2: Gemini 2.0 Flash
+            try:
+                logging.info("Attempting Tier 2: Gemini 2.0 Flash...")
+                response = client.models.generate_content(
+                    model='gemini-2.0-flash',
+                    contents=user_content,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        response_mime_type="application/json",
+                        response_schema=DISCORD_SCHEMA,
+                        temperature=0.7
+                    )
+                )
+                blueprint = json.loads(response.text)
+                blueprint['target_guild_id'] = guild_id
+                return jsonify(blueprint), 200
+
+            except Exception as e2:
+                logging.error(f"Tier 2 Generation Failed: {e2}")
+
+                # TIER 3: Pre-built Static Blueprint Fallback
+                fallback = get_static_fallback(prompt, guild_id)
+                return jsonify(fallback), 200
+
+    except Exception as global_err:
+        logging.error(f"Unhandled Error in /api/generate-layout: {global_err}")
+        return jsonify({"error": str(global_err)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
