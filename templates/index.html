@@ -1,164 +1,504 @@
-import os
-import json
-from google import genai
-from google.genai import types
-
-class ServerArchitectAI:
-    @staticmethod
-    def _build_prompt(user_prompt: str, guild_id: str, server_type: str, emoji_style: bool) -> str:
-        emoji_instruction = "Include relevant emojis at the start of category names and text channel names." if emoji_style else "Do NOT include emojis in category or channel names."
-        
-        return f"""
-        You are a professional Discord server architect. Generate a structured JSON blueprint for a Discord server layout based on this user prompt: "{user_prompt}".
-
-        Style Preference: {emoji_instruction}
-        Server Category Type: {server_type}
-
-        Return ONLY a raw, valid JSON object matching this exact schema:
-        {{
-            "target_guild_id": "{str(guild_id).strip()}",
-            "server_name": "Server Name Here",
-            "server_type": "{server_type}",
-            "categories": [
-                {{
-                    "name": "📌 WELCOME",
-                    "channels": [
-                        {{"name": "rules", "type": "announcement", "topic": "Server rules and guidelines."}},
-                        {{"name": "announcements", "type": "announcement", "topic": "Official announcements."}},
-                        {{"name": "general", "type": "text", "topic": "General community chat."}}
-                    ]
-                }},
-                {{
-                    "name": "🔊 VOICE CHANNELS",
-                    "channels": [
-                        {{"name": "Lounge", "type": "voice", "topic": "General voice hangout."}}
-                    ]
-                }}
-            ],
-            "roles": ["Owner", "Admin", "Moderator", "Member"],
-            "meta": {{
-                "categories_count": 2,
-                "channels_count": 4,
-                "roles_count": 4,
-                "permission_settings": 6,
-                "price_robux": 300,
-                "price_usd": "2.50"
-            }}
-        }}
-
-        Rules:
-        - Channel names must be lowercase and hyphenated for text/announcement channels.
-        - Supported channel types: "text", "voice", "announcement".
-        - Do not include markdown code block formatting like ```json. Output raw JSON only.
-        """
-
-    @classmethod
-    def generate_blueprint(cls, prompt: str, guild_id: str, server_type: str = "Custom", emoji_style: bool = True) -> dict:
-        api_key = os.getenv("GEMINI_API_KEY")
-        target_id = str(guild_id).strip()
-        formatted_prompt = cls._build_prompt(prompt, target_id, server_type, emoji_style)
-
-        # Initialize Google GenAI client if API key is present
-        client = genai.Client(api_key=api_key) if api_key else None
-
-        # ==========================================
-        # TIER 1: PRIMARY AI MODEL (gemini-2.5-flash)
-        # ==========================================
-        if client:
-            try:
-                print("[AI Engine] Attempting Tier 1: gemini-2.5-flash...")
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=formatted_prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json"
-                    )
-                )
-                blueprint = json.loads(response.text)
-                blueprint["target_guild_id"] = target_id
-                print("[AI Engine] Tier 1 successful.")
-                return blueprint
-            except Exception as e:
-                print(f"[AI Engine] Tier 1 failed: {e}")
-
-            # ==========================================
-            # TIER 2: SECONDARY AI MODEL (gemini-2.0-flash)
-            # ==========================================
-            try:
-                print("[AI Engine] Attempting Tier 2 Fallback: gemini-2.0-flash...")
-                response = client.models.generate_content(
-                    model='gemini-2.0-flash',
-                    contents=formatted_prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json"
-                    )
-                )
-                blueprint = json.loads(response.text)
-                blueprint["target_guild_id"] = target_id
-                print("[AI Engine] Tier 2 successful.")
-                return blueprint
-            except Exception as e:
-                print(f"[AI Engine] Tier 2 failed: {e}")
-
-        # ==========================================
-        # TIER 3: LOCAL STATIC FALLBACK LAYOUT
-        # ==========================================
-        print("[AI Engine] Tier 3 Fallback triggered: Loading static layout structure...")
-        
-        prompt_lower = prompt.lower()
-        server_name = "Hoop Central" if "basketball" in prompt_lower else "Community Realm"
-        
-        categories = [
-            {
-                "name": "📌 WELCOME" if emoji_style else "WELCOME",
-                "channels": [
-                    {"name": "rules", "type": "announcement", "topic": "Server rules and guidelines."},
-                    {"name": "announcements", "type": "announcement", "topic": "Official community updates."},
-                    {"name": "roles", "type": "text", "topic": "Self-assignable roles."}
-                ]
-            },
-            {
-                "name": "💬 COMMUNITY" if emoji_style else "COMMUNITY",
-                "channels": [
-                    {"name": "general", "type": "text", "topic": "Main text conversation channel."},
-                    {"name": "media-and-clips", "type": "text", "topic": "Share images, videos, and clips."},
-                    {"name": "bot-commands", "type": "text", "topic": "Execute bot commands here."}
-                ]
-            },
-            {
-                "name": "🔊 VOICE LOUNGE" if emoji_style else "VOICE LOUNGE",
-                "channels": [
-                    {"name": "General Voice 1", "type": "voice", "topic": "General voice hangout."},
-                    {"name": "General Voice 2", "type": "voice", "topic": "Secondary voice hangout."},
-                    {"name": "AFK Lounge", "type": "voice", "topic": "AFK channel."}
-                ]
-            }
-        ]
-
-        if "mod" in prompt_lower or "staff" in prompt_lower or "admin" in prompt_lower:
-            categories.append({
-                "name": "🔒 STAFF ONLY",
-                "channels": [
-                    {"name": "staff-chat", "type": "text", "topic": "Private discussions for moderators and staff."},
-                    {"name": "staff-logs", "type": "text", "topic": "Bot logs and moderation audits."}
-                ]
-            })
-
-        channel_count = sum(len(c["channels"]) for c in categories)
-        roles = ["Commissioner", "Moderator", "All-Star", "Baller"]
-
-        return {
-            "target_guild_id": target_id,
-            "server_name": server_name,
-            "server_type": server_type,
-            "categories": categories,
-            "roles": roles,
-            "meta": {
-                "categories_count": len(categories),
-                "channels_count": channel_count,
-                "roles_count": len(roles),
-                "permission_settings": 6,
-                "price_robux": 300,
-                "price_usd": "2.50"
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Server Builder</title>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        discord: {
+                            bg: '#18191c',
+                            sidebar: '#202225',
+                            card: '#2f3136',
+                            innerCard: '#36393f',
+                            inputBg: '#202225',
+                            accent: '#5865f2',
+                            accentHover: '#4752c4',
+                            border: '#202225',
+                            textMuted: '#b9bbbe'
+                        }
+                    }
+                }
             }
         }
+    </script>
+    <style>
+        @import url('[https://fonts.googleapis.com/css2?family=gg+sans:wght@400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=gg+sans:wght@400;500;600;700;800&display=swap)');
+        body { font-family: 'gg sans', sans-serif; background-color: #18191c; color: #dcddde; }
+        .pill-badge { background-color: #202225; border: 1px solid #2f3136; border-radius: 9999px; }
+        .pill-badge.active { background-color: #36393f; border-color: #5865f2; color: white; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-discord-accent selection:text-white">
+
+    <!-- HEADER NAVIGATION -->
+    <header class="border-b border-discord-border bg-discord-sidebar px-4 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center space-x-2 cursor-pointer" onclick="switchPage('landing')">
+            <span class="text-xl">🛠️</span>
+            <span class="font-bold text-sm text-white tracking-wide">Discord Server Builder</span>
+        </div>
+        <button onclick="switchPage('builder')" class="bg-discord-accent hover:bg-discord-accentHover text-white font-semibold text-xs px-3.5 py-1.5 rounded transition">
+            Design my server
+        </button>
+    </header>
+
+    <!-- STEP 1: LANDING HERO PAGE -->
+    <main id="page-landing" class="max-w-xl mx-auto px-4 py-8 flex-1 space-y-8">
+        <div class="text-center space-y-3">
+            <h1 class="text-3xl font-extrabold text-white tracking-tight">
+                AI-Powered Discord Server Builder
+            </h1>
+            <p class="text-discord-textMuted text-xs leading-relaxed max-w-md mx-auto">
+                Describe your dream server. The AI designs the structure. You preview and edit it, then download a build file. No account needed — the build happens in Discord after you order.[span_0](start_span)[span_0](end_span)
+            </p>
+            <div class="flex justify-center space-x-3 pt-2">
+                <button onclick="switchPage('builder')" class="bg-discord-accent hover:bg-discord-accentHover text-white font-bold px-5 py-2.5 rounded text-xs transition">
+                    Design my server — free
+                </button>
+                <button onclick="scrollToHowItWorks()" class="bg-discord-card hover:bg-discord-innerCard text-white font-semibold px-4 py-2.5 rounded text-xs transition">
+                    How it works
+                </button>
+            </div>
+        </div>
+
+        <div id="how-it-works" class="space-y-3 pt-4">
+            <div class="bg-discord-card p-4 rounded-lg space-y-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-base">🗣️</span>
+                    <h3 class="font-bold text-white text-xs">1. Describe it</h3>
+                </div>
+                <p class="text-[11px] text-discord-textMuted pl-6">Tell the AI what your community needs — gaming, support, dev, anything.[span_1](start_span)[span_1](end_span)</p>
+            </div>
+
+            <div class="bg-discord-card p-4 rounded-lg space-y-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-base">🧠</span>
+                    <h3 class="font-bold text-white text-xs">2. AI designs the plan</h3>
+                </div>
+                <p class="text-[11px] text-discord-textMuted pl-6">The AI proposes categories, channels, roles and permissions as JSON. It never touches Discord.[span_2](start_span)[span_2](end_span)</p>
+            </div>
+
+            <div class="bg-discord-card p-4 rounded-lg space-y-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-base">👀</span>
+                    <h3 class="font-bold text-white text-xs">3. Preview & edit</h3>
+                </div>
+                <p class="text-[11px] text-discord-textMuted pl-6">See a Discord-style preview. Add or remove channels, tweak permissions, regenerate with AI.[span_3](start_span)[span_3](end_span)</p>
+            </div>
+
+            <div class="bg-discord-card p-4 rounded-lg space-y-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-base">💾</span>
+                    <h3 class="font-bold text-white text-xs">4. Download the build file</h3>
+                </div>
+                <p class="text-[11px] text-discord-textMuted pl-6">Approve and download a small JSON file plus a step-by-step setup guide.[span_4](start_span)[span_4](end_span)</p>
+            </div>
+
+            <div class="bg-discord-card p-4 rounded-lg space-y-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-base">🎫</span>
+                    <h3 class="font-bold text-white text-xs">5. Open a ticket & pay</h3>
+                </div>
+                <p class="text-[11px] text-discord-textMuted pl-6">Invite the builder bot, open a ticket with the bot operator, complete payment.[span_5](start_span)[span_5](end_span)</p>
+            </div>
+
+            <div class="bg-discord-card p-4 rounded-lg space-y-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-base">⚙️</span>
+                    <h3 class="font-bold text-white text-xs">6. Staff runs /build</h3>
+                </div>
+                <p class="text-[11px] text-discord-textMuted pl-6">A staff member with the builder role uploads your file in Discord — the bot builds everything.[span_6](start_span)[span_6](end_span)</p>
+            </div>
+
+            <div class="bg-discord-card border border-discord-accent/40 p-4 rounded-lg space-y-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-base">📌</span>
+                    <h3 class="font-bold text-white text-xs">The hard rule</h3>
+                </div>
+                <p class="text-[11px] text-discord-textMuted pl-6">
+                    The AI can only propose a plan. Plans are validated server-side, shown to you as a visual preview, and exported as a plain data file. A staff member in Discord must confirm before anything is created.[span_7](start_span)[span_7](end_span)
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- STEP 2: BUILDER INPUT FORM PAGE -->
+    <main id="page-builder" class="hidden max-w-xl mx-auto px-4 py-8 flex-1 space-y-6">
+        <div class="space-y-1">
+            <h2 class="text-xl font-bold text-white">Describe your server</h2>
+            <p class="text-xs text-discord-textMuted">No account needed. The AI proposes a layout — you approve it before anything else happens.[span_8](start_span)[span_8](end_span)</p>
+        </div>
+
+        <div class="bg-discord-card rounded-xl p-5 space-y-5 border border-discord-border">
+            <div class="space-y-2">
+                <label class="block text-[11px] font-bold text-discord-textMuted uppercase tracking-wider">
+                    WHAT DO YOU WANT YOUR SERVER TO LOOK LIKE? <span class="text-red-400">*</span>[span_9](start_span)[span_9](end_span)
+                </label>
+                <textarea id="prompt-input" rows="4" maxlength="4000"
+                    class="w-full bg-discord-inputBg border border-discord-border rounded-lg p-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-discord-accent transition"
+                    placeholder="I want a gaming community server for my Roblox game. I need announcement channels, general chat, support, staff channels, development channels, and roles for Owner, Admin, Moderator, Developer, and Member."></textarea>
+                <div class="text-right text-[10px] text-discord-textMuted" id="char-count">0/4000</div>[span_10](start_span)[span_10](end_span)
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[11px] font-bold text-discord-textMuted uppercase tracking-wider">
+                    DISCORD SERVER ID — WHERE SHOULD IT BE BUILT? <span class="text-red-400">*</span>[span_11](start_span)[span_11](end_span)
+                </label>
+                <input type="text" id="guild-id-input" placeholder="123456789012345678[span_12](start_span)"[span_12](end_span)
+                    class="w-full bg-discord-inputBg border border-discord-border rounded-lg p-3 text-xs font-mono text-white placeholder-gray-600 focus:outline-none focus:border-discord-accent transition" />
+                
+                <p id="guild-id-error" class="text-[11px] text-red-400 hidden font-semibold">
+                    ⚠️ You must enter a valid Discord Server ID before generating layout.[span_13](start_span)[span_13](end_span)
+                </p>
+
+                <p class="text-[11px] text-discord-textMuted leading-relaxed">
+                    In Discord: Settings → Advanced → enable <strong>Developer Mode</strong>, then right-click your server icon → <strong>Copy Server ID</strong>. The build file is locked to this server — the bot will refuse to build it anywhere else.[span_14](start_span)[span_14](end_span)
+                </p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[11px] font-bold text-discord-textMuted uppercase tracking-wider">
+                    SERVER TYPE (OPTIONAL)[span_15](start_span)[span_15](end_span)
+                </label>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="selectType(this)" class="pill-badge px-3 py-1.5 text-xs font-medium text-gray-300">Academy</button>[span_16](start_span)[span_16](end_span)
+                    <button type="button" onclick="selectType(this)" class="pill-badge px-3 py-1.5 text-xs font-medium text-gray-300">Gaming</button>[span_17](start_span)[span_17](end_span)
+                    <button type="button" onclick="selectType(this)" class="pill-badge px-3 py-1.5 text-xs font-medium text-gray-300">Community</button>[span_18](start_span)[span_18](end_span)
+                    <button type="button" onclick="selectType(this)" class="pill-badge px-3 py-1.5 text-xs font-medium text-gray-300">Developer</button>[span_19](start_span)[span_19](end_span)
+                    <button type="button" onclick="selectType(this)" class="pill-badge px-3 py-1.5 text-xs font-medium text-gray-300">Business</button>[span_20](start_span)[span_20](end_span)
+                    <button type="button" onclick="selectType(this)" class="pill-badge px-3 py-1.5 text-xs font-medium text-gray-300">Education</button>[span_21](start_span)[span_21](end_span)
+                    <button type="button" onclick="selectType(this)" class="pill-badge px-3 py-1.5 text-xs font-medium text-gray-300">Support</button>[span_22](start_span)[span_22](end_span)
+                    <button type="button" onclick="selectType(this)" class="pill-badge active px-3 py-1.5 text-xs font-medium text-white">Custom</button>[span_23](start_span)[span_23](end_span)
+                </div>
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <label class="block text-[11px] font-bold text-discord-textMuted uppercase tracking-wider">
+                    CHANNEL STYLE (OPTIONAL)[span_24](start_span)[span_24](end_span)
+                </label>
+                <div class="flex items-center justify-between bg-discord-inputBg p-3 rounded-lg border border-discord-border">
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="emoji-toggle" checked class="w-4 h-4 accent-discord-accent rounded">
+                        <label for="emoji-toggle" class="text-xs text-white font-medium">Emoji on every channel</label>[span_25](start_span)[span_25](end_span)
+                    </div>
+                    <div class="text-[11px] text-discord-textMuted flex items-center space-x-1">
+                        <span>Example:</span>
+                        <code class="bg-discord-card px-1.5 py-0.5 rounded text-gray-200">📣│announcements</code>[span_26](start_span)[span_26](end_span)
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-generate" onclick="handleGenerate()"
+                class="w-full bg-discord-accent hover:bg-discord-accentHover text-white font-bold py-3 rounded-lg text-xs transition flex items-center justify-center space-x-2">
+                <span id="btn-text">✨ Generate Server Layout</span>[span_27](start_span)[span_27](end_span)
+            </button>
+        </div>
+    </main>
+
+    <!-- STEP 3: PREVIEW & EDITOR INTERFACE -->
+    <main id="page-preview" class="hidden max-w-xl mx-auto px-4 py-8 flex-1 space-y-6">
+        <div class="space-y-3">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h2 id="preview-server-name" class="text-2xl font-extrabold text-white">Hoop Central</h2>[span_28](start_span)[span_28](end_span)
+                    <p id="preview-meta-stats" class="text-xs text-discord-textMuted mt-0.5">5 categories • 13 channels • 4 roles • 6 permission settings</p>[span_29](start_span)[span_29](end_span)
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="switchPage('builder')" class="px-3 py-1.5 rounded bg-discord-card hover:bg-discord-innerCard text-xs text-gray-300 transition">Start over</button>[span_30](start_span)[span_30](end_span)
+                    <button onclick="downloadBuildFile()" class="px-3 py-1.5 rounded bg-discord-accent hover:bg-discord-accentHover text-xs text-white font-semibold transition flex items-center space-x-1">
+                        <span>📥</span><span>Download build file...</span>[span_31](start_span)[span_31](end_span)
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-discord-card border border-discord-border p-4 rounded-xl space-y-2">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-lg">💰</span>
+                        <span class="font-bold text-white text-xs">Price for this design</span>[span_32](start_span)[span_32](end_span)
+                        <span class="bg-discord-inputBg text-[10px] text-gray-300 px-2 py-0.5 rounded font-medium">Small</span>[span_33](start_span)[span_33](end_span)
+                    </div>
+                </div>
+                <div class="text-xl font-extrabold text-white">
+                    300 Robux <span class="text-xs font-normal text-discord-textMuted">• or $2.50 on Payhip</span>[span_34](start_span)[span_34](end_span)
+                </div>
+                <p class="text-[11px] text-discord-textMuted">
+                    Same price either way. Based on: 5 categories • 13 channels • 4 roles • 6 permission settings — snapped to the nearest of our fixed prices: 300 / 500 / 750 Robux.[span_35](start_span)[span_35](end_span)
+                </p>
+                <div class="flex items-center space-x-2 text-[11px] text-discord-textMuted pt-1">
+                    <span>💙</span>
+                    <span><strong>Open to negotiation</strong> — before you pay, write a message in your ticket.</span>[span_36](start_span)[span_36](end_span)
+                </div>
+            </div>
+
+            <div class="bg-discord-innerCard p-3 rounded-lg border border-discord-border flex justify-between items-center">
+                <div class="text-xs text-gray-300">
+                    Target Guild: <code id="preview-guild-lock" class="font-mono text-discord-accent">1553059916997206846</code>[span_37](start_span)[span_37](end_span)
+                </div>
+                <button onclick="dispatchToWebhook()" id="btn-dispatch" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded transition">
+                    <span id="dispatch-text">🚀 Send Design & Log Webhook</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-discord-card rounded-xl p-4 border border-discord-border space-y-4">
+            <div class="flex justify-between items-center border-b border-discord-border pb-2">
+                <span id="preview-canvas-title" class="text-xs font-bold text-white uppercase tracking-wider">Hoop Central</span>[span_38](start_span)[span_38](end_span)
+                <span class="text-[10px] text-discord-textMuted uppercase font-semibold">DRAG TO REORDER</span>[span_39](start_span)[span_39](end_span)
+            </div>
+
+            <div id="discord-channels-list" class="space-y-3"></div>
+
+            <div class="space-y-2 pt-2 border-t border-discord-border">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-white">Roles</span>[span_40](start_span)[span_40](end_span)
+                    <span class="text-[10px] text-discord-textMuted">DRAG — TOP IS HIGHEST</span>[span_41](start_span)[span_41](end_span)
+                </div>
+                <div id="roles-list" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <div class="space-y-2 pt-2 border-t border-discord-border">
+                <span class="text-xs font-bold text-white">Permissions</span>[span_42](start_span)[span_42](end_span)
+                <div class="bg-discord-innerCard p-3 rounded-lg text-xs space-y-2">
+                    <div class="text-discord-textMuted text-[11px]">
+                        This channel sits in <strong>📌 WELCOME</strong> — <code class="text-gray-200">@everyone</code> can't send at the category level. The channel syncs with the category, so that's what users get.[span_43](start_span)[span_43](end_span)
+                    </div>
+                    <div class="space-y-1.5 pt-1">
+                        <div class="flex justify-between items-center text-xs border-b border-discord-border pb-1">
+                            <span class="font-medium text-white">@everyone</span>
+                            <div class="space-x-1 text-[11px]">
+                                <span class="text-gray-400">SEES: YES</span>
+                                <span class="bg-emerald-900/40 text-emerald-400 px-1.5 py-0.5 rounded">✓ View</span>
+                                <span class="bg-emerald-900/40 text-emerald-400 px-1.5 py-0.5 rounded">✓ Send</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- STEP 4: SUCCESS DISPATCHED PAGE -->
+    <main id="page-success" class="hidden max-w-md mx-auto px-4 py-16 flex-1 text-center space-y-6">
+        <div class="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center text-emerald-400 mx-auto text-xl">
+            ✓
+        </div>
+        <div class="space-y-2">
+            <h2 class="text-2xl font-bold text-white">Design Sent to Webhook Log!</h2>
+            <p class="text-xs text-discord-textMuted leading-relaxed">
+                The blueprint file has been logged. Staff can now execute <code class="bg-discord-sidebar px-1.5 py-0.5 rounded text-discord-accent font-mono">/build</code> inside Discord Server ID <span id="success-guild-id" class="text-white font-mono"></span>[span_44](start_span)[span_44](end_span).
+            </p>
+        </div>
+        <button onclick="switchPage('landing')" class="bg-discord-accent hover:bg-discord-accentHover text-white font-bold text-xs px-5 py-2.5 rounded transition">
+            Create Another Blueprint
+        </button>
+    </main>
+
+    <footer class="border-t border-discord-border bg-discord-sidebar py-3 px-4 text-center text-[11px] text-discord-textMuted">
+        Discord Server Builder Studio &copy; 2026
+    </footer>
+
+    <script>
+        const DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE";
+        let serverBlueprint = null;
+
+        function switchPage(page) {
+            document.querySelectorAll('main').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`page-${page}`).classList.remove('hidden');
+        }
+
+        function scrollToHowItWorks() {
+            document.getElementById('how-it-works').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function selectType(btn) {
+            document.querySelectorAll('.pill-badge').forEach(b => {
+                b.classList.remove('active', 'text-white');
+                b.classList.add('text-gray-300');
+            });
+            btn.classList.add('active', 'text-white');
+            btn.classList.remove('text-gray-300');
+        }
+
+        function validateGuildId(id) {
+            return /^\d{17,20}$/.test(id.trim());
+        }
+
+        function handleGenerate() {
+            const promptText = document.getElementById('prompt-input').value.trim();
+            const guildId = document.getElementById('guild-id-input').value.trim();
+            const errEl = document.getElementById('guild-id-error');
+            const btnText = document.getElementById('btn-text');
+
+            if (!validateGuildId(guildId)) {
+                errEl.classList.remove('hidden');
+                document.getElementById('guild-id-input').classList.add('border-red-500');
+                return;
+            } else {
+                errEl.classList.add('hidden');
+                document.getElementById('guild-id-input').classList.remove('border-red-500');
+            }
+
+            btnText.innerText = "Generating...";
+
+            setTimeout(() => {
+                serverBlueprint = {
+                    target_guild_id: guildId,
+                    server_name: promptText.toLowerCase().includes("basketball") ? "Hoop Central" : "Community Realm",
+                    roles: ["Commissioner", "Moderator", "All-Star", "Baller"],
+                    categories: [
+                        {
+                            name: "📌 WELCOME",
+                            channels: [
+                                { name: "rules", type: "announcement" },
+                                { name: "announcements", type: "announcement" },
+                                { name: "roles", type: "text" }
+                            ]
+                        },
+                        {
+                            name: "🏀 COURT SIDE",
+                            channels: [
+                                { name: "general", type: "text" },
+                                { name: "highlights", type: "text" },
+                                { name: "hot-takes", type: "text" }
+                            ]
+                        },
+                        {
+                            name: "🏆 STAT SHEET",
+                            channels: [
+                                { name: "nba-talk", type: "text" },
+                                { name: "fantasy-basketball", type: "text" },
+                                { name: "draft-room", type: "voice" }
+                            ]
+                        },
+                        {
+                            name: "🎙️ LOCKER ROOM",
+                            channels: [
+                                { name: "starting-five", type: "voice" },
+                                { name: "bench-warmers", type: "voice" }
+                            ]
+                        }
+                    ]
+                };
+
+                btnText.innerText = "✨ Generate Server Layout";
+                renderPreviewCanvas();
+                switchPage('preview');
+            }, 500);
+        }
+
+        function renderPreviewCanvas() {
+            document.getElementById('preview-server-name').innerText = serverBlueprint.server_name;
+            document.getElementById('preview-canvas-title').innerText = serverBlueprint.server_name;
+            document.getElementById('preview-guild-lock').innerText = serverBlueprint.target_guild_id;
+
+            const listEl = document.getElementById('discord-channels-list');
+            listEl.innerHTML = '';
+
+            serverBlueprint.categories.forEach((cat, cIdx) => {
+                const catContainer = document.createElement('div');
+                catContainer.className = "space-y-1";
+
+                let chHtml = cat.channels.map((ch, chIdx) => {
+                    let icon = "#";
+                    if (ch.type === "voice") icon = "🔊";
+                    if (ch.type === "announcement") icon = "📢";
+
+                    return `
+                        <div class="flex items-center justify-between px-2 py-1 rounded hover:bg-discord-innerCard text-xs text-gray-300 group">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-500 font-bold">${icon}</span>
+                                <span>${ch.name}</span>
+                            </div>
+                            <button onclick="removeChannel(${cIdx},${chIdx})" class="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 text-xs">✕</button>
+                        </div>
+                    `;
+                }).join('');
+
+                catContainer.innerHTML = `
+                    <div class="flex justify-between items-center text-[11px] font-bold text-discord-textMuted uppercase pt-2">
+                        <span>📂 ${cat.name}</span>
+                        <button onclick="addChannel(${cIdx})" class="text-discord-accent hover:underline text-[10px]">+ new-channel</button>
+                    </div>
+                    <div class="pl-2 space-y-0.5">${chHtml}</div>
+                `;
+
+                listEl.appendChild(catContainer);
+            });
+
+            const rolesEl = document.getElementById('roles-list');
+            rolesEl.innerHTML = serverBlueprint.roles.map(r => `
+                <span class="bg-discord-inputBg border border-discord-border px-2.5 py-1 rounded-full text-xs text-gray-200 font-medium flex items-center space-x-1">
+                    <span class="w-2 h-2 rounded-full bg-discord-accent"></span>
+                    <span>${r}</span>
+                </span>
+            `).join('');
+        }
+
+        function removeChannel(cIdx, chIdx) {
+            serverBlueprint.categories[cIdx].channels.splice(chIdx, 1);
+            renderPreviewCanvas();
+        }
+
+        function addChannel(cIdx) {
+            const name = prompt("Channel name:");
+            if (name) {
+                serverBlueprint.categories[cIdx].channels.push({
+                    name: name.toLowerCase().replace(/\s+/g, '-'),
+                    type: "text"
+                });
+                renderPreviewCanvas();
+            }
+        }
+
+        function downloadBuildFile() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(serverBlueprint, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `server-build-${serverBlueprint.target_guild_id}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        async function dispatchToWebhook() {
+            const btnText = document.getElementById('dispatch-text');
+            btnText.innerText = "Sending Payload...";
+
+            const payload = {
+                embeds: [{
+                    title: "🛠️ Server Blueprint Submitted",
+                    color: 0x5865F2,
+                    fields: [
+                        { name: "Target Guild ID", value: `\`${serverBlueprint.target_guild_id}\``, inline: true },
+                        { name: "Server Name", value: serverBlueprint.server_name, inline: true },
+                        { name: "Raw Build Spec (JSON)", value: "```json\n" + JSON.stringify(serverBlueprint, null, 2) + "\n```" }
+                    ],
+                    footer: { text: "Run /build inside the target Discord server to create this layout." }
+                }]
+            };
+
+            try {
+                if (DISCORD_WEBHOOK_URL && !DISCORD_WEBHOOK_URL.includes("YOUR_DISCORD")) {
+                    await fetch(DISCORD_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+                document.getElementById('success-guild-id').innerText = serverBlueprint.target_guild_id;
+                switchPage('success');
+            } catch (err) {
+                alert("Error sending to Discord Webhook.");
+            } finally {
+                btnText.innerText = "🚀 Send Design & Log Webhook";
+            }
+        }
+    </script>
+</body>
+</html>
