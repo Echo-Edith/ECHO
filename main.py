@@ -1,96 +1,34 @@
 import os
-import threading
-import logging
 import asyncio
-from pathlib import Path
-from flask import Flask, render_template, request, jsonify
 import discord
 from discord.ext import commands
+from keep_alive import keep_alive
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("main")
+TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
-BASE_DIR = Path(__file__).resolve().parent
-
-# Set Flask to look for templates in the templates/ folder
-app = Flask(
-    __name__, 
-    template_folder=str(BASE_DIR / "templates"), 
-    static_folder=str(BASE_DIR / "static")
-)
-
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-@app.route('/api/generate-layout', methods=['POST'])
-def api_generate_layout():
-    try:
-        data = request.get_json() or {}
-        prompt = data.get('prompt', '')
-        theme = data.get('theme', 'custom')
-        
-        import ai_brain
-        layout = ai_brain.generate_discord_layout(prompt_theme=f"{prompt} {theme}".strip())
-        return jsonify(layout)
-    except Exception as e:
-        logger.error(f"Error in layout generation: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/lockdown', methods=['GET'])
-def api_lockdown():
-    state = request.args.get('state', 'false').lower() == 'true'
-    logger.info(f"[LOCKDOWN] Web maintenance mode state updated: {state}")
-    return jsonify({"status": "success", "lockdown": state})
-
-def run_flask():
-    port = int(os.getenv("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
-
-# Initialize Discord Bot
 intents = discord.Intents.default()
-intents.message_content = True
 intents.guilds = True
-intents.members = True
+intents.guild_messages = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    logger.info(f"Bot logged in as {bot.user} (ID: {bot.user.id})")
-    
-    # Load extension from cogs/orca.py
-    cog_path = BASE_DIR / "cogs" / "orca.py"
-    if cog_path.exists():
-        try:
-            await bot.load_extension("cogs.orca")
-            logger.info("Successfully loaded 'cogs.orca' extension.")
-        except Exception as e:
-            logger.error(f"Failed to load 'cogs.orca' extension: {e}")
-    else:
-        logger.warning("'cogs/orca.py' file not found; skipping cog load.")
-
+    print(f"Bot Online: {bot.user} (ID: {bot.user.id})")
     try:
         synced = await bot.tree.sync()
-        logger.info(f"Synced {len(synced)} command(s)")
+        print(f"Synced {len(synced)} Slash Commands globally.")
     except Exception as e:
-        logger.error(f"Failed to sync slash commands: {e}")
+        print(f"Error syncing slash commands: {e}")
 
-async def run_bot():
-    token = os.getenv("DISCORD_TOKEN")
-    if not token:
-        logger.error("DISCORD_TOKEN environment variable not set. Bot will not start.")
-        return
-    await bot.start(token)
+async def main():
+    keep_alive()
+    await bot.load_extension("cogs.orca")
+    
+    if not TOKEN:
+        raise ValueError("DISCORD_BOT_TOKEN environment variable is missing!")
+    
+    await bot.start(TOKEN)
 
 if __name__ == "__main__":
-    # Start Web Server in background thread
-    web_thread = threading.Thread(target=run_flask, daemon=True)
-    web_thread.start()
-    
-    # Run Discord Bot in main loop
-    try:
-        asyncio.run(run_bot())
-    except KeyboardInterrupt:
-        logger.info("Application shut down cleanly.")
+    asyncio.run(main())
