@@ -3,129 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord AI Infrastructure Builder</title>
+    <title>Server Layout Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-            background-color: #050508;
+            background-color: #08080a;
             color: #f5f5f7;
             overflow-x: hidden;
         }
 
-        /* Apple Intelligence Rainbow Aura Background */
-        .ai-glow-bg {
+        /* Ambient Glass Backdrop */
+        .glass-aura {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 600px;
-            height: 600px;
-            background: conic-gradient(
-                from 180deg at 50% 50%,
-                #ff2d55 0deg,
-                #af52de 70deg,
-                #5856d6 140deg,
-                #007aff 210deg,
-                #5ac8fa 270deg,
-                #ff2d55 360deg
-            );
-            filter: blur(120px);
-            opacity: 0.22;
-            border-radius: 50%;
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(90px);
             pointer-events: none;
             z-index: 0;
-            animation: rotateAura 18s linear infinite;
         }
 
-        @keyframes rotateAura {
-            0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
-            50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.15); }
-            100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
-        }
-
-        /* Liquid Glass Card Styling */
+        /* Frosted Glass Cards */
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
         }
 
         .glass-input {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.12);
             color: #ffffff;
         }
 
         .glass-input:focus {
             outline: none;
-            border-color: rgba(168, 85, 247, 0.6);
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.25);
+            border-color: rgba(168, 85, 247, 0.5);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
         }
 
-        /* Apple Glass Button */
-        .apple-btn {
-            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        /* Glass Pill Action Buttons */
+        .glass-btn {
+            background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 100%);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .apple-btn:hover:not(:disabled) {
+        .glass-btn:hover:not(:disabled) {
             transform: scale(1.02);
-            background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.1) 100%);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between relative selection:bg-purple-500/30">
+<body class="min-h-screen flex flex-col justify-center items-center relative p-4 selection:bg-purple-500/30">
 
-    <!-- Ambient Apple Intelligence Glow -->
-    <div class="ai-glow-bg"></div>
+    <!-- Ambient Aura -->
+    <div class="glass-aura"></div>
 
-    <!-- HEADER -->
-    <header class="relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-2xl px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center space-x-3 cursor-pointer" onclick="switchPage('landing')">
-            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 p-[1px] flex items-center justify-center shadow-lg">
-                <div class="w-full h-full bg-black/80 rounded-full flex items-center justify-center text-xs">✨</div>
-            </div>
-            <span class="font-semibold text-sm tracking-tight text-white/90">Apple Intelligence Builder</span>
-        </div>
-        <button onclick="switchPage('builder')" class="apple-btn text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg">
-            Design Server
-        </button>
-    </header>
-
-    <!-- LANDING HERO -->
-    <main id="page-landing" class="relative z-10 max-w-xl mx-auto px-4 py-16 flex-1 space-y-8 text-center">
-        <div class="space-y-4">
-            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-purple-300 backdrop-blur-xl">
-                <span> Apple Intelligence Infrastructure</span>
-            </div>
-            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/40">
-                Architect servers with intelligence.
-            </h1>
-            <p class="text-gray-400 text-xs sm:text-sm leading-relaxed max-w-md mx-auto font-normal">
-                Describe your dream space. AI structures channels, permissions, and roles inside fluid glass interface.
-            </p>
-        </div>
-
-        <div class="pt-2">
-            <button onclick="switchPage('builder')" class="apple-btn px-6 py-3 rounded-full text-xs font-semibold text-white shadow-2xl">
-                Start Blueprint — Free
-            </button>
-        </div>
-    </main>
-
-    <!-- BUILDER FORM -->
-    <main id="page-builder" class="hidden relative z-10 max-w-xl mx-auto px-4 py-12 flex-1 space-y-6">
+    <!-- MAIN FORM VIEW -->
+    <main id="page-builder" class="relative z-10 w-full max-w-xl mx-auto space-y-6 my-auto">
         <div class="text-center space-y-1">
-            <h2 class="text-2xl font-bold tracking-tight text-white">Describe your server</h2>
+            <h1 class="text-3xl font-extrabold tracking-tight text-white">Discord Infrastructure</h1>
             <p class="text-xs text-gray-400">Fill in both parameters to initialize AI schema parsing.</p>
         </div>
 
@@ -136,7 +83,7 @@
                 </label>
                 <textarea id="prompt-input" rows="4" maxlength="4000" oninput="validateForm()"
                     class="glass-input w-full rounded-2xl p-4 text-xs placeholder-gray-500 transition resize-none"
-                    placeholder="I want a gaming community server for my Roblox game with announcement channels, general chat, support, staff channels, and custom roles..."></textarea>
+                    placeholder="A dedicated server for a roblox game that is used to post updates and announcements..."></textarea>
             </div>
 
             <div class="space-y-2">
@@ -148,17 +95,17 @@
             </div>
 
             <button id="btn-generate" disabled onclick="handleGenerate()"
-                class="apple-btn w-full disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl text-xs shadow-xl flex items-center justify-center space-x-2">
-                <span id="btn-text">✨ Generate Server Layout</span>
+                class="glass-btn w-full disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl text-xs shadow-xl flex items-center justify-center space-x-2">
+                <span id="btn-text">⚡ Analyzing Layout...</span>
             </button>
         </div>
     </main>
 
-    <!-- PREVIEW & GLASS EDITOR -->
-    <main id="page-preview" class="hidden relative z-10 max-w-3xl mx-auto px-4 py-8 flex-1 space-y-6">
+    <!-- PREVIEW & GLASS EDITOR VIEW -->
+    <main id="page-preview" class="hidden relative z-10 w-full max-w-3xl mx-auto space-y-6 my-auto">
         <div class="flex justify-between items-center border-b border-white/10 pb-4">
-            <h2 id="preview-server-name" class="text-2xl font-bold tracking-tight text-white">Server Preview</h2>
-            <button onclick="downloadBuildFile()" class="apple-btn px-4 py-2 rounded-xl text-xs font-medium text-white">
+            <h2 id="preview-server-name" class="text-2xl font-bold tracking-tight text-white">Server Blueprint</h2>
+            <button onclick="downloadBuildFile()" class="glass-btn px-4 py-2 rounded-xl text-xs font-medium text-white">
                 Download .json
             </button>
         </div>
@@ -166,7 +113,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <!-- Left Structure -->
             <div class="glass-card rounded-2xl p-4 space-y-3">
-                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Structure Navigation</div>
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Server Structure</div>
                 <div id="discord-structure-list" class="space-y-2 text-xs"></div>
             </div>
 
@@ -207,17 +154,12 @@
             </div>
         </div>
 
-        <div class="pt-4 border-t border-white/10">
-            <button onclick="submitLayoutToWebhook()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold py-3.5 rounded-2xl text-xs shadow-2xl transition">
-                🚀 Submit Design to Discord
+        <div class="pt-2">
+            <button onclick="switchPage('builder')" class="glass-btn w-full text-white font-semibold py-3 rounded-2xl text-xs transition">
+                ← Back to Builder
             </button>
         </div>
     </main>
-
-    <!-- FOOTER -->
-    <footer class="relative z-10 border-t border-white/10 bg-black/30 backdrop-blur-xl py-4 text-center text-[10px] text-gray-500">
-        Apple Intelligence Server Design Engine &copy; 2026
-    </footer>
 
     <script>
         let serverBlueprint = null;
@@ -250,22 +192,20 @@
                     body: JSON.stringify({ prompt: promptText, guild_id: guildId })
                 });
 
-                if (!res.ok) throw new Error("Backend API request failed");
-
                 serverBlueprint = await res.json();
                 renderPreview();
                 switchPage('preview');
             } catch (err) {
-                alert("Generation Error: " + err.message);
+                alert("Error: " + err.message);
             } finally {
-                btnText.innerText = "✨ Generate Server Layout";
+                btnText.innerText = "⚡ Analyzing Layout...";
                 validateForm();
             }
         }
 
         function renderPreview() {
             if (!serverBlueprint) return;
-            document.getElementById('preview-server-name').innerText = serverBlueprint.server_name || "Community Server";
+            document.getElementById('preview-server-name').innerText = serverBlueprint.server_name || "Community Blueprint";
 
             const rolesContainer = document.getElementById('roles-list');
             rolesContainer.innerHTML = (serverBlueprint.roles || []).map(r => 
@@ -332,42 +272,6 @@
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
-        }
-
-        async function submitLayoutToWebhook() {
-            const webhookUrl = "YOUR_DISCORD_WEBHOOK_URL_HERE";
-            if (webhookUrl === "YOUR_DISCORD_WEBHOOK_URL_HERE") {
-                alert("Configure DISCORD_WEBHOOK_URL in index.html first.");
-                return;
-            }
-
-            const totalChannels = serverBlueprint.categories.reduce((acc, cat) => acc + cat.channels.length, 0);
-            const orderId = "ORD-" + Math.floor(1000 + Math.random() * 9000);
-
-            const payload = {
-                embeds: [{
-                    title: `📥 New Server Layout Submitted — #${orderId}`,
-                    description: "A new buyer blueprint layout was generated on the web builder.",
-                    color: 3066993,
-                    fields: [
-                        { name: "Server Name", value: serverBlueprint.server_name, inline: false },
-                        { name: "Categories & Channels", value: `${serverBlueprint.categories.length} Categories | ${totalChannels} Channels`, inline: false },
-                        { name: "Configured Roles", value: `${serverBlueprint.roles.length} Roles`, inline: false }
-                    ],
-                    footer: { text: "ORCA AI Automated Server Infrastructure" }
-                }]
-            };
-
-            try {
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (response.ok) alert("Layout successfully submitted!");
-            } catch (err) {
-                alert("Error submitting: " + err.message);
-            }
         }
     </script>
 </body>
