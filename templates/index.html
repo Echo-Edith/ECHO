@@ -3,144 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI-Powered Discord Server Builder</title>
+    <title>Discord AI Infrastructure Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        discord: {
-                            bg: '#18191c',
-                            sidebar: '#202225',
-                            card: '#2f3136',
-                            innerCard: '#36393f',
-                            inputBg: '#202225',
-                            accent: '#5865f2',
-                            accentHover: '#4752c4',
-                            border: '#202225',
-                            textMuted: '#b9bbbe'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=gg+sans:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'gg sans', sans-serif; background-color: #18191c; color: #dcddde; }
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background-color: #050508;
+            color: #f5f5f7;
+            overflow-x: hidden;
+        }
+
+        /* Apple Intelligence Rainbow Aura Background */
+        .ai-glow-bg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: conic-gradient(
+                from 180deg at 50% 50%,
+                #ff2d55 0deg,
+                #af52de 70deg,
+                #5856d6 140deg,
+                #007aff 210deg,
+                #5ac8fa 270deg,
+                #ff2d55 360deg
+            );
+            filter: blur(120px);
+            opacity: 0.22;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: rotateAura 18s linear infinite;
+        }
+
+        @keyframes rotateAura {
+            0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+            50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.15); }
+            100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
+        }
+
+        /* Liquid Glass Card Styling */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+        }
+
+        .glass-input:focus {
+            outline: none;
+            border-color: rgba(168, 85, 247, 0.6);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.25);
+        }
+
+        /* Apple Glass Button */
+        .apple-btn {
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .apple-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+            background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-discord-accent selection:text-white">
+<body class="min-h-screen flex flex-col justify-between relative selection:bg-purple-500/30">
+
+    <!-- Ambient Apple Intelligence Glow -->
+    <div class="ai-glow-bg"></div>
 
     <!-- HEADER -->
-    <header class="border-b border-discord-border bg-discord-sidebar px-4 py-3 flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center space-x-2 cursor-pointer" onclick="switchPage('landing')">
-            <span class="text-xl">🛠️</span>
-            <span class="font-bold text-sm text-white tracking-wide">Discord Server Builder</span>
+    <header class="relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-2xl px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="switchPage('landing')">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 p-[1px] flex items-center justify-center shadow-lg">
+                <div class="w-full h-full bg-black/80 rounded-full flex items-center justify-center text-xs">✨</div>
+            </div>
+            <span class="font-semibold text-sm tracking-tight text-white/90">Apple Intelligence Builder</span>
         </div>
-        <button onclick="switchPage('builder')" class="bg-discord-accent hover:bg-discord-accentHover text-white font-semibold text-xs px-3.5 py-1.5 rounded transition">
-            Design my server
+        <button onclick="switchPage('builder')" class="apple-btn text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg">
+            Design Server
         </button>
     </header>
 
-    <!-- PAGE 1: LANDING HERO -->
-    <main id="page-landing" class="max-w-xl mx-auto px-4 py-8 flex-1 space-y-8">
-        <div class="text-center space-y-3">
-            <h1 class="text-3xl font-extrabold text-white tracking-tight">
-                AI-Powered <span class="text-discord-accent">Discord Server Builder</span>
-            </h1>
-            <p class="text-discord-textMuted text-xs leading-relaxed max-w-md mx-auto">
-                Describe your dream server. The AI designs the structure. You preview and edit it, then download a build file. No account needed — the build happens in Discord after you order.
-            </p>
-            <div class="flex justify-center space-x-3 pt-2">
-                <button onclick="switchPage('builder')" class="bg-discord-accent hover:bg-discord-accentHover text-white font-bold px-5 py-2.5 rounded text-xs transition">
-                    Design my server — free
-                </button>
+    <!-- LANDING HERO -->
+    <main id="page-landing" class="relative z-10 max-w-xl mx-auto px-4 py-16 flex-1 space-y-8 text-center">
+        <div class="space-y-4">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-purple-300 backdrop-blur-xl">
+                <span> Apple Intelligence Infrastructure</span>
             </div>
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/40">
+                Architect servers with intelligence.
+            </h1>
+            <p class="text-gray-400 text-xs sm:text-sm leading-relaxed max-w-md mx-auto font-normal">
+                Describe your dream space. AI structures channels, permissions, and roles inside fluid glass interface.
+            </p>
+        </div>
+
+        <div class="pt-2">
+            <button onclick="switchPage('builder')" class="apple-btn px-6 py-3 rounded-full text-xs font-semibold text-white shadow-2xl">
+                Start Blueprint — Free
+            </button>
         </div>
     </main>
 
-    <!-- PAGE 2: FORM INTERFACE -->
-    <main id="page-builder" class="hidden max-w-xl mx-auto px-4 py-8 flex-1 space-y-6">
-        <div class="space-y-1">
-            <h2 class="text-xl font-bold text-white">Describe your server</h2>
-            <p class="text-xs text-discord-textMuted">No account needed. The AI proposes a layout — you approve it before anything else happens.</p>
+    <!-- BUILDER FORM -->
+    <main id="page-builder" class="hidden relative z-10 max-w-xl mx-auto px-4 py-12 flex-1 space-y-6">
+        <div class="text-center space-y-1">
+            <h2 class="text-2xl font-bold tracking-tight text-white">Describe your server</h2>
+            <p class="text-xs text-gray-400">Fill in both parameters to initialize AI schema parsing.</p>
         </div>
 
-        <div class="bg-discord-card rounded-xl p-5 space-y-5 border border-discord-border">
+        <div class="glass-card rounded-3xl p-6 space-y-6">
             <div class="space-y-2">
-                <label class="block text-[11px] font-bold text-discord-textMuted uppercase tracking-wider">
-                    WHAT DO YOU WANT YOUR SERVER TO LOOK LIKE? <span class="text-red-400">*</span>
+                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    Prompt Description <span class="text-purple-400">*</span>
                 </label>
                 <textarea id="prompt-input" rows="4" maxlength="4000" oninput="validateForm()"
-                    class="w-full bg-discord-inputBg border border-discord-border rounded-lg p-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-discord-accent transition"
-                    placeholder="I want a gaming community server for my Roblox game. I need announcement channels, general chat, support, staff channels, development channels, and roles for Owner, Admin, Moderator, Developer, and Member."></textarea>
-                <div class="text-right text-[10px] text-gray-500">0/4000</div>
+                    class="glass-input w-full rounded-2xl p-4 text-xs placeholder-gray-500 transition resize-none"
+                    placeholder="I want a gaming community server for my Roblox game with announcement channels, general chat, support, staff channels, and custom roles..."></textarea>
             </div>
 
             <div class="space-y-2">
-                <label class="block text-[11px] font-bold text-discord-textMuted uppercase tracking-wider">
-                    DISCORD SERVER ID — WHERE SHOULD IT BE BUILT? <span class="text-red-400">*</span>
+                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    Target Discord Server ID <span class="text-purple-400">*</span>
                 </label>
                 <input type="text" id="guild-id-input" oninput="validateForm()" placeholder="123456789012345678"
-                    class="w-full bg-discord-inputBg border border-discord-border rounded-lg p-3 text-xs font-mono text-white placeholder-gray-600 focus:outline-none focus:border-discord-accent transition" />
+                    class="glass-input w-full rounded-2xl p-3.5 text-xs font-mono transition" />
             </div>
 
             <button id="btn-generate" disabled onclick="handleGenerate()"
-                class="w-full bg-discord-accent disabled:opacity-50 disabled:cursor-not-allowed hover:bg-discord-accentHover text-white font-bold py-3 rounded-lg text-xs transition flex items-center justify-center space-x-2">
+                class="apple-btn w-full disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl text-xs shadow-xl flex items-center justify-center space-x-2">
                 <span id="btn-text">✨ Generate Server Layout</span>
             </button>
         </div>
     </main>
 
-    <!-- PAGE 3: PREVIEW & CUSTOMIZATION EDITOR -->
-    <main id="page-preview" class="hidden max-w-3xl mx-auto px-4 py-8 flex-1 space-y-6">
-        <div class="flex justify-between items-center border-b border-discord-border pb-4">
-            <h2 id="preview-server-name" class="text-2xl font-extrabold text-white">Community Lounge</h2>
-            <button onclick="downloadBuildFile()" class="px-3 py-1.5 rounded bg-discord-card hover:bg-discord-innerCard text-xs text-white font-semibold transition border border-discord-border">
+    <!-- PREVIEW & GLASS EDITOR -->
+    <main id="page-preview" class="hidden relative z-10 max-w-3xl mx-auto px-4 py-8 flex-1 space-y-6">
+        <div class="flex justify-between items-center border-b border-white/10 pb-4">
+            <h2 id="preview-server-name" class="text-2xl font-bold tracking-tight text-white">Server Preview</h2>
+            <button onclick="downloadBuildFile()" class="apple-btn px-4 py-2 rounded-xl text-xs font-medium text-white">
                 Download .json
             </button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Left Pane: Discord Layout Navigation -->
-            <div class="bg-discord-sidebar rounded-xl p-4 border border-discord-border space-y-4">
-                <div class="text-xs font-bold text-discord-textMuted uppercase tracking-wider flex justify-between">
-                    <span>Structure</span>
-                    <span class="text-[10px] text-gray-500">Click item to edit</span>
-                </div>
-                <div id="discord-structure-list" class="space-y-3 font-sans text-xs"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Left Structure -->
+            <div class="glass-card rounded-2xl p-4 space-y-3">
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Structure Navigation</div>
+                <div id="discord-structure-list" class="space-y-2 text-xs"></div>
             </div>
 
-            <!-- Right Pane: Active Channel Properties -->
+            <!-- Right Controls -->
             <div class="space-y-4">
-                <!-- Roles Section -->
-                <div class="bg-discord-card rounded-xl p-4 border border-discord-border space-y-2">
-                    <div class="text-[11px] font-bold text-discord-textMuted uppercase tracking-wider">Roles</div>
+                <div class="glass-card rounded-2xl p-4 space-y-2">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Configured Roles</div>
                     <div id="roles-list" class="flex flex-wrap gap-2"></div>
                 </div>
 
-                <!-- Channel Inspector Form -->
-                <div id="channel-editor-panel" class="bg-discord-card rounded-xl p-4 border border-discord-border space-y-3">
-                    <div class="text-[11px] font-bold text-discord-textMuted uppercase tracking-wider" id="editor-title">
-                        Channel Settings
+                <div class="glass-card rounded-2xl p-4 space-y-3">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider" id="editor-title">Channel Settings</div>
+                    
+                    <div class="space-y-1">
+                        <label class="text-[9px] text-gray-400 uppercase">Emoji</label>
+                        <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
                     </div>
 
                     <div class="space-y-1">
-                        <label class="text-[10px] text-discord-textMuted uppercase">Emoji</label>
-                        <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="w-full bg-discord-inputBg border border-discord-border rounded p-2 text-xs text-white" />
+                        <label class="text-[9px] text-gray-400 uppercase">Name</label>
+                        <input type="text" id="edit-channel-name" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
                     </div>
 
                     <div class="space-y-1">
-                        <label class="text-[10px] text-discord-textMuted uppercase">Name</label>
-                        <input type="text" id="edit-channel-name" oninput="updateActiveChannel()" class="w-full bg-discord-inputBg border border-discord-border rounded p-2 text-xs text-white" />
-                    </div>
-
-                    <div class="space-y-1">
-                        <label class="text-[10px] text-discord-textMuted uppercase">Type</label>
-                        <select id="edit-channel-type" onchange="updateActiveChannel()" class="w-full bg-discord-inputBg border border-discord-border rounded p-2 text-xs text-white">
+                        <label class="text-[9px] text-gray-400 uppercase">Type</label>
+                        <select id="edit-channel-type" onchange="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs bg-black">
                             <option value="text">text</option>
                             <option value="voice">voice</option>
                             <option value="announcement">announcement</option>
@@ -148,27 +200,25 @@
                     </div>
 
                     <div class="space-y-1">
-                        <label class="text-[10px] text-discord-textMuted uppercase">Topic</label>
-                        <input type="text" id="edit-channel-topic" oninput="updateActiveChannel()" class="w-full bg-discord-inputBg border border-discord-border rounded p-2 text-xs text-white" />
+                        <label class="text-[9px] text-gray-400 uppercase">Topic</label>
+                        <input type="text" id="edit-channel-topic" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Submit to Webhook -->
-        <div class="pt-4 border-t border-discord-border">
-            <button onclick="submitLayoutToWebhook()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-xs transition">
-                🚀 Submit Design
+        <div class="pt-4 border-t border-white/10">
+            <button onclick="submitLayoutToWebhook()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold py-3.5 rounded-2xl text-xs shadow-2xl transition">
+                🚀 Submit Design to Discord
             </button>
         </div>
     </main>
 
     <!-- FOOTER -->
-    <footer class="border-t border-discord-border bg-discord-sidebar py-3 px-4 text-center text-[11px] text-discord-textMuted">
-        Discord Server Builder Studio &copy; 2026
+    <footer class="relative z-10 border-t border-white/10 bg-black/30 backdrop-blur-xl py-4 text-center text-[10px] text-gray-500">
+        Apple Intelligence Server Design Engine &copy; 2026
     </footer>
 
-    <!-- SCRIPT LOGIC -->
     <script>
         let serverBlueprint = null;
         let activeCatIndex = 0;
@@ -179,12 +229,10 @@
             document.getElementById(`page-${page}`).classList.remove('hidden');
         }
 
-        // Form Validation Rule: Requires BOTH fields to unlock the Generate button
         function validateForm() {
             const promptVal = document.getElementById('prompt-input').value.trim();
             const guildIdVal = document.getElementById('guild-id-input').value.trim();
-            const btn = document.getElementById('btn-generate');
-            btn.disabled = !(promptVal.length > 0 && guildIdVal.length > 0);
+            document.getElementById('btn-generate').disabled = !(promptVal.length > 0 && guildIdVal.length > 0);
         }
 
         async function handleGenerate() {
@@ -192,7 +240,7 @@
             const guildId = document.getElementById('guild-id-input').value.trim();
             const btnText = document.getElementById('btn-text');
 
-            btnText.innerText = "⚡ Generating Layout...";
+            btnText.innerText = "⚡ Analyzing Layout...";
             document.getElementById('btn-generate').disabled = true;
 
             try {
@@ -202,13 +250,13 @@
                     body: JSON.stringify({ prompt: promptText, guild_id: guildId })
                 });
 
-                if (!res.ok) throw new Error("Server generation failed");
+                if (!res.ok) throw new Error("Backend API request failed");
 
                 serverBlueprint = await res.json();
                 renderPreview();
                 switchPage('preview');
             } catch (err) {
-                alert("Error: " + err.message);
+                alert("Generation Error: " + err.message);
             } finally {
                 btnText.innerText = "✨ Generate Server Layout";
                 validateForm();
@@ -219,23 +267,21 @@
             if (!serverBlueprint) return;
             document.getElementById('preview-server-name').innerText = serverBlueprint.server_name || "Community Server";
 
-            // Render Roles
             const rolesContainer = document.getElementById('roles-list');
             rolesContainer.innerHTML = (serverBlueprint.roles || []).map(r => 
-                `<span class="px-2 py-1 rounded bg-discord-innerCard text-[11px] text-white border border-discord-border">● ${r}</span>`
+                `<span class="px-2.5 py-1 rounded-full bg-white/10 text-[10px] text-white border border-white/10">● ${r}</span>`
             ).join('');
 
-            // Render Categories & Channels
             const listContainer = document.getElementById('discord-structure-list');
             listContainer.innerHTML = '';
 
             (serverBlueprint.categories || []).forEach((cat, catIdx) => {
-                let catHtml = `<div class="font-bold text-gray-400 py-1 uppercase text-[11px]">${cat.name}</div>`;
+                let catHtml = `<div class="font-semibold text-purple-300 uppercase text-[10px] pt-1">${cat.name}</div>`;
                 (cat.channels || []).forEach((ch, chIdx) => {
                     const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
-                    const activeStyle = isSelected ? "bg-discord-innerCard text-white font-semibold" : "text-gray-400 hover:text-gray-200 hover:bg-discord-innerCard/50";
+                    const activeStyle = isSelected ? "bg-white/20 text-white font-semibold shadow-sm" : "text-gray-400 hover:text-white hover:bg-white/5";
                     catHtml += `
-                        <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2 px-2 py-1.5 rounded cursor-pointer transition ${activeStyle}">
+                        <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2 px-3 py-1.5 rounded-xl cursor-pointer transition ${activeStyle}">
                             <span>${ch.emoji || '#'}</span>
                             <span>${ch.name}</span>
                         </div>
@@ -258,7 +304,7 @@
             const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
             if (!ch) return;
 
-            document.getElementById('editor-title').innerText = `Channel Settings — #${ch.name}`;
+            document.getElementById('editor-title').innerText = `Channel — #${ch.name}`;
             document.getElementById('edit-channel-emoji').value = ch.emoji || '';
             document.getElementById('edit-channel-name').value = ch.name || '';
             document.getElementById('edit-channel-type').value = ch.type || 'text';
@@ -290,9 +336,8 @@
 
         async function submitLayoutToWebhook() {
             const webhookUrl = "YOUR_DISCORD_WEBHOOK_URL_HERE";
-
             if (webhookUrl === "YOUR_DISCORD_WEBHOOK_URL_HERE") {
-                alert("Please configure your DISCORD_WEBHOOK_URL in the index.html JavaScript section.");
+                alert("Configure DISCORD_WEBHOOK_URL in index.html first.");
                 return;
             }
 
@@ -302,7 +347,7 @@
             const payload = {
                 embeds: [{
                     title: `📥 New Server Layout Submitted — #${orderId}`,
-                    description: "A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.\n\n📎 **Download the attached `.json` blueprint file below** and attach it to the `/build` command in Discord.",
+                    description: "A new buyer blueprint layout was generated on the web builder.",
                     color: 3066993,
                     fields: [
                         { name: "Server Name", value: serverBlueprint.server_name, inline: false },
@@ -319,14 +364,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
-                if (response.ok) {
-                    alert("Layout successfully submitted to Discord!");
-                } else {
-                    alert("Failed to send webhook update.");
-                }
+                if (response.ok) alert("Layout successfully submitted!");
             } catch (err) {
-                alert("Error submitting design: " + err.message);
+                alert("Error submitting: " + err.message);
             }
         }
     </script>
