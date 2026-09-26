@@ -84,7 +84,7 @@ class OrcaCog(commands.Cog):
 
     @app_commands.command(
         name="build",
-        description="Automatically construct channels, categories, and roles from an uploaded JSON blueprint"
+        description="Construct channels, categories, and roles from blueprint (Admin Only)"
     )
     @app_commands.checks.has_permissions(administrator=True)
     async def build_command(self, interaction: discord.Interaction, file: discord.Attachment = None):
@@ -120,14 +120,12 @@ class OrcaCog(commands.Cog):
         )
         await interaction.followup.send(embed=progress_embed)
 
-        # Update Server Name if provided in blueprint
         if "guild_name" in data and data["guild_name"]:
             try:
                 await guild.edit(name=data["guild_name"])
             except Exception as e:
                 logger.warning(f"Could not update server name: {e}")
 
-        # Update Server Icon if provided in blueprint
         if "guild_icon" in data and data["guild_icon"]:
             try:
                 req = urllib.request.Request(data["guild_icon"], headers={'User-Agent': 'ORCA-Bot'})
@@ -143,7 +141,6 @@ class OrcaCog(commands.Cog):
         separator = data.get("separator", "│")
         sep_prefix = f"{separator} " if separator else ""
 
-        # Process and create Roles
         if "roles" in data and isinstance(data["roles"], list):
             for r in data["roles"]:
                 try:
@@ -151,7 +148,6 @@ class OrcaCog(commands.Cog):
                     color_hex = r.get("color", "#06b6d4").lstrip("#")
                     color = discord.Color(int(color_hex, 16)) if color_hex else discord.Color.default()
                     
-                    # Parse role permissions flags if present
                     perms_data = r.get("permissions", {})
                     permissions = discord.Permissions.none()
                     if isinstance(perms_data, dict):
@@ -172,7 +168,6 @@ class OrcaCog(commands.Cog):
                 except Exception as e:
                     logger.warning(f"Could not create role {r}: {e}")
 
-        # Process Categories and Channels
         if "categories" in data and isinstance(data["categories"], list):
             for cat_data in data["categories"]:
                 try:
@@ -185,7 +180,6 @@ class OrcaCog(commands.Cog):
                         formatted_ch_name = f"{sep_prefix}{raw_ch_name}" if ch.get("type") != "voice" else raw_ch_name
                         ch_type = ch.get("type", "text")
                         
-                        # Build channel-level permission overwrites
                         overwrites = {}
                         ch_perms = ch.get("permissions", {})
                         if isinstance(ch_perms, dict):
@@ -225,8 +219,9 @@ class OrcaCog(commands.Cog):
 
     @app_commands.command(
         name="lockdown",
-        description="Toggle emergency deep-sea maintenance lockdown for the web server (Owner Only)"
+        description="Toggle web maintenance lockdown mode (Admin Only)"
     )
+    @app_commands.checks.has_permissions(administrator=True)
     async def lockdown_command(self, interaction: discord.Interaction, state: bool):
         if interaction.user.id != AUTHORIZED_OWNER_ID:
             denied_embed = create_orca_embed(
@@ -255,7 +250,6 @@ class OrcaCog(commands.Cog):
             description=(
                 f"The web application status has been updated to **{status_str}**.\n\n"
                 f"- **Target Domain:** `{self.web_url}`\n"
-                f"- **Maintenance Screen:** `Deep-Sea Abyss Mode`\n"
                 f"- **Executed By:** <@{interaction.user.id}>"
             ),
             color=color
@@ -264,8 +258,9 @@ class OrcaCog(commands.Cog):
 
     @app_commands.command(
         name="status",
-        description="Inspect ORCA bot operational metrics, WebSocket latency, and active clusters"
+        description="Inspect operational metrics and platform state (Admin Only)"
     )
+    @app_commands.checks.has_permissions(administrator=True)
     async def status_command(self, interaction: discord.Interaction):
         latency = round(self.bot.latency * 1000)
         
@@ -282,8 +277,9 @@ class OrcaCog(commands.Cog):
 
     @app_commands.command(
         name="help",
-        description="Display the master directory of available ORCA AI administrative and user commands"
+        description="Display command reference directory (Admin Only)"
     )
+    @app_commands.checks.has_permissions(administrator=True)
     async def help_command(self, interaction: discord.Interaction):
         embed = create_orca_embed(
             title="ORCA AI -- Command Reference Directory",
@@ -292,22 +288,22 @@ class OrcaCog(commands.Cog):
         )
         embed.add_field(
             name="`/custom-server-builder`",
-            value="Provides link to the web-based interactive Discord server layout tool.",
+            value="Provides link to the web-based interactive Discord server layout tool. *(Public)*",
             inline=False
         )
         embed.add_field(
             name="`/build [file]`",
-            value="Builds server categories, channels, and roles directly from an uploaded JSON blueprint.",
+            value="Builds server categories, channels, and roles from JSON blueprint. *(Admin Only)*",
             inline=False
         )
         embed.add_field(
             name="`/lockdown [state]`",
-            value="Toggles web portal maintenance screen with deep-sea anomalies *(Restricted to Owner)*.",
+            value="Toggles web portal maintenance screen. *(Admin Only)*",
             inline=False
         )
         embed.add_field(
             name="`/status`",
-            value="Displays real-time bot latency and operational statistics.",
+            value="Displays real-time bot latency and operational statistics. *(Admin Only)*",
             inline=False
         )
         
