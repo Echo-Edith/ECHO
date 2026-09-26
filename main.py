@@ -1,4 +1,5 @@
 import os
+import json
 import threading
 import asyncio
 import discord
@@ -41,7 +42,7 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(
         name="Commands",
         value=(
-            "`/build` - Open the dashboard layout builder link\n"
+            "`/build [file]` - Build server layout from an attached .json file or get the dashboard link\n"
             "`/nuke` - Wipe all existing channels and categories in this server\n"
             "`/status` - Check service status"
         ),
@@ -49,26 +50,93 @@ async def help_command(interaction: discord.Interaction):
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="build", description="Get the direct link to build and generate layout blueprints.")
-async def build_command(interaction: discord.Interaction):
-    url = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com")
-    await interaction.response.send_message(
-        f"🚀 **Server Blueprint Builder:** [Click Here to Build Your Layout]({url})",
-        ephemeral=True
-    )
+@bot.tree.command(name="build", description="Build server channels from a blueprint .json file or get the website link.")
+@app_commands.describe(file="Optional: Upload your generated blueprint .json file here")
+@app_commands.checks.has_permissions(administrator=True)
+async def build_command(interaction: discord.Interaction, file: discord.Attachment = None):
+    # If no file is attached, simply provide the URL
+    if not file:
+        url = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com")
+        await interaction.response.send_message(
+            f"🚀 **Server Blueprint Builder:** [Click Here to Build Your Layout]({url})\n"
+            f"*(Tip: Download your blueprint JSON from the website and use `/build file:<your_file.json>` to apply it automatically!)*",
+            ephemeral=True
+        )
+        return
 
-@bot.tree.command(name="custom-server-builder", description="Get the direct link to open the AI Layout Builder.")
-async def builder_alias_command(interaction: discord.Interaction):
-    url = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com")
-    await interaction.response.send_message(
-        f"🚀 **Launch Server Builder:** [Click Here to Build Your Server Layout]({url})",
-        ephemeral=True
-    )
+    # Check file extension
+    if not file.filename.endswith(".json"):
+        await interaction.response.send_message("❌ Please attach a valid `.json` blueprint file.", ephemeral=True)
+        return
+
+    # Defer response to avoid 3-second interaction timeout while building channels
+    await interaction.response.defer(ephemeral=True)
+
+    try:
+        # Read and parse JSON from file attachment
+        content = await file.read()
+        blueprint = json.loads(content.decode('utf-8'))
+
+        guild = interaction.guild
+        if not guild:
+            await interaction.followup.send("❌ This command must be used inside a server.")
+            return
+
+        # 1. Process Roles
+        created_roles = 0
+        roles_list = blueprint.get("roles", [])
+        for role_name in roles_list:
+            existing_role = discord.utils.get(guild.roles, name=role_name)
+            if not existing_role:
+                await guild.create_role(name=role_name, reason="Blueprint auto-build")
+                created_roles += 1
+                await asyncio.sleep(0.2)
+
+        # 2. Process Categories & Channels
+        created_cats = 0
+        created_channels = 0
+        categories = blueprint.get("categories", [])
+
+        for cat_data in categories:
+            cat_name = cat_data.get("name", "UNNAMED")
+            category = await guild.create_category(name=cat_name)
+            created_cats += 1
+            await asyncio.sleep(0.2)
+
+            for ch_data in cat_data.get("channels", []):
+                emoji = ch_data.get("emoji", "")
+                raw_name = ch_data.get("name", "channel")
+                ch_type = ch_data.get("type", "text")
+                topic = ch_data.get("topic", "")
+
+                full_name = f"{emoji} {raw_name}".strip() if emoji else raw_name
+
+                if ch_type == "voice":
+                    await category.create_voice_channel(name=full_name)
+                else:
+                    await category.create_text_channel(name=full_name, topic=topic)
+
+                created_channels += 1
+                await asyncio.sleep(0.2)
+
+        await interaction.followup.send(
+            f"✅ **Build Complete!** Created `{created_cats}` categories, `{created_channels}` channels, and `{created_roles}` roles."
+        )
+
+    except json.JSONDecodeError:
+        await interaction.followup.send("❌ Failed to parse JSON file. Ensure the file contains valid JSON code.")
+    except Exception as e:
+        print(f"Build error: {e}")
+        await interaction.followup.send(f"❌ Error applying blueprint: `{e}`")
+
+@build_command.error
+async def build_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.MissingPermissions):
+        await interaction.response.send_message("❌ You need **Administrator** permissions to build server layouts.", ephemeral=True)
 
 @bot.tree.command(name="nuke", description="⚠️ Delete ALL channels and categories in this server.")
 @app_commands.checks.has_permissions(administrator=True)
 async def nuke_command(interaction: discord.Interaction):
-    # Defer response immediately so Discord doesn't report "Application Didn't Respond"
     await interaction.response.defer(ephemeral=True)
     
     guild = interaction.guild
@@ -77,16 +145,14 @@ async def nuke_command(interaction: discord.Interaction):
         return
 
     deleted_count = 0
-    # Delete channels and categories
     for channel in list(guild.channels):
         try:
             await channel.delete(reason="Nuke command executed by admin.")
             deleted_count += 1
-            await asyncio.sleep(0.2)  # Avoid hitting Discord rate limits
+            await asyncio.sleep(0.2)
         except Exception as e:
             print(f"Failed to delete channel {channel.name}: {e}")
 
-    # Create a fresh general channel so the server isn't empty
     try:
         new_ch = await guild.create_text_channel("general", topic="Server reset successfully.")
         await new_ch.send(f"💥 **Server Nuked!** Cleared `{deleted_count}` channel(s) by {interaction.user.mention}.")
