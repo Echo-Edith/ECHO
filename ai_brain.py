@@ -1,105 +1,150 @@
 import os
 import json
 import logging
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app)
+import requests
+from flask import Flask, render_template, request, jsonify
+from google import genai
+from google.genai import types
 
 logging.basicConfig(level=logging.INFO)
+app = Flask(__name__)
 
-# Initialize Gemini Client Safely
+# Configure Webhook and Gemini API
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
 client = None
-try:
-    from google import genai
-    from google.genai import types
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if api_key:
-        client = genai.Client(api_key=api_key)
-except Exception as e:
-    logging.warning(f"Gemini client initialization skipped: {e}")
+if GEMINI_API_KEY:
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
-def get_static_fallback(prompt: str, guild_id: str) -> dict:
-    """Fallback generator to ensure frontend always receives valid blueprint data."""
-    return {
-        "target_guild_id": str(guild_id),
-        "server_name": "Roblox Community Server",
-        "roles": ["everyone", "Owner", "Developer", "Admin", "Moderator", "VIP", "Member"],
-        "categories": [
-            {
-                "name": "📌 INFORMATION",
-                "channels": [
-                    {"emoji": "📜", "name": "rules", "type": "announcement", "topic": "Community guidelines & rules"},
-                    {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Game announcements and patch notes"},
-                    {"emoji": "🏀", "name": "updates", "type": "announcement", "topic": "Roblox basketball game updates"}
-                ]
-            },
-            {
-                "name": "💬 COMMUNITY",
-                "channels": [
-                    {"emoji": "💬", "name": "general-chat", "type": "text", "topic": "General chat and discussion"},
-                    {"emoji": "🎬", "name": "highlights", "type": "text", "topic": "Share gameplay clips and screenshots"},
-                    {"emoji": "💡", "name": "suggestions", "type": "text", "topic": "Feedback and suggestions"}
-                ]
-            },
-            {
-                "name": "🔊 VOICE LOUNGE",
-                "channels": [
-                    {"emoji": "🔊", "name": "General Voice", "type": "voice", "topic": "Voice chat lounge"},
-                    {"emoji": "🎮", "name": "Squad Play", "type": "voice", "topic": "Team matchmaking voice"}
-                ]
-            }
-        ]
-    }
 
 @app.route('/')
-def home():
+def index():
     return render_template('index.html')
+
 
 @app.route('/api/generate-layout', methods=['POST'])
 def generate_layout():
+    data = request.get_json() or {}
+    prompt = data.get('prompt', '')
+    guild_id = data.get('guild_id', '')
+    separator = data.get('separator', '-')
+
+    if not prompt or not guild_id:
+        return jsonify({"error": "Prompt and Guild ID are required."}), 400
+
+    system_instruction = (
+        "You are an expert Discord server architect. "
+        "Generate a structured JSON layout for a Discord server based on the user's prompt. "
+        "Return strictly raw JSON conforming to this schema:\n"
+        "{\n"
+        '  "server_name": "String",\n'
+        '  "target_guild_id": "String",\n'
+        '  "separator": "String",\n'
+        '  "roles": ["Role 1", "Role 2"],\n'
+        '  "categories": [\n'
+        '    {\n'
+        '      "name": "CATEGORY NAME",\n'
+        '      "channels": [\n'
+        '        {\n'
+        '          "emoji": "💬",\n'
+        '          "name": "channel-name",\n'
+        '          "type": "text|voice|announcement",\n'
+        '          "topic": "Description"\n'
+        '        }\n'
+        '      ]\n'
+        '    }\n'
+        '  ]\n'
+        "}"
+    )
+
+    full_user_prompt = (
+        f"Target Guild ID: {guild_id}\n"
+        f"Channel Separator Character: {separator}\n"
+        f"Server Purpose / Theme: {prompt}"
+    )
+
     try:
-        data = request.get_json(force=True, silent=True) or {}
-        prompt = str(data.get('prompt', '')).strip()
-        guild_id = str(data.get('guild_id', '')).strip()
-
-        if not prompt or not guild_id:
-            # Fall back cleanly instead of throwing HTTP 400
-            return jsonify(get_static_fallback(prompt or "Roblox Game", guild_id or "0")), 200
-
         if not client:
-            logging.warning("GEMINI_API_KEY is missing in environment. Using fallback layout.")
-            return jsonify(get_static_fallback(prompt, guild_id)), 200
+            raise Exception("Gemini Client not initialized. Missing GEMINI_API_KEY.")
 
-        system_instruction = (
-            "You are a Discord server architect. Return ONLY valid JSON with this structure: "
-            '{"server_name": string, "roles": [string], "categories": [{"name": string, "channels": [{"emoji": string, "name": string, "type": "text"|"voice"|"announcement", "topic": string}]}]}'
-        )
-        user_content = f"Target Server ID: {guild_id}\nUser Description: {prompt}"
-
-        # Try Gemini 2.5 Flash
-        try:
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=user_content,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    response_mime_type="application/json",
-                    temperature=0.7
-                )
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=full_user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+                temperature=0.3,
             )
-            blueprint = json.loads(response.text)
-            blueprint['target_guild_id'] = guild_id
-            return jsonify(blueprint), 200
-        except Exception as api_err:
-            logging.error(f"Gemini API call failed: {api_err}")
-            return jsonify(get_static_fallback(prompt, guild_id)), 200
+        )
+        
+        layout_data = json.loads(response.text)
+        layout_data["target_guild_id"] = guild_id
+        layout_data["separator"] = separator
+        return jsonify(layout_data)
 
-    except Exception as general_err:
-        logging.error(f"Unhandled endpoint exception: {general_err}")
-        return jsonify(get_static_fallback("Roblox Server", "0")), 200
+    except Exception as e:
+        logging.error(f"Error generating layout: {e}")
+        # Fallback schema if API fails
+        fallback = {
+            "server_name": "Generated Community",
+            "target_guild_id": guild_id,
+            "separator": separator,
+            "roles": ["Admin", "Moderator", "Member"],
+            "categories": [
+                {
+                    "name": "WELCOME",
+                    "channels": [
+                        {"emoji": "👋", "name": f"rules{separator}info", "type": "text", "topic": "Server rules"},
+                        {"emoji": "📢", "name": f"announcements", "type": "announcement", "topic": "Updates"}
+                    ]
+                },
+                {
+                    "name": "COMMUNITY",
+                    "channels": [
+                        {"emoji": "💬", "name": f"general{separator}chat", "type": "text", "topic": "General lounge"},
+                        {"emoji": "🔊", "name": "General Voice", "type": "voice", "topic": ""}
+                    ]
+                }
+            ]
+        }
+        return jsonify(fallback)
+
+
+@app.route('/api/submit-design', methods=['POST'])
+def submit_design():
+    blueprint = request.get_json()
+    if not blueprint:
+        return jsonify({"error": "No blueprint provided"}), 400
+
+    target_guild = blueprint.get("target_guild_id", "Unknown")
+    server_name = blueprint.get("server_name", "Discord Server")
+    categories = blueprint.get("categories", [])
+    roles = blueprint.get("roles", [])
+    total_channels = sum(len(cat.get("channels", [])) for cat in categories)
+
+    embed = {
+        "title": f"🚀 New Server Layout Submitted: {server_name}",
+        "color": 0x9333EA,
+        "fields": [
+            {"name": "Target Guild ID", "value": f"`{target_guild}`", "inline": True},
+            {"name": "Categories", "value": f"`{len(categories)}`", "inline": True},
+            {"name": "Total Channels", "value": f"`{total_channels}`", "inline": True},
+            {"name": "Separator Used", "value": f"`{blueprint.get('separator', '-')}`", "inline": True},
+            {"name": "Roles Configured", "value": f"`{', '.join(roles) if roles else 'None'}`", "inline": False}
+        ],
+        "footer": {"text": "Discord Layout Generator • Webhook Dispatch"}
+    }
+
+    if WEBHOOK_URL:
+        try:
+            requests.post(WEBHOOK_URL, json={"embeds": [embed]}, timeout=5)
+        except Exception as e:
+            logging.error(f"Failed to send webhook log: {e}")
+
+    return jsonify({"status": "success", "message": "Blueprint submitted and logged successfully"}), 200
+
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
