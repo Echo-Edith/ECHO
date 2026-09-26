@@ -7,75 +7,43 @@ from google import genai
 from google.genai import types
 
 app = Flask(__name__)
-# Enable CORS for all routes so Vercel/Render frontend can call this backend
 CORS(app)
 
 logging.basicConfig(level=logging.INFO)
 
-# Initialize Gemini API Client
+# Initialize Gemini client using environment variable
 api_key = os.environ.get("GEMINI_API_KEY")
-if not api_key:
-    logging.warning("GEMINI_API_KEY environment variable is not set!")
-
-client = genai.Client(api_key=api_key)
-
-# Response Schema Enforcement
-DISCORD_SCHEMA = {
-    "type": "OBJECT",
-    "properties": {
-        "server_name": {"type": "STRING"},
-        "target_guild_id": {"type": "STRING"},
-        "roles": {
-            "type": "ARRAY",
-            "items": {"type": "STRING"}
-        },
-        "categories": {
-            "type": "ARRAY",
-            "items": {
-                "type": "OBJECT",
-                "properties": {
-                    "name": {"type": "STRING"},
-                    "channels": {
-                        "type": "ARRAY",
-                        "items": {
-                            "type": "OBJECT",
-                            "properties": {
-                                "emoji": {"type": "STRING"},
-                                "name": {"type": "STRING"},
-                                "type": {"type": "STRING", "enum": ["text", "voice", "announcement"]},
-                                "topic": {"type": "STRING"}
-                            },
-                            "required": ["emoji", "name", "type"]
-                        }
-                    }
-                },
-                "required": ["name", "channels"]
-            }
-        }
-    },
-    "required": ["server_name", "roles", "categories"]
-}
+client = genai.Client(api_key=api_key) if api_key else None
 
 def get_static_fallback(prompt: str, guild_id: str) -> dict:
-    logging.warning("Triggered Tier 3 Static Fallback blueprint.")
+    """Fallback generator when API calls or keys fail."""
+    logging.warning("Serving static fallback layout.")
     return {
         "target_guild_id": guild_id,
-        "server_name": "Community Hub",
-        "roles": ["everyone", "Admin", "Moderator", "VIP", "Member"],
+        "server_name": "Roblox Game Hub",
+        "roles": ["everyone", "Owner", "Developer", "Admin", "Moderator", "VIP", "Member"],
         "categories": [
             {
                 "name": "📌 INFORMATION",
                 "channels": [
-                    {"emoji": "📜", "name": "rules", "type": "announcement", "topic": "Community Rules and Guidelines"},
-                    {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Server Updates"}
+                    {"emoji": "📜", "name": "rules", "type": "announcement", "topic": "Community rules and guidelines"},
+                    {"emoji": "📢", "name": "game-updates", "type": "announcement", "topic": "Roblox game updates & patch notes"},
+                    {"emoji": "🎁", "name": "announcements", "type": "announcement", "topic": "General announcements"}
                 ]
             },
             {
-                "name": "💬 COMMUNITY CHATS",
+                "name": "💬 COMMUNITY",
                 "channels": [
-                    {"emoji": "💬", "name": "general", "type": "text", "topic": "General chat for everyone"},
-                    {"emoji": "📷", "name": "media", "type": "text", "topic": "Share photos and videos"},
-                    {"emoji": "🔊", "name": "Lounge", "type": "voice", "topic": "Voice chat"}
+                    {"emoji": "💬", "name": "general-chat", "type": "text", "topic": "General discussion"},
+                    {"emoji": "📷", "name": "media-and-clips", "type": "text", "topic": "Share gameplay clips and screenshots"},
+                    {"emoji": "💡", "name": "suggestions", "type": "text", "topic": "Suggest game features"}
+                ]
+            },
+            {
+                "name": "🔊 VOICE CHANNELS",
+                "channels": [
+                    {"emoji": "🔊", "name": "Lounge", "type": "voice", "topic": "Public voice lounge"},
+                    {"emoji": "🎮", "name": "Gaming Duo", "type": "voice", "topic": "Squad play"}
                 ]
             }
         ]
@@ -84,31 +52,32 @@ def get_static_fallback(prompt: str, guild_id: str) -> dict:
 @app.route('/api/generate-layout', methods=['POST'])
 def generate_layout():
     try:
-        data = request.get_json(force=True) or {}
+        data = request.get_json(force=True, silent=True) or {}
         prompt = data.get('prompt', '').strip()
         guild_id = data.get('guild_id', '').strip()
 
         if not prompt or not guild_id:
             return jsonify({"error": "Both prompt and guild_id are required."}), 400
 
+        if not client:
+            logging.warning("GEMINI_API_KEY is missing. Using static fallback.")
+            return jsonify(get_static_fallback(prompt, guild_id)), 200
+
         system_instruction = (
-            "You are an expert Discord infrastructure architect. "
-            "Create a clean, well-organized Discord server layout matching the user's prompt. "
-            "Include suitable channel emojis, channel types, categories, and custom roles."
+            "You are a Discord server architect. Return ONLY valid JSON matching this structure: "
+            '{"server_name": string, "roles": [string], "categories": [{"name": string, "channels": [{"emoji": string, "name": string, "type": "text"|"voice"|"announcement", "topic": string}]}]}'
         )
 
         user_content = f"Target Server ID: {guild_id}\nUser Description: {prompt}"
 
-        # TIER 1: Gemini 2.5 Flash
+        # Tier 1: Gemini 2.5 Flash
         try:
-            logging.info("Attempting Tier 1: Gemini 2.5 Flash...")
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=user_content,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
                     response_mime_type="application/json",
-                    response_schema=DISCORD_SCHEMA,
                     temperature=0.7
                 )
             )
@@ -117,18 +86,16 @@ def generate_layout():
             return jsonify(blueprint), 200
 
         except Exception as e1:
-            logging.error(f"Tier 1 Generation Failed: {e1}")
+            logging.error(f"Gemini 2.5 Flash failed: {e1}")
 
-            # TIER 2: Gemini 2.0 Flash
+            # Tier 2: Gemini 2.0 Flash
             try:
-                logging.info("Attempting Tier 2: Gemini 2.0 Flash...")
                 response = client.models.generate_content(
                     model='gemini-2.0-flash',
                     contents=user_content,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
                         response_mime_type="application/json",
-                        response_schema=DISCORD_SCHEMA,
                         temperature=0.7
                     )
                 )
@@ -137,15 +104,12 @@ def generate_layout():
                 return jsonify(blueprint), 200
 
             except Exception as e2:
-                logging.error(f"Tier 2 Generation Failed: {e2}")
+                logging.error(f"Gemini 2.0 Flash failed: {e2}")
+                return jsonify(get_static_fallback(prompt, guild_id)), 200
 
-                # TIER 3: Pre-built Static Blueprint Fallback
-                fallback = get_static_fallback(prompt, guild_id)
-                return jsonify(fallback), 200
-
-    except Exception as global_err:
-        logging.error(f"Unhandled Error in /api/generate-layout: {global_err}")
-        return jsonify({"error": str(global_err)}), 500
+    except Exception as err:
+        logging.error(f"General server endpoint exception: {err}")
+        return jsonify(get_static_fallback(prompt, guild_id)), 200
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
