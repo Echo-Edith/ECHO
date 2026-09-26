@@ -1,5 +1,6 @@
 import os
 import json
+import io
 import logging
 import requests
 from flask import Flask, render_template, request, jsonify
@@ -121,30 +122,49 @@ def submit_design():
     roles = blueprint.get("roles", [])
     total_channels = sum(len(cat.get("channels", [])) for cat in categories)
 
+    # 1. Build embed message
     embed = {
-        "title": f"🚀 New Layout Submitted: {server_name}",
-        "color": 0x9333EA,
+        "title": f"📥 New Server Layout Submitted — #{target_guild}",
+        "description": (
+            "A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.\n\n"
+            "📎 **Download the attached `.json` blueprint file below** and attach it to the `/build` command in Discord."
+        ),
+        "color": 0x22C55E,  # Green accent bar
         "fields": [
-            {"name": "Target Guild ID", "value": f"`{target_guild}`", "inline": True},
-            {"name": "Categories", "value": f"`{len(categories)}`", "inline": True},
-            {"name": "Total Channels", "value": f"`{total_channels}`", "inline": True},
-            {"name": "Separator Used", "value": f"`{blueprint.get('separator', '-')}`", "inline": True},
-            {"name": "Roles Configured", "value": f"`{', '.join(roles) if roles else 'None'}`", "inline": False}
+            {"name": "Server Name", "value": f"`{server_name}`", "inline": False},
+            {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
+            {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": False}
         ],
-        "footer": {"text": "Discord Layout Generator"}
+        "footer": {"text": "ORCA AI Automated Server Infrastructure"}
     }
+
+    # 2. Convert blueprint payload into an in-memory .json file attachment
+    filename = f"blueprint_{target_guild}.json"
+    json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
+    file_object = io.BytesIO(json_bytes)
 
     if WEBHOOK_URL:
         try:
+            # Discord Webhook requires multipart encoding when attaching files
+            payload_json = json.dumps({"embeds": [embed]})
+            
+            files = {
+                "file": (filename, file_object, "application/json")
+            }
+            data = {
+                "payload_json": payload_json
+            }
+
             res = requests.post(
                 WEBHOOK_URL,
-                json={"embeds": [embed]},
-                headers={"Content-Type": "application/json"},
-                timeout=8
+                data=data,
+                files=files,
+                timeout=10
             )
-            logging.info(f"Discord Webhook Response: {res.status_code}")
+            logging.info(f"Discord Webhook Response Status: {res.status_code}")
+
         except Exception as e:
-            logging.error(f"Failed to post to webhook: {e}")
+            logging.error(f"Failed to post file to webhook: {e}")
     else:
         logging.warning("WEBHOOK_URL environment variable is not set!")
 
