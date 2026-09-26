@@ -1,111 +1,306 @@
-import os
-import json
-import logging
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from google import genai
-from google.genai import types
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Layout Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background-color: #08080a;
+            color: #f5f5f7;
+            overflow-x: hidden;
+        }
 
-app = Flask(__name__)
-CORS(app)
+        /* Ambient Glass Backdrop Aura */
+        .glass-aura {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(90px);
+            pointer-events: none;
+            z-index: 0;
+        }
 
-logging.basicConfig(level=logging.INFO)
+        /* Frosted Glass Panels */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
 
-# Initialize Gemini client
-api_key = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key) if api_key else None
+        .glass-input {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+        }
 
-def get_static_fallback(prompt: str, guild_id: str) -> dict:
-    """Always returns a valid fallback blueprint if external calls fail."""
-    logging.warning("Serving static fallback layout.")
-    return {
-        "target_guild_id": str(guild_id),
-        "server_name": "Roblox Game Community",
-        "roles": ["everyone", "Owner", "Developer", "Admin", "Moderator", "VIP", "Member"],
-        "categories": [
-            {
-                "name": "📌 INFORMATION",
-                "channels": [
-                    {"emoji": "📜", "name": "rules", "type": "announcement", "topic": "Community rules & guidelines"},
-                    {"emoji": "📢", "name": "game-updates", "type": "announcement", "topic": "Roblox updates and patch notes"},
-                    {"emoji": "🎁", "name": "announcements", "type": "announcement", "topic": "General announcements"}
-                ]
-            },
-            {
-                "name": "💬 COMMUNITY",
-                "channels": [
-                    {"emoji": "💬", "name": "general-chat", "type": "text", "topic": "General community chat"},
-                    {"emoji": "📷", "name": "media-and-clips", "type": "text", "topic": "Share gameplay clips and photos"},
-                    {"emoji": "💡", "name": "suggestions", "type": "text", "topic": "Game feedback & suggestions"}
-                ]
-            },
-            {
-                "name": "🔊 VOICE LOUNGE",
-                "channels": [
-                    {"emoji": "🔊", "name": "Public Lounge", "type": "voice", "topic": "Voice channel"},
-                    {"emoji": "🎮", "name": "Gaming Duo", "type": "voice", "topic": "Co-op squad voice"}
-                ]
+        .glass-input:focus {
+            outline: none;
+            border-color: rgba(168, 85, 247, 0.5);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+        }
+
+        /* Glass Pill Action Buttons */
+        .glass-btn {
+            background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 100%);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+            background: linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.1) 100%);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-center items-center relative p-4 selection:bg-purple-500/30">
+
+    <!-- Ambient Aura -->
+    <div class="glass-aura"></div>
+
+    <!-- MAIN FORM VIEW -->
+    <main id="page-builder" class="relative z-10 w-full max-w-xl mx-auto space-y-6 my-auto">
+        <div class="text-center space-y-1">
+            <h1 class="text-3xl font-extrabold tracking-tight text-white">Discord Infrastructure</h1>
+            <p class="text-xs text-gray-400">Fill in both parameters to initialize AI schema parsing.</p>
+        </div>
+
+        <div class="glass-card rounded-3xl p-6 space-y-6">
+            <div class="space-y-2">
+                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    Prompt Description <span class="text-purple-400">*</span>
+                </label>
+                <textarea id="prompt-input" rows="4" maxlength="4000" oninput="validateForm()"
+                    class="glass-input w-full rounded-2xl p-4 text-xs placeholder-gray-500 transition resize-none"
+                    placeholder="A dedicated server for a roblox game that is used to post updates and announcements..."></textarea>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    Target Discord Server ID <span class="text-purple-400">*</span>
+                </label>
+                <input type="text" id="guild-id-input" oninput="validateForm()" placeholder="123456789012345678"
+                    class="glass-input w-full rounded-2xl p-3.5 text-xs font-mono transition" />
+            </div>
+
+            <button id="btn-generate" disabled onclick="handleGenerate()"
+                class="glass-btn w-full disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl text-xs shadow-xl flex items-center justify-center space-x-2">
+                <span id="btn-text">⚡ Generate Server Layout</span>
+            </button>
+        </div>
+    </main>
+
+    <!-- PREVIEW & GLASS EDITOR VIEW -->
+    <main id="page-preview" class="hidden relative z-10 w-full max-w-3xl mx-auto space-y-6 my-auto">
+        <div class="flex justify-between items-center border-b border-white/10 pb-4">
+            <h2 id="preview-server-name" class="text-2xl font-bold tracking-tight text-white">Server Blueprint</h2>
+            <button onclick="downloadBuildFile()" class="glass-btn px-4 py-2 rounded-xl text-xs font-medium text-white">
+                Download .json
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Left Structure -->
+            <div class="glass-card rounded-2xl p-4 space-y-3">
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Server Structure</div>
+                <div id="discord-structure-list" class="space-y-2 text-xs"></div>
+            </div>
+
+            <!-- Right Controls -->
+            <div class="space-y-4">
+                <div class="glass-card rounded-2xl p-4 space-y-2">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Configured Roles</div>
+                    <div id="roles-list" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-4 space-y-3">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider" id="editor-title">Channel Settings</div>
+                    
+                    <div class="space-y-1">
+                        <label class="text-[9px] text-gray-400 uppercase">Emoji</label>
+                        <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[9px] text-gray-400 uppercase">Name</label>
+                        <input type="text" id="edit-channel-name" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[9px] text-gray-400 uppercase">Type</label>
+                        <select id="edit-channel-type" onchange="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs bg-black">
+                            <option value="text">text</option>
+                            <option value="voice">voice</option>
+                            <option value="announcement">announcement</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[9px] text-gray-400 uppercase">Topic</label>
+                        <input type="text" id="edit-channel-topic" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-2">
+            <button onclick="switchPage('builder')" class="glass-btn w-full text-white font-semibold py-3 rounded-2xl text-xs transition">
+                ← Back to Builder
+            </button>
+        </div>
+    </main>
+
+    <script>
+        let serverBlueprint = null;
+        let activeCatIndex = 0;
+        let activeChIndex = 0;
+
+        function switchPage(page) {
+            document.getElementById('page-builder').classList.add('hidden');
+            document.getElementById('page-preview').classList.add('hidden');
+            document.getElementById(`page-${page}`).classList.remove('hidden');
+        }
+
+        function validateForm() {
+            const promptEl = document.getElementById('prompt-input');
+            const guildIdEl = document.getElementById('guild-id-input');
+            const btnEl = document.getElementById('btn-generate');
+
+            if (!promptEl || !guildIdEl || !btnEl) return;
+
+            const promptVal = promptEl.value.trim();
+            const guildIdVal = guildIdEl.value.trim();
+            btnEl.disabled = (promptVal.length === 0 || guildIdVal.length === 0);
+        }
+
+        async function handleGenerate() {
+            const promptEl = document.getElementById('prompt-input');
+            const guildIdEl = document.getElementById('guild-id-input');
+            const btnText = document.getElementById('btn-text');
+            const btnEl = document.getElementById('btn-generate');
+
+            if (!promptEl || !guildIdEl) return;
+
+            const promptText = promptEl.value.trim();
+            const guildId = guildIdEl.value.trim();
+
+            if (btnText) btnText.textContent = "⚡ Analyzing Layout...";
+            if (btnEl) btnEl.disabled = true;
+
+            try {
+                const res = await fetch('/api/generate-layout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: promptText, guild_id: guildId })
+                });
+
+                if (!res.ok) {
+                    throw new Error("HTTP status " + res.status);
+                }
+
+                serverBlueprint = await res.json();
+                renderPreview();
+                switchPage('preview');
+            } catch (err) {
+                console.error("Layout generation error:", err);
+                alert("Failed to generate layout. Please check input parameters.");
+            } finally {
+                if (btnText) btnText.textContent = "⚡ Generate Server Layout";
+                validateForm();
             }
-        ]
-    }
+        }
 
-@app.route('/api/generate-layout', methods=['POST'])
-def generate_layout():
-    data = request.get_json(force=True, silent=True) or {}
-    prompt = str(data.get('prompt', '')).strip()
-    guild_id = str(data.get('guild_id', '')).strip()
+        function renderPreview() {
+            if (!serverBlueprint) return;
+            const nameEl = document.getElementById('preview-server-name');
+            if (nameEl) nameEl.textContent = serverBlueprint.server_name || "Community Blueprint";
 
-    if not prompt or not guild_id:
-        return jsonify({"error": "Both prompt and guild_id are required."}), 400
+            const rolesContainer = document.getElementById('roles-list');
+            if (rolesContainer) {
+                rolesContainer.innerHTML = (serverBlueprint.roles || []).map(r => 
+                    `<span class="px-2.5 py-1 rounded-full bg-white/10 text-[10px] text-white border border-white/10">● ${escapeHtml(r)}</span>`
+                ).join('');
+            }
 
-    if not client:
-        logging.warning("No GEMINI_API_KEY set. Returning fallback.")
-        return jsonify(get_static_fallback(prompt, guild_id)), 200
+            const listContainer = document.getElementById('discord-structure-list');
+            if (listContainer) {
+                listContainer.innerHTML = '';
+                (serverBlueprint.categories || []).forEach((cat, catIdx) => {
+                    let catHtml = `<div class="font-semibold text-purple-300 uppercase text-[10px] pt-1">${escapeHtml(cat.name)}</div>`;
+                    (cat.channels || []).forEach((ch, chIdx) => {
+                        const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
+                        const activeStyle = isSelected ? "bg-white/20 text-white font-semibold shadow-sm" : "text-gray-400 hover:text-white hover:bg-white/5";
+                        catHtml += `
+                            <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2 px-3 py-1.5 rounded-xl cursor-pointer transition ${activeStyle}">
+                                <span>${escapeHtml(ch.emoji || '#')}</span>
+                                <span>${escapeHtml(ch.name)}</span>
+                            </div>
+                        `;
+                    });
+                    listContainer.innerHTML += `<div class="space-y-1">${catHtml}</div>`;
+                });
+            }
 
-    system_instruction = (
-        "You are a Discord server architect. Return ONLY valid JSON with this structure: "
-        '{"server_name": string, "roles": [string], "categories": [{"name": string, "channels": [{"emoji": string, "name": string, "type": "text"|"voice"|"announcement", "topic": string}]}]}'
-    )
+            loadEditorValues();
+        }
 
-    user_content = f"Target Server ID: {guild_id}\nUser Description: {prompt}"
+        function selectChannel(catIdx, chIdx) {
+            activeCatIndex = catIdx;
+            activeChIndex = chIdx;
+            renderPreview();
+        }
 
-    # Tier 1: Gemini 2.5 Flash
-    try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=user_content,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-                temperature=0.7
-            )
-        )
-        blueprint = json.loads(response.text)
-        blueprint['target_guild_id'] = guild_id
-        return jsonify(blueprint), 200
-    except Exception as e1:
-        logging.error(f"Tier 1 failed: {e1}")
+        function loadEditorValues() {
+            if (!serverBlueprint || !serverBlueprint.categories || !serverBlueprint.categories[activeCatIndex]) return;
+            const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
+            if (!ch) return;
 
-    # Tier 2: Gemini 2.0 Flash
-    try:
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=user_content,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-                temperature=0.7
-            )
-        )
-        blueprint = json.loads(response.text)
-        blueprint['target_guild_id'] = guild_id
-        return jsonify(blueprint), 200
-    except Exception as e2:
-        logging.error(f"Tier 2 failed: {e2}")
+            const titleEl = document.getElementById('editor-title');
+            if (titleEl) titleEl.textContent = `Channel — #${ch.name}`;
 
-    # Tier 3: Static Fallback
-    return jsonify(get_static_fallback(prompt, guild_id)), 200
+            document.getElementById('edit-channel-emoji').value = ch.emoji || '';
+            document.getElementById('edit-channel-name').value = ch.name || '';
+            document.getElementById('edit-channel-type').value = ch.type || 'text';
+            document.getElementById('edit-channel-topic').value = ch.topic || '';
+        }
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+        function updateActiveChannel() {
+            if (!serverBlueprint || !serverBlueprint.categories || !serverBlueprint.categories[activeCatIndex]) return;
+            const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
+            if (!ch) return;
+
+            ch.emoji = document.getElementById('edit-channel-emoji').value;
+            ch.name = document.getElementById('edit-channel-name').value;
+            ch.type = document.getElementById('edit-channel-type').value;
+            ch.topic = document.getElementById('edit-channel-topic').value;
+            renderPreview();
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function downloadBuildFile() {
+            if (!serverBlueprint) return;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(serverBlueprint, null, 2));
+            const anchor = document.createElement('a');
+            anchor.setAttribute("href", dataStr);
+            anchor.setAttribute("download", `blueprint_${serverBlueprint.target_guild_id}.json`);
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+        }
+    </script>
+</body>
+</html>
