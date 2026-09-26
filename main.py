@@ -2,6 +2,7 @@ import os
 import threading
 import logging
 import asyncio
+from pathlib import Path
 from flask import Flask, render_template, request, jsonify
 import discord
 from discord.ext import commands
@@ -10,8 +11,14 @@ from discord.ext import commands
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
 
-# Initialize Flask App
-app = Flask(__name__, template_folder=".", static_folder=".")
+BASE_DIR = Path(__file__).resolve().parent
+
+# Set Flask to look for templates in the templates/ folder
+app = Flask(
+    __name__, 
+    template_folder=str(BASE_DIR / "templates"), 
+    static_folder=str(BASE_DIR / "static")
+)
 
 @app.route('/')
 def home():
@@ -24,7 +31,6 @@ def api_generate_layout():
         prompt = data.get('prompt', '')
         theme = data.get('theme', 'custom')
         
-        # Import AI Brain dynamically
         import ai_brain
         layout = ai_brain.generate_discord_layout(prompt_theme=f"{prompt} {theme}".strip())
         return jsonify(layout)
@@ -53,12 +59,23 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     logger.info(f"Bot logged in as {bot.user} (ID: {bot.user.id})")
+    
+    # Load extension from cogs/orca.py
+    cog_path = BASE_DIR / "cogs" / "orca.py"
+    if cog_path.exists():
+        try:
+            await bot.load_extension("cogs.orca")
+            logger.info("Successfully loaded 'cogs.orca' extension.")
+        except Exception as e:
+            logger.error(f"Failed to load 'cogs.orca' extension: {e}")
+    else:
+        logger.warning("'cogs/orca.py' file not found; skipping cog load.")
+
     try:
-        await bot.load_extension("orca")
         synced = await bot.tree.sync()
         logger.info(f"Synced {len(synced)} command(s)")
     except Exception as e:
-        logger.error(f"Failed to load extensions or sync commands: {e}")
+        logger.error(f"Failed to sync slash commands: {e}")
 
 async def run_bot():
     token = os.getenv("DISCORD_TOKEN")
@@ -68,7 +85,7 @@ async def run_bot():
     await bot.start(token)
 
 if __name__ == "__main__":
-    # Start Web Server in a background thread
+    # Start Web Server in background thread
     web_thread = threading.Thread(target=run_flask, daemon=True)
     web_thread.start()
     
