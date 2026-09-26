@@ -56,7 +56,7 @@ class OrcaCog(commands.Cog):
         description="Launch the interactive website portal to visually design and build your server"
     )
     async def custom_server_builder_command(self, interaction: discord.Interaction):
-        builder_url = "https://echo-dashboard-qn39.onrender.com/"
+        builder_url = f"{self.web_url}/"
 
         embed = create_orca_embed(
             title="ORCA AI -- Custom Server Builder Portal",
@@ -115,28 +115,64 @@ class OrcaCog(commands.Cog):
 
         progress_embed = create_orca_embed(
             title="Building Server Architecture...",
-            description="Initializing roles, categories, and channels from design payload...",
+            description="Initializing roles, categories, channels, and permission overwrites from design payload...",
             color=ORCA_CYAN
         )
         await interaction.followup.send(embed=progress_embed)
 
+        # Update Server Name if provided in blueprint
+        if "guild_name" in data and data["guild_name"]:
+            try:
+                await guild.edit(name=data["guild_name"])
+            except Exception as e:
+                logger.warning(f"Could not update server name: {e}")
+
+        # Update Server Icon if provided in blueprint
+        if "guild_icon" in data and data["guild_icon"]:
+            try:
+                req = urllib.request.Request(data["guild_icon"], headers={'User-Agent': 'ORCA-Bot'})
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    icon_bytes = resp.read()
+                    await guild.edit(icon=icon_bytes)
+            except Exception as e:
+                logger.warning(f"Could not update server icon: {e}")
+
         created_roles = 0
         created_channels = 0
+        role_map = {}
         separator = data.get("separator", "│")
         sep_prefix = f"{separator} " if separator else ""
 
+        # Process and create Roles
         if "roles" in data and isinstance(data["roles"], list):
             for r in data["roles"]:
                 try:
                     name = r.get("name", "New Role")
                     color_hex = r.get("color", "#06b6d4").lstrip("#")
                     color = discord.Color(int(color_hex, 16)) if color_hex else discord.Color.default()
-                    await guild.create_role(name=name, color=color)
+                    
+                    # Parse role permissions flags if present
+                    perms_data = r.get("permissions", {})
+                    permissions = discord.Permissions.none()
+                    if isinstance(perms_data, dict):
+                        if perms_data.get("admin"):
+                            permissions.administrator = True
+                        if perms_data.get("manage"):
+                            permissions.manage_messages = True
+                            permissions.manage_channels = True
+                        if perms_data.get("send", True):
+                            permissions.send_messages = True
+                        if perms_data.get("connect", True):
+                            permissions.connect = True
+
+                    created_role = await guild.create_role(name=name, color=color, permissions=permissions)
+                    role_map[name] = created_role
                     created_roles += 1
                     await asyncio.sleep(0.4)
                 except Exception as e:
                     logger.warning(f"Could not create role {r}: {e}")
 
+        # Process Categories and Channels
         if "categories" in data and isinstance(data["categories"], list):
             for cat_data in data["categories"]:
                 try:
@@ -148,11 +184,29 @@ class OrcaCog(commands.Cog):
                         raw_ch_name = ch.get("name", "channel")
                         formatted_ch_name = f"{sep_prefix}{raw_ch_name}" if ch.get("type") != "voice" else raw_ch_name
                         ch_type = ch.get("type", "text")
+                        
+                        # Build channel-level permission overwrites
+                        overwrites = {}
+                        ch_perms = ch.get("permissions", {})
+                        if isinstance(ch_perms, dict):
+                            for role_name, perm_opts in ch_perms.items():
+                                target_role = role_map.get(role_name)
+                                if not target_role:
+                                    target_role = discord.utils.get(guild.roles, name=role_name)
+                                
+                                if target_role and isinstance(perm_opts, dict):
+                                    overwrites[target_role] = discord.PermissionOverwrite(
+                                        read_messages=perm_opts.get("view", True),
+                                        send_messages=perm_opts.get("send", True),
+                                        attach_files=perm_opts.get("attach", True),
+                                        administrator=perm_opts.get("admin", False)
+                                    )
 
                         if ch_type == "voice":
-                            await guild.create_voice_channel(name=formatted_ch_name, category=category)
+                            await guild.create_voice_channel(name=formatted_ch_name, category=category, overwrites=overwrites)
                         else:
-                            await guild.create_text_channel(name=formatted_ch_name, category=category)
+                            await guild.create_text_channel(name=formatted_ch_name, category=category, overwrites=overwrites)
+                        
                         created_channels += 1
                         await asyncio.sleep(0.4)
                 except Exception as e:
