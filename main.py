@@ -1,60 +1,50 @@
 import os
+import threading
 import asyncio
-import logging
 import discord
 from discord.ext import commands
 
-# 1. Import Flask app from ai_brain.py
+# Import your Flask app from ai_brain.py
 from ai_brain import app
 
-# 2. Import keep_alive server startup if needed
-from keep_alive import keep_alive
+# -------------------------------------------------------------
+# 1. DISCORD BOT SETUP
+# -------------------------------------------------------------
+BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
 
-logging.basicConfig(level=logging.INFO)
-
-# Initialize Discord Bot Intents
 intents = discord.Intents.default()
-intents.message_content = True
+intents.message_content = True  # Make sure this is toggled ON in Discord Developer Portal!
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    logging.info(f"Logged in as Discord Bot: {bot.user} (ID: {bot.user.id})")
+    print(f"✅ Discord Bot is ONLINE as: {bot.user.name} (ID: {bot.user.id})")
 
-async def load_cogs():
-    """Dynamically loads cogs like orca.py"""
-    cogs_dir = "./cogs"
-    if os.path.exists(cogs_dir):
-        for file in os.listdir(cogs_dir):
-            if file.endswith(".py") and not file.startswith("__"):
-                extension = f"cogs.{file[:-3]}"
-                try:
-                    await bot.load_extension(extension)
-                    logging.info(f"Loaded extension: {extension}")
-                except Exception as e:
-                    logging.error(f"Failed to load extension {extension}: {e}")
-
-async def main():
-    # Start web server background thread
-    keep_alive()
-
-    # Load Discord Cogs (orca.py)
-    async with bot:
-        await load_cogs()
-        token = os.environ.get("DISCORD_TOKEN")
-        if token:
-            await bot.start(token)
-        else:
-            logging.warning("DISCORD_TOKEN environment variable is missing. Bot started in web-only mode.")
-
-if __name__ == '__main__':
-    # If running with Gunicorn on Render, expose the Flask app from ai_brain
-    port = int(os.environ.get("PORT", 10000))
+def start_discord_bot():
+    if not BOT_TOKEN:
+        print("⚠️ WARNING: 'DISCORD_BOT_TOKEN' environment variable is not set. Bot skipped.")
+        return
     
-    # Run Discord Bot + KeepAlive
-    token = os.environ.get("DISCORD_TOKEN")
-    if token:
-        asyncio.run(main())
-    else:
-        # Fallback to pure web server if token isn't passed directly
-        app.run(host="0.0.0.0", port=port)
+    # Create a new event loop for discord.py in this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    try:
+        print("⚡ Starting Discord Bot connection...")
+        bot.run(BOT_TOKEN)
+    except Exception as e:
+        print(f"❌ Failed to start Discord Bot: {e}")
+
+# -------------------------------------------------------------
+# 2. RUN BOT THREAD & FLASK WEB SERVER
+# -------------------------------------------------------------
+if __name__ == '__main__':
+    # Start the bot on a separate daemon thread so it doesn't block Flask
+    bot_thread = threading.Thread(target=start_discord_bot, daemon=True)
+    bot_thread.start()
+
+    # Start Flask Web Server
+    port = int(os.environ.get("PORT", 10000))
+    print(f"🚀 Starting Web Dashboard on port {port}...")
+    app.run(host="0.0.0.0", port=port)
