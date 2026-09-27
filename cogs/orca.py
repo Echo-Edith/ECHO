@@ -31,43 +31,33 @@ class OrcaCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    # --- 1. /help COMMAND ---
-    @app_commands.command(name="help", description="Displays the ORCA AI command reference directory.")
+    # --- 1. /help COMMAND (PUBLIC) ---
+    @app_commands.command(name="help", description="Learn how to generate and deploy custom Discord servers.")
     async def help_command(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="ORCA AI -- Command Reference Directory",
-            description="Overview of available slash commands for building and managing server structures.",
+            title="🛠️ How to Create a Custom Discord Server",
+            description=(
+                "Building a fully customized Discord server with channels, categories, "
+                "and roles is fast and automated with ORCA AI.\n\n"
+                "**Follow these steps to create your server:**\n"
+                "1️⃣ **Design Your Layout**\n"
+                f"Visit our web builder to generate a blueprint using AI:\n{WEB_BUILDER_URL}\n\n"
+                "2️⃣ **Customize & Export**\n"
+                "Provide your server prompt, target Guild ID, and server invite link, then generate your JSON layout.\n\n"
+                "3️⃣ **Submit Blueprint**\n"
+                "Submit your layout directly on the website to send the JSON blueprint to our staff deployment queue."
+            ),
             color=0x5865F2
         )
         embed.add_field(
-            name="`/custom-server-builder`",
-            value="Provides link to the web-based interactive Discord server layout tool. *(Public)*",
-            inline=False
-        )
-        embed.add_field(
-            name="`/build [file]`",
-            value="Builds server categories, channels, and roles from JSON blueprint. *(Owner Only)*",
-            inline=False
-        )
-        embed.add_field(
-            name="`/lockdown [state]`",
-            value="Toggles web portal maintenance screen. *(Owner Only)*",
-            inline=False
-        )
-        embed.add_field(
-            name="`/status`",
-            value="Displays real-time bot latency and operational statistics. *(Owner Only)*",
-            inline=False
-        )
-        embed.add_field(
-            name="`/nuke`",
-            value="Deletes all channels and categories, preserving only the current bot channel. *(Owner Only)*",
+            name="🌐 Web Builder Link",
+            value=f"[Click here to open ORCA Web Builder]({WEB_BUILDER_URL})",
             inline=False
         )
         embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
-    # --- 2. /custom-server-builder COMMAND ---
+    # --- 2. /custom-server-builder COMMAND (PUBLIC) ---
     @app_commands.command(name="custom-server-builder", description="Provides link to the web-based layout tool.")
     async def custom_server_builder(self, interaction: discord.Interaction):
         if is_lockdown:
@@ -88,7 +78,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
-    # --- 3. /build COMMAND ---
+    # --- 3. /build COMMAND (OWNER ONLY) ---
     @app_commands.command(name="build", description="Builds server categories, channels, and roles from JSON blueprint.")
     @is_owner()
     async def build(self, interaction: discord.Interaction, file: discord.Attachment):
@@ -181,7 +171,7 @@ class OrcaCog(commands.Cog):
             embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
             await target_channel.send(embed=embed)
 
-    # --- 4. /lockdown COMMAND ---
+    # --- 4. /lockdown COMMAND (OWNER ONLY) ---
     @app_commands.command(name="lockdown", description="Toggles web portal maintenance screen.")
     @is_owner()
     @app_commands.choices(state=[
@@ -200,7 +190,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # --- 5. /status COMMAND ---
+    # --- 5. /status COMMAND (OWNER ONLY) ---
     @app_commands.command(name="status", description="Displays real-time bot latency and operational statistics.")
     @is_owner()
     async def status(self, interaction: discord.Interaction):
@@ -213,7 +203,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # --- 6. /nuke COMMAND ---
+    # --- 6. /nuke COMMAND (OWNER ONLY) ---
     @app_commands.command(name="nuke", description="Deletes all channels/categories except the command channel.")
     @is_owner()
     async def nuke(self, interaction: discord.Interaction):
