@@ -106,6 +106,14 @@
                     placeholder="A dedicated server for a Roblox game that is used to post updates, host voice chats, and announcements..."></textarea>
             </div>
 
+            <div class="space-y-2">
+                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    Server Invite Link <span class="text-purple-400">*</span>
+                </label>
+                <input type="url" id="server-link-input" oninput="validateForm()" placeholder="https://discord.gg/yourcode"
+                    class="glass-input w-full rounded-2xl p-3.5 text-xs transition" />
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div class="space-y-2 sm:col-span-2">
                     <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
@@ -134,7 +142,7 @@
 
             <button id="btn-generate" disabled onclick="handleGenerate()"
                 class="glass-btn w-full disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl text-xs shadow-xl flex items-center justify-center space-x-2">
-                <span id="btn-text">⚡ Generate Server Layout</span>
+                <span id="btn-text">Generate Server Layout</span>
             </button>
         </div>
     </main>
@@ -175,8 +183,8 @@
                     
                     <div class="grid grid-cols-3 gap-2">
                         <div class="space-y-1 col-span-1">
-                            <label class="text-[9px] text-gray-400 uppercase">Emoji</label>
-                            <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
+                            <label class="text-[9px] text-gray-400 uppercase">Prefix / Icon</label>
+                            <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" placeholder="#" />
                         </div>
                         <div class="space-y-1 col-span-2">
                             <label class="text-[9px] text-gray-400 uppercase">Name</label>
@@ -211,11 +219,11 @@
 
         <div class="space-y-3 pt-2">
             <button id="btn-submit-design" onclick="submitDesign()" class="glass-btn glass-btn-primary w-full text-white font-bold py-4 rounded-2xl text-xs uppercase tracking-wider shadow-2xl transition">
-                🚀 SUBMIT DESIGN
+                SUBMIT DESIGN
             </button>
 
             <button onclick="switchPage('builder')" class="glass-btn w-full text-gray-300 font-semibold py-3 rounded-2xl text-xs transition">
-                ← Back to Builder
+                Back to Builder
             </button>
         </div>
     </main>
@@ -237,7 +245,7 @@
             </div>
 
             <button onclick="resetApp()" class="glass-btn w-full text-white font-semibold py-3.5 rounded-2xl text-xs transition">
-                🔄 Return to Start
+                Return to Start
             </button>
         </div>
     </main>
@@ -273,24 +281,26 @@
         function validateForm() {
             const promptVal = document.getElementById('prompt-input').value.trim();
             const guildIdVal = document.getElementById('guild-id-input').value.trim();
-            document.getElementById('btn-generate').disabled = (promptVal.length === 0 || guildIdVal.length === 0);
+            const serverLinkVal = document.getElementById('server-link-input').value.trim();
+            document.getElementById('btn-generate').disabled = (promptVal.length === 0 || guildIdVal.length === 0 || serverLinkVal.length === 0);
         }
 
         async function handleGenerate() {
             const promptText = document.getElementById('prompt-input').value.trim();
             const guildId = document.getElementById('guild-id-input').value.trim();
+            const serverLink = document.getElementById('server-link-input').value.trim();
             const separatorVal = document.getElementById('separator-input').value.trim() || '-';
             const btnText = document.getElementById('btn-text');
             const btnEl = document.getElementById('btn-generate');
 
-            if (btnText) btnText.textContent = "⚡ Analyzing Layout...";
+            if (btnText) btnText.textContent = "Analyzing Layout...";
             if (btnEl) btnEl.disabled = true;
 
             try {
                 const res = await fetch('/api/generate-layout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: promptText, guild_id: guildId, separator: separatorVal })
+                    body: JSON.stringify({ prompt: promptText, guild_id: guildId, server_link: serverLink, separator: separatorVal })
                 });
 
                 serverBlueprint = await res.json();
@@ -300,7 +310,7 @@
             } catch (err) {
                 console.error("Layout generation error:", err);
             } finally {
-                if (btnText) btnText.textContent = "⚡ Generate Server Layout";
+                if (btnText) btnText.textContent = "Generate Server Layout";
                 validateForm();
             }
         }
@@ -336,8 +346,8 @@
             const rolesContainer = document.getElementById('roles-list');
             rolesContainer.innerHTML = (serverBlueprint.roles || []).map((r, idx) => 
                 `<span class="px-2.5 py-1 rounded-full bg-white/10 text-[10px] text-white border border-white/10 flex items-center space-x-1">
-                    <span>● ${escapeHtml(r)}</span>
-                    <button onclick="removeRole(${idx})" class="hover:text-red-400 ml-1">×</button>
+                    <span>- ${escapeHtml(r)}</span>
+                    <button onclick="removeRole(${idx})" class="hover:text-red-400 ml-1">x</button>
                  </span>`
             ).join('');
 
@@ -362,7 +372,7 @@
 
                 let catHtml = `
                     <div class="flex justify-between items-center drag-handle py-1">
-                        <span class="font-semibold text-purple-300 uppercase text-[10px]">⋮⋮ ${escapeHtml(cat.name)}</span>
+                        <span class="font-semibold text-purple-300 uppercase text-[10px]">${escapeHtml(cat.name)}</span>
                         <button onclick="addChannel(${catIdx})" class="text-[9px] text-purple-400 hover:text-purple-300 font-semibold px-2 py-0.5 rounded bg-purple-500/10">
                             + Add Channel
                         </button>
@@ -388,7 +398,6 @@
             loadEditorValues();
         }
 
-        // Initialize SortableJS on Category List
         function initSortable() {
             const listContainer = document.getElementById('discord-structure-list');
             if (sortableInstance) sortableInstance.destroy();
@@ -429,7 +438,7 @@
             const sep = serverBlueprint.separator || '-';
             serverBlueprint.categories.push({
                 name: catName.toUpperCase(),
-                channels: [{ emoji: "💬", name: `general${sep}chat`, type: "text", topic: "General discussion", permissions: {} }]
+                channels: [{ emoji: "#", name: `general${sep}chat`, type: "text", topic: "General discussion", permissions: {} }]
             });
             ensurePermissionsStructure();
             renderPreview();
@@ -441,7 +450,7 @@
             if (!chName) return;
             const sep = serverBlueprint.separator || '-';
             serverBlueprint.categories[catIdx].channels.push({
-                emoji: "💬",
+                emoji: "#",
                 name: chName.toLowerCase().replace(/\s+/g, sep),
                 type: "text",
                 topic: "",
@@ -543,6 +552,7 @@
         function resetApp() {
             document.getElementById('prompt-input').value = '';
             document.getElementById('guild-id-input').value = '';
+            document.getElementById('server-link-input').value = '';
             serverBlueprint = null;
             validateForm();
             switchPage('builder');
