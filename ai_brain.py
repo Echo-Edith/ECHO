@@ -1,7 +1,6 @@
 import os
 import json
 import io
-import random
 import logging
 import requests
 from flask import Flask, render_template, request, jsonify, send_from_directory
@@ -25,32 +24,32 @@ if GEMINI_API_KEY:
     client = genai.Client(api_key=GEMINI_API_KEY)
 
 
-def save_blueprint_data(code: str, blueprint: dict):
-    """Saves blueprint data mapped to its identification code."""
-    BLUEPRINT_STORAGE[code] = blueprint
-    file_path = os.path.join(BLUEPRINT_DIR, f"{code}.json")
+def save_blueprint_data(guild_id: str, blueprint: dict):
+    """Saves blueprint data mapped to its target Guild ID."""
+    BLUEPRINT_STORAGE[guild_id] = blueprint
+    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(blueprint, f, indent=2)
     except Exception as e:
-        logging.error(f"Failed to save blueprint file for code {code}: {e}")
+        logging.error(f"Failed to save blueprint file for guild {guild_id}: {e}")
 
 
-def get_blueprint_data(code: str):
-    """Retrieves saved blueprint data using its identification code."""
-    code = str(code).strip()
-    if code in BLUEPRINT_STORAGE:
-        return BLUEPRINT_STORAGE[code]
+def get_blueprint_data(guild_id: str):
+    """Retrieves saved blueprint data using target Guild ID."""
+    guild_id = str(guild_id).strip()
+    if guild_id in BLUEPRINT_STORAGE:
+        return BLUEPRINT_STORAGE[guild_id]
     
-    file_path = os.path.join(BLUEPRINT_DIR, f"{code}.json")
+    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
     if os.path.exists(file_path):
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                BLUEPRINT_STORAGE[code] = data
+                BLUEPRINT_STORAGE[guild_id] = data
                 return data
         except Exception as e:
-            logging.error(f"Failed to read blueprint file for code {code}: {e}")
+            logging.error(f"Failed to read blueprint file for guild {guild_id}: {e}")
             
     return None
 
@@ -166,22 +165,18 @@ def submit_design():
     if not blueprint:
         return jsonify({"error": "No blueprint provided"}), 400
 
-    # 1. Generate unique 5-digit build code
-    build_code = f"{random.randint(10000, 99999)}"
-    blueprint["build_code"] = build_code
-
-    # 2. Save blueprint internally
-    save_blueprint_data(build_code, blueprint)
-
-    target_guild = blueprint.get("target_guild_id", "Unknown")
+    target_guild = str(blueprint.get("target_guild_id", "Unknown")).strip()
     server_link = blueprint.get("server_link", "N/A")
     server_name = blueprint.get("server_name", "Discord Server")
     categories = blueprint.get("categories", [])
     roles = blueprint.get("roles", [])
     total_channels = sum(len(cat.get("channels", [])) for cat in categories)
 
+    # 1. Save blueprint internally using target_guild ID
+    save_blueprint_data(target_guild, blueprint)
+
     filename = f"blueprint_{target_guild}.json"
-    file_url = f"{WEB_BUILDER_URL}/blueprint/{build_code}.json"
+    file_url = f"{WEB_BUILDER_URL}/blueprint/{target_guild}.json"
 
     if WEBHOOK_URL:
         # Prepare file bytes
@@ -194,11 +189,10 @@ def submit_design():
                     "title": f"📥 New Server Layout Submitted — #{target_guild}",
                     "description": (
                         "A new blueprint layout was generated and is ready for staff deployment.\n\n"
-                        f"🔑 **Build Command:** `/build file:`"
+                        f"🔑 **Build Command:** `/build file: {file_url}`"
                     ),
                     "color": 0x22C55E,
                     "fields": [
-                        {"name": "Identification Code", "value": f"`{build_code}`", "inline": True},
                         {"name": "Target Server ID", "value": f"`{target_guild}`", "inline": True},
                         {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
                         {"name": "Server Invite Link", "value": f"{server_link}", "inline": False},
@@ -230,7 +224,6 @@ def submit_design():
     return jsonify({
         "status": "success", 
         "message": "Blueprint submitted and logged successfully", 
-        "build_code": build_code, 
         "file_url": file_url
     }), 200
 
