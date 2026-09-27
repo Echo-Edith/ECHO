@@ -8,70 +8,116 @@
     <!-- SortableJS library for robust drag-and-drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-            background-color: #08080a;
-            color: #f5f5f7;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #050508;
+            color: #f3f4f6;
             overflow-x: hidden;
         }
 
-        .glass-aura {
+        /* Ambient background glow spheres */
+        .glass-aura-container {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 550px;
-            height: 550px;
-            background: radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(0, 0, 0, 0) 70%);
-            filter: blur(90px);
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
             pointer-events: none;
             z-index: 0;
         }
 
+        .glass-aura-1 {
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 650px;
+            height: 650px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(124, 58, 237, 0.15) 45%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(100px);
+        }
+
+        .glass-aura-2 {
+            position: absolute;
+            bottom: 15%;
+            right: 10%;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(14, 165, 233, 0.1) 50%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(90px);
+        }
+
+        /* Enhanced High-End Glassmorphism */
         .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            background: rgba(18, 18, 26, 0.55);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-card-interactive {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card-interactive:hover {
+            border-color: rgba(168, 85, 247, 0.3);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.75), 0 0 20px rgba(168, 85, 247, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2);
         }
 
         .glass-input {
-            background: rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(10, 10, 16, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
             color: #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .glass-input:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            background: rgba(15, 15, 24, 0.7);
         }
 
         .glass-input:focus {
             outline: none;
-            border-color: rgba(168, 85, 247, 0.5);
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+            border-color: rgba(168, 85, 247, 0.6);
+            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15), 0 0 20px rgba(168, 85, 247, 0.2);
+            background: rgba(18, 18, 28, 0.85);
         }
 
         .glass-btn {
-            background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 100%);
-            backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .glass-btn:hover:not(:disabled) {
-            transform: scale(1.02);
-            background: linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.1) 100%);
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px) scale(1.01);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.07) 100%);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-btn:active:not(:disabled) {
+            transform: translateY(0) scale(0.99);
         }
 
         .glass-btn-primary {
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.6) 0%, rgba(59, 130, 246, 0.4) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, #9333ea 0%, #4f46e5 50%, #2563eb 100%);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 10px 25px -5px rgba(147, 51, 234, 0.4);
         }
 
-        .glass-btn-primary:hover {
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.8) 0%, rgba(59, 130, 246, 0.6) 100%);
-            box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
+        .glass-btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #3b82f6 100%);
+            box-shadow: 0 15px 35px -5px rgba(168, 85, 247, 0.5), 0 0 30px rgba(168, 85, 247, 0.3);
         }
 
+        /* Drag and drop styling */
         .drag-handle {
             cursor: grab;
             user-select: none;
@@ -80,43 +126,73 @@
             cursor: grabbing;
         }
         .sortable-ghost {
-            opacity: 0.3;
-            background: rgba(168, 85, 247, 0.2);
+            opacity: 0.25;
+            background: rgba(168, 85, 247, 0.25);
+            border: 1px dashed rgba(168, 85, 247, 0.6);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(168, 85, 247, 0.4);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-center items-center relative p-4 selection:bg-purple-500/30">
+<body class="min-h-screen flex flex-col justify-center items-center relative p-4 sm:p-6 selection:bg-purple-500/30">
 
-    <div class="glass-aura"></div>
+    <div class="glass-aura-container">
+        <div class="glass-aura-1"></div>
+        <div class="glass-aura-2"></div>
+    </div>
 
     <!-- 1. BUILDER FORM -->
     <main id="page-builder" class="relative z-10 w-full max-w-xl mx-auto space-y-6 my-auto">
-        <div class="text-center space-y-1">
-            <h1 class="text-3xl font-extrabold tracking-tight text-white">Discord Infrastructure</h1>
-            <p class="text-xs text-gray-400">Fill in parameters to initialize AI schema parsing.</p>
+        <div class="text-center space-y-2">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                <span>AI Infrastructure Studio</span>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-400">
+                Discord Server Architect
+            </h1>
+            <p class="text-xs sm:text-sm text-gray-400 max-w-sm mx-auto">
+                Fill in layout details to construct an AI-generated community layout blueprint.
+            </p>
         </div>
 
-        <div class="glass-card rounded-3xl p-6 space-y-5">
+        <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6">
             <div class="space-y-2">
-                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                    Prompt Description <span class="text-purple-400">*</span>
+                <label class="flex justify-between items-center text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                    <span>Prompt Description <span class="text-purple-400">*</span></span>
+                    <span class="text-[9px] text-gray-500 font-normal">Describe your community theme</span>
                 </label>
                 <textarea id="prompt-input" rows="4" maxlength="4000" oninput="validateForm()"
-                    class="glass-input w-full rounded-2xl p-4 text-xs placeholder-gray-500 transition resize-none"
-                    placeholder="A dedicated server for a Roblox game that is used to post updates, host voice chats, and announcements..."></textarea>
+                    class="glass-input w-full rounded-2xl p-4 text-xs sm:text-sm placeholder-gray-500 transition resize-none leading-relaxed"
+                    placeholder="A dedicated server for a Roblox gaming community featuring announcement channels, VIP lounge, staff forums, voice rooms, and update logs..."></textarea>
             </div>
 
             <div class="space-y-2">
-                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                <label class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest">
                     Server Invite Link <span class="text-purple-400">*</span>
                 </label>
                 <input type="url" id="server-link-input" oninput="validateForm()" placeholder="https://discord.gg/yourcode"
-                    class="glass-input w-full rounded-2xl p-3.5 text-xs transition" />
+                    class="glass-input w-full rounded-2xl p-3.5 text-xs sm:text-sm transition" />
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="space-y-2 sm:col-span-2">
-                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    <label class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest">
                         Target Discord Server ID <span class="text-purple-400">*</span>
                     </label>
                     <input type="text" id="guild-id-input" oninput="validateForm()" placeholder="123456789012345678"
@@ -124,7 +200,7 @@
                 </div>
 
                 <div class="space-y-2 col-span-1">
-                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    <label class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest">
                         Separator
                     </label>
                     <input type="text" id="separator-input" maxlength="3" value="-" oninput="validateForm()"
@@ -132,86 +208,96 @@
                 </div>
             </div>
 
-            <div class="flex items-center space-x-2 pt-1">
-                <span class="text-[9px] text-gray-400 uppercase tracking-wider">Quick Separators:</span>
-                <button type="button" onclick="setSeparator('|')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">|</button>
-                <button type="button" onclick="setSeparator('-')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">-</button>
-                <button type="button" onclick="setSeparator('•')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">•</button>
-                <button type="button" onclick="setSeparator('~')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">~</button>
+            <div class="flex items-center space-x-2 pt-1 border-t border-white/5">
+                <span class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Quick Separators:</span>
+                <div class="flex space-x-1.5">
+                    <button type="button" onclick="setSeparator('|')" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-purple-500/20 hover:border-purple-500/30 border border-white/10 text-xs text-gray-300 font-mono transition">|</button>
+                    <button type="button" onclick="setSeparator('-')" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-purple-500/20 hover:border-purple-500/30 border border-white/10 text-xs text-gray-300 font-mono transition">-</button>
+                    <button type="button" onclick="setSeparator('•')" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-purple-500/20 hover:border-purple-500/30 border border-white/10 text-xs text-gray-300 font-mono transition">•</button>
+                    <button type="button" onclick="setSeparator('~')" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-purple-500/20 hover:border-purple-500/30 border border-white/10 text-xs text-gray-300 font-mono transition">~</button>
+                </div>
             </div>
 
             <button id="btn-generate" disabled onclick="handleGenerate()"
-                class="glass-btn w-full disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl text-xs shadow-xl flex items-center justify-center space-x-2">
+                class="glass-btn glass-btn-primary w-full disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:transform-none text-white font-bold py-4 rounded-2xl text-xs uppercase tracking-wider shadow-2xl flex items-center justify-center space-x-2">
                 <span id="btn-text">Generate Server Layout</span>
             </button>
         </div>
     </main>
 
     <!-- 2. PREVIEW PAGE -->
-    <main id="page-preview" class="hidden relative z-10 w-full max-w-4xl mx-auto space-y-6 my-auto">
-        <div class="flex justify-between items-center border-b border-white/10 pb-4">
-            <h2 id="preview-server-name" class="text-2xl font-bold tracking-tight text-white">Server Blueprint</h2>
-            <button onclick="downloadBuildFile()" class="glass-btn px-4 py-2 rounded-xl text-xs font-medium text-white">
-                Download .json
+    <main id="page-preview" class="hidden relative z-10 w-full max-w-5xl mx-auto space-y-6 my-auto">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-white/10 pb-4 gap-3">
+            <div>
+                <span class="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Blueprint Editor</span>
+                <h2 id="preview-server-name" class="text-2xl font-extrabold tracking-tight text-white">Server Blueprint</h2>
+            </div>
+            <button onclick="downloadBuildFile()" class="glass-btn px-4 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center space-x-2 self-start sm:self-auto">
+                <svg class="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>Download .json</span>
             </button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div class="glass-card rounded-2xl p-4 space-y-4">
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Server Structure</span>
-                    <button onclick="addCategory()" class="text-[10px] text-purple-400 hover:text-purple-300 font-semibold px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Structure List -->
+            <div class="glass-card rounded-2xl p-5 space-y-4">
+                <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Server Structure</span>
+                    <button onclick="addCategory()" class="text-[10px] text-purple-300 hover:text-white font-bold px-3 py-1 rounded-xl bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition">
                         + Add Category
                     </button>
                 </div>
-                <div id="discord-structure-list" class="space-y-3 text-xs max-h-[480px] overflow-y-auto pr-1"></div>
+                <div id="discord-structure-list" class="space-y-3 text-xs max-h-[500px] overflow-y-auto pr-1.5"></div>
             </div>
 
-            <div class="space-y-4">
-                <div class="glass-card rounded-2xl p-4 space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Configured Roles</span>
-                        <button onclick="addRole()" class="text-[10px] text-purple-400 hover:text-purple-300 font-semibold px-2 py-0.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
+            <!-- Settings & Roles Column -->
+            <div class="space-y-5">
+                <!-- Roles Card -->
+                <div class="glass-card rounded-2xl p-5 space-y-3">
+                    <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Configured Roles</span>
+                        <button onclick="addRole()" class="text-[10px] text-purple-300 hover:text-white font-bold px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition">
                             + Add Role
                         </button>
                     </div>
-                    <div id="roles-list" class="flex flex-wrap gap-2"></div>
+                    <div id="roles-list" class="flex flex-wrap gap-2 pt-1"></div>
                 </div>
 
-                <div class="glass-card rounded-2xl p-4 space-y-3">
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider" id="editor-title">Channel Settings</div>
+                <!-- Channel Settings Card -->
+                <div class="glass-card rounded-2xl p-5 space-y-4">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-white/5" id="editor-title">Channel Settings</div>
                     
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="space-y-1 col-span-1">
-                            <label class="text-[9px] text-gray-400 uppercase">Prefix / Icon</label>
-                            <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" placeholder="#" />
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="space-y-1.5 col-span-1">
+                            <label class="text-[9px] font-bold text-gray-400 uppercase">Prefix / Icon</label>
+                            <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2.5 text-xs font-mono text-center" placeholder="#" />
                         </div>
-                        <div class="space-y-1 col-span-2">
-                            <label class="text-[9px] text-gray-400 uppercase">Name</label>
-                            <input type="text" id="edit-channel-name" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
+                        <div class="space-y-1.5 col-span-2">
+                            <label class="text-[9px] font-bold text-gray-400 uppercase">Name</label>
+                            <input type="text" id="edit-channel-name" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2.5 text-xs font-mono" />
                         </div>
                     </div>
 
-                    <div class="space-y-1">
-                        <label class="text-[9px] text-gray-400 uppercase">Type</label>
-                        <select id="edit-channel-type" onchange="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs bg-black">
+                    <div class="space-y-1.5">
+                        <label class="text-[9px] font-bold text-gray-400 uppercase">Type</label>
+                        <select id="edit-channel-type" onchange="updateActiveChannel()" class="glass-input w-full rounded-xl p-2.5 text-xs bg-black/80">
                             <option value="text">text</option>
                             <option value="voice">voice</option>
                             <option value="announcement">announcement</option>
                         </select>
                     </div>
 
-                    <div class="space-y-1">
-                        <label class="text-[9px] text-gray-400 uppercase">Topic</label>
-                        <input type="text" id="edit-channel-topic" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
+                    <div class="space-y-1.5">
+                        <label class="text-[9px] font-bold text-gray-400 uppercase">Topic</label>
+                        <input type="text" id="edit-channel-topic" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2.5 text-xs" />
                     </div>
 
-                    <div class="pt-3 border-t border-white/10 space-y-2">
+                    <div class="pt-3 border-t border-white/10 space-y-3">
                         <div class="flex justify-between items-center">
-                            <span class="text-[10px] font-bold text-purple-300 uppercase tracking-wider">Channel Permissions</span>
-                            <select id="perm-role-select" onchange="renderRolePermissions()" class="glass-input rounded-lg p-1 text-[10px] bg-black text-gray-200"></select>
+                            <span class="text-[10px] font-bold text-purple-300 uppercase tracking-widest">Channel Permissions</span>
+                            <select id="perm-role-select" onchange="renderRolePermissions()" class="glass-input rounded-xl px-2 py-1 text-[10px] bg-black/80 text-gray-200 border-purple-500/30"></select>
                         </div>
-                        <div id="permissions-toggle-grid" class="space-y-2 max-h-[160px] overflow-y-auto pr-1"></div>
+                        <div id="permissions-toggle-grid" class="space-y-2 max-h-[170px] overflow-y-auto pr-1"></div>
                     </div>
                 </div>
             </div>
@@ -230,21 +316,21 @@
 
     <!-- 3. SUCCESS PAGE -->
     <main id="page-success" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
-        <div class="glass-card rounded-3xl p-8 space-y-6 relative overflow-hidden border border-purple-500/30">
-            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-600/30 to-blue-500/20 border border-purple-400/30 shadow-[0_0_30px_rgba(168,85,247,0.35)]">
-                <svg class="w-10 h-10 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+        <div class="glass-card rounded-3xl p-8 space-y-6 relative overflow-hidden border border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.2)]">
+            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-gradient-to-tr from-purple-600/40 via-indigo-500/30 to-blue-500/20 border border-purple-400/40 shadow-[0_0_40px_rgba(168,85,247,0.4)]">
+                <svg class="w-10 h-10 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                 </svg>
             </div>
 
             <div class="space-y-2">
-                <h2 class="text-2xl font-bold text-white tracking-tight">Design Submitted</h2>
-                <p class="text-xs text-gray-400 leading-relaxed">
+                <h2 class="text-2xl font-extrabold text-white tracking-tight">Design Submitted!</h2>
+                <p class="text-xs text-gray-400 leading-relaxed max-w-xs mx-auto">
                     Your layout and permissions have been transmitted through your Discord webhook.
                 </p>
             </div>
 
-            <button onclick="resetApp()" class="glass-btn w-full text-white font-semibold py-3.5 rounded-2xl text-xs transition">
+            <button onclick="resetApp()" class="glass-btn glass-btn-primary w-full text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider transition">
                 Return to Start
             </button>
         </div>
@@ -345,9 +431,9 @@
             // Roles Render
             const rolesContainer = document.getElementById('roles-list');
             rolesContainer.innerHTML = (serverBlueprint.roles || []).map((r, idx) => 
-                `<span class="px-2.5 py-1 rounded-full bg-white/10 text-[10px] text-white border border-white/10 flex items-center space-x-1">
-                    <span>- ${escapeHtml(r)}</span>
-                    <button onclick="removeRole(${idx})" class="hover:text-red-400 ml-1">x</button>
+                `<span class="px-3 py-1 rounded-full bg-purple-500/10 text-[10px] font-medium text-purple-200 border border-purple-500/30 flex items-center space-x-1.5 shadow-sm">
+                    <span>@ ${escapeHtml(r)}</span>
+                    <button onclick="removeRole(${idx})" class="hover:text-red-400 font-bold ml-1 transition">×</button>
                  </span>`
             ).join('');
 
@@ -367,13 +453,16 @@
 
             (serverBlueprint.categories || []).forEach((cat, catIdx) => {
                 const catDiv = document.createElement('div');
-                catDiv.className = 'glass-card rounded-xl p-2.5 space-y-2 border border-white/5';
+                catDiv.className = 'glass-card rounded-2xl p-3 space-y-2 border border-white/10';
                 catDiv.setAttribute('data-id', catIdx);
 
                 let catHtml = `
-                    <div class="flex justify-between items-center drag-handle py-1">
-                        <span class="font-semibold text-purple-300 uppercase text-[10px]">${escapeHtml(cat.name)}</span>
-                        <button onclick="addChannel(${catIdx})" class="text-[9px] text-purple-400 hover:text-purple-300 font-semibold px-2 py-0.5 rounded bg-purple-500/10">
+                    <div class="flex justify-between items-center drag-handle py-1 px-1">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-gray-500 text-xs">⋮⋮</span>
+                            <span class="font-bold text-purple-300 uppercase text-[10px] tracking-wider">${escapeHtml(cat.name)}</span>
+                        </div>
+                        <button onclick="addChannel(${catIdx})" class="text-[9px] text-purple-300 hover:text-white font-bold px-2 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition">
                             + Add Channel
                         </button>
                     </div>
@@ -381,11 +470,14 @@
 
                 (cat.channels || []).forEach((ch, chIdx) => {
                     const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
-                    const activeStyle = isSelected ? "bg-purple-500/20 text-white font-semibold border border-purple-500/30" : "text-gray-400 hover:text-white hover:bg-white/5";
+                    const activeStyle = isSelected 
+                        ? "bg-purple-500/25 text-white font-semibold border border-purple-500/40 shadow-inner" 
+                        : "text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent";
+                    
                     catHtml += `
-                        <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg cursor-pointer transition text-xs ${activeStyle}">
-                            <span>${escapeHtml(ch.emoji || '#')}</span>
-                            <span>${escapeHtml(ch.name)}</span>
+                        <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2.5 px-3 py-2 rounded-xl cursor-pointer transition-all text-xs ${activeStyle}">
+                            <span class="font-mono text-purple-400">${escapeHtml(ch.emoji || '#')}</span>
+                            <span class="truncate">${escapeHtml(ch.name)}</span>
                         </div>
                     `;
                 });
@@ -509,7 +601,7 @@
             permGrid.innerHTML = DISCORD_PERMISSIONS.map(p => {
                 const isChecked = ch.permissions[selectedRole][p.key] !== false;
                 return `
-                    <div class="flex items-center justify-between p-1.5 rounded-lg bg-white/5 text-[10px]">
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-[10px] border border-white/5">
                         <span class="text-gray-300 font-medium">${p.label}</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="togglePermission('${selectedRole}', '${p.key}', this.checked)" class="sr-only peer">
