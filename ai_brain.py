@@ -1,23 +1,24 @@
 import os
 import json
+import io
 import random
 import logging
 import requests
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from google import genai
 from google.genai import types
 
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
-# Shared storage dictionary and directory setup for lookup by code
+# Storage directory setup
 BLUEPRINT_STORAGE = {}
 BLUEPRINT_DIR = os.path.join(os.getcwd(), "blueprints")
 os.makedirs(BLUEPRINT_DIR, exist_ok=True)
 
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com")
+WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").rstrip('/')
 
 client = None
 if GEMINI_API_KEY:
@@ -57,6 +58,14 @@ def get_blueprint_data(code: str):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/blueprint/<filename>')
+def serve_blueprint(filename):
+    """Direct URL access to download/read raw JSON blueprints."""
+    if not filename.endswith('.json'):
+        filename = f"{filename}.json"
+    return send_from_directory(BLUEPRINT_DIR, filename, mimetype='application/json')
 
 
 @app.route('/api/generate-layout', methods=['POST'])
@@ -157,11 +166,11 @@ def submit_design():
     if not blueprint:
         return jsonify({"error": "No blueprint provided"}), 400
 
-    # 1. Generate unique 5-digit identification code
+    # 1. Generate unique 5-digit build code
     build_code = f"{random.randint(10000, 99999)}"
     blueprint["build_code"] = build_code
 
-    # 2. Save blueprint internally by code
+    # 2. Save blueprint internally
     save_blueprint_data(build_code, blueprint)
 
     target_guild = blueprint.get("target_guild_id", "Unknown")
@@ -171,16 +180,19 @@ def submit_design():
     roles = blueprint.get("roles", [])
     total_channels = sum(len(cat.get("channels", [])) for cat in categories)
 
+    file_url = f"{WEB_BUILDER_URL}/blueprint/{build_code}.json"
+
     if WEBHOOK_URL:
+        # STEP 1: Log message/embed showing the copyable /build command using the direct file link
         embed = {
             "title": f"📥 New Server Layout Submitted — #{target_guild}",
             "description": (
                 "A new blueprint layout was generated and is ready for staff deployment.\n\n"
-                f"🔑 **Build Command:** `/build code:{build_code}`"
+                f"🔑 **Build Command:** `/build file:{file_url}`"
             ),
             "color": 0x22C55E,
             "fields": [
-                {"name": "Identification Code", "value": f"`{build_code}`", "inline": True},
+                {"name": "Blueprint Direct Link", "value": f"[Download / Read JSON]({file_url})", "inline": True},
                 {"name": "Target Server ID", "value": f"`{target_guild}`", "inline": True},
                 {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
                 {"name": "Server Invite Link", "value": f"{server_link}", "inline": False},
@@ -200,10 +212,33 @@ def submit_design():
             logging.info(f"Log Webhook Response Status: {log_res.status_code}")
         except Exception as e:
             logging.error(f"Failed to post log embed to webhook: {e}")
+
+        # STEP 2: Post JSON file attachment to the Discord webhook channel
+        filename = f"blueprint_{target_guild}.json"
+        json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
+        file_object = io.BytesIO(json_bytes)
+
+        try:
+            files = {
+                "file": (filename, file_object, "application/json")
+            }
+            payload_json = json.dumps({
+                "content": f"📎 **Blueprint File:** `{filename}` | Direct Link: {file_url}"
+            })
+            
+            file_res = requests.post(
+                WEBHOOK_URL,
+                data={"payload_json": payload_json},
+                files=files,
+                timeout=10
+            )
+            logging.info(f"File Webhook Response Status: {file_res.status_code}")
+        except Exception as e:
+            logging.error(f"Failed to post file to webhook: {e}")
     else:
         logging.warning("WEBHOOK_URL environment variable is not set!")
 
-    return jsonify({"status": "success", "message": "Blueprint submitted and logged successfully", "build_code": build_code}), 200
+    return jsonify({"status": "success", "message": "Blueprint submitted and logged successfully", "build_code": build_code, "file_url": file_url}), 200
 
 
 if __name__ == '__main__':
