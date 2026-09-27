@@ -28,6 +28,7 @@ def generate_layout():
     data = request.get_json() or {}
     prompt = data.get('prompt', '')
     guild_id = data.get('guild_id', '')
+    server_link = data.get('server_link', '')
     separator = data.get('separator', '-')
 
     if not prompt or not guild_id:
@@ -40,6 +41,7 @@ def generate_layout():
         "{\n"
         '  "server_name": "String",\n'
         '  "target_guild_id": "String",\n'
+        '  "server_link": "String",\n'
         '  "separator": "String",\n'
         '  "roles": ["Role 1", "Role 2"],\n'
         '  "categories": [\n'
@@ -60,6 +62,7 @@ def generate_layout():
 
     full_user_prompt = (
         f"Target Guild ID: {guild_id}\n"
+        f"Server Invite Link: {server_link}\n"
         f"Channel Separator Character: {separator}\n"
         f"Server Purpose / Theme: {prompt}"
     )
@@ -80,6 +83,7 @@ def generate_layout():
         
         layout_data = json.loads(response.text)
         layout_data["target_guild_id"] = guild_id
+        layout_data["server_link"] = server_link
         layout_data["separator"] = separator
         return jsonify(layout_data)
 
@@ -88,6 +92,7 @@ def generate_layout():
         fallback = {
             "server_name": "Generated Community",
             "target_guild_id": guild_id,
+            "server_link": server_link,
             "separator": separator,
             "roles": ["Admin", "Moderator", "Member"],
             "categories": [
@@ -117,6 +122,7 @@ def submit_design():
         return jsonify({"error": "No blueprint provided"}), 400
 
     target_guild = blueprint.get("target_guild_id", "Unknown")
+    server_link = blueprint.get("server_link", "N/A")
     server_name = blueprint.get("server_name", "Discord Server")
     categories = blueprint.get("categories", [])
     roles = blueprint.get("roles", [])
@@ -131,7 +137,8 @@ def submit_design():
         ),
         "color": 0x22C55E,  # Green accent bar
         "fields": [
-            {"name": "Server Name", "value": f"`{server_name}`", "inline": False},
+            {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
+            {"name": "Server Invite Link", "value": f"{server_link}", "inline": True},
             {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
             {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": False}
         ],
