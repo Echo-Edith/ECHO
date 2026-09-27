@@ -1,6 +1,7 @@
 import os
 import json
 import io
+import random
 import logging
 import requests
 from flask import Flask, render_template, request, jsonify
@@ -121,6 +122,10 @@ def submit_design():
     if not blueprint:
         return jsonify({"error": "No blueprint provided"}), 400
 
+    # 1. Generate unique 5-digit verification code
+    build_code = f"{random.randint(10000, 99999)}"
+    blueprint["build_code"] = build_code
+
     target_guild = blueprint.get("target_guild_id", "Unknown")
     server_link = blueprint.get("server_link", "N/A")
     server_name = blueprint.get("server_name", "Discord Server")
@@ -129,19 +134,22 @@ def submit_design():
     total_channels = sum(len(cat.get("channels", [])) for cat in categories)
 
     if WEBHOOK_URL:
-        # STEP 1: Send the log message/embed first
+        # STEP 1: Send the log message/embed with one-click copyable command string
         embed = {
             "title": f"📥 New Server Layout Submitted — #{target_guild}",
             "description": (
-                "A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.\n\n"
-                "📎 **The `.json` blueprint file will follow in the next message.** Attach it to the `/build` command in Discord."
+                "A new blueprint layout was generated and is ready for staff deployment.\n\n"
+                f"🔑 **Build Command:** `/build code:` `{build_code}`\n\n"
+                "📎 **The `.json` file will follow in the next message.** Attach it with the command above."
             ),
-            "color": 0x22C55E,  # Green accent bar
+            "color": 0x22C55E,
             "fields": [
+                {"name": "Verification Code", "value": f"`{build_code}`", "inline": True},
+                {"name": "Target Server ID", "value": f"`{target_guild}`", "inline": True},
                 {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
-                {"name": "Server Invite Link", "value": f"{server_link}", "inline": True},
-                {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
-                {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": False}
+                {"name": "Server Invite Link", "value": f"{server_link}", "inline": False},
+                {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": True},
+                {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": True}
             ],
             "footer": {"text": "ORCA AI Automated Server Infrastructure"}
         }
@@ -157,7 +165,7 @@ def submit_design():
         except Exception as e:
             logging.error(f"Failed to post log embed to webhook: {e}")
 
-        # STEP 2: Send the file attachment second
+        # STEP 2: Attach the blueprint file containing the embedded build_code
         filename = f"blueprint_{target_guild}.json"
         json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
         file_object = io.BytesIO(json_bytes)
@@ -167,7 +175,7 @@ def submit_design():
                 "file": (filename, file_object, "application/json")
             }
             payload_json = json.dumps({
-                "content": f"📎 Blueprint file for Guild ID: `{target_guild}`"
+                "content": f"📎 Blueprint file for Guild ID: `{target_guild}` | Code: `{build_code}`"
             })
             
             file_res = requests.post(
@@ -182,7 +190,7 @@ def submit_design():
     else:
         logging.warning("WEBHOOK_URL environment variable is not set!")
 
-    return jsonify({"status": "success", "message": "Blueprint submitted and logged successfully"}), 200
+    return jsonify({"status": "success", "message": "Blueprint submitted and logged successfully", "build_code": build_code}), 200
 
 
 if __name__ == '__main__':
