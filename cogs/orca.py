@@ -48,9 +48,9 @@ class OrcaCog(commands.Cog):
                 "2️⃣ **Generate Layout**\n"
                 "Click **Generate Layout** to preview the AI-generated categories, channels, and roles.\n\n"
                 "3️⃣ **Submit Design**\n"
-                "Click **Submit Design**. A unique direct file link / code will be generated and logged.\n\n"
+                "Click **Submit Design**. A direct file link will be generated and logged.\n\n"
                 "4️⃣ **Deploy via `/build`**\n"
-                "Authorized staff can run `/build file:<link_or_code>` or attach the blueprint JSON file to deploy instantly."
+                "Authorized staff can run `/build file:<direct_link>` or attach the blueprint JSON file to deploy instantly."
             ),
             color=0x5865F2
         )
@@ -62,9 +62,9 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
-    # --- 2. /custom-server-builder COMMAND (PUBLIC) ---
-    @app_commands.command(name="custom-server-builder", description="Provides the link to the web-based layout builder.")
-    async def custom_server_builder(self, interaction: discord.Interaction):
+    # --- 2. /website COMMAND (PUBLIC) ---
+    @app_commands.command(name="website", description="Provides the link to the web-based layout builder.")
+    async def website(self, interaction: discord.Interaction):
         if is_lockdown:
             embed = discord.Embed(
                 title="⚠️ System Under Maintenance",
@@ -134,9 +134,9 @@ class OrcaCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     # --- 4. /build COMMAND (OWNER ONLY) ---
-    @app_commands.command(name="build", description="Builds server layout from blueprint URL, 5-digit code, or uploaded JSON file.")
+    @app_commands.command(name="build", description="Builds server layout from blueprint URL or uploaded JSON file.")
     @app_commands.describe(
-        file="Direct file link, HTTP URL, or 5-digit build code",
+        file="Direct file link or HTTP URL to blueprint JSON",
         attachment="Optional JSON blueprint file attachment"
     )
     @is_owner()
@@ -178,7 +178,7 @@ class OrcaCog(commands.Cog):
                 await interaction.followup.send(embed=embed)
                 return
 
-        # Case 2: URL or Code string provided
+        # Case 2: URL string provided
         elif file:
             clean_file = file.strip()
             source_identifier = clean_file
@@ -208,13 +208,13 @@ class OrcaCog(commands.Cog):
                     await interaction.followup.send(embed=embed)
                     return
             else:
-                # Treat as 5-digit code lookup
+                # Direct Guild ID lookup or local filename query
                 blueprint = get_blueprint_data(clean_file)
 
         else:
             embed = discord.Embed(
                 title="❌ Missing Blueprint Input",
-                description="Please provide a file URL/code in the `file:` parameter or attach a `.json` file.",
+                description="Please provide a file URL in the `file:` parameter or attach a `.json` file.",
                 color=0xE74C3C
             )
             embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
