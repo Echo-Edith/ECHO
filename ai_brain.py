@@ -180,65 +180,59 @@ def submit_design():
     roles = blueprint.get("roles", [])
     total_channels = sum(len(cat.get("channels", [])) for cat in categories)
 
+    filename = f"blueprint_{target_guild}.json"
     file_url = f"{WEB_BUILDER_URL}/blueprint/{build_code}.json"
 
     if WEBHOOK_URL:
-        # STEP 1: Log message/embed showing the copyable /build command using the direct file link
-        embed = {
-            "title": f"📥 New Server Layout Submitted — #{target_guild}",
-            "description": (
-                "A new blueprint layout was generated and is ready for staff deployment.\n\n"
-                f"🔑 **Build Command:** `/build file:{file_url}`"
-            ),
-            "color": 0x22C55E,
-            "fields": [
-                {"name": "Blueprint Direct Link", "value": f"[Download / Read JSON]({file_url})", "inline": True},
-                {"name": "Target Server ID", "value": f"`{target_guild}`", "inline": True},
-                {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
-                {"name": "Server Invite Link", "value": f"{server_link}", "inline": False},
-                {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": True},
-                {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": True}
-            ],
-            "footer": {"text": "ORCA AI Automated Server Infrastructure"}
+        # Prepare file bytes
+        json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
+        
+        # Single multipart payload attaching the file directly to the embed log message
+        payload = {
+            "embeds": [
+                {
+                    "title": f"📥 New Server Layout Submitted — #{target_guild}",
+                    "description": (
+                        "A new blueprint layout was generated and is ready for staff deployment.\n\n"
+                        f"🔑 **Build Command:** `/build file:`"
+                    ),
+                    "color": 0x22C55E,
+                    "fields": [
+                        {"name": "Identification Code", "value": f"`{build_code}`", "inline": True},
+                        {"name": "Target Server ID", "value": f"`{target_guild}`", "inline": True},
+                        {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
+                        {"name": "Server Invite Link", "value": f"{server_link}", "inline": False},
+                        {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": True},
+                        {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": True}
+                    ],
+                    "footer": {"text": "ORCA AI Automated Server Infrastructure"}
+                }
+            ]
+        }
+
+        files = {
+            "files[0]": (filename, io.BytesIO(json_bytes), "application/json")
         }
 
         try:
             log_res = requests.post(
                 WEBHOOK_URL,
-                json={"embeds": [embed]},
-                headers={"Content-Type": "application/json"},
-                timeout=10
-            )
-            logging.info(f"Log Webhook Response Status: {log_res.status_code}")
-        except Exception as e:
-            logging.error(f"Failed to post log embed to webhook: {e}")
-
-        # STEP 2: Post JSON file attachment to the Discord webhook channel
-        filename = f"blueprint_{target_guild}.json"
-        json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
-        file_object = io.BytesIO(json_bytes)
-
-        try:
-            files = {
-                "file": (filename, file_object, "application/json")
-            }
-            payload_json = json.dumps({
-                "content": f"📎 **Blueprint File:** `{filename}` | Direct Link: {file_url}"
-            })
-            
-            file_res = requests.post(
-                WEBHOOK_URL,
-                data={"payload_json": payload_json},
+                data={"payload_json": json.dumps(payload)},
                 files=files,
                 timeout=10
             )
-            logging.info(f"File Webhook Response Status: {file_res.status_code}")
+            logging.info(f"Webhook Response Status: {log_res.status_code}")
         except Exception as e:
-            logging.error(f"Failed to post file to webhook: {e}")
+            logging.error(f"Failed to post embed + file to webhook: {e}")
     else:
         logging.warning("WEBHOOK_URL environment variable is not set!")
 
-    return jsonify({"status": "success", "message": "Blueprint submitted and logged successfully", "build_code": build_code, "file_url": file_url}), 200
+    return jsonify({
+        "status": "success", 
+        "message": "Blueprint submitted and logged successfully", 
+        "build_code": build_code, 
+        "file_url": file_url
+    }), 200
 
 
 if __name__ == '__main__':
