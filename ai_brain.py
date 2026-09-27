@@ -128,48 +128,55 @@ def submit_design():
     roles = blueprint.get("roles", [])
     total_channels = sum(len(cat.get("channels", [])) for cat in categories)
 
-    # 1. Build embed message
-    embed = {
-        "title": f"📥 New Server Layout Submitted — #{target_guild}",
-        "description": (
-            "A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.\n\n"
-            "📎 **Download the attached `.json` blueprint file below** and attach it to the `/build` command in Discord."
-        ),
-        "color": 0x22C55E,  # Green accent bar
-        "fields": [
-            {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
-            {"name": "Server Invite Link", "value": f"{server_link}", "inline": True},
-            {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
-            {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": False}
-        ],
-        "footer": {"text": "ORCA AI Automated Server Infrastructure"}
-    }
-
-    # 2. Convert blueprint payload into an in-memory .json file attachment
-    filename = f"blueprint_{target_guild}.json"
-    json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
-    file_object = io.BytesIO(json_bytes)
-
     if WEBHOOK_URL:
+        # STEP 1: Send the log message/embed first
+        embed = {
+            "title": f"📥 New Server Layout Submitted — #{target_guild}",
+            "description": (
+                "A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.\n\n"
+                "📎 **The `.json` blueprint file will follow in the next message.** Attach it to the `/build` command in Discord."
+            ),
+            "color": 0x22C55E,  # Green accent bar
+            "fields": [
+                {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
+                {"name": "Server Invite Link", "value": f"{server_link}", "inline": True},
+                {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
+                {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": False}
+            ],
+            "footer": {"text": "ORCA AI Automated Server Infrastructure"}
+        }
+
         try:
-            # Discord Webhook requires multipart encoding when attaching files
-            payload_json = json.dumps({"embeds": [embed]})
-            
+            log_res = requests.post(
+                WEBHOOK_URL,
+                json={"embeds": [embed]},
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            logging.info(f"Log Webhook Response Status: {log_res.status_code}")
+        except Exception as e:
+            logging.error(f"Failed to post log embed to webhook: {e}")
+
+        # STEP 2: Send the file attachment second
+        filename = f"blueprint_{target_guild}.json"
+        json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
+        file_object = io.BytesIO(json_bytes)
+
+        try:
             files = {
                 "file": (filename, file_object, "application/json")
             }
-            data = {
-                "payload_json": payload_json
-            }
-
-            res = requests.post(
+            payload_json = json.dumps({
+                "content": f"📎 Blueprint file for Guild ID: `{target_guild}`"
+            })
+            
+            file_res = requests.post(
                 WEBHOOK_URL,
-                data=data,
+                data={"payload_json": payload_json},
                 files=files,
                 timeout=10
             )
-            logging.info(f"Discord Webhook Response Status: {res.status_code}")
-
+            logging.info(f"File Webhook Response Status: {file_res.status_code}")
         except Exception as e:
             logging.error(f"Failed to post file to webhook: {e}")
     else:
