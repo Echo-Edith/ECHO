@@ -1,5 +1,6 @@
 import time
 import json
+import asyncio
 import aiohttp
 import discord
 from discord import app_commands
@@ -145,7 +146,8 @@ class OrcaCog(commands.Cog):
         file: str = None, 
         attachment: discord.Attachment = None
     ):
-        await interaction.response.defer(thinking=True)
+        # Display "Building Server..." instead of standard thinking message
+        await interaction.response.send_message("Building Server...")
 
         blueprint = None
         source_identifier = "Unknown"
@@ -255,6 +257,7 @@ class OrcaCog(commands.Cog):
             if channel.id != current_channel.id:
                 try:
                     await channel.delete()
+                    await asyncio.sleep(0.3)
                 except Exception:
                     pass
 
@@ -263,6 +266,7 @@ class OrcaCog(commands.Cog):
             if role.name != "@everyone" and not role.managed and role < guild.me.top_role:
                 try:
                     await role.delete()
+                    await asyncio.sleep(0.3)
                 except Exception:
                     pass
 
@@ -276,12 +280,18 @@ class OrcaCog(commands.Cog):
             try:
                 await guild.create_role(name=role_name, mentionable=True)
                 roles_created += 1
+                await asyncio.sleep(0.4)
             except Exception:
                 pass
 
         # 4. Create Categories & Channels
         for cat_data in blueprint.get("categories", []):
-            category = await guild.create_category(name=cat_data.get("name", "CATEGORY"))
+            try:
+                category = await guild.create_category(name=cat_data.get("name", "CATEGORY"))
+                await asyncio.sleep(0.4)
+            except Exception:
+                category = None
+
             for ch_data in cat_data.get("channels", []):
                 emoji = ch_data.get("emoji", "").strip()
                 ch_name = ch_data.get("name", "channel").strip()
@@ -290,16 +300,20 @@ class OrcaCog(commands.Cog):
                 ch_type = ch_data.get("type", "text")
                 topic = ch_data.get("topic", "")
 
-                if ch_type == "voice":
-                    await guild.create_voice_channel(name=full_name, category=category)
-                else:
-                    await guild.create_text_channel(
-                        name=full_name, 
-                        category=category, 
-                        topic=topic, 
-                        news=(ch_type == "announcement")
-                    )
-                channels_created += 1
+                try:
+                    if ch_type == "voice":
+                        await guild.create_voice_channel(name=full_name, category=category)
+                    else:
+                        await guild.create_text_channel(
+                            name=full_name, 
+                            category=category, 
+                            topic=topic, 
+                            news=(ch_type == "announcement")
+                        )
+                    channels_created += 1
+                    await asyncio.sleep(0.4)
+                except Exception:
+                    pass
 
         # Delete command execution channel
         try:
@@ -367,6 +381,7 @@ class OrcaCog(commands.Cog):
                 try:
                     await channel.delete()
                     deleted_count += 1
+                    await asyncio.sleep(0.3)
                 except Exception:
                     pass
 
