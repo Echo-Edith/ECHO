@@ -19,7 +19,7 @@
 
         /* Ambient background glow spheres */
         .glass-aura-container {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100vw;
@@ -330,6 +330,14 @@
                 </p>
             </div>
 
+            <!-- BOT BUILD COMMAND REFERENCE -->
+            <div class="p-3.5 bg-black/40 rounded-2xl border border-white/10 space-y-1.5 text-left">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Discord Deployment Command</p>
+                <code id="success-build-cmd" class="block font-mono text-xs text-purple-300 break-all select-all">
+                    /build file: ...
+                </code>
+            </div>
+
             <!-- BOT INVITE ACTION -->
             <div class="pt-2 border-t border-white/10 space-y-3">
                 <p class="text-[11px] font-semibold text-purple-300">
@@ -371,6 +379,7 @@
 
         function setSeparator(char) {
             document.getElementById('separator-input').value = char;
+            validateForm();
         }
 
         function switchPage(page) {
@@ -392,6 +401,7 @@
             const guildId = document.getElementById('guild-id-input').value.trim();
             const serverLink = document.getElementById('server-link-input').value.trim();
             const separatorVal = document.getElementById('separator-input').value.trim() || '-';
+            
             const btnText = document.getElementById('btn-text');
             const btnEl = document.getElementById('btn-generate');
 
@@ -402,15 +412,33 @@
                 const res = await fetch('/api/generate-layout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: promptText, guild_id: guildId, server_link: serverLink, separator: separatorVal })
+                    body: JSON.stringify({ 
+                        prompt: promptText, 
+                        guild_id: guildId, 
+                        server_link: serverLink, 
+                        separator: separatorVal 
+                    })
                 });
 
+                if (!res.ok) {
+                    throw new Error(`Server responded with HTTP ${res.status}`);
+                }
+
                 serverBlueprint = await res.json();
+                
+                // Keep target metadata explicitly linked
+                serverBlueprint.target_guild_id = guildId;
+                serverBlueprint.server_link = serverLink;
+                serverBlueprint.separator = separatorVal;
+
                 ensurePermissionsStructure();
+                activeCatIndex = 0;
+                activeChIndex = 0;
                 renderPreview();
                 switchPage('preview');
             } catch (err) {
                 console.error("Layout generation error:", err);
+                alert("Failed to generate server layout. Please try again.");
             } finally {
                 if (btnText) btnText.textContent = "Generate Server Layout";
                 validateForm();
@@ -419,10 +447,15 @@
 
         function ensurePermissionsStructure() {
             if (!serverBlueprint || !serverBlueprint.categories) return;
+            
+            if (!serverBlueprint.roles || serverBlueprint.roles.length === 0) {
+                serverBlueprint.roles = ["Admin", "Moderator", "Member"];
+            }
+
             serverBlueprint.categories.forEach(cat => {
                 (cat.channels || []).forEach(ch => {
                     if (!ch.permissions) ch.permissions = {};
-                    (serverBlueprint.roles || []).forEach(role => {
+                    serverBlueprint.roles.forEach(role => {
                         if (!ch.permissions[role]) {
                             ch.permissions[role] = {
                                 view_channel: true,
@@ -444,7 +477,7 @@
             if (!serverBlueprint) return;
             document.getElementById('preview-server-name').textContent = serverBlueprint.server_name || "Community Blueprint";
 
-            // Roles Render
+            // Render Configured Roles
             const rolesContainer = document.getElementById('roles-list');
             rolesContainer.innerHTML = (serverBlueprint.roles || []).map((r, idx) => 
                 `<span class="px-3 py-1 rounded-full bg-purple-500/10 text-[10px] font-medium text-purple-200 border border-purple-500/30 flex items-center space-x-1.5 shadow-sm">
@@ -453,17 +486,18 @@
                  </span>`
             ).join('');
 
-            // Select Role List Options
+            // Render Role Selector in Channel Settings
             const roleSelect = document.getElementById('perm-role-select');
             const currentSelectedRole = roleSelect.value;
             roleSelect.innerHTML = (serverBlueprint.roles || []).map(r => 
                 `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`
             ).join('');
+
             if (currentSelectedRole && (serverBlueprint.roles || []).includes(currentSelectedRole)) {
                 roleSelect.value = currentSelectedRole;
             }
 
-            // Categories & Channels Structure Render
+            // Render Categories & Channels Structure List
             const listContainer = document.getElementById('discord-structure-list');
             listContainer.innerHTML = '';
 
@@ -526,26 +560,42 @@
         function addRole() {
             if (!serverBlueprint) return;
             const roleName = prompt("Enter new role name:", "New Role");
-            if (!roleName) return;
+            if (!roleName || !roleName.trim()) return;
             if (!serverBlueprint.roles) serverBlueprint.roles = [];
-            serverBlueprint.roles.push(roleName.trim());
-            ensurePermissionsStructure();
-            renderPreview();
+            
+            const trimmed = roleName.trim();
+            if (!serverBlueprint.roles.includes(trimmed)) {
+                serverBlueprint.roles.push(trimmed);
+                ensurePermissionsStructure();
+                renderPreview();
+            }
         }
 
         function removeRole(idx) {
             if (!serverBlueprint || !serverBlueprint.roles) return;
+            const removedRole = serverBlueprint.roles[idx];
             serverBlueprint.roles.splice(idx, 1);
+
+            // Clean role permissions reference from channels
+            (serverBlueprint.categories || []).forEach(cat => {
+                (cat.channels || []).forEach(ch => {
+                    if (ch.permissions && ch.permissions[removedRole]) {
+                        delete ch.permissions[removedRole];
+                    }
+                });
+            });
+
             renderPreview();
         }
 
         function addCategory() {
             if (!serverBlueprint) return;
             const catName = prompt("Enter new category name:", "NEW CATEGORY");
-            if (!catName) return;
+            if (!catName || !catName.trim()) return;
             const sep = serverBlueprint.separator || '-';
+            
             serverBlueprint.categories.push({
-                name: catName.toUpperCase(),
+                name: catName.trim().toUpperCase(),
                 channels: [{ emoji: "#", name: `general${sep}chat`, type: "text", topic: "General discussion", permissions: {} }]
             });
             ensurePermissionsStructure();
@@ -555,11 +605,12 @@
         function addChannel(catIdx) {
             if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
             const chName = prompt("Enter new channel name:", "new-channel");
-            if (!chName) return;
+            if (!chName || !chName.trim()) return;
             const sep = serverBlueprint.separator || '-';
+            
             serverBlueprint.categories[catIdx].channels.push({
                 emoji: "#",
-                name: chName.toLowerCase().replace(/\s+/g, sep),
+                name: chName.trim().toLowerCase().replace(/\s+/g, sep),
                 type: "text",
                 topic: "",
                 permissions: {}
@@ -647,13 +698,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(serverBlueprint)
                 });
+                
                 const responseData = await res.json();
-                console.log('Submission Response:', responseData);
+                
+                if (responseData.file_url) {
+                    const cmdEl = document.getElementById('success-build-cmd');
+                    if (cmdEl) {
+                        cmdEl.textContent = `/build file: ${responseData.file_url}`;
+                    }
+                }
+                
+                switchPage('success');
             } catch (err) {
                 console.error("Webhook submission error:", err);
+                alert("An error occurred while submitting the design.");
             } finally {
                 if (btn) btn.disabled = false;
-                switchPage('success');
             }
         }
 
@@ -675,7 +735,7 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(serverBlueprint, null, 2));
             const anchor = document.createElement('a');
             anchor.setAttribute("href", dataStr);
-            anchor.setAttribute("download", `blueprint_${serverBlueprint.target_guild_id}.json`);
+            anchor.setAttribute("download", `blueprint_${serverBlueprint.target_guild_id || 'layout'}.json`);
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
