@@ -6,8 +6,25 @@ import asyncio
 import time
 
 WEB_BUILDER_URL = "https://echo-dashboard-qn39.onrender.com/"
+AUTHORIZED_USER_ID = 1219266886143967245
 is_lockdown = False
 start_time = time.time()
+
+
+def is_owner():
+    """Custom check restricting command execution strictly to AUTHORIZED_USER_ID."""
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if interaction.user.id == AUTHORIZED_USER_ID:
+            return True
+        embed = discord.Embed(
+            title="⛔ Access Denied",
+            description="You do not have permission to execute this command.",
+            color=0xE74C3C
+        )
+        embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return False
+    return app_commands.check(predicate)
 
 
 class OrcaCog(commands.Cog):
@@ -29,22 +46,22 @@ class OrcaCog(commands.Cog):
         )
         embed.add_field(
             name="`/build [file]`",
-            value="Builds server categories, channels, and roles from JSON blueprint. *(Admin Only)*",
+            value="Builds server categories, channels, and roles from JSON blueprint. *(Owner Only)*",
             inline=False
         )
         embed.add_field(
             name="`/lockdown [state]`",
-            value="Toggles web portal maintenance screen. *(Admin Only)*",
+            value="Toggles web portal maintenance screen. *(Owner Only)*",
             inline=False
         )
         embed.add_field(
             name="`/status`",
-            value="Displays real-time bot latency and operational statistics. *(Admin Only)*",
+            value="Displays real-time bot latency and operational statistics. *(Owner Only)*",
             inline=False
         )
         embed.add_field(
             name="`/nuke`",
-            value="Deletes all channels and categories, preserving only the current bot channel. *(Admin Only)*",
+            value="Deletes all channels and categories, preserving only the current bot channel. *(Owner Only)*",
             inline=False
         )
         embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
@@ -54,7 +71,13 @@ class OrcaCog(commands.Cog):
     @app_commands.command(name="custom-server-builder", description="Provides link to the web-based layout tool.")
     async def custom_server_builder(self, interaction: discord.Interaction):
         if is_lockdown:
-            await interaction.response.send_message("⚠️ The web portal is currently under maintenance.", ephemeral=True)
+            embed = discord.Embed(
+                title="⚠️ System Under Maintenance",
+                description="The web portal is currently under maintenance. Please try again later.",
+                color=0xF1C40F
+            )
+            embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
         embed = discord.Embed(
@@ -62,14 +85,21 @@ class OrcaCog(commands.Cog):
             description=f"Click below to access our AI-powered web builder:\n{WEB_BUILDER_URL}",
             color=0x5865F2
         )
+        embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
     # --- 3. /build COMMAND ---
     @app_commands.command(name="build", description="Builds server categories, channels, and roles from JSON blueprint.")
-    @app_commands.checks.has_permissions(administrator=True)
+    @is_owner()
     async def build(self, interaction: discord.Interaction, file: discord.Attachment):
         if not file.filename.endswith('.json'):
-            await interaction.response.send_message("❌ Error: Attached file must be a JSON blueprint.", ephemeral=True)
+            embed = discord.Embed(
+                title="❌ Invalid File Format",
+                description="The attached file must be a valid `.json` blueprint file.",
+                color=0xE74C3C
+            )
+            embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
         await interaction.response.defer(thinking=True)
@@ -78,7 +108,13 @@ class OrcaCog(commands.Cog):
             content = await file.read()
             blueprint = json.loads(content.decode('utf-8'))
         except Exception as e:
-            await interaction.followup.send(f"❌ Failed to parse JSON blueprint: {e}")
+            embed = discord.Embed(
+                title="❌ Blueprint Parsing Error",
+                description=f"Failed to parse JSON blueprint file:\n```{e}```",
+                color=0xE74C3C
+            )
+            embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
+            await interaction.followup.send(embed=embed)
             return
 
         guild = interaction.guild
@@ -136,7 +172,7 @@ class OrcaCog(commands.Cog):
         target_channel = guild.text_channels[0] if guild.text_channels else None
         if target_channel:
             embed = discord.Embed(
-                title="Server Build Complete",
+                title="🚀 Server Build Complete",
                 description=f"Successfully deployed blueprint onto **{guild.name}**.",
                 color=0x2ECC71
             )
@@ -147,7 +183,7 @@ class OrcaCog(commands.Cog):
 
     # --- 4. /lockdown COMMAND ---
     @app_commands.command(name="lockdown", description="Toggles web portal maintenance screen.")
-    @app_commands.checks.has_permissions(administrator=True)
+    @is_owner()
     @app_commands.choices(state=[
         app_commands.Choice(name="ON (Enable Maintenance)", value="on"),
         app_commands.Choice(name="OFF (Disable Maintenance)", value="off")
@@ -161,24 +197,25 @@ class OrcaCog(commands.Cog):
             description=f"Maintenance mode is now **{status_str}**.",
             color=0xE74C3C if is_lockdown else 0x2ECC71
         )
+        embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # --- 5. /status COMMAND ---
     @app_commands.command(name="status", description="Displays real-time bot latency and operational statistics.")
-    @app_commands.checks.has_permissions(administrator=True)
+    @is_owner()
     async def status(self, interaction: discord.Interaction):
         latency = round(self.bot.latency * 1000)
         uptime = round(time.time() - start_time)
         embed = discord.Embed(title="⚡ System Operational Status", color=0x5865F2)
-        embed.add_field(name="Latency", value=f"{latency} ms", inline=True)
-        embed.add_field(name="Uptime", value=f"{uptime} seconds", inline=True)
-        embed.add_field(name="Maintenance Lock", value="ACTIVE" if is_lockdown else "INACTIVE", inline=True)
+        embed.add_field(name="Latency", value=f"`{latency} ms`", inline=True)
+        embed.add_field(name="Uptime", value=f"`{uptime} seconds`", inline=True)
+        embed.add_field(name="Maintenance Lock", value="`ACTIVE`" if is_lockdown else "`INACTIVE`", inline=True)
         embed.set_footer(text="ORCA AI -- Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # --- 6. /nuke COMMAND ---
     @app_commands.command(name="nuke", description="Deletes all channels/categories except the command channel.")
-    @app_commands.checks.has_permissions(administrator=True)
+    @is_owner()
     async def nuke(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
         guild = interaction.guild
