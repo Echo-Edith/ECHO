@@ -741,36 +741,58 @@
             const listContainer = document.getElementById('discord-structure-list');
             listContainer.innerHTML = '';
 
-            (serverBlueprint.categories || []).forEach((cat, catIdx) => {
+            if (!serverBlueprint.categories || serverBlueprint.categories.length === 0) {
+                listContainer.innerHTML = `<div class="text-center text-gray-500 py-8 text-xs">No categories created yet.</div>`;
+                return;
+            }
+
+            serverBlueprint.categories.forEach((cat, catIdx) => {
                 const catDiv = document.createElement('div');
                 catDiv.className = 'glass-card rounded-2xl p-3 space-y-2 border border-white/10';
                 catDiv.setAttribute('data-id', catIdx);
 
                 let catHtml = `
-                    <div class="flex justify-between items-center drag-handle py-1 px-1">
-                        <div class="flex items-center space-x-2">
+                    <div class="flex justify-between items-center py-1 px-1 border-b border-white/5 pb-2">
+                        <div class="flex items-center space-x-2 drag-handle">
                             <span class="text-gray-500 text-xs">⋮⋮</span>
                             <span class="font-bold text-purple-300 uppercase text-[10px] tracking-wider">${escapeHtml(cat.name)}</span>
                         </div>
-                        <button onclick="addChannel(${catIdx})" class="text-[9px] text-purple-300 hover:text-white font-bold px-2 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition">
-                            + Add Channel
-                        </button>
+                        <div class="flex items-center space-x-1.5">
+                            <button onclick="editCategoryName(${catIdx})" class="text-[9px] text-gray-400 hover:text-white font-bold px-1.5 py-0.5 rounded hover:bg-white/10 transition">
+                                Edit
+                            </button>
+                            <button onclick="deleteCategory(${catIdx})" class="text-[9px] text-red-400 hover:text-red-300 font-bold px-1.5 py-0.5 rounded hover:bg-red-500/10 transition">
+                                Delete
+                            </button>
+                            <button onclick="addChannel(${catIdx})" class="text-[9px] text-purple-300 hover:text-white font-bold px-2 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition">
+                                + Add Channel
+                            </button>
+                        </div>
                     </div>
                 `;
 
-                (cat.channels || []).forEach((ch, chIdx) => {
-                    const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
-                    const activeStyle = isSelected 
-                        ? "bg-purple-500/25 text-white font-semibold border border-purple-500/40 shadow-inner" 
-                        : "text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent";
-                    
-                    catHtml += `
-                        <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2.5 px-3 py-2 rounded-xl cursor-pointer transition-all text-xs ${activeStyle}">
-                            <span class="font-mono text-purple-400">${escapeHtml(ch.emoji || '#')}</span>
-                            <span class="truncate">${escapeHtml(ch.name)}</span>
-                        </div>
-                    `;
-                });
+                if (!cat.channels || cat.channels.length === 0) {
+                    catHtml += `<div class="text-[10px] text-gray-500 italic py-1 px-3">No channels in this category.</div>`;
+                } else {
+                    cat.channels.forEach((ch, chIdx) => {
+                        const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
+                        const activeStyle = isSelected 
+                            ? "bg-purple-500/25 text-white font-semibold border border-purple-500/40 shadow-inner" 
+                            : "text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent";
+                        
+                        catHtml += `
+                            <div onclick="selectChannel(${catIdx}, ${chIdx})" class="group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all text-xs ${activeStyle}">
+                                <div class="flex items-center space-x-2.5 truncate">
+                                    <span class="font-mono text-purple-400">${escapeHtml(ch.emoji || '#')}</span>
+                                    <span class="truncate">${escapeHtml(ch.name)}</span>
+                                </div>
+                                <button onclick="deleteChannel(event, ${catIdx}, ${chIdx})" class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 font-bold text-xs px-1 transition">
+                                    ×
+                                </button>
+                            </div>
+                        `;
+                    });
+                }
 
                 catDiv.innerHTML = catHtml;
                 listContainer.appendChild(catDiv);
@@ -834,11 +856,35 @@
             if (!catName || !catName.trim()) return;
             const sep = serverBlueprint.separator || '-';
             
+            if (!serverBlueprint.categories) serverBlueprint.categories = [];
+            
             serverBlueprint.categories.push({
                 name: catName.trim().toUpperCase(),
                 channels: [{ emoji: "#", name: `general${sep}chat`, type: "text", topic: "General discussion", permissions: {} }]
             });
             ensurePermissionsStructure();
+            activeCatIndex = serverBlueprint.categories.length - 1;
+            activeChIndex = 0;
+            renderPreview();
+        }
+
+        function editCategoryName(catIdx) {
+            if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
+            const currentCat = serverBlueprint.categories[catIdx];
+            const newName = prompt("Edit category name:", currentCat.name);
+            if (!newName || !newName.trim()) return;
+            
+            currentCat.name = newName.trim().toUpperCase();
+            renderPreview();
+        }
+
+        function deleteCategory(catIdx) {
+            if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
+            if (!confirm(`Are you sure you want to delete "${serverBlueprint.categories[catIdx].name}" and all its channels?`)) return;
+            
+            serverBlueprint.categories.splice(catIdx, 1);
+            activeCatIndex = Math.max(0, catIdx - 1);
+            activeChIndex = 0;
             renderPreview();
         }
 
@@ -848,14 +894,28 @@
             if (!chName || !chName.trim()) return;
             const sep = serverBlueprint.separator || '-';
             
-            serverBlueprint.categories[catIdx].channels.push({
+            const newIndex = serverBlueprint.categories[catIdx].channels.push({
                 emoji: "#",
                 name: chName.trim().toLowerCase().replace(/\s+/g, sep),
                 type: "text",
                 topic: "",
                 permissions: {}
-            });
+            }) - 1;
+            
             ensurePermissionsStructure();
+            activeCatIndex = catIdx;
+            activeChIndex = newIndex;
+            renderPreview();
+        }
+
+        function deleteChannel(event, catIdx, chIdx) {
+            event.stopPropagation();
+            if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
+            
+            serverBlueprint.categories[catIdx].channels.splice(chIdx, 1);
+            if (activeCatIndex === catIdx) {
+                activeChIndex = Math.max(0, chIdx - 1);
+            }
             renderPreview();
         }
 
@@ -891,12 +951,13 @@
             
             // Re-render only structural text elements without resetting active selection
             document.getElementById('editor-title').textContent = `Channel — #${ch.name}`;
-            const selectedChannelEl = document.querySelector(`#discord-structure-list > div:nth-child(${activeCatIndex + 1}) > div:nth-child(${activeChIndex + 2})`);
+            const selectedChannelEl = document.querySelector(`#discord-structure-list > div:nth-child(${activeCatIndex + 1}) > div:nth-child(${activeChIndex + 2}) span.truncate`);
             if (selectedChannelEl) {
-                selectedChannelEl.innerHTML = `
-                    <span class="font-mono text-purple-400">${escapeHtml(ch.emoji || '#')}</span>
-                    <span class="truncate">${escapeHtml(ch.name)}</span>
-                `;
+                selectedChannelEl.textContent = ch.name;
+            }
+            const selectedEmojiEl = document.querySelector(`#discord-structure-list > div:nth-child(${activeCatIndex + 1}) > div:nth-child(${activeChIndex + 2}) span.font-mono`);
+            if (selectedEmojiEl) {
+                selectedEmojiEl.textContent = ch.emoji || '#';
             }
         }
 
