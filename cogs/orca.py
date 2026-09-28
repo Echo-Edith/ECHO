@@ -12,6 +12,7 @@ from discord.ext import commands
 from ai_brain import get_blueprint_data, WEB_BUILDER_URL
 
 AUTHORIZED_USER_ID = 1219266886143967245
+ALLOWED_BUILDERS = {AUTHORIZED_USER_ID}  # Hardcoded primary owner + dynamic allowed users
 is_lockdown = False
 start_time = time.time()
 
@@ -21,13 +22,13 @@ TIME_WINDOW = 5     # Time window in seconds
 
 
 def is_owner():
-    """Custom check restricting administrative commands strictly to AUTHORIZED_USER_ID."""
+    """Custom check restricting administrative commands strictly to primary AUTHORIZED_USER_ID."""
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.user.id == AUTHORIZED_USER_ID:
             return True
         embed = discord.Embed(
             title="⛔ Access Denied",
-            description="You do not have permission to execute this command.",
+            description="You do not have permission to execute this administrative command.",
             color=0xE74C3C
         )
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
@@ -36,11 +37,107 @@ def is_owner():
     return app_commands.check(predicate)
 
 
+def can_build():
+    """Custom check allowing primary AUTHORIZED_USER_ID and granted builders to run /build."""
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if interaction.user.id in ALLOWED_BUILDERS:
+            return True
+        embed = discord.Embed(
+            title="⛔ Access Denied",
+            description="You do not have permission to execute the `/build` command.",
+            color=0xE74C3C
+        )
+        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return False
+    return app_commands.check(predicate)
+
+
+class BotJoinTosView(discord.ui.View):
+    """Interactive button view on join requiring acknowledgment of terms by the inviter/owner."""
+    def __init__(self, inviter_id: int):
+        super().__init__(timeout=None)  # Persistent button state
+        self.inviter_id = inviter_id
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Check if clicker is the person who added the bot or the guild owner
+        if interaction.user.id == self.inviter_id or interaction.user.id == interaction.guild.owner_id:
+            return True
+        await interaction.response.send_message(
+            "❌ Only the server owner or the administrator who added ORCA AI can accept these terms.", 
+            ephemeral=True
+        )
+        return False
+
+    @discord.ui.button(label="I Understand & Accept Terms", style=discord.ButtonStyle.danger, emoji="⚠️")
+    async def accept_terms(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.disabled = True
+        button.label = "Terms Accepted"
+        button.style = discord.ButtonStyle.success
+        
+        accepted_embed = discord.Embed(
+            title="✅ Agreement Acknowledged",
+            description=(
+                f"Terms accepted by {interaction.user.mention}.\n"
+                "ORCA AI is active and initialized for this server."
+            ),
+            color=0x2ECC71
+        )
+        accepted_embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        await interaction.response.edit_message(embed=accepted_embed, view=self)
+
+
 class OrcaCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         # Track message timestamps per user: {user_id: [timestamp1, timestamp2, ...]}
         self.user_message_logs = collections.defaultdict(list)
+
+    # --- BOT JOIN EVENT (TERMS & CONDITIONS DISCLAIMER) ---
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: discord.Guild):
+        # Ensure bot has Administrator permissions
+        if not guild.me.guild_permissions.administrator:
+            return
+
+        # Attempt to identify the person who added the bot via audit logs
+        inviter_id = guild.owner_id
+        try:
+            async for entry in guild.audit_logs(action=discord.AuditLogAction.bot_add, limit=5):
+                if entry.target.id == self.bot.user.id:
+                    inviter_id = entry.user.id
+                    break
+        except Exception:
+            pass
+
+        # Find target channel for welcome message
+        target_channel = guild.system_channel
+        if not target_channel or not target_channel.permissions_for(guild.me).send_messages:
+            for channel in guild.text_channels:
+                if channel.permissions_for(guild.me).send_messages:
+                    target_channel = channel
+                    break
+
+        if not target_channel:
+            return
+
+        tos_embed = discord.Embed(
+            title="⚠️ ORCA AI — Server Integration & Terms of Service",
+            description=(
+                "**ORCA AI has joined your server with Administrator privileges.**\n\n"
+                "### 🛠️ Automated Operations Overview:\n"
+                "• **Automated Structure Deployment**: When `/build` is executed, existing server channels, categories, and custom roles will be permanently removed and rebuilt.\n"
+                "• **Moderation & Security**: Active 12-hour automated anti-spam restrictions apply to non-administrative members.\n\n"
+                "### ⚖️ Terms of Service & Accountability Disclaimer:\n"
+                "**By confirming below, you acknowledge that the bot developer is NOT accountable or liable for any lost messages, deleted roles, purged channels, or configuration updates executed during building or nuking operations.**\n\n"
+                "*Only the person who invited this bot or the Server Owner can acknowledge these terms.*"
+            ),
+            color=0xF1C40F
+        )
+        tos_embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+
+        view = BotJoinTosView(inviter_id=inviter_id)
+        await target_channel.send(embed=tos_embed, view=view)
 
     # --- AUTOMATED ANTI-SPAM LISTENER ---
     @commands.Cog.listener()
@@ -227,13 +324,56 @@ class OrcaCog(commands.Cog):
         except Exception as e:
             await interaction.response.send_message(f"❌ Failed to un-restrict member: {e}", ephemeral=True)
 
-    # --- 6. /build COMMAND (OWNER ONLY) ---
+    # --- 6. /manage-access COMMAND (HARDCODED PRIMARY OWNER ONLY) ---
+    @app_commands.command(name="manage-access", description="Grant or revoke build command access for a specific User ID.")
+    @app_commands.describe(user_id="The Discord User ID to toggle access for")
+    @is_owner()
+    async def manage_access(self, interaction: discord.Interaction, user_id: str):
+        try:
+            target_id = int(user_id.strip())
+        except ValueError:
+            embed = discord.Embed(
+                title="❌ Invalid Input",
+                description="Please enter a valid numeric Discord User ID.",
+                color=0xE74C3C
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
+        if target_id == AUTHORIZED_USER_ID:
+            embed = discord.Embed(
+                title="⚠️ Permanent Owner",
+                description="You cannot revoke permissions from the primary hardcoded owner.",
+                color=0xF1C40F
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
+        if target_id in ALLOWED_BUILDERS:
+            ALLOWED_BUILDERS.remove(target_id)
+            embed = discord.Embed(
+                title="🚫 Access Revoked",
+                description=f"Revoked `/build` permissions from User ID: `{target_id}`",
+                color=0xE74C3C
+            )
+        else:
+            ALLOWED_BUILDERS.add(target_id)
+            embed = discord.Embed(
+                title="✅ Access Granted",
+                description=f"Granted `/build` permissions to User ID: `{target_id}`",
+                color=0x2ECC71
+            )
+
+        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # --- 7. /build COMMAND (HARDCODED OWNER & ALLOWED BUILDERS) ---
     @app_commands.command(name="build", description="Builds server layout from blueprint URL or uploaded JSON file.")
     @app_commands.describe(
         file="Direct file link or HTTP URL to blueprint JSON",
         attachment="Optional JSON blueprint file attachment"
     )
-    @is_owner()
+    @can_build()
     async def build(
         self, 
         interaction: discord.Interaction, 
@@ -417,7 +557,7 @@ class OrcaCog(commands.Cog):
             embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
             await target_channel.send(embed=embed)
 
-    # --- 7. /lockdown COMMAND (OWNER ONLY) ---
+    # --- 8. /lockdown COMMAND (OWNER ONLY) ---
     @app_commands.command(name="lockdown", description="Toggles web portal maintenance screen.")
     @is_owner()
     @app_commands.choices(state=[
@@ -436,7 +576,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # --- 8. /status COMMAND (OWNER ONLY) ---
+    # --- 9. /status COMMAND (OWNER ONLY) ---
     @app_commands.command(name="status", description="Displays real-time bot latency and operational statistics.")
     @is_owner()
     async def status(self, interaction: discord.Interaction):
@@ -449,7 +589,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # --- 9. /nuke COMMAND (OWNER ONLY) ---
+    # --- 10. /nuke COMMAND (OWNER ONLY) ---
     @app_commands.command(name="nuke", description="Deletes all channels/categories except the command channel.")
     @is_owner()
     async def nuke(self, interaction: discord.Interaction):
