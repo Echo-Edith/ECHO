@@ -23,13 +23,45 @@ BLUEPRINT_STORAGE = {}
 BLUEPRINT_DIR = os.path.join(os.getcwd(), "blueprints")
 os.makedirs(BLUEPRINT_DIR, exist_ok=True)
 
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "").strip()
+# Webhook Configurations
+DESIGN_WEBHOOK_URL = os.environ.get("DESIGN_WEBHOOK_URL", os.environ.get("WEBHOOK_URL", "")).strip()
+SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", "").strip()
+
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").rstrip('/')
 
 client = None
 if GEMINI_API_KEY:
     client = genai.Client(api_key=GEMINI_API_KEY)
+
+
+def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields: list = None):
+    """Sends a standard system/activity log embed to the dedicated system log channel."""
+    if not SYSTEM_LOG_WEBHOOK_URL:
+        logging.warning("SYSTEM_LOG_WEBHOOK_URL not configured. Skipping system log.")
+        return
+
+    payload = {
+        "embeds": [
+            {
+                "title": title,
+                "description": description,
+                "color": color,
+                "fields": fields or [],
+                "footer": {"text": "ORCA System Logger"}
+            }
+        ]
+    }
+
+    try:
+        requests.post(
+            SYSTEM_LOG_WEBHOOK_URL,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=5
+        )
+    except Exception as e:
+        logging.error(f"Failed to post system log webhook: {e}")
 
 
 def save_blueprint_data(guild_id: str, blueprint: dict):
@@ -120,6 +152,13 @@ def discord_callback():
             'avatar': user_profile.get('avatar'),
             'discriminator': user_profile.get('discriminator')
         }
+
+        # Send activity alert to System Log Webhook
+        send_system_log(
+            title="🔑 User Authenticated",
+            description=f"User **@{user_profile.get('username')}** (`{user_profile.get('id')}`) logged into the web dashboard.",
+            color=0x3B82F6
+        )
 
         return redirect('/')
     except Exception as e:
@@ -274,7 +313,7 @@ def submit_design():
     filename = f"blueprint_{target_guild}.json"
     file_url = f"{WEB_BUILDER_URL}/blueprint/{target_guild}.json"
 
-    if WEBHOOK_URL:
+    if DESIGN_WEBHOOK_URL:
         # Prepare file bytes
         json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
         
@@ -306,16 +345,16 @@ def submit_design():
 
         try:
             log_res = requests.post(
-                WEBHOOK_URL,
+                DESIGN_WEBHOOK_URL,
                 data={"payload_json": json.dumps(payload)},
                 files=files,
                 timeout=10
             )
-            logging.info(f"Webhook Response Status: {log_res.status_code}")
+            logging.info(f"Design Webhook Response Status: {log_res.status_code}")
         except Exception as e:
-            logging.error(f"Failed to post embed + file to webhook: {e}")
+            logging.error(f"Failed to post embed + file to design webhook: {e}")
     else:
-        logging.warning("WEBHOOK_URL environment variable is not set!")
+        logging.warning("DESIGN_WEBHOOK_URL environment variable is not set!")
 
     return jsonify({
         "status": "success", 
