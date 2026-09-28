@@ -57,7 +57,7 @@ PRIMARY_OWNER_ID = "1219266886143967245"
 def enforce_security_middleware():
     """Middleware enforcing site bans and lockdown restrictions prior to handling requests."""
     # Exempt essential static resources and OAuth login callback routes
-    exempt_endpoints = ['static', 'discord_login', 'discord_callback', 'handle_ban_user', 'handle_lockdown']
+    exempt_endpoints = ['static', 'discord_login', 'discord_callback', 'handle_ban_user', 'handle_lockdown', 'get_current_user']
     if request.endpoint in exempt_endpoints:
         return None
 
@@ -68,15 +68,15 @@ def enforce_security_middleware():
     if user_id and user_id in BANNED_USER_IDS:
         session.pop('user', None)  # Wipe session
         if request.path.startswith('/api/'):
-            return jsonify({"error": "Access Denied. You are banned from utilizing the ORCA Web Portal."}), 403
-        return "<h1>403 Forbidden</h1><p>You have been banned from accessing the ORCA AI Web Portal.</p>", 403
+            return jsonify({"error": "Access Denied. You are banned from utilizing the Echo Studio Portal.", "is_banned": True}), 403
+        return render_template('index.html'), 200
 
     # 2. ENFORCE GLOBAL LOCKDOWN
     if IS_LOCKDOWN_ACTIVE:
         if not user_id or user_id != PRIMARY_OWNER_ID:
             if request.path.startswith('/api/'):
-                return jsonify({"error": "System Under Maintenance. The dashboard is currently locked."}), 530
-            return "<h1>530 Site Under Maintenance</h1><p>The ORCA AI Portal is currently undergoing maintenance. Please try again later.</p>", 530
+                return jsonify({"error": "System Under Maintenance. The dashboard is currently locked.", "is_lockdown": True}), 530
+            return render_template('index.html'), 200
 
 
 def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields: list = None):
@@ -92,7 +92,7 @@ def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields:
                 "description": description,
                 "color": color,
                 "fields": fields or [],
-                "footer": {"text": "ORCA System Logger"}
+                "footer": {"text": "Echo Studio System Logger"}
             }
         ]
     }
@@ -145,7 +145,7 @@ def generate_tier_3_fallback(prompt: str, guild_id: str, server_link: str, separ
     """
     clean_prompt = prompt.strip()[:25] if prompt else "Community"
     return {
-        "server_name": f"ORCA — {clean_prompt.title()} Server",
+        "server_name": f"Echo Studio — {clean_prompt.title()} Server",
         "target_guild_id": guild_id,
         "server_link": server_link,
         "separator": separator,
@@ -285,7 +285,7 @@ def discord_callback():
 
         # Immediately reject login if user is banned
         if user_id in BANNED_USER_IDS:
-            return "<h1>403 Forbidden</h1><p>Your Discord account is banned from accessing this dashboard.</p>", 403
+            return redirect('/banned')
 
         # Save identity in session cookie
         session['user'] = {
@@ -308,13 +308,33 @@ def discord_callback():
         return "Authentication failed. Please check your credentials and try again.", 500
 
 
+@app.route('/api/auth/logout')
+def discord_logout():
+    """Clears user session and redirects to home."""
+    session.pop('user', None)
+    return redirect('/')
+
+
 @app.route('/api/auth/me')
 def get_current_user():
-    """Returns details of the currently authenticated session."""
+    """Returns details of the currently authenticated session, ban state, and lockdown state."""
     user = session.get('user')
+    user_id = str(user.get('id')).strip() if user else None
+
+    is_banned = bool(user_id and user_id in BANNED_USER_IDS)
+    is_lockdown = bool(IS_LOCKDOWN_ACTIVE and (not user_id or user_id != PRIMARY_OWNER_ID))
+
+    if is_banned:
+        session.pop('user', None)
+        return jsonify({"authenticated": False, "is_banned": True, "user": None})
+
+    if is_lockdown:
+        return jsonify({"authenticated": False, "is_lockdown": True, "user": None})
+
     if user:
-        return jsonify({"authenticated": True, "user": user})
-    return jsonify({"authenticated": False, "user": None})
+        return jsonify({"authenticated": True, "is_banned": False, "is_lockdown": False, "user": user})
+        
+    return jsonify({"authenticated": False, "is_banned": False, "is_lockdown": False, "user": None})
 
 
 # ==========================================
@@ -322,6 +342,8 @@ def get_current_user():
 # ==========================================
 
 @app.route('/')
+@app.route('/banned')
+@app.route('/maintenance')
 def index():
     return render_template('index.html')
 
@@ -388,7 +410,7 @@ def generate_layout():
     # --- TIER 1: PRIMARY AI MODEL (gemini-2.5-flash) ---
     if client:
         try:
-            logging.info("[ORCA AI] Executing Tier 1 generation (gemini-2.5-flash)...")
+            logging.info("[Echo AI] Executing Tier 1 generation (gemini-2.5-flash)...")
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=full_user_prompt,
@@ -399,15 +421,15 @@ def generate_layout():
                 )
             )
             layout_data = json.loads(response.text)
-            logging.info("[ORCA AI] Tier 1 layout generation succeeded.")
+            logging.info("[Echo AI] Tier 1 layout generation succeeded.")
         except Exception as e1:
-            logging.warning(f"[ORCA AI] Tier 1 Failed ({e1}). Escalating to Tier 2...")
+            logging.warning(f"[Echo AI] Tier 1 Failed ({e1}). Escalating to Tier 2...")
 
     # --- TIER 2: SECONDARY / LIGHTWEIGHT BACKUP MODEL (gemini-1.5-flash) ---
     if not layout_data and client:
         try:
             time.sleep(0.5)  # Backoff delay before hitting secondary endpoint
-            logging.info("[ORCA AI] Executing Tier 2 generation (gemini-1.5-flash)...")
+            logging.info("[Echo AI] Executing Tier 2 generation (gemini-1.5-flash)...")
             response = client.models.generate_content(
                 model='gemini-1.5-flash',
                 contents=full_user_prompt,
@@ -418,13 +440,13 @@ def generate_layout():
                 )
             )
             layout_data = json.loads(response.text)
-            logging.info("[ORCA AI] Tier 2 layout generation succeeded.")
+            logging.info("[Echo AI] Tier 2 layout generation succeeded.")
         except Exception as e2:
-            logging.warning(f"[ORCA AI] Tier 2 Failed ({e2}). Escalating to Tier 3...")
+            logging.warning(f"[Echo AI] Tier 2 Failed ({e2}). Escalating to Tier 3...")
 
     # --- TIER 3: DYNAMIC HARDCODED FALLBACK ---
     if not layout_data:
-        logging.info("[ORCA AI] Applying Tier 3 dynamic hardcoded fallback layout.")
+        logging.info("[Echo AI] Applying Tier 3 dynamic hardcoded fallback layout.")
         layout_data = generate_tier_3_fallback(prompt, guild_id, server_link, separator, user)
 
     # Enforce standard tracking fields on payload
@@ -478,7 +500,7 @@ def submit_design():
                         {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": True},
                         {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": True}
                     ],
-                    "footer": {"text": "ORCA AI Automated Server Infrastructure"}
+                    "footer": {"text": "Echo Studio Automated Server Infrastructure"}
                 }
             ]
         }
