@@ -25,6 +25,9 @@ from ai_brain import app
 BOT_API_KEY = os.environ.get("BOT_API_KEY", "").strip()
 MONGO_URI = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
 
+# Primary Owner ID exempted from website maintenance restrictions
+PRIMARY_OWNER_ID = "1219266886143967245"
+
 mongo_client = None
 db = None
 bans_collection = None
@@ -43,7 +46,7 @@ IS_LOCKDOWN = False
 
 def is_user_banned_db(discord_id: str) -> bool:
     """Checks if a user ID is banned in MongoDB with fallback safety."""
-    if bans_collection is None:
+    if bans_collection is None or not discord_id:
         return False
     try:
         user = bans_collection.find_one({"discord_id": str(discord_id)})
@@ -130,11 +133,10 @@ def api_security_lockdown():
 @app.before_request
 def enforce_security_and_maintenance():
     # Exclude internal API routes, health checks, and static assets from lockdown/ban checks
-    if (
-        request.path.startswith('/api/security')
-        or request.path.startswith('/static')
-        or request.path in ('/health', '/ping')
-    ):
+    exempt_prefixes = ('/api/security', '/static', '/api/auth/discord')
+    exempt_paths = ('/health', '/ping')
+
+    if any(request.path.startswith(p) for p in exempt_prefixes) or request.path in exempt_paths:
         return None
 
     user = session.get('user', {})
@@ -152,22 +154,29 @@ def enforce_security_and_maintenance():
                 logger.error("Error retrieving ban reason for %s: %s", current_user_id, e)
 
         session.pop('user', None)  # Clear session for banned users
+        if request.path.startswith('/api/'):
+            return jsonify({"error": f"Access Denied. Banned: {reason}", "is_banned": True}), 403
+
         return render_template(
             'index.html',
             is_banned=True,
             ban_reason=reason,
             is_lockdown=False,
-            user=user
+            user=None
         ), 403
 
-    # 2. Check if Website Lockdown is Active
+    # 2. Check if Website Lockdown is Active (Exempt Primary Owner)
     if IS_LOCKDOWN:
-        return render_template(
-            'index.html',
-            is_lockdown=True,
-            is_banned=False,
-            user=user
-        ), 530
+        if not current_user_id or current_user_id != PRIMARY_OWNER_ID:
+            if request.path.startswith('/api/'):
+                return jsonify({"error": "System Under Maintenance. Dashboard is locked.", "is_lockdown": True}), 530
+
+            return render_template(
+                'index.html',
+                is_lockdown=True,
+                is_banned=False,
+                user=user
+            ), 530
 
 
 # -------------------------------------------------------------
@@ -175,10 +184,10 @@ def enforce_security_and_maintenance():
 # -------------------------------------------------------------
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
 
-# Enable required privileged intents for spam tracking & moderation
+# Enable required privileged intents for tracking & moderation
 intents = discord.Intents.default()
-intents.message_content = True  # Required for tracking message spam rate
-intents.members = True          # Required for member timeouts and bans
+intents.message_content = True  # Required for tracking message rate
+intents.members = True          # Required for member management
 intents.guilds = True
 
 
