@@ -526,6 +526,16 @@
         // CHECK AUTHENTICATION STATUS ON LOAD
         async function checkAuth() {
             try {
+                const path = window.location.pathname;
+                if (path === '/banned') {
+                    switchPage('banned');
+                    return;
+                }
+                if (path === '/maintenance') {
+                    switchPage('lockdown');
+                    return;
+                }
+
                 const res = await fetch('/api/auth/me');
                 if (res.ok) {
                     const data = await res.json();
