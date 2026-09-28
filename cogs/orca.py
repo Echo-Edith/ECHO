@@ -437,7 +437,7 @@ class OrcaCog(commands.Cog):
             except Exception as e:
                 await interaction.response.send_message(f"❌ Failed to unban user: {e}", ephemeral=True)
 
-    # --- 6. /ban-list COMMAND (CONSOLIDATED & UPDATED) ---
+    # --- 6. /ban-list COMMAND (CONSOLIDATED & SAFEGUARDED) ---
     @app_commands.command(name="ban-list", description="Display banned users for website portal or Discord server.")
     @app_commands.describe(location="Target platform ban list to view (Website or Discord)")
     @app_commands.choices(location=[
@@ -450,13 +450,33 @@ class OrcaCog(commands.Cog):
         interaction: discord.Interaction,
         location: app_commands.Choice[str]
     ):
-        await interaction.response.defer()
+        # 1. Safely attempt deferral (handles Render cold-starts & expired tokens gracefully)
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.defer()
+        except discord.NotFound:
+            pass  # Token expired before deferral completed
+        except Exception as e:
+            print(f"[ORCA Warning] Defer failed in ban-list: {e}")
+
+        # Helper to safely deliver response without raising 10062 Unknown Interaction
+        async def send_reply(embed=None, content=None, ephemeral=False):
+            try:
+                if interaction.is_expired():
+                    if interaction.channel:
+                        await interaction.channel.send(content=content, embed=embed)
+                elif interaction.response.is_done():
+                    await interaction.followup.send(content=content, embed=embed, ephemeral=ephemeral)
+                else:
+                    await interaction.response.send_message(content=content, embed=embed, ephemeral=ephemeral)
+            except Exception as e:
+                print(f"[ORCA Error] Could not deliver ban-list response: {e}")
 
         if location.value == "website":
             banned_users = await fetch_website_bans()
 
             if banned_users is None:
-                await interaction.followup.send("❌ Failed to reach the web portal backend.", ephemeral=True)
+                await send_reply(content="❌ Failed to reach the web portal backend.", ephemeral=True)
                 return
 
             if not banned_users:
@@ -466,7 +486,7 @@ class OrcaCog(commands.Cog):
                     color=0x5865F2
                 )
                 embed.set_footer(text="ORCA AI — Web Moderation")
-                await interaction.followup.send(embed=embed)
+                await send_reply(embed=embed)
                 return
 
             description_lines = []
@@ -481,11 +501,11 @@ class OrcaCog(commands.Cog):
                 color=0xE74C3C
             )
             embed.set_footer(text="ORCA AI — Web Moderation")
-            await interaction.followup.send(embed=embed)
+            await send_reply(embed=embed)
 
         elif location.value == "discord":
             if not interaction.guild:
-                await interaction.followup.send("❌ This command must be executed within a Discord server.", ephemeral=True)
+                await send_reply(content="❌ This command must be executed within a Discord server.", ephemeral=True)
                 return
 
             try:
@@ -497,7 +517,7 @@ class OrcaCog(commands.Cog):
                         color=0x5865F2
                     )
                     embed.set_footer(text="ORCA AI — Server Moderation")
-                    await interaction.followup.send(embed=embed)
+                    await send_reply(embed=embed)
                     return
 
                 description_lines = []
@@ -514,11 +534,11 @@ class OrcaCog(commands.Cog):
                     color=0xE74C3C
                 )
                 embed.set_footer(text="ORCA AI — Server Moderation")
-                await interaction.followup.send(embed=embed)
+                await send_reply(embed=embed)
             except discord.Forbidden:
-                await interaction.followup.send("❌ I do not have permission to view server bans.", ephemeral=True)
+                await send_reply(content="❌ I do not have permission to view server bans.", ephemeral=True)
             except Exception as e:
-                await interaction.followup.send(f"❌ Failed to fetch server ban list: {e}", ephemeral=True)
+                await send_reply(content=f"❌ Failed to fetch server ban list: {e}", ephemeral=True)
 
     # --- 7. /un-restrict COMMAND ---
     @app_commands.command(name="un-restrict", description="Remove a 12-hour spam timeout from a user.")
