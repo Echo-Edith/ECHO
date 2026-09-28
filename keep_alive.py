@@ -1,7 +1,7 @@
 import os
 import logging
 from threading import Thread
-from flask import Flask, render_template, jsonify, session, make_response, redirect
+from flask import Flask, render_template, jsonify, session, make_response, redirect, request
 
 # Import the PyMongo ban check directly from cogs/orca.py
 try:
@@ -11,11 +11,15 @@ except ImportError:
     def is_user_banned(user_id: str) -> bool:
         return False
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure structured logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+logger = logging.getLogger("keep_alive")
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-change-me")
+
+# Primary Owner ID exempted from website maintenance restrictions
+PRIMARY_OWNER_ID = "1219266886143967245"
 
 
 def is_maintenance_mode() -> bool:
@@ -33,9 +37,15 @@ def is_maintenance_mode() -> bool:
 @app.errorhandler(503)
 def force_html_error(e):
     """
-    Intercepts HTTP errors and returns index.html so the frontend JavaScript 
-    can render the custom styled UI instead of displaying a plain white error page.
+    Intercepts HTTP errors and returns index.html for frontend SPA rendering,
+    or a JSON error payload if requested by API clients.
     """
+    if request.path.startswith('/api/'):
+        return jsonify({
+            "error": "An error occurred handling this API request.",
+            "status_code": getattr(e, 'code', 500)
+        }), getattr(e, 'code', 500)
+
     return make_response(render_template('index.html'), 200)
 
 
@@ -53,8 +63,8 @@ def index():
 
 @app.route('/health')
 def health():
-    """Health check endpoint for keep-alive pingers (e.g., UptimeRobot)."""
-    return jsonify({"status": "online"}), 200
+    """Health check endpoint for keep-alive pingers (e.g., UptimeRobot, Render)."""
+    return jsonify({"status": "online", "maintenance": is_maintenance_mode()}), 200
 
 
 @app.route('/api/auth/logout')
@@ -71,34 +81,35 @@ def auth_me():
     Queries MongoDB for active ban status.
     """
     try:
-        # 1. Maintenance Mode Check
+        user_data = session.get('user')
+        user_id = str(user_data.get('id', '')).strip() if user_data else None
+
+        # 1. Maintenance Mode Check (Exempt Primary Owner)
         if is_maintenance_mode():
-            return jsonify({
-                "authenticated": False,
-                "is_lockdown": True,
-                "is_banned": False
-            }), 200
+            if not user_id or user_id != PRIMARY_OWNER_ID:
+                return jsonify({
+                    "authenticated": False,
+                    "is_lockdown": True,
+                    "is_banned": False,
+                    "user": None
+                }), 200
 
         # 2. Get current session user (if logged in via Discord OAuth)
-        user_data = session.get('user')
-
-        if user_data:
-            discord_id = str(user_data.get('id', '')).strip()
-
+        if user_data and user_id:
             # 3. Check PyMongo Ban Status via cogs/orca.py
             banned_status = False
-            if discord_id:
-                try:
-                    banned_status = is_user_banned(discord_id)
-                except Exception as ex:
-                    logger.error("Failed to query database ban status for ID %s: %s", discord_id, ex)
+            try:
+                banned_status = is_user_banned(user_id)
+            except Exception as ex:
+                logger.error("Failed to query database ban status for ID %s: %s", user_id, ex)
 
             if banned_status or user_data.get('is_banned', False):
                 session.pop('user', None)  # Wipe session immediately if banned
                 return jsonify({
                     "authenticated": False,
                     "is_lockdown": False,
-                    "is_banned": True
+                    "is_banned": True,
+                    "user": None
                 }), 200
 
             # 4. Authenticated User Payload
@@ -112,8 +123,9 @@ def auth_me():
         # Unauthenticated default response
         return jsonify({
             "authenticated": False,
-            "is_lockdown": False,
-            "is_banned": False
+            "is_lockdown": is_maintenance_mode(),
+            "is_banned": False,
+            "user": None
         }), 200
 
     except Exception as e:
