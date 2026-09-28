@@ -4,11 +4,14 @@ import io
 import time
 import logging
 import requests
-from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, session, url_for
+from urllib.parse import quote
+from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, session
 from google import genai
 from google.genai import types
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 
 # Secret key for Flask session signing
@@ -57,7 +60,7 @@ PRIMARY_OWNER_ID = "1219266886143967245"
 def enforce_security_middleware():
     """Middleware enforcing site bans and lockdown restrictions prior to handling requests."""
     # Exempt essential static resources and OAuth login callback routes
-    exempt_endpoints = ['static', 'discord_login', 'discord_callback', 'handle_ban_user', 'handle_lockdown', 'get_current_user']
+    exempt_endpoints = {'static', 'discord_login', 'discord_callback', 'handle_ban_user', 'handle_lockdown', 'get_current_user'}
     if request.endpoint in exempt_endpoints:
         return None
 
@@ -82,7 +85,7 @@ def enforce_security_middleware():
 def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields: list = None):
     """Sends a standard system/activity log embed to the dedicated system log channel."""
     if not SYSTEM_LOG_WEBHOOK_URL:
-        logging.warning("SYSTEM_LOG_WEBHOOK_URL not configured. Skipping system log.")
+        logger.warning("SYSTEM_LOG_WEBHOOK_URL not configured. Skipping system log.")
         return
 
     payload = {
@@ -98,25 +101,27 @@ def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields:
     }
 
     try:
-        requests.post(
+        response = requests.post(
             SYSTEM_LOG_WEBHOOK_URL,
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=5
         )
-    except Exception as e:
-        logging.error(f"Failed to post system log webhook: {e}")
+        response.raise_for_status()
+    except requests.RequestException as e:
+        logger.error("Failed to post system log webhook: %s", e)
 
 
 def save_blueprint_data(guild_id: str, blueprint: dict):
     """Saves blueprint data mapped to its target Guild ID."""
+    guild_id = str(guild_id).strip()
     BLUEPRINT_STORAGE[guild_id] = blueprint
     file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(blueprint, f, indent=2)
-    except Exception as e:
-        logging.error(f"Failed to save blueprint file for guild {guild_id}: {e}")
+    except IOError as e:
+        logger.error("Failed to save blueprint file for guild %s: %s", guild_id, e)
 
 
 def get_blueprint_data(guild_id: str):
@@ -132,8 +137,8 @@ def get_blueprint_data(guild_id: str):
                 data = json.load(f)
                 BLUEPRINT_STORAGE[guild_id] = data
                 return data
-        except Exception as e:
-            logging.error(f"Failed to read blueprint file for guild {guild_id}: {e}")
+        except (IOError, json.JSONDecodeError) as e:
+            logger.error("Failed to read blueprint file for guild %s: %s", guild_id, e)
             
     return None
 
@@ -141,7 +146,7 @@ def get_blueprint_data(guild_id: str):
 def generate_tier_3_fallback(prompt: str, guild_id: str, server_link: str, separator: str, user: dict) -> dict:
     """
     TIER 3 FALLBACK: Local dynamic template generation.
-    Used when both Primary and Secondary remote AI endpoints fail or hit 503 limits.
+    Used when primary and secondary remote AI endpoints fail or hit quota limits.
     """
     clean_prompt = prompt.strip()[:25] if prompt else "Community"
     return {
@@ -198,12 +203,12 @@ def handle_ban_user():
 
     if action == "ban":
         BANNED_USER_IDS.add(target_user_id)
-        logging.info(f"[SECURITY] User ID {target_user_id} was banned from website access.")
+        logger.info("[SECURITY] User ID %s was banned from website access.", target_user_id)
         return jsonify({"status": "success", "message": f"User {target_user_id} banned from portal."}), 200
-    else:
-        BANNED_USER_IDS.discard(target_user_id)
-        logging.info(f"[SECURITY] User ID {target_user_id} unbanned from website access.")
-        return jsonify({"status": "success", "message": f"User {target_user_id} unbanned."}), 200
+
+    BANNED_USER_IDS.discard(target_user_id)
+    logger.info("[SECURITY] User ID %s unbanned from website access.", target_user_id)
+    return jsonify({"status": "success", "message": f"User {target_user_id} unbanned."}), 200
 
 
 @app.route('/api/security/lockdown', methods=['POST'])
@@ -219,7 +224,7 @@ def handle_lockdown():
 
     IS_LOCKDOWN_ACTIVE = bool(enable_lockdown)
     status_str = "ENABLED" if IS_LOCKDOWN_ACTIVE else "DISABLED"
-    logging.info(f"[SECURITY] Website maintenance lockdown is now {status_str}.")
+    logger.info("[SECURITY] Website maintenance lockdown is now %s.", status_str)
 
     return jsonify({
         "status": "success",
@@ -240,11 +245,11 @@ def discord_login():
     oauth_url = (
         f"{DISCORD_API_BASE_URL}/oauth2/authorize"
         f"?client_id={DISCORD_CLIENT_ID}"
-        f"&redirect_uri={requests.utils.quote(redirect_uri, safe='')}"
+        f"&redirect_uri={quote(redirect_uri, safe='')}"
         f"&response_type=code"
         f"&scope=identify"
     )
-    logging.info(f"Initiating OAuth2 authorization with Redirect URI: {redirect_uri}")
+    logger.info("Initiating OAuth2 authorization with Redirect URI: %s", redirect_uri)
     return redirect(oauth_url)
 
 
@@ -303,8 +308,8 @@ def discord_callback():
         )
 
         return redirect('/')
-    except Exception as e:
-        logging.error(f"OAuth2 authentication failure: {e}")
+    except requests.RequestException as e:
+        logger.error("OAuth2 authentication failure: %s", e)
         return "Authentication failed. Please check your credentials and try again.", 500
 
 
@@ -365,7 +370,7 @@ def generate_layout():
 
     data = request.get_json() or {}
     prompt = data.get('prompt', '')
-    guild_id = data.get('guild_id', '')
+    guild_id = str(data.get('guild_id', '')).strip()
     server_link = data.get('server_link', '')
     separator = data.get('separator', '-')
 
@@ -410,7 +415,7 @@ def generate_layout():
     # --- TIER 1: PRIMARY AI MODEL (gemini-2.5-flash) ---
     if client:
         try:
-            logging.info("[Echo AI] Executing Tier 1 generation (gemini-2.5-flash)...")
+            logger.info("[Echo AI] Executing Tier 1 generation (gemini-2.5-flash)...")
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=full_user_prompt,
@@ -421,32 +426,32 @@ def generate_layout():
                 )
             )
             layout_data = json.loads(response.text)
-            logging.info("[Echo AI] Tier 1 layout generation succeeded.")
+            logger.info("[Echo AI] Tier 1 layout generation succeeded.")
         except Exception as e1:
-            logging.warning(f"[Echo AI] Tier 1 Failed ({e1}). Escalating to Tier 2...")
+            logger.warning("[Echo AI] Tier 1 Failed (%s). Escalating to Tier 2...", e1)
 
-    # --- TIER 2: SECONDARY / LIGHTWEIGHT BACKUP MODEL (gemini-1.5-flash) ---
+    # --- TIER 2: SECONDARY AI MODEL (gemini-2.5-flash fallback / alt config) ---
     if not layout_data and client:
         try:
-            time.sleep(0.5)  # Backoff delay before hitting secondary endpoint
-            logging.info("[Echo AI] Executing Tier 2 generation (gemini-1.5-flash)...")
+            time.sleep(0.5)  # Backoff delay before retry
+            logger.info("[Echo AI] Executing Tier 2 generation (gemini-2.5-flash retry)...")
             response = client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-2.5-flash',
                 contents=full_user_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
                     response_mime_type="application/json",
-                    temperature=0.3,
+                    temperature=0.4,
                 )
             )
             layout_data = json.loads(response.text)
-            logging.info("[Echo AI] Tier 2 layout generation succeeded.")
+            logger.info("[Echo AI] Tier 2 layout generation succeeded.")
         except Exception as e2:
-            logging.warning(f"[Echo AI] Tier 2 Failed ({e2}). Escalating to Tier 3...")
+            logger.warning("[Echo AI] Tier 2 Failed (%s). Escalating to Tier 3...", e2)
 
     # --- TIER 3: DYNAMIC HARDCODED FALLBACK ---
     if not layout_data:
-        logging.info("[Echo AI] Applying Tier 3 dynamic hardcoded fallback layout.")
+        logger.info("[Echo AI] Applying Tier 3 dynamic hardcoded fallback layout.")
         layout_data = generate_tier_3_fallback(prompt, guild_id, server_link, separator, user)
 
     # Enforce standard tracking fields on payload
@@ -516,11 +521,12 @@ def submit_design():
                 files=files,
                 timeout=10
             )
-            logging.info(f"Design Webhook Response Status: {log_res.status_code}")
-        except Exception as e:
-            logging.error(f"Failed to post embed + file to design webhook: {e}")
+            log_res.raise_for_status()
+            logger.info("Design Webhook Response Status: %s", log_res.status_code)
+        except requests.RequestException as e:
+            logger.error("Failed to post embed + file to design webhook: %s", e)
     else:
-        logging.warning("DESIGN_WEBHOOK_URL environment variable is not set!")
+        logger.warning("DESIGN_WEBHOOK_URL environment variable is not set!")
 
     return jsonify({
         "status": "success", 
