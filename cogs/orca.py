@@ -28,8 +28,8 @@ def is_owner():
         if interaction.user.id == AUTHORIZED_USER_ID:
             return True
         embed = discord.Embed(
-            title="⛔ Access Denied",
-            description="You do not have permission to execute this administrative command.",
+            title="403 Access Denied",
+            description="```\nAccess Denied: You do not have permission to execute this administrative command.\n```",
             color=0xE74C3C
         )
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
@@ -44,8 +44,8 @@ def can_build():
         if interaction.user.id in ALLOWED_BUILDERS:
             return True
         embed = discord.Embed(
-            title="⛔ Access Denied",
-            description="You do not have permission to execute the `/build` command.",
+            title="403 Access Denied",
+            description="```\nAccess Denied: You do not have permission to execute the /build command.\n```",
             color=0xE74C3C
         )
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
@@ -68,18 +68,23 @@ async def update_website_ban_status(user_id: str, action: str = "ban", reason: s
 
 
 async def fetch_website_bans():
-    """Helper function to retrieve all website-banned users from the Web backend."""
-    try:
-        async with aiohttp.ClientSession() as session:
-            headers = {"X-Bot-Auth": BOT_API_KEY}
-            async with session.get(f"{WEB_BUILDER_URL}/api/security/bans", headers=headers, timeout=5) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("banned_users", [])
-                return None
-    except Exception as e:
-        print(f"[ORCA API] Failed to fetch website ban list: {e}")
-        return None
+    """Helper function to retrieve all website-banned users from the Web backend with route fallbacks."""
+    headers = {"X-Bot-Auth": BOT_API_KEY}
+    routes = [f"{WEB_BUILDER_URL}/api/security/bans", f"{WEB_BUILDER_URL}/api/bans"]
+    
+    for route in routes:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(route, headers=headers, timeout=5) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        if isinstance(data, list):
+                            return data
+                        return data.get("banned_users", [])
+        except Exception as e:
+            print(f"[ORCA API] Route {route} failed: {e}")
+            continue
+    return None
 
 
 async def update_website_lockdown_status(enable: bool):
@@ -242,8 +247,8 @@ class OrcaCog(commands.Cog):
     async def website(self, interaction: discord.Interaction):
         if is_lockdown:
             embed = discord.Embed(
-                title="⚠️ System Under Maintenance",
-                description="The web portal is currently undergoing maintenance. Please try again later.",
+                title="530 Site Under Maintenance",
+                description="```\nHTTP 530: The web portal is currently undergoing scheduled maintenance.\nPlease check back later.\n```",
                 color=0xF1C40F
             )
             embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
@@ -479,8 +484,8 @@ class OrcaCog(commands.Cog):
 
         description_lines = []
         for entry in banned_users[:25]:
-            uid = entry.get("user_id", "Unknown")
-            reason = entry.get("reason", "No reason specified")
+            uid = entry.get("user_id", "Unknown") if isinstance(entry, dict) else str(entry)
+            reason = entry.get("reason", "No reason specified") if isinstance(entry, dict) else "No reason specified"
             description_lines.append(f"• <@{uid}> (`{uid}`)\n  └ **Reason:** {reason}")
 
         embed = discord.Embed(
@@ -715,7 +720,7 @@ class OrcaCog(commands.Cog):
             for ch_data in cat_data.get("channels", []):
                 emoji = ch_data.get("emoji", "").strip()
                 ch_name = ch_data.get("name", "channel").strip()
-                full_name = f"{emoji} {ch_name}".strip() if emoji else ch_name
+                full_name = f"{emoji} | {ch_name}".strip() if emoji else ch_name
                 
                 ch_type = ch_data.get("type", "text")
                 topic = ch_data.get("topic", "")
