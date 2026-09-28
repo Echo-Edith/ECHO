@@ -41,14 +41,14 @@ def is_user_banned(discord_id: str) -> bool:
     return user is not None
 
 
-def ban_user(discord_id: str, reason: str = "No reason provided") -> bool:
-    """Bans a user ID in MongoDB."""
+def ban_user(discord_id: str, reason: str = "No reason provided", dev_message: str = "") -> bool:
+    """Bans a user ID in MongoDB with optional developer notes."""
     if bans_collection is None:
         return False
     str_id = str(discord_id)
     result = bans_collection.update_one(
         {"discord_id": str_id},
-        {"$set": {"discord_id": str_id, "reason": reason}},
+        {"$set": {"discord_id": str_id, "reason": reason, "dev_message": dev_message}},
         upsert=True
     )
     return result.upserted_id is not None or result.modified_count > 0
@@ -66,7 +66,7 @@ def get_all_bans() -> list:
     """Returns a list of all banned user dictionaries from MongoDB."""
     if bans_collection is None:
         return []
-    return list(bans_collection.find({}, {"_id": 0, "discord_id": 1, "reason": 1}))
+    return list(bans_collection.find({}, {"_id": 0, "discord_id": 1, "reason": 1, "dev_message": 1}))
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +326,8 @@ class OrcaCog(commands.Cog):
     @app_commands.describe(
         user_id="The Discord User ID to ban",
         location="Target platform for the ban (Website or Discord)",
-        reason="Reason for banning the user"
+        reason="Reason for banning the user",
+        dev_message="Optional direct message from developer displayed on glass UI"
     )
     @app_commands.choices(location=[
         app_commands.Choice(name="Website", value="website"),
@@ -338,7 +339,8 @@ class OrcaCog(commands.Cog):
         interaction: discord.Interaction,
         user_id: str,
         location: app_commands.Choice[str],
-        reason: str = "Violating terms / rules"
+        reason: str = "Violating terms / rules",
+        dev_message: str = ""
     ):
         target_id = user_id.strip()
 
@@ -347,10 +349,29 @@ class OrcaCog(commands.Cog):
                 await interaction.response.send_message("❌ Invalid input. Please enter a valid numeric Discord User ID.", ephemeral=True)
                 return
 
-            ban_user(target_id, reason=reason)
+            ban_user(target_id, reason=reason, dev_message=dev_message)
+
+            # Sync ban to web server API
+            try:
+                async with aiohttp.ClientSession() as session:
+                    payload = {
+                        "user_id": target_id,
+                        "action": "ban",
+                        "reason": reason,
+                        "dev_message": dev_message
+                    }
+                    headers = {"X-Bot-Auth": BOT_API_KEY}
+                    await session.post(f"{WEB_BUILDER_URL}/api/security/ban", json=payload, headers=headers, timeout=5)
+            except Exception as e:
+                print(f"[Echo Security] Web ban API sync failed: {e}")
+
             embed = discord.Embed(
                 title="🌐 Website Ban Applied",
-                description=f"Successfully banned <@{target_id}> (`{target_id}`) from accessing the web builder portal.\n**Reason:** {reason}",
+                description=(
+                    f"Successfully banned <@{target_id}> (`{target_id}`) from accessing the web builder portal.\n"
+                    f"**Reason:** {reason}\n"
+                    f"**Dev Note:** {dev_message if dev_message else 'None'}"
+                ),
                 color=0xE74C3C
             )
             embed.set_footer(text="Echo Studio — Web Moderation")
@@ -407,6 +428,16 @@ class OrcaCog(commands.Cog):
                 return
 
             unbanned = unban_user(target_id)
+
+            # Sync unban to web server API
+            try:
+                async with aiohttp.ClientSession() as session:
+                    payload = {"user_id": target_id, "action": "unban"}
+                    headers = {"X-Bot-Auth": BOT_API_KEY}
+                    await session.post(f"{WEB_BUILDER_URL}/api/security/ban", json=payload, headers=headers, timeout=5)
+            except Exception as e:
+                print(f"[Echo Security] Web unban API sync failed: {e}")
+
             if unbanned:
                 embed = discord.Embed(
                     title="🌐 Website Access Restored",
@@ -493,7 +524,9 @@ class OrcaCog(commands.Cog):
             for entry in banned_users[:25]:
                 uid = entry.get("discord_id", "Unknown")
                 reason = entry.get("reason", "No reason specified")
-                description_lines.append(f"• <@{uid}> (`{uid}`)\n  └ **Reason:** {reason}")
+                dev_msg = entry.get("dev_message", "")
+                dev_line = f"\n  └ **Dev Note:** {dev_msg}" if dev_msg else ""
+                description_lines.append(f"• <@{uid}> (`{uid}`)\n  └ **Reason:** {reason}{dev_line}")
 
             embed = discord.Embed(
                 title=f"🌐 Website Ban List ({len(banned_users)} Total Banned)",
