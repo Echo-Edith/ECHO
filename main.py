@@ -1,11 +1,11 @@
 import os
-import json
 import asyncio
 import threading
 import logging
 from flask import request, jsonify, render_template, session
 import discord
 from discord.ext import commands
+from pymongo import MongoClient
 
 # Import Flask application from ai_brain.py
 from ai_brain import app
@@ -13,30 +13,23 @@ from ai_brain import app
 logging.basicConfig(level=logging.INFO)
 
 # -------------------------------------------------------------
-# 0. WEBSITE BAN & LOCKDOWN BACKEND SYSTEM INTEGRATION
+# 0. WEBSITE BAN & LOCKDOWN BACKEND SYSTEM INTEGRATION (PYMONGO)
 # -------------------------------------------------------------
 BOT_API_KEY = os.environ.get("BOT_API_KEY", "").strip()
-BANNED_USERS_FILE = "banned_users.json"
+MONGO_URI = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
+mongo_client = MongoClient(MONGO_URI) if MONGO_URI else None
+
+db = mongo_client["bot_database"] if mongo_client is not None else None
+bans_collection = db["website_bans"] if db is not None else None
 IS_LOCKDOWN = False
 
-def load_banned_users():
-    if not os.path.exists(BANNED_USERS_FILE):
-        return []
-    try:
-        with open(BANNED_USERS_FILE, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        logging.error(f"❌ Failed to load ban file: {e}")
-        return []
 
-def save_banned_users(ban_list):
-    try:
-        with open(BANNED_USERS_FILE, "w") as f:
-            json.dump(ban_list, f, indent=4)
-    except Exception as e:
-        logging.error(f"❌ Failed to save ban file: {e}")
-
-banned_users = load_banned_users()
+def is_user_banned_db(discord_id: str) -> bool:
+    """Checks if a user ID is banned in MongoDB."""
+    if bans_collection is None:
+        return False
+    user = bans_collection.find_one({"discord_id": str(discord_id)})
+    return user is not None
 
 
 # --- Security API Routes for Bot Communication ---
@@ -44,10 +37,12 @@ banned_users = load_banned_users()
 @app.route('/api/security/ban', methods=['POST'])
 def api_security_ban():
     """Endpoint called by /ban command in cogs/orca.py"""
-    global banned_users
     auth_header = request.headers.get('X-Bot-Auth', '').strip()
     if BOT_API_KEY and auth_header != BOT_API_KEY:
         return jsonify({"error": "Unauthorized"}), 403
+
+    if bans_collection is None:
+        return jsonify({"error": "Database connection not initialized"}), 500
 
     data = request.get_json() or {}
     user_id = str(data.get('user_id', '')).strip()
@@ -58,16 +53,18 @@ def api_security_ban():
         return jsonify({"error": "Missing user_id"}), 400
 
     if action == "ban":
-        if not any(u.get('user_id') == user_id for u in banned_users):
-            banned_users.append({'user_id': user_id, 'reason': reason})
-            save_banned_users(banned_users)
-            logging.info(f"🚫 Web Ban applied to user: {user_id}")
+        bans_collection.update_one(
+            {"discord_id": user_id},
+            {"$set": {"discord_id": user_id, "reason": reason}},
+            upsert=True
+        )
+        logging.info(f"🚫 Web Ban applied to user: {user_id}")
     elif action == "unban":
-        banned_users = [u for u in banned_users if u.get('user_id') != user_id]
-        save_banned_users(banned_users)
+        bans_collection.delete_one({"discord_id": user_id})
         logging.info(f"✅ Web Unban applied to user: {user_id}")
 
-    return jsonify({"success": True, "banned_count": len(banned_users)}), 200
+    total_bans = bans_collection.count_documents({})
+    return jsonify({"success": True, "banned_count": total_bans}), 200
 
 
 @app.route('/api/security/bans', methods=['GET'])
@@ -78,6 +75,10 @@ def api_security_bans():
     if BOT_API_KEY and auth_header != BOT_API_KEY:
         return jsonify({"error": "Unauthorized"}), 403
 
+    if bans_collection is None:
+        return jsonify({"banned_users": []}), 200
+
+    banned_users = list(bans_collection.find({}, {"_id": 0}))
     return jsonify({"banned_users": banned_users}), 200
 
 
@@ -106,18 +107,18 @@ def enforce_security_and_maintenance():
     user = session.get('user', {})
     current_user_id = str(user.get('id', '')).strip()
 
-    # 1. Check if the current user is Banned from website
-    if current_user_id:
-        ban_entry = next((u for u in banned_users if u.get('user_id') == current_user_id), None)
-        if ban_entry:
-            reason = ban_entry.get('reason', 'Violating platform rules')
-            return render_template(
-                'index.html',
-                is_banned=True,
-                ban_reason=reason,
-                is_lockdown=False,
-                user=user
-            ), 403
+    # 1. Check if the current user is Banned from website via MongoDB
+    if current_user_id and is_user_banned_db(current_user_id):
+        ban_entry = bans_collection.find_one({"discord_id": current_user_id}) if bans_collection else None
+        reason = ban_entry.get('reason', 'Violating platform rules') if ban_entry else 'Violating platform rules'
+        session.pop('user', None)  # Clear session for banned users
+        return render_template(
+            'index.html',
+            is_banned=True,
+            ban_reason=reason,
+            is_lockdown=False,
+            user=user
+        ), 403
 
     # 2. Check if Website Lockdown is Active
     if IS_LOCKDOWN:
