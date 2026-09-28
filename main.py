@@ -15,8 +15,10 @@ logging.basicConfig(level=logging.INFO)
 # -------------------------------------------------------------
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
 
+# Enable required privileged intents for spam tracking & moderation
 intents = discord.Intents.default()
-intents.message_content = True
+intents.message_content = True  # Required for tracking message spam rate
+intents.members = True          # Required for member timeouts and bans
 intents.guilds = True
 
 
