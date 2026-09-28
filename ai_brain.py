@@ -28,7 +28,9 @@ DESIGN_WEBHOOK_URL = os.environ.get("DESIGN_WEBHOOK_URL", os.environ.get("WEBHOO
 SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", "").strip()
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").rstrip('/')
+
+# Base domain cleanup (removes trailing slash to keep redirect URIs exact)
+WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
 
 client = None
 if GEMINI_API_KEY:
@@ -102,13 +104,15 @@ def get_blueprint_data(guild_id: str):
 def discord_login():
     """Redirects the user to Discord OAuth2 authorization URL."""
     redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
+    
     oauth_url = (
         f"{DISCORD_API_BASE_URL}/oauth2/authorize"
         f"?client_id={DISCORD_CLIENT_ID}"
-        f"&redirect_uri={requests.utils.quote(redirect_uri)}"
+        f"&redirect_uri={requests.utils.quote(redirect_uri, safe='')}"
         f"&response_type=code"
         f"&scope=identify"
     )
+    logging.info(f"Initiating OAuth2 authorization with Redirect URI: {redirect_uri}")
     return redirect(oauth_url)
 
 
@@ -163,7 +167,7 @@ def discord_callback():
         return redirect('/')
     except Exception as e:
         logging.error(f"OAuth2 authentication failure: {e}")
-        return "Authentication failed. Please try again.", 500
+        return "Authentication failed. Please check your credentials and try again.", 500
 
 
 @app.route('/api/auth/me')
