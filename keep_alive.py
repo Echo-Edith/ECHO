@@ -1,19 +1,32 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, make_response
 from threading import Thread
 import os
+
+# Import the PyMongo ban check directly from cogs/orca.py
+from cogs.orca import is_user_banned
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-change-me")
 
-# ---------------------------------------------------------------------------
-# GLOBAL STATE & ENVIRONMENT CHECKS
-# Set IS_LOCKDOWN=true in your environment variables to trigger maintenance mode
-# ---------------------------------------------------------------------------
+
 def is_maintenance_mode():
     return os.environ.get("IS_LOCKDOWN", "false").lower() == "true"
 
-# Example banned Discord User IDs list or database check
-BANNED_DISCORD_IDS = set(os.environ.get("BANNED_USER_IDS", "").split(","))
+
+# ---------------------------------------------------------------------------
+# OVERRIDE ERROR HANDLERS TO PREVENT WHITE PLAIN-TEXT PAGES
+# ---------------------------------------------------------------------------
+@app.errorhandler(403)
+@app.errorhandler(404)
+@app.errorhandler(500)
+@app.errorhandler(502)
+@app.errorhandler(503)
+def force_html_error(e):
+    """
+    Intercepts HTTP errors and returns index.html so the frontend JavaScript 
+    can render the custom styled UI instead of displaying a plain white error page.
+    """
+    return make_response(render_template('index.html'), 200)
 
 
 # ---------------------------------------------------------------------------
@@ -21,6 +34,8 @@ BANNED_DISCORD_IDS = set(os.environ.get("BANNED_USER_IDS", "").split(","))
 # ---------------------------------------------------------------------------
 
 @app.route('/')
+@app.route('/maintenance')
+@app.route('/banned')
 def index():
     """Serves the primary UI container for all states."""
     return render_template('index.html')
@@ -36,7 +51,7 @@ def health():
 def auth_me():
     """
     Client-side authentication & status verification endpoint.
-    Returns JSON statuses instead of raw HTTP text errors.
+    Queries MongoDB for active ban status.
     """
     # 1. Maintenance Mode Check
     if is_maintenance_mode():
@@ -52,8 +67,8 @@ def auth_me():
     if user_data:
         discord_id = str(user_data.get('id', ''))
 
-        # 3. Check Banned Status
-        if discord_id in BANNED_DISCORD_IDS or user_data.get('is_banned', False):
+        # 3. Check PyMongo Ban Status via cogs/orca.py
+        if is_user_banned(discord_id) or user_data.get('is_banned', False):
             return jsonify({
                 "authenticated": False,
                 "is_lockdown": False,
@@ -76,13 +91,6 @@ def auth_me():
     }), 200
 
 
-# Fallback status routes that still serve the dark-mode HTML wrapper
-@app.route('/maintenance')
-@app.route('/banned')
-def status_pages():
-    return render_template('index.html')
-
-
 # ---------------------------------------------------------------------------
 # SERVER EXECUTION
 # ---------------------------------------------------------------------------
@@ -90,6 +98,7 @@ def status_pages():
 def run():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
 def keep_alive():
     server_thread = Thread(target=run)
