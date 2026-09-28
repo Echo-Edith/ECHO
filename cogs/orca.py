@@ -5,6 +5,7 @@ import asyncio
 import datetime
 import collections
 import aiohttp
+import requests
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -48,7 +49,7 @@ def ban_user(discord_id: str, reason: str = "No reason provided", dev_message: s
     str_id = str(discord_id)
     result = bans_collection.update_one(
         {"discord_id": str_id},
-        {"$set": {"discord_id": str_id, "reason": reason, "dev_message": dev_message}},
+        {"$set": {"discord_id": str_id, "reason": reason, "dev_message": dev_message, "updated_at": time.time()}},
         upsert=True
     )
     return result.upserted_id is not None or result.modified_count > 0
@@ -322,36 +323,36 @@ class OrcaCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     # --- 4. /ban COMMAND ---
-    @app_commands.command(name="ban", description="Ban a user from either the website portal or Discord server.")
+    @app_commands.command(name="ban", description="Ban a user from Website, Discord, or Both.")
     @app_commands.describe(
-        user_id="The Discord User ID to ban",
-        location="Target platform for the ban (Website or Discord)",
-        reason="Reason for banning the user",
-        dev_message="Optional direct message from developer displayed on glass UI"
+        user="Target user to ban",
+        location="Ban target location",
+        dev_message="Developer message shown on the website glass ban screen",
+        reason="Internal reason for audit logs"
     )
     @app_commands.choices(location=[
-        app_commands.Choice(name="Website", value="website"),
-        app_commands.Choice(name="Discord", value="discord")
+        app_commands.Choice(name="Website Only", value="website"),
+        app_commands.Choice(name="Discord Server Only", value="discord"),
+        app_commands.Choice(name="Both Website & Discord", value="both")
     ])
     @app_commands.checks.has_permissions(ban_members=True)
     async def ban_command(
         self,
         interaction: discord.Interaction,
-        user_id: str,
+        user: discord.User,
         location: app_commands.Choice[str],
-        reason: str = "Violating terms / rules",
-        dev_message: str = ""
+        dev_message: str = "Violating platform rules.",
+        reason: str = "No internal reason specified."
     ):
-        target_id = user_id.strip()
+        await interaction.response.defer(ephemeral=True)
+        target_id = str(user.id)
+        loc = location.value
+        report = []
 
-        if location.value == "website":
-            if not target_id.isdigit():
-                await interaction.response.send_message("❌ Invalid input. Please enter a valid numeric Discord User ID.", ephemeral=True)
-                return
-
+        # 1. Apply Website Ban
+        if loc in ("website", "both"):
             ban_user(target_id, reason=reason, dev_message=dev_message)
 
-            # Sync ban to web server API
             try:
                 async with aiohttp.ClientSession() as session:
                     payload = {
@@ -361,45 +362,38 @@ class OrcaCog(commands.Cog):
                         "dev_message": dev_message
                     }
                     headers = {"X-Bot-Auth": BOT_API_KEY}
-                    await session.post(f"{WEB_BUILDER_URL}/api/security/ban", json=payload, headers=headers, timeout=5)
+                    async with session.post(f"{WEB_BUILDER_URL}/api/security/ban", json=payload, headers=headers, timeout=5) as resp:
+                        if resp.status == 200:
+                            report.append("✅ **Website Ban:** Applied. Clean Glass UI active.")
+                        else:
+                            report.append(f"⚠️ **Website Ban API Warning:** Returned HTTP {resp.status}")
             except Exception as e:
-                print(f"[Echo Security] Web ban API sync failed: {e}")
+                report.append(f"⚠️ **Website Ban API Sync Failed:** {e}")
 
-            embed = discord.Embed(
-                title="🌐 Website Ban Applied",
-                description=(
-                    f"Successfully banned <@{target_id}> (`{target_id}`) from accessing the web builder portal.\n"
-                    f"**Reason:** {reason}\n"
-                    f"**Dev Note:** {dev_message if dev_message else 'None'}"
-                ),
-                color=0xE74C3C
-            )
-            embed.set_footer(text="Echo Studio — Web Moderation")
-            await interaction.response.send_message(embed=embed)
+        # 2. Apply Discord Server Ban
+        if loc in ("discord", "both"):
+            if interaction.guild:
+                try:
+                    await interaction.guild.ban(user, reason=f"{reason} | Dev Note: {dev_message}")
+                    report.append("✅ **Discord Ban:** User banned from current server.")
+                except discord.Forbidden:
+                    report.append("❌ **Discord Ban Error:** Missing permissions to ban user.")
+                except Exception as e:
+                    report.append(f"❌ **Discord Ban Error:** {e}")
+            else:
+                report.append("❌ **Discord Ban Error:** Command must be executed inside a server for Discord bans.")
 
-        elif location.value == "discord":
-            if not interaction.guild:
-                await interaction.response.send_message("❌ This command must be executed within a Discord server.", ephemeral=True)
-                return
-
-            try:
-                numeric_id = int(target_id)
-                user = await self.bot.fetch_user(numeric_id)
-                await interaction.guild.ban(user, reason=reason)
-
-                embed = discord.Embed(
-                    title="🔨 Server Member Banned",
-                    description=f"Successfully banned <@{numeric_id}> (`{numeric_id}`) from the Discord server.\n**Reason:** {reason}",
-                    color=0xE74C3C
-                )
-                embed.set_footer(text="Echo Studio — Server Moderation")
-                await interaction.response.send_message(embed=embed)
-            except ValueError:
-                await interaction.response.send_message("❌ Invalid input. Please enter a valid numeric Discord User ID.", ephemeral=True)
-            except discord.Forbidden:
-                await interaction.response.send_message("❌ I do not have permission to ban this user from Discord.", ephemeral=True)
-            except Exception as e:
-                await interaction.response.send_message(f"❌ Failed to ban user: {e}", ephemeral=True)
+        embed = discord.Embed(
+            title="🔨 Ban Execution Summary",
+            description="\n".join(report),
+            color=0xE74C3C
+        )
+        embed.add_field(name="User", value=f"{user.mention} (`{user.id}`)", inline=True)
+        embed.add_field(name="Location", value=f"`{location.name}`", inline=True)
+        embed.add_field(name="Developer Message", value=f"```{dev_message}```", inline=False)
+        embed.set_footer(text="Echo Studio — Security Enforcement")
+        
+        await interaction.followup.send(embed=embed)
 
     # --- 5. /unban COMMAND ---
     @app_commands.command(name="unban", description="Unban a user from either the website portal or Discord server.")
