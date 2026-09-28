@@ -83,7 +83,7 @@ def is_owner():
             description="```\nAccess Denied: You do not have permission to execute this administrative command.\n```",
             color=0xE74C3C
         )
-        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return False
     return app_commands.check(predicate)
@@ -99,7 +99,7 @@ def can_build():
             description="```\nAccess Denied: You do not have permission to execute the /build command.\n```",
             color=0xE74C3C
         )
-        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return False
     return app_commands.check(predicate)
@@ -114,7 +114,7 @@ async def update_website_lockdown_status(enable: bool):
             async with session.post(f"{WEB_BUILDER_URL}/api/security/lockdown", json=payload, headers=headers, timeout=5) as resp:
                 return resp.status == 200
     except Exception as e:
-        print(f"[ORCA API] Failed to update website lockdown state: {e}")
+        print(f"[Echo API] Failed to update website lockdown state: {e}")
         return False
 
 
@@ -128,7 +128,7 @@ class BotJoinTosView(discord.ui.View):
         if interaction.user.id == self.inviter_id or interaction.user.id == interaction.guild.owner_id:
             return True
         await interaction.response.send_message(
-            "❌ Only the server owner or the administrator who added ORCA AI can accept these terms.", 
+            "❌ Only the server owner or the administrator who added Echo Studio can accept these terms.", 
             ephemeral=True
         )
         return False
@@ -143,11 +143,11 @@ class BotJoinTosView(discord.ui.View):
             title="✅ Agreement Acknowledged",
             description=(
                 f"Terms accepted by {interaction.user.mention}.\n"
-                "ORCA AI is active and initialized for this server."
+                "Echo Studio is active and initialized for this server."
             ),
             color=0x2ECC71
         )
-        accepted_embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        accepted_embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.edit_message(embed=accepted_embed, view=self)
 
 
@@ -182,9 +182,9 @@ class OrcaCog(commands.Cog):
             return
 
         tos_embed = discord.Embed(
-            title="⚠️ ORCA AI — Server Integration & Terms of Service",
+            title="⚠️ Echo Studio — Server Integration & Terms of Service",
             description=(
-                "**ORCA AI has joined your server with Administrator privileges.**\n\n"
+                "**Echo Studio has joined your server with Administrator privileges.**\n\n"
                 "### 🛠️ Automated Operations Overview:\n"
                 "• **Automated Structure Deployment**: When `/build` is executed, existing server channels, categories, and custom roles will be permanently removed and rebuilt.\n"
                 "• **Moderation & Security**: Active 12-hour automated anti-spam restrictions apply to non-administrative members.\n\n"
@@ -194,7 +194,7 @@ class OrcaCog(commands.Cog):
             ),
             color=0xF1C40F
         )
-        tos_embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        tos_embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
 
         view = BotJoinTosView(inviter_id=inviter_id)
         await target_channel.send(embed=tos_embed, view=view)
@@ -225,7 +225,7 @@ class OrcaCog(commands.Cog):
                     description=f"{message.author.mention} has been restricted for **12 hours** due to spamming.",
                     color=0xE74C3C
                 )
-                embed.set_footer(text="ORCA AI — Anti-Spam Protection")
+                embed.set_footer(text="Echo Studio — Anti-Spam Protection")
                 await message.channel.send(embed=embed)
             except discord.Forbidden:
                 print(f"Failed to restrict {message.author}: Missing 'Moderate Members' permission.")
@@ -238,11 +238,11 @@ class OrcaCog(commands.Cog):
         embed = discord.Embed(
             title="🛠️ How to Create & Deploy a Custom Discord Server",
             description=(
-                "ORCA AI lets you automatically generate and deploy complete server layouts "
+                "Echo Studio lets you automatically generate and deploy complete server layouts "
                 "including categories, channels, and roles in seconds!\n\n"
                 "### 📋 Step-by-Step Guide:\n\n"
                 f"1️⃣ **Design on Web Builder**\n"
-                f"Go to the [ORCA Web Builder]({WEB_BUILDER_URL}) and enter your prompt, Target Server ID, and Invite Link.\n\n"
+                f"Go to the [Echo Web Builder]({WEB_BUILDER_URL}) and enter your prompt, Target Server ID, and Invite Link.\n\n"
                 "2️⃣ **Generate Layout**\n"
                 "Click **Generate Layout** to preview the AI-generated categories, channels, and roles.\n\n"
                 "3️⃣ **Submit Design**\n"
@@ -257,7 +257,7 @@ class OrcaCog(commands.Cog):
             value=f"[Click Here to Launch Web Builder]({WEB_BUILDER_URL})",
             inline=False
         )
-        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
     # --- 2. /website COMMAND ---
@@ -269,16 +269,16 @@ class OrcaCog(commands.Cog):
                 description="```\nHTTP 530: The web portal is currently undergoing scheduled maintenance.\nPlease check back later.\n```",
                 color=0xF1C40F
             )
-            embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+            embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
         embed = discord.Embed(
             title="🛠️ Interactive Server Builder",
-            description=f"Click below to launch the AI Web Builder:\n\n🔗 **[ORCA Web Builder Portal]({WEB_BUILDER_URL})**",
+            description=f"Click below to launch the AI Web Builder:\n\n🔗 **[Echo Web Builder Portal]({WEB_BUILDER_URL})**",
             color=0x5865F2
         )
-        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
     # --- 3. /server-info COMMAND ---
@@ -313,12 +313,12 @@ class OrcaCog(commands.Cog):
 
         embed = discord.Embed(
             title=f"📌 {guild_name} — Information",
-            description="Copy the Server ID or Invite Link below for use in the ORCA Web Builder:",
+            description="Copy the Server ID or Invite Link below for use in the Echo Web Builder:",
             color=0x5865F2
         )
         embed.add_field(name="🆔 Server ID", value=f"`{target_id}`", inline=False)
         embed.add_field(name="🔗 Invite Link", value=f"`{formatted_invite}`", inline=False)
-        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
     # --- 4. /ban COMMAND ---
@@ -353,7 +353,7 @@ class OrcaCog(commands.Cog):
                 description=f"Successfully banned <@{target_id}> (`{target_id}`) from accessing the web builder portal.\n**Reason:** {reason}",
                 color=0xE74C3C
             )
-            embed.set_footer(text="ORCA AI — Web Moderation")
+            embed.set_footer(text="Echo Studio — Web Moderation")
             await interaction.response.send_message(embed=embed)
 
         elif location.value == "discord":
@@ -371,7 +371,7 @@ class OrcaCog(commands.Cog):
                     description=f"Successfully banned <@{numeric_id}> (`{numeric_id}`) from the Discord server.\n**Reason:** {reason}",
                     color=0xE74C3C
                 )
-                embed.set_footer(text="ORCA AI — Server Moderation")
+                embed.set_footer(text="Echo Studio — Server Moderation")
                 await interaction.response.send_message(embed=embed)
             except ValueError:
                 await interaction.response.send_message("❌ Invalid input. Please enter a valid numeric Discord User ID.", ephemeral=True)
@@ -419,7 +419,7 @@ class OrcaCog(commands.Cog):
                     description=f"User ID `{target_id}` was not found in the website ban list.",
                     color=0xF1C40F
                 )
-            embed.set_footer(text="ORCA AI — Web Moderation")
+            embed.set_footer(text="Echo Studio — Web Moderation")
             await interaction.response.send_message(embed=embed)
 
         elif location.value == "server":
@@ -437,7 +437,7 @@ class OrcaCog(commands.Cog):
                     description=f"Successfully unbanned <@{numeric_id}> (`{numeric_id}`) from the Discord server.\n**Reason:** {reason}",
                     color=0x2ECC71
                 )
-                embed.set_footer(text="ORCA AI — Server Moderation")
+                embed.set_footer(text="Echo Studio — Server Moderation")
                 await interaction.response.send_message(embed=embed)
             except ValueError:
                 await interaction.response.send_message("❌ Invalid input. Please enter a valid numeric Discord User ID.", ephemeral=True)
@@ -474,7 +474,7 @@ class OrcaCog(commands.Cog):
                 else:
                     await interaction.response.send_message(content=content, embed=embed, ephemeral=ephemeral)
             except Exception as e:
-                print(f"[ORCA Error] Could not deliver ban-list response: {e}")
+                print(f"[Echo Error] Could not deliver ban-list response: {e}")
 
         if location.value == "website":
             banned_users = get_all_bans()
@@ -485,7 +485,7 @@ class OrcaCog(commands.Cog):
                     description="No users are currently banned from the web portal.",
                     color=0x5865F2
                 )
-                embed.set_footer(text="ORCA AI — Web Moderation")
+                embed.set_footer(text="Echo Studio — Web Moderation")
                 await send_reply(embed=embed)
                 return
 
@@ -500,7 +500,7 @@ class OrcaCog(commands.Cog):
                 description="\n".join(description_lines),
                 color=0xE74C3C
             )
-            embed.set_footer(text="ORCA AI — Web Moderation")
+            embed.set_footer(text="Echo Studio — Web Moderation")
             await send_reply(embed=embed)
 
         elif location.value == "discord":
@@ -516,7 +516,7 @@ class OrcaCog(commands.Cog):
                         description="No users are currently banned from this server.",
                         color=0x5865F2
                     )
-                    embed.set_footer(text="ORCA AI — Server Moderation")
+                    embed.set_footer(text="Echo Studio — Server Moderation")
                     await send_reply(embed=embed)
                     return
 
@@ -533,7 +533,7 @@ class OrcaCog(commands.Cog):
                     description="\n".join(description_lines),
                     color=0xE74C3C
                 )
-                embed.set_footer(text="ORCA AI — Server Moderation")
+                embed.set_footer(text="Echo Studio — Server Moderation")
                 await send_reply(embed=embed)
             except discord.Forbidden:
                 await send_reply(content="❌ I do not have permission to view server bans.", ephemeral=True)
@@ -562,7 +562,7 @@ class OrcaCog(commands.Cog):
                 description=f"Removed timeout restriction from {member.mention}.\n**Reason:** {reason}",
                 color=0x2ECC71
             )
-            embed.set_footer(text="ORCA AI — Server Moderation")
+            embed.set_footer(text="Echo Studio — Server Moderation")
             await interaction.response.send_message(embed=embed)
         except discord.Forbidden:
             await interaction.response.send_message("❌ I do not have permission to modify timeouts for this member.", ephemeral=True)
@@ -609,7 +609,7 @@ class OrcaCog(commands.Cog):
                 color=0x2ECC71
             )
 
-        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # --- 9. /build COMMAND ---
@@ -637,7 +637,7 @@ class OrcaCog(commands.Cog):
                     description="Please attach a valid `.json` blueprint file.",
                     color=0xE74C3C
                 )
-                embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+                embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
                 await interaction.followup.send(embed=embed)
                 return
             
@@ -651,7 +651,7 @@ class OrcaCog(commands.Cog):
                     description=f"Failed to read attached JSON file: `{e}`",
                     color=0xE74C3C
                 )
-                embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+                embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
                 await interaction.followup.send(embed=embed)
                 return
 
@@ -671,7 +671,7 @@ class OrcaCog(commands.Cog):
                                     description=f"Received status code `{resp.status}` when fetching URL.",
                                     color=0xE74C3C
                                 )
-                                embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+                                embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
                                 await interaction.followup.send(embed=embed)
                                 return
                 except Exception as e:
@@ -680,7 +680,7 @@ class OrcaCog(commands.Cog):
                         description=f"Could not download blueprint from link: `{e}`",
                         color=0xE74C3C
                     )
-                    embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+                    embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
                     await interaction.followup.send(embed=embed)
                     return
             else:
@@ -692,7 +692,7 @@ class OrcaCog(commands.Cog):
                 description="Please provide a file URL in the `file:` parameter or attach a `.json` file.",
                 color=0xE74C3C
             )
-            embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+            embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
             await interaction.followup.send(embed=embed)
             return
 
@@ -702,7 +702,7 @@ class OrcaCog(commands.Cog):
                 description=f"Could not locate or load blueprint data from `{source_identifier}`.",
                 color=0xE74C3C
             )
-            embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+            embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
             await interaction.followup.send(embed=embed)
             return
 
@@ -718,7 +718,7 @@ class OrcaCog(commands.Cog):
                 ),
                 color=0xE74C3C
             )
-            embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+            embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
             await interaction.followup.send(embed=embed)
             return
 
@@ -799,7 +799,7 @@ class OrcaCog(commands.Cog):
             embed.add_field(name="🔑 Source", value=f"`{source_identifier[:40]}`", inline=True)
             embed.add_field(name="• Roles Created", value=f"`{roles_created}`", inline=True)
             embed.add_field(name="• Channels Created", value=f"`{channels_created}`", inline=True)
-            embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+            embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
             await target_channel.send(embed=embed)
 
     # --- 10. /lockdown COMMAND ---
@@ -821,7 +821,7 @@ class OrcaCog(commands.Cog):
             description=f"Maintenance mode is now **{status_str}** across bot and website.",
             color=0xE74C3C if is_lockdown else 0x2ECC71
         )
-        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # --- 11. /status COMMAND ---
@@ -834,7 +834,7 @@ class OrcaCog(commands.Cog):
         embed.add_field(name="Latency", value=f"`{latency} ms`", inline=True)
         embed.add_field(name="Uptime", value=f"`{uptime} s`", inline=True)
         embed.add_field(name="Maintenance Lock", value="`ACTIVE`" if is_lockdown else "`INACTIVE`", inline=True)
-        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # --- 12. /nuke COMMAND ---
@@ -860,7 +860,7 @@ class OrcaCog(commands.Cog):
             description=f"Purged **{deleted_count}** channels and categories. Preserved this execution channel.",
             color=0xE74C3C
         )
-        embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
+        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.followup.send(embed=embed)
 
 
