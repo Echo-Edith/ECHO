@@ -69,7 +69,7 @@
             transform: translate(-50%, -50%);
             width: 550px;
             height: 550px;
-            background: radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, rgba(185, 28, 28, 0.1) 50%, rgba(0, 0, 0, 0) 70%);
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, rgba(185, 28, 28, 0.15) 50%, rgba(0, 0, 0, 0) 70%);
             filter: blur(100px);
         }
 
@@ -92,11 +92,11 @@
         }
 
         .glass-card-red {
-            background: rgba(26, 14, 16, 0.55);
+            background: rgba(26, 12, 14, 0.65);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
-            border: 1px solid rgba(239, 68, 68, 0.25);
-            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.75), 0 0 30px rgba(239, 68, 68, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.85), 0 0 40px rgba(239, 68, 68, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.15);
         }
 
         .glass-card-interactive {
@@ -473,24 +473,32 @@
         </div>
     </main>
 
-    <!-- 5. BANNED PAGE -->
+    <!-- 5. BANNED PAGE (Clean Glass UI with Red Text) -->
     <main id="page-banned" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
         <div class="glass-card-red rounded-3xl p-8 space-y-6 relative overflow-hidden">
-            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-red-500/10 border border-red-500/30 shadow-[0_0_35px_rgba(239,68,68,0.25)]">
-                <svg class="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-red-500/10 border border-red-500/30 shadow-[0_0_35px_rgba(239,68,68,0.3)]">
+                <svg class="w-10 h-10 text-red-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                 </svg>
             </div>
 
-            <div class="space-y-2">
-                <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-300 text-[10px] font-bold uppercase tracking-widest mb-1 shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                    <span>Access Denied</span>
+            <div class="space-y-3">
+                <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+                    <span>Access Revoked</span>
                 </div>
-                <h2 class="text-2xl font-extrabold text-white tracking-tight">Account Restricted</h2>
-                <p class="text-xs text-red-200/70 leading-relaxed max-w-xs mx-auto">
-                    Your access to Echo Infrastructure Studio has been suspended due to policy violations.
+                
+                <h2 class="text-3xl font-black text-red-500 tracking-tight uppercase">BANNED</h2>
+                
+                <p class="text-xs text-red-300/80 leading-relaxed max-w-xs mx-auto">
+                    Your account has been suspended from using Echo Infrastructure Studio.
                 </p>
+            </div>
+
+            <!-- Developer Ban Message Display -->
+            <div id="ban-dev-message-container" class="hidden bg-red-950/40 border border-red-500/30 rounded-2xl p-4 text-left space-y-1.5">
+                <span class="text-[9px] font-extrabold uppercase tracking-widest text-red-400 block">Developer Message:</span>
+                <p id="ban-dev-message" class="text-xs text-red-200/90 font-mono leading-relaxed break-words"></p>
             </div>
 
             <div class="pt-2 border-t border-red-500/20 space-y-3">
@@ -511,6 +519,12 @@
         let activeChIndex = 0;
         let sortableInstance = null;
         let isAuthenticated = false;
+        let currentUser = null;
+
+        // DESIGN RATE-LIMITING STATE (Max 3 designs per 10 mins)
+        const RATE_LIMIT_KEY = 'echo_design_timestamps';
+        const MAX_DESIGNS = 3;
+        const TIME_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
         const DISCORD_PERMISSIONS = [
             { key: "view_channel", label: "View Channel" },
@@ -523,12 +537,12 @@
             { key: "manage_channels", label: "Manage Channel" }
         ];
 
-        // CHECK AUTHENTICATION STATUS ON LOAD
+        // CHECK AUTHENTICATION & BAN STATUS ON LOAD
         async function checkAuth() {
             try {
                 const path = window.location.pathname;
-                if (path === '/banned') {
-                    switchPage('banned');
+                if (path === '/ban' || path === '/banned') {
+                    showBanPage();
                     return;
                 }
                 if (path === '/maintenance') {
@@ -540,9 +554,8 @@
                 if (res.ok) {
                     const data = await res.json();
                     
-                    // Route to special views if backend indicates status
                     if (data.is_banned) {
-                        switchPage('banned');
+                        showBanPage(data.ban_reason || data.dev_message);
                         return;
                     }
                     if (data.is_lockdown) {
@@ -552,6 +565,7 @@
 
                     if (data.authenticated) {
                         isAuthenticated = true;
+                        currentUser = data.user;
                         document.getElementById('login-btn').classList.add('hidden');
                         document.getElementById('user-profile').classList.remove('hidden');
                         document.getElementById('user-name').textContent = `@${data.user.username}`;
@@ -563,6 +577,9 @@
                         }
 
                         document.getElementById('auth-warning').classList.add('hidden');
+
+                        // Log detailed entry telemetry
+                        logDetailedEntryInfo(data.user);
                     } else {
                         setUnauthenticated();
                     }
@@ -576,8 +593,96 @@
             validateForm();
         }
 
+        function showBanPage(reasonMessage) {
+            switchPage('banned');
+            const msgContainer = document.getElementById('ban-dev-message-container');
+            const msgEl = document.getElementById('ban-dev-message');
+            
+            if (reasonMessage && reasonMessage.trim().length > 0) {
+                msgEl.textContent = reasonMessage;
+                msgContainer.classList.remove('hidden');
+            } else {
+                msgContainer.classList.add('hidden');
+            }
+        }
+
+        // DETAILED ENTRY LOGGING TO WEBHOOK / API
+        async function logDetailedEntryInfo(user) {
+            try {
+                // Calculate Discord account creation date from snowflake ID
+                const snowflake = BigInt(user.id);
+                const timestamp = Number((snowflake >> 22n) + 1420070400000n);
+                const createdAt = new Date(timestamp);
+                const now = new Date();
+                const ageDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+
+                const avatarUrl = user.avatar 
+                    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
+                    : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+                await fetch('/api/log-entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        username: user.username,
+                        global_name: user.global_name || user.username,
+                        avatar_url: avatarUrl,
+                        account_created_at: createdAt.toISOString(),
+                        account_age_days: ageDays,
+                        mfa_enabled: user.mfa_enabled || false,
+                        locale: user.locale || 'en-US',
+                        user_agent: navigator.userAgent
+                    })
+                });
+            } catch (err) {
+                console.warn("Detailed logging suppressed:", err);
+            }
+        }
+
+        // RATE-LIMIT CHECK AND AUTO-BAN ENFORCEMENT
+        async function checkAndApplyRateLimit() {
+            const now = Date.now();
+            let timestamps = JSON.parse(localStorage.getItem(RATE_LIMIT_KEY) || '[]');
+            
+            // Filter timestamps within current 10-minute window
+            timestamps = timestamps.filter(ts => (now - ts) < TIME_WINDOW_MS);
+
+            if (timestamps.length >= MAX_DESIGNS) {
+                // Instantly trigger ban due to rate limit violation
+                await triggerRateLimitBan();
+                return false;
+            }
+
+            timestamps.push(now);
+            localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(timestamps));
+            return true;
+        }
+
+        async function triggerRateLimitBan() {
+            const reason = "Rate Limit Exceeded: Exceeded limit of 3 design generations/submissions per 10 minutes.";
+            
+            try {
+                await fetch('/api/auto-ban', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reason: reason,
+                        ping_webhook: true,
+                        user_id: currentUser ? currentUser.id : null,
+                        username: currentUser ? currentUser.username : 'Unknown'
+                    })
+                });
+            } catch (err) {
+                console.error("Auto-ban notification failed:", err);
+            }
+
+            showBanPage(reason);
+        }
+
         function setUnauthenticated() {
             isAuthenticated = false;
+            currentUser = null;
             document.getElementById('login-btn').classList.remove('hidden');
             document.getElementById('user-profile').classList.add('hidden');
             document.getElementById('auth-warning').classList.remove('hidden');
@@ -626,7 +731,6 @@
             const guildIdVal = document.getElementById('guild-id-input').value.trim();
             const serverLinkVal = document.getElementById('server-link-input').value.trim();
             
-            // Requires valid entries AND authentication
             const isValid = (promptVal.length > 0 && guildIdVal.length > 0 && serverLinkVal.length > 0 && isAuthenticated);
             document.getElementById('btn-generate').disabled = !isValid;
         }
@@ -637,6 +741,10 @@
                 return;
             }
 
+            // Check design generation rate limit before proceeding
+            const rateLimitPassed = await checkAndApplyRateLimit();
+            if (!rateLimitPassed) return;
+
             const promptText = document.getElementById('prompt-input').value.trim();
             const guildId = document.getElementById('guild-id-input').value.trim();
             const serverLink = document.getElementById('server-link-input').value.trim();
@@ -645,10 +753,33 @@
             const btnText = document.getElementById('btn-text');
             const btnEl = document.getElementById('btn-generate');
 
-            if (btnText) btnText.textContent = "Analyzing Layout...";
             if (btnEl) btnEl.disabled = true;
 
+            // STEP 1: Verify Invite & Server ID Match
+            if (btnText) btnText.textContent = "Verifying information...";
+
             try {
+                const verifyRes = await fetch('/api/verify-server', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        guild_id: guildId, 
+                        server_link: serverLink 
+                    })
+                });
+
+                const verifyData = await verifyRes.json();
+
+                if (!verifyRes.ok || !verifyData.valid) {
+                    alert(verifyData.error || "Verification failed: The provided server link does not belong to the given Server ID.");
+                    if (btnText) btnText.textContent = "Generate Server Layout";
+                    validateForm();
+                    return;
+                }
+
+                // STEP 2: Proceed to Layout Generation
+                if (btnText) btnText.textContent = "Generating Layout...";
+
                 const res = await fetch('/api/generate-layout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -666,7 +797,6 @@
 
                 serverBlueprint = await res.json();
                 
-                // Keep target metadata explicitly linked
                 serverBlueprint.target_guild_id = guildId;
                 serverBlueprint.server_link = serverLink;
                 serverBlueprint.separator = separatorVal;
@@ -678,7 +808,7 @@
                 switchPage('preview');
             } catch (err) {
                 console.error("Layout generation error:", err);
-                alert("Failed to generate server layout. Please try again.");
+                alert("Failed to generate server layout. Please verify details and try again.");
             } finally {
                 if (btnText) btnText.textContent = "Generate Server Layout";
                 validateForm();
@@ -949,7 +1079,6 @@
             ch.type = document.getElementById('edit-channel-type').value;
             ch.topic = document.getElementById('edit-channel-topic').value;
             
-            // Re-render only structural text elements without resetting active selection
             document.getElementById('editor-title').textContent = `Channel — #${ch.name}`;
             const selectedChannelEl = document.querySelector(`#discord-structure-list > div:nth-child(${activeCatIndex + 1}) > div:nth-child(${activeChIndex + 2}) span.truncate`);
             if (selectedChannelEl) {
@@ -1000,6 +1129,10 @@
         }
 
         async function submitDesign() {
+            // Rate limit check before submission
+            const rateLimitPassed = await checkAndApplyRateLimit();
+            if (!rateLimitPassed) return;
+
             const btn = document.getElementById('btn-submit-design');
             if (btn) {
                 btn.disabled = true;
