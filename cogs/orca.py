@@ -1,3 +1,4 @@
+import os
 import time
 import json
 import asyncio
@@ -9,7 +10,7 @@ from discord import app_commands
 from discord.ext import commands
 
 # Import blueprint retrieval helper and dynamic web URL from ai_brain.py
-from ai_brain import get_blueprint_data, WEB_BUILDER_URL
+from ai_brain import get_blueprint_data, WEB_BUILDER_URL, BOT_API_KEY
 
 AUTHORIZED_USER_ID = 1219266886143967245
 ALLOWED_BUILDERS = {AUTHORIZED_USER_ID}  # Hardcoded primary owner + dynamic allowed users
@@ -53,6 +54,47 @@ def can_build():
     return app_commands.check(predicate)
 
 
+async def update_website_ban_status(user_id: str, action: str = "ban", reason: str = "No reason provided"):
+    """Helper function to communicate ban/unban status with the Web backend."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            payload = {"user_id": str(user_id), "action": action, "reason": reason}
+            headers = {"X-Bot-Auth": BOT_API_KEY}
+            async with session.post(f"{WEB_BUILDER_URL}/api/security/ban", json=payload, headers=headers, timeout=5) as resp:
+                return resp.status == 200
+    except Exception as e:
+        print(f"[ORCA API] Failed to update website ban state: {e}")
+        return False
+
+
+async def fetch_website_bans():
+    """Helper function to retrieve all website-banned users from the Web backend."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            headers = {"X-Bot-Auth": BOT_API_KEY}
+            async with session.get(f"{WEB_BUILDER_URL}/api/security/bans", headers=headers, timeout=5) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("banned_users", [])
+                return None
+    except Exception as e:
+        print(f"[ORCA API] Failed to fetch website ban list: {e}")
+        return None
+
+
+async def update_website_lockdown_status(enable: bool):
+    """Helper function to synchronize website lockdown maintenance mode."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            payload = {"enable": enable}
+            headers = {"X-Bot-Auth": BOT_API_KEY}
+            async with session.post(f"{WEB_BUILDER_URL}/api/security/lockdown", json=payload, headers=headers, timeout=5) as resp:
+                return resp.status == 200
+    except Exception as e:
+        print(f"[ORCA API] Failed to update website lockdown state: {e}")
+        return False
+
+
 class BotJoinTosView(discord.ui.View):
     """Interactive button view on join requiring acknowledgment of terms by the inviter/owner."""
     def __init__(self, inviter_id: int):
@@ -60,7 +102,6 @@ class BotJoinTosView(discord.ui.View):
         self.inviter_id = inviter_id
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        # Check if clicker is the person who added the bot or the guild owner
         if interaction.user.id == self.inviter_id or interaction.user.id == interaction.guild.owner_id:
             return True
         await interaction.response.send_message(
@@ -90,17 +131,14 @@ class BotJoinTosView(discord.ui.View):
 class OrcaCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        # Track message timestamps per user: {user_id: [timestamp1, timestamp2, ...]}
         self.user_message_logs = collections.defaultdict(list)
 
-    # --- BOT JOIN EVENT (TERMS & CONDITIONS DISCLAIMER) ---
+    # --- BOT JOIN EVENT ---
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
-        # Ensure bot has Administrator permissions
         if not guild.me.guild_permissions.administrator:
             return
 
-        # Attempt to identify the person who added the bot via audit logs
         inviter_id = guild.owner_id
         try:
             async for entry in guild.audit_logs(action=discord.AuditLogAction.bot_add, limit=5):
@@ -110,7 +148,6 @@ class OrcaCog(commands.Cog):
         except Exception:
             pass
 
-        # Find target channel for welcome message
         target_channel = guild.system_channel
         if not target_channel or not target_channel.permissions_for(guild.me).send_messages:
             for channel in guild.text_channels:
@@ -148,20 +185,16 @@ class OrcaCog(commands.Cog):
         user_id = message.author.id
         current_time = time.time()
 
-        # Track message timestamps and drop expired entries outside the time window
         self.user_message_logs[user_id].append(current_time)
         self.user_message_logs[user_id] = [
             t for t in self.user_message_logs[user_id] if current_time - t <= TIME_WINDOW
         ]
 
-        # Trigger 12-hour timeout if threshold is reached
         if len(self.user_message_logs[user_id]) >= SPAM_THRESHOLD:
             try:
-                # Apply 12-hour timeout using native Discord timeout functionality
                 duration = datetime.timedelta(hours=12)
                 await message.author.timeout(duration, reason="Automated Anti-Spam: Excessive message frequency.")
 
-                # Reset message log to prevent repeated triggering
                 self.user_message_logs[user_id] = []
 
                 embed = discord.Embed(
@@ -176,7 +209,7 @@ class OrcaCog(commands.Cog):
             except Exception as e:
                 print(f"Error applying timeout: {e}")
 
-    # --- 1. /help COMMAND (PUBLIC) ---
+    # --- 1. /help COMMAND ---
     @app_commands.command(name="help", description="Learn how to create and deploy a custom Discord server.")
     async def help_command(self, interaction: discord.Interaction):
         embed = discord.Embed(
@@ -204,7 +237,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
-    # --- 2. /website COMMAND (PUBLIC) ---
+    # --- 2. /website COMMAND ---
     @app_commands.command(name="website", description="Provides the link to the web-based layout builder.")
     async def website(self, interaction: discord.Interaction):
         if is_lockdown:
@@ -225,7 +258,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
-    # --- 3. /server-info COMMAND (PUBLIC/STAFF) ---
+    # --- 3. /server-info COMMAND ---
     @app_commands.command(name="server-info", description="Displays formatted Server ID and Invite Link in copyable code blocks.")
     @app_commands.describe(
         server_id="Target Discord Server ID (optional if executed inside a server)",
@@ -265,10 +298,10 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
-    # --- 4. /ban COMMAND (MODERATION) ---
-    @app_commands.command(name="ban", description="Ban a member from the server.")
+    # --- 4. /ban COMMAND (SERVER ONLY) ---
+    @app_commands.command(name="ban", description="Ban a member strictly from the Discord server.")
     @app_commands.describe(
-        member="The member to ban",
+        member="The member to ban from the server",
         reason="Reason for banning the user"
     )
     @app_commands.checks.has_permissions(ban_members=True)
@@ -281,18 +314,184 @@ class OrcaCog(commands.Cog):
         try:
             await member.ban(reason=reason)
             embed = discord.Embed(
-                title="🔨 Member Banned",
-                description=f"Successfully banned {member.mention} for: **{reason}**",
+                title="🔨 Server Member Banned",
+                description=f"Successfully banned {member.mention} (`{member.id}`) from the Discord server.\n**Reason:** {reason}",
                 color=0xE74C3C
             )
             embed.set_footer(text="ORCA AI — Server Moderation")
             await interaction.response.send_message(embed=embed)
         except discord.Forbidden:
-            await interaction.response.send_message("❌ I do not have permissions to ban this member.", ephemeral=True)
+            await interaction.response.send_message("❌ I do not have permission to ban this member from Discord.", ephemeral=True)
         except Exception as e:
             await interaction.response.send_message(f"❌ Failed to ban member: {e}", ephemeral=True)
 
-    # --- 5. /un-restrict COMMAND (MODERATION) ---
+    # --- 5. /unban COMMAND (SERVER ONLY) ---
+    @app_commands.command(name="unban", description="Unban a user strictly from the Discord server.")
+    @app_commands.describe(
+        user_id="The Discord User ID to unban",
+        reason="Reason for unbanning the user"
+    )
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def unban_command(
+        self,
+        interaction: discord.Interaction,
+        user_id: str,
+        reason: str = "Appeal accepted"
+    ):
+        try:
+            target_id = int(user_id.strip())
+            user = await self.bot.fetch_user(target_id)
+            
+            await interaction.guild.unban(user, reason=reason)
+
+            embed = discord.Embed(
+                title="✅ Server User Unbanned",
+                description=f"Successfully unbanned <@{target_id}> (`{target_id}`) from the Discord server.\n**Reason:** {reason}",
+                color=0x2ECC71
+            )
+            embed.set_footer(text="ORCA AI — Server Moderation")
+            await interaction.response.send_message(embed=embed)
+        except ValueError:
+            await interaction.response.send_message("❌ Invalid input. Please enter a valid numeric Discord User ID.", ephemeral=True)
+        except discord.NotFound:
+            await interaction.response.send_message(f"❌ User ID `{user_id}` is not banned in this server.", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message("❌ I do not have permission to unban members from Discord.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Failed to unban user: {e}", ephemeral=True)
+
+    # --- 6. /ban-website COMMAND (WEBSITE ONLY) ---
+    @app_commands.command(name="ban-website", description="Ban a user strictly from the website builder portal.")
+    @app_commands.describe(
+        user_id="The Discord User ID to ban from the website",
+        reason="Reason for banning the user from the web portal"
+    )
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def ban_website_command(
+        self, 
+        interaction: discord.Interaction, 
+        user_id: str, 
+        reason: str = "Violating website terms"
+    ):
+        target_id = user_id.strip()
+        if not target_id.isdigit():
+            await interaction.response.send_message("❌ Invalid input. Please enter a valid numeric Discord User ID.", ephemeral=True)
+            return
+
+        success = await update_website_ban_status(target_id, action="ban", reason=reason)
+        if success:
+            embed = discord.Embed(
+                title="🌐 Website Ban Applied",
+                description=f"Successfully banned <@{target_id}> (`{target_id}`) from accessing the web builder portal.\n**Reason:** {reason}",
+                color=0xE74C3C
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ Website Ban Failed",
+                description=f"Could not connect or apply website ban for User ID `{target_id}`.",
+                color=0xE74C3C
+            )
+        embed.set_footer(text="ORCA AI — Web Moderation")
+        await interaction.response.send_message(embed=embed)
+
+    # --- 7. /unban-website COMMAND (WEBSITE ONLY) ---
+    @app_commands.command(name="unban-website", description="Unban a user strictly from the website builder portal.")
+    @app_commands.describe(
+        user_id="The Discord User ID to unban from the website"
+    )
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def unban_website_command(self, interaction: discord.Interaction, user_id: str):
+        target_id = user_id.strip()
+        if not target_id.isdigit():
+            await interaction.response.send_message("❌ Invalid input. Please enter a valid numeric Discord User ID.", ephemeral=True)
+            return
+
+        success = await update_website_ban_status(target_id, action="unban")
+        if success:
+            embed = discord.Embed(
+                title="🌐 Website Access Restored",
+                description=f"Successfully unbanned <@{target_id}> (`{target_id}`) from accessing the web builder portal.",
+                color=0x2ECC71
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ Website Unban Failed",
+                description=f"Could not connect or process website unban for User ID `{target_id}`.",
+                color=0xE74C3C
+            )
+        embed.set_footer(text="ORCA AI — Web Moderation")
+        await interaction.response.send_message(embed=embed)
+
+    # --- 8. /ban-list-server COMMAND ---
+    @app_commands.command(name="ban-list-server", description="Display a list of users banned from this Discord server.")
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def ban_list_server(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        try:
+            ban_entries = [entry async for entry in interaction.guild.bans(limit=100)]
+            if not ban_entries:
+                embed = discord.Embed(
+                    title="📋 Server Ban List",
+                    description="No users are currently banned from this server.",
+                    color=0x5865F2
+                )
+                embed.set_footer(text="ORCA AI — Server Moderation")
+                await interaction.followup.send(embed=embed)
+                return
+
+            description_lines = []
+            for entry in ban_entries[:25]:
+                reason = entry.reason if entry.reason else "No reason specified"
+                description_lines.append(f"• <@{entry.user.id}> (`{entry.user.id}`)\n  └ **Reason:** {reason}")
+
+            embed = discord.Embed(
+                title=f"📋 Server Ban List ({len(ban_entries)} Total Banned)",
+                description="\n".join(description_lines),
+                color=0xE74C3C
+            )
+            embed.set_footer(text="ORCA AI — Server Moderation")
+            await interaction.followup.send(embed=embed)
+        except discord.Forbidden:
+            await interaction.followup.send("❌ I do not have permission to view server bans.", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Failed to fetch ban list: {e}", ephemeral=True)
+
+    # --- 9. /ban-list-website COMMAND ---
+    @app_commands.command(name="ban-list-website", description="Display a list of users banned from the web portal.")
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def ban_list_website(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        banned_users = await fetch_website_bans()
+
+        if banned_users is None:
+            await interaction.followup.send("❌ Failed to reach the web portal backend.", ephemeral=True)
+            return
+
+        if not banned_users:
+            embed = discord.Embed(
+                title="🌐 Website Ban List",
+                description="No users are currently banned from the web portal.",
+                color=0x5865F2
+            )
+            embed.set_footer(text="ORCA AI — Web Moderation")
+            await interaction.followup.send(embed=embed)
+            return
+
+        description_lines = []
+        for entry in banned_users[:25]:
+            uid = entry.get("user_id", "Unknown")
+            reason = entry.get("reason", "No reason specified")
+            description_lines.append(f"• <@{uid}> (`{uid}`)\n  └ **Reason:** {reason}")
+
+        embed = discord.Embed(
+            title=f"🌐 Website Ban List ({len(banned_users)} Total Banned)",
+            description="\n".join(description_lines),
+            color=0xE74C3C
+        )
+        embed.set_footer(text="ORCA AI — Web Moderation")
+        await interaction.followup.send(embed=embed)
+
+    # --- 10. /un-restrict COMMAND ---
     @app_commands.command(name="un-restrict", description="Remove a 12-hour spam timeout from a user.")
     @app_commands.describe(
         member="The member to un-restrict",
@@ -306,10 +505,7 @@ class OrcaCog(commands.Cog):
         reason: str = "False positive spam flag"
     ):
         try:
-            # Clear timeout state
             await member.timeout(None, reason=reason)
-            
-            # Clear local tracking history
             self.user_message_logs[member.id] = []
 
             embed = discord.Embed(
@@ -324,7 +520,7 @@ class OrcaCog(commands.Cog):
         except Exception as e:
             await interaction.response.send_message(f"❌ Failed to un-restrict member: {e}", ephemeral=True)
 
-    # --- 6. /manage-access COMMAND (HARDCODED PRIMARY OWNER ONLY) ---
+    # --- 11. /manage-access COMMAND ---
     @app_commands.command(name="manage-access", description="Grant or revoke build command access for a specific User ID.")
     @app_commands.describe(user_id="The Discord User ID to toggle access for")
     @is_owner()
@@ -367,7 +563,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # --- 7. /build COMMAND (HARDCODED OWNER & ALLOWED BUILDERS) ---
+    # --- 12. /build COMMAND ---
     @app_commands.command(name="build", description="Builds server layout from blueprint URL or uploaded JSON file.")
     @app_commands.describe(
         file="Direct file link or HTTP URL to blueprint JSON",
@@ -557,7 +753,7 @@ class OrcaCog(commands.Cog):
             embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
             await target_channel.send(embed=embed)
 
-    # --- 8. /lockdown COMMAND (OWNER ONLY) ---
+    # --- 13. /lockdown COMMAND ---
     @app_commands.command(name="lockdown", description="Toggles web portal maintenance screen.")
     @is_owner()
     @app_commands.choices(state=[
@@ -567,16 +763,19 @@ class OrcaCog(commands.Cog):
     async def lockdown(self, interaction: discord.Interaction, state: app_commands.Choice[str]):
         global is_lockdown
         is_lockdown = (state.value == "on")
+        
+        await update_website_lockdown_status(is_lockdown)
+
         status_str = "ENABLED" if is_lockdown else "DISABLED"
         embed = discord.Embed(
             title="🔒 Web Portal Maintenance Screen",
-            description=f"Maintenance mode is now **{status_str}**.",
+            description=f"Maintenance mode is now **{status_str}** across bot and website.",
             color=0xE74C3C if is_lockdown else 0x2ECC71
         )
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # --- 9. /status COMMAND (OWNER ONLY) ---
+    # --- 14. /status COMMAND ---
     @app_commands.command(name="status", description="Displays real-time bot latency and operational statistics.")
     @is_owner()
     async def status(self, interaction: discord.Interaction):
@@ -589,7 +788,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # --- 10. /nuke COMMAND (OWNER ONLY) ---
+    # --- 15. /nuke COMMAND ---
     @app_commands.command(name="nuke", description="Deletes all channels/categories except the command channel.")
     @is_owner()
     async def nuke(self, interaction: discord.Interaction):
