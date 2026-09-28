@@ -346,6 +346,10 @@ class OrcaCog(commands.Cog):
             await interaction.response.send_message(embed=embed)
 
         elif location.value == "discord":
+            if not interaction.guild:
+                await interaction.response.send_message("❌ This command must be executed within a Discord server.", ephemeral=True)
+                return
+
             try:
                 numeric_id = int(target_id)
                 user = await self.bot.fetch_user(numeric_id)
@@ -408,6 +412,10 @@ class OrcaCog(commands.Cog):
             await interaction.response.send_message(embed=embed)
 
         elif location.value == "server":
+            if not interaction.guild:
+                await interaction.response.send_message("❌ This command must be executed within a Discord server.", ephemeral=True)
+                return
+
             try:
                 numeric_id = int(target_id)
                 user = await self.bot.fetch_user(numeric_id)
@@ -429,7 +437,7 @@ class OrcaCog(commands.Cog):
             except Exception as e:
                 await interaction.response.send_message(f"❌ Failed to unban user: {e}", ephemeral=True)
 
-    # --- 6. /ban-list COMMAND (CONSOLIDATED) ---
+    # --- 6. /ban-list COMMAND (CONSOLIDATED & UPDATED) ---
     @app_commands.command(name="ban-list", description="Display banned users for website portal or Discord server.")
     @app_commands.describe(location="Target platform ban list to view (Website or Discord)")
     @app_commands.choices(location=[
@@ -476,11 +484,15 @@ class OrcaCog(commands.Cog):
             await interaction.followup.send(embed=embed)
 
         elif location.value == "discord":
+            if not interaction.guild:
+                await interaction.followup.send("❌ This command must be executed within a Discord server.", ephemeral=True)
+                return
+
             try:
                 ban_entries = [entry async for entry in interaction.guild.bans(limit=100)]
                 if not ban_entries:
                     embed = discord.Embed(
-                        title="📋 Server Ban List",
+                        title=f"📋 Server Ban List — {interaction.guild.name}",
                         description="No users are currently banned from this server.",
                         color=0x5865F2
                     )
@@ -491,10 +503,13 @@ class OrcaCog(commands.Cog):
                 description_lines = []
                 for entry in ban_entries[:25]:
                     reason = entry.reason if entry.reason else "No reason specified"
-                    description_lines.append(f"• <@{entry.user.id}> (`{entry.user.id}`)\n  └ **Reason:** {reason}")
+                    user_tag = f"{entry.user.name}" if hasattr(entry.user, 'name') else str(entry.user)
+                    description_lines.append(
+                        f"• **{user_tag}** (<@{entry.user.id}> | `{entry.user.id}`)\n  └ **Reason:** {reason}"
+                    )
 
                 embed = discord.Embed(
-                    title=f"📋 Server Ban List ({len(ban_entries)} Total Banned)",
+                    title=f"📋 Server Ban List — {interaction.guild.name} ({len(ban_entries)} Total Banned)",
                     description="\n".join(description_lines),
                     color=0xE74C3C
                 )
@@ -503,7 +518,7 @@ class OrcaCog(commands.Cog):
             except discord.Forbidden:
                 await interaction.followup.send("❌ I do not have permission to view server bans.", ephemeral=True)
             except Exception as e:
-                await interaction.followup.send(f"❌ Failed to fetch ban list: {e}", ephemeral=True)
+                await interaction.followup.send(f"❌ Failed to fetch server ban list: {e}", ephemeral=True)
 
     # --- 7. /un-restrict COMMAND ---
     @app_commands.command(name="un-restrict", description="Remove a 12-hour spam timeout from a user.")
