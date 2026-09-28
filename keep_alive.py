@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, make_response
+from flask import Flask, render_template, request, jsonify, session, make_response, redirect
 from threading import Thread
 import os
 
@@ -47,6 +47,13 @@ def health():
     return jsonify({"status": "online"}), 200
 
 
+@app.route('/api/auth/logout')
+def logout():
+    """Clears the user session and redirects home."""
+    session.pop('user', None)
+    return redirect('/')
+
+
 @app.route('/api/auth/me')
 def auth_me():
     """
@@ -69,6 +76,7 @@ def auth_me():
 
         # 3. Check PyMongo Ban Status via cogs/orca.py
         if is_user_banned(discord_id) or user_data.get('is_banned', False):
+            session.pop('user', None)  # Wipe session immediately if banned
             return jsonify({
                 "authenticated": False,
                 "is_lockdown": False,
