@@ -3,8 +3,10 @@ import json
 import io
 import time
 import logging
+import re
 import requests
 from urllib.parse import quote
+from datetime import datetime, timezone
 from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, session
 from google import genai
 from google.genai import types
@@ -51,8 +53,13 @@ if GEMINI_API_KEY:
 # ==========================================
 # WEBSITE SECURITY & ACCESS CONTROL STATE
 # ==========================================
-# In-memory storage for banned Discord User IDs
+# In-memory storage for banned Discord User IDs and dev messages
 BANNED_USER_IDS = set()
+BANNED_USER_MESSAGES = {}  # { user_id: "Developer note..." }
+
+# Rate Limiting Tracker for /api/generate-layout
+# Format: { user_id: [timestamp1, timestamp2, ...] }
+USER_DESIGN_TIMESTAMPS = {}
 
 # Global Lockdown Flag (True = Dashboard restricted to authorized admins)
 IS_LOCKDOWN_ACTIVE = False
@@ -74,9 +81,14 @@ def enforce_security_middleware():
 
     # 1. ENFORCE WEBSITE BANS
     if user_id and user_id in BANNED_USER_IDS:
+        dev_msg = BANNED_USER_MESSAGES.get(user_id, "No reason specified.")
         session.pop('user', None)  # Wipe session
         if request.path.startswith('/api/'):
-            return jsonify({"error": "Access Denied. You are banned from utilizing the Echo Studio Portal.", "is_banned": True}), 403
+            return jsonify({
+                "error": "Access Denied. You are banned from utilizing the Echo Studio Portal.",
+                "is_banned": True,
+                "dev_message": dev_msg
+            }), 403
         return render_template('index.html'), 200
 
     # 2. ENFORCE GLOBAL LOCKDOWN
@@ -87,7 +99,17 @@ def enforce_security_middleware():
             return render_template('index.html'), 200
 
 
-def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields: list = None):
+def get_discord_creation_time(user_id: str) -> datetime:
+    """Calculates Discord account creation timestamp from snowflake ID."""
+    try:
+        snowflake = int(user_id)
+        timestamp = ((snowflake >> 22) + 1420070400000) / 1000.0
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    except Exception:
+        return datetime.now(timezone.utc)
+
+
+def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields: list = None, content: str = None):
     """Sends a standard system/activity log embed to the dedicated system log channel."""
     if not SYSTEM_LOG_WEBHOOK_URL:
         logger.warning("SYSTEM_LOG_WEBHOOK_URL not configured. Skipping system log.")
@@ -100,10 +122,13 @@ def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields:
                 "description": description,
                 "color": color,
                 "fields": fields or [],
-                "footer": {"text": "Echo Studio System Logger"}
+                "footer": {"text": "Echo Studio System Logger"},
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         ]
     }
+    if content:
+        payload["content"] = content
 
     try:
         response = requests.post(
@@ -115,6 +140,64 @@ def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields:
         response.raise_for_status()
     except requests.RequestException as e:
         logger.error("Failed to post system log webhook: %s", e)
+
+
+def extract_invite_code(url_or_code: str) -> str:
+    """Extracts the clean invite code from a full Discord link or raw code."""
+    match = re.search(r'(?:discord\.gg/|discord\.com/invite/)([a-zA-Z0-9-]+)', url_or_code)
+    if match:
+        return match.group(1)
+    return url_or_code.strip()
+
+
+def validate_server_link_matches_id(server_link: str, target_guild_id: str) -> tuple[bool, str]:
+    """
+    Fetches invite information directly from Discord's API to ensure the provided
+    invite link corresponds to the specified target Guild ID.
+    """
+    code = extract_invite_code(server_link)
+    if not code:
+        return False, "Invalid server invite link format."
+
+    try:
+        res = requests.get(f"{DISCORD_API_BASE_URL}/invites/{code}", timeout=5)
+        if res.status_code == 404:
+            return False, "The provided Discord invite link is invalid or expired."
+        res.raise_for_status()
+
+        invite_data = res.json()
+        guild_info = invite_data.get("guild", {})
+        linked_guild_id = str(guild_info.get("id", "")).strip()
+
+        if linked_guild_id != target_guild_id:
+            return False, f"Mismatch detected: Invite link belongs to server ID `{linked_guild_id}`, but target Server ID was `{target_guild_id}`."
+
+        return True, "Verification successful."
+    except requests.RequestException as e:
+        logger.error("Failed to verify invite link with Discord API: %s", e)
+        # Fallback to allow if API request fails transiently
+        return True, "Discord API validation bypassed."
+
+
+def check_and_update_rate_limit(user_id: str) -> tuple[bool, int]:
+    """
+    Enforces rate limiting of 3 design requests per 10 minutes.
+    Returns (is_exceeded, current_count).
+    """
+    now = time.time()
+    window_start = now - 600  # 10 minutes window
+
+    timestamps = USER_DESIGN_TIMESTAMPS.get(user_id, [])
+    # Filter timestamps to keep only those within the last 10 minutes
+    valid_timestamps = [t for t in timestamps if t > window_start]
+    
+    if len(valid_timestamps) >= 3:
+        USER_DESIGN_TIMESTAMPS[user_id] = valid_timestamps
+        return True, len(valid_timestamps)
+
+    valid_timestamps.append(now)
+    USER_DESIGN_TIMESTAMPS[user_id] = valid_timestamps
+    return False, len(valid_timestamps)
 
 
 def save_blueprint_data(guild_id: str, blueprint: dict):
@@ -202,16 +285,23 @@ def handle_ban_user():
     data = request.get_json() or {}
     target_user_id = str(data.get("user_id", "")).strip()
     action = data.get("action", "ban").lower()
+    dev_message = data.get("dev_message", "No specific developer note provided.")
 
     if not target_user_id:
         return jsonify({"error": "Missing user_id parameter."}), 400
 
     if action == "ban":
         BANNED_USER_IDS.add(target_user_id)
-        logger.info("[SECURITY] User ID %s was banned from website access.", target_user_id)
-        return jsonify({"status": "success", "message": f"User {target_user_id} banned from portal."}), 200
+        BANNED_USER_MESSAGES[target_user_id] = dev_message
+        logger.info("[SECURITY] User ID %s was banned from website access. Note: %s", target_user_id, dev_message)
+        return jsonify({
+            "status": "success",
+            "message": f"User {target_user_id} banned from portal.",
+            "dev_message": dev_message
+        }), 200
 
     BANNED_USER_IDS.discard(target_user_id)
+    BANNED_USER_MESSAGES.pop(target_user_id, None)
     logger.info("[SECURITY] User ID %s unbanned from website access.", target_user_id)
     return jsonify({"status": "success", "message": f"User {target_user_id} unbanned."}), 200
 
@@ -292,6 +382,16 @@ def discord_callback():
         user_profile = user_res.json()
 
         user_id = str(user_profile.get('id')).strip()
+        username = user_profile.get('username')
+        global_name = user_profile.get('global_name') or username
+        discriminator = user_profile.get('discriminator')
+        avatar = user_profile.get('avatar')
+
+        avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png" if avatar else "https://cdn.discordapp.com/embed/avatars/0.png"
+
+        # Calculate Account Creation & Age
+        created_at = get_discord_creation_time(user_id)
+        account_age_days = (datetime.now(timezone.utc) - created_at).days
 
         # Immediately reject login if user is banned
         if user_id in BANNED_USER_IDS:
@@ -300,16 +400,27 @@ def discord_callback():
         # Save identity in session cookie
         session['user'] = {
             'id': user_id,
-            'username': user_profile.get('username'),
-            'avatar': user_profile.get('avatar'),
-            'discriminator': user_profile.get('discriminator')
+            'username': username,
+            'global_name': global_name,
+            'avatar': avatar,
+            'avatar_url': avatar_url,
+            'discriminator': discriminator,
+            'created_at': created_at.strftime('%Y-%m-%d %H:%M:%S UTC'),
+            'account_age_days': account_age_days
         }
 
-        # Send activity alert to System Log Webhook
+        # Detailed entry log to System Webhook
         send_system_log(
-            title="🔑 User Authenticated",
-            description=f"User **@{user_profile.get('username')}** (`{user_id}`) logged into the web dashboard.",
-            color=0x3B82F6
+            title="🔑 User Authenticated to Web Portal",
+            description=f"User **{global_name}** (`@{username}`) logged in.",
+            color=0x3B82F6,
+            fields=[
+                {"name": "User ID", "value": f"`{user_id}`", "inline": True},
+                {"name": "Username / Tag", "value": f"`@{username}`", "inline": True},
+                {"name": "Account Created", "value": f"<t:{int(created_at.timestamp())}:F>", "inline": False},
+                {"name": "Account Age", "value": f"`{account_age_days} days old`", "inline": True},
+                {"name": "Avatar URL", "value": f"[View Profile Picture]({avatar_url})", "inline": True}
+            ]
         )
 
         return redirect('/')
@@ -335,8 +446,14 @@ def get_current_user():
     is_lockdown = bool(IS_LOCKDOWN_ACTIVE and (not user_id or user_id != PRIMARY_OWNER_ID))
 
     if is_banned:
+        dev_message = BANNED_USER_MESSAGES.get(user_id, "No specific developer message provided.")
         session.pop('user', None)
-        return jsonify({"authenticated": False, "is_banned": True, "user": None})
+        return jsonify({
+            "authenticated": False,
+            "is_banned": True,
+            "dev_message": dev_message,
+            "user": None
+        })
 
     if is_lockdown:
         return jsonify({"authenticated": False, "is_lockdown": True, "user": None})
@@ -373,14 +490,52 @@ def generate_layout():
     if not user:
         return jsonify({"error": "Unauthorized. You must log in with Discord first."}), 401
 
+    user_id = str(user.get('id')).strip()
+
+    # 1. Check Rate Limit (3 limits per 10 minutes)
+    is_exceeded, count = check_and_update_rate_limit(user_id)
+    if is_exceeded:
+        # Instantly ban user from website
+        BANNED_USER_IDS.add(user_id)
+        dev_msg = "Automated Security Ban: Rate limit exceeded (more than 3 design requests in 10 minutes)."
+        BANNED_USER_MESSAGES[user_id] = dev_msg
+        session.pop('user', None)
+
+        # Ping owner in system log webhook
+        send_system_log(
+            title="🚨 AUTOMATED BAN TRIGGERED",
+            description=f"User **@{user.get('username')}** (`{user_id}`) exceeded design request rate limits and was instantly banned.",
+            color=0xEF4444,
+            content=f"<@{PRIMARY_OWNER_ID}> 🚨 **Security Alert: User Auto-Banned**",
+            fields=[
+                {"name": "User ID", "value": f"`{user_id}`", "inline": True},
+                {"name": "Trigger Reason", "value": "Exceeded 3 layout generations per 10 minutes", "inline": False}
+            ]
+        )
+
+        return jsonify({
+            "error": "You have exceeded the generation rate limit (3 attempts per 10 mins) and have been banned.",
+            "is_banned": True,
+            "dev_message": dev_msg
+        }), 403
+
     data = request.get_json() or {}
     prompt = data.get('prompt', '')
     guild_id = str(data.get('guild_id', '')).strip()
-    server_link = data.get('server_link', '')
+    server_link = data.get('server_link', '').strip()
     separator = data.get('separator', '-')
 
-    if not prompt or not guild_id:
-        return jsonify({"error": "Prompt and Guild ID are required."}), 400
+    if not prompt or not guild_id or not server_link:
+        return jsonify({"error": "Prompt, Guild ID, and Server Invite Link are all required."}), 400
+
+    # 2. Server Link & Guild ID Verification Check
+    is_valid_server, val_message = validate_server_link_matches_id(server_link, guild_id)
+    if not is_valid_server:
+        logger.warning("[SECURITY] Verification failed for user %s: %s", user_id, val_message)
+        return jsonify({
+            "error": f"Verification failed: {val_message}",
+            "verification_failed": True
+        }), 400
 
     system_instruction = (
         "You are an expert Discord server architect. "
