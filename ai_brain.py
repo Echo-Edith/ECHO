@@ -3,12 +3,20 @@ import json
 import io
 import logging
 import requests
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, session, url_for
 from google import genai
 from google.genai import types
 
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
+
+# Secret key for Flask session signing
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-change-this-in-production")
+
+# Discord OAuth2 Configuration
+DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
+DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
+DISCORD_API_BASE_URL = "https://discord.com/api/v10"
 
 # Storage directory setup
 BLUEPRINT_STORAGE = {}
@@ -54,6 +62,84 @@ def get_blueprint_data(guild_id: str):
     return None
 
 
+# ==========================================
+# DISCORD OAUTH2 AUTHENTICATION ROUTES
+# ==========================================
+
+@app.route('/api/auth/discord/login')
+def discord_login():
+    """Redirects the user to Discord OAuth2 authorization URL."""
+    redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
+    oauth_url = (
+        f"{DISCORD_API_BASE_URL}/oauth2/authorize"
+        f"?client_id={DISCORD_CLIENT_ID}"
+        f"&redirect_uri={requests.utils.quote(redirect_uri)}"
+        f"&response_type=code"
+        f"&scope=identify"
+    )
+    return redirect(oauth_url)
+
+
+@app.route('/api/auth/discord/callback')
+def discord_callback():
+    """Handles OAuth2 code exchange with Discord API."""
+    code = request.args.get('code')
+    if not code:
+        return "Missing OAuth2 code from Discord.", 400
+
+    redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
+    token_data = {
+        'client_id': DISCORD_CLIENT_ID,
+        'client_secret': DISCORD_CLIENT_SECRET,
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': redirect_uri
+    }
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+
+    try:
+        # Exchange authorization code for access token
+        token_res = requests.post(f"{DISCORD_API_BASE_URL}/oauth2/token", data=token_data, headers=headers, timeout=10)
+        token_res.raise_for_status()
+        tokens = token_res.json()
+        access_token = tokens.get('access_token')
+
+        # Retrieve user profile
+        user_res = requests.get(
+            f"{DISCORD_API_BASE_URL}/users/@me",
+            headers={'Authorization': f"Bearer {access_token}"},
+            timeout=10
+        )
+        user_res.raise_for_status()
+        user_profile = user_res.json()
+
+        # Save identity in session cookie
+        session['user'] = {
+            'id': user_profile.get('id'),
+            'username': user_profile.get('username'),
+            'avatar': user_profile.get('avatar'),
+            'discriminator': user_profile.get('discriminator')
+        }
+
+        return redirect('/')
+    except Exception as e:
+        logging.error(f"OAuth2 authentication failure: {e}")
+        return "Authentication failed. Please try again.", 500
+
+
+@app.route('/api/auth/me')
+def get_current_user():
+    """Returns details of the currently authenticated session."""
+    user = session.get('user')
+    if user:
+        return jsonify({"authenticated": True, "user": user})
+    return jsonify({"authenticated": False, "user": None})
+
+
+# ==========================================
+# PAGE & BLUEPRINT ROUTES
+# ==========================================
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -69,6 +155,11 @@ def serve_blueprint(filename):
 
 @app.route('/api/generate-layout', methods=['POST'])
 def generate_layout():
+    # Require login check
+    user = session.get('user')
+    if not user:
+        return jsonify({"error": "Unauthorized. You must log in with Discord first."}), 401
+
     data = request.get_json() or {}
     prompt = data.get('prompt', '')
     guild_id = data.get('guild_id', '')
@@ -129,6 +220,7 @@ def generate_layout():
         layout_data["target_guild_id"] = guild_id
         layout_data["server_link"] = server_link
         layout_data["separator"] = separator
+        layout_data["creator"] = user
         return jsonify(layout_data)
 
     except Exception as e:
@@ -138,6 +230,7 @@ def generate_layout():
             "target_guild_id": guild_id,
             "server_link": server_link,
             "separator": separator,
+            "creator": user,
             "roles": ["Admin", "Moderator", "Member"],
             "categories": [
                 {
@@ -170,9 +263,12 @@ def submit_design():
     server_name = blueprint.get("server_name", "Discord Server")
     categories = blueprint.get("categories", [])
     roles = blueprint.get("roles", [])
+    creator = blueprint.get("creator", session.get('user', {}))
+    creator_tag = f"@{creator.get('username', 'Unknown')}" if creator else "Anonymous"
+
     total_channels = sum(len(cat.get("channels", [])) for cat in categories)
 
-    # 1. Save blueprint internally using target_guild ID
+    # Save blueprint internally using target_guild ID
     save_blueprint_data(target_guild, blueprint)
 
     filename = f"blueprint_{target_guild}.json"
@@ -182,7 +278,6 @@ def submit_design():
         # Prepare file bytes
         json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
         
-        # Single multipart payload attaching the file directly to the embed log message
         payload = {
             "embeds": [
                 {
@@ -193,6 +288,7 @@ def submit_design():
                     ),
                     "color": 0x22C55E,
                     "fields": [
+                        {"name": "Submitted By", "value": f"`{creator_tag}`", "inline": True},
                         {"name": "Target Server ID", "value": f"`{target_guild}`", "inline": True},
                         {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
                         {"name": "Server Invite Link", "value": f"{server_link}", "inline": False},
