@@ -9,8 +9,9 @@ from flask import Flask, render_template, request, jsonify, send_from_directory,
 from google import genai
 from google.genai import types
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure structured logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+logger = logging.getLogger("ai_brain")
 
 app = Flask(__name__)
 
@@ -41,7 +42,11 @@ WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-
 
 client = None
 if GEMINI_API_KEY:
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        logger.info("Google GenAI client initialized successfully.")
+    except Exception as e:
+        logger.error("Failed to initialize Google GenAI client: %s", e)
 
 # ==========================================
 # WEBSITE SECURITY & ACCESS CONTROL STATE
@@ -430,7 +435,7 @@ def generate_layout():
         except Exception as e1:
             logger.warning("[Echo AI] Tier 1 Failed (%s). Escalating to Tier 2...", e1)
 
-    # --- TIER 2: SECONDARY AI MODEL (gemini-2.5-flash fallback / alt config) ---
+    # --- TIER 2: SECONDARY AI MODEL (gemini-2.5-flash retry) ---
     if not layout_data and client:
         try:
             time.sleep(0.5)  # Backoff delay before retry
