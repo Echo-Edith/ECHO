@@ -353,16 +353,8 @@
             <div class="space-y-2">
                 <h2 class="text-2xl font-extrabold text-white tracking-tight">Design Submitted!</h2>
                 <p class="text-xs text-gray-400 leading-relaxed max-w-xs mx-auto">
-                    Your layout and permissions have been transmitted through your Discord webhook.
+                    You're server design has been submitted
                 </p>
-            </div>
-
-            <!-- BOT BUILD COMMAND REFERENCE -->
-            <div class="p-3.5 bg-black/40 rounded-2xl border border-white/10 space-y-1.5 text-left">
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Discord Deployment Command</p>
-                <code id="success-build-cmd" class="block font-mono text-xs text-purple-300 break-all select-all">
-                    /build file: ...
-                </code>
             </div>
 
             <!-- BOT INVITE ACTION -->
@@ -384,6 +376,61 @@
             <button onclick="resetApp()" class="glass-btn w-full text-gray-300 font-semibold py-3 rounded-2xl text-xs transition">
                 Return to Start
             </button>
+        </div>
+    </main>
+
+    <!-- 4. LOCKDOWN PAGE -->
+    <main id="page-lockdown" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
+        <div class="glass-card rounded-3xl p-8 space-y-6 relative overflow-hidden border border-amber-500/30 shadow-[0_0_50px_rgba(245,158,11,0.2)]">
+            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-amber-500/10 border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                <svg class="w-10 h-10 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+            </div>
+
+            <div class="space-y-2">
+                <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-bold uppercase tracking-widest mb-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                    <span>System Maintenance</span>
+                </div>
+                <h2 class="text-2xl font-extrabold text-white tracking-tight">Studio Under Lockdown</h2>
+                <p class="text-xs text-gray-400 leading-relaxed max-w-xs mx-auto">
+                    The architect service is currently undergoing scheduled maintenance or system updates. Layout generation is temporarily restricted.
+                </p>
+            </div>
+
+            <div class="pt-2 border-t border-white/10 space-y-3">
+                <button onclick="checkAuth()" class="glass-btn w-full text-amber-200 border-amber-500/30 hover:border-amber-400/50 font-semibold py-3 rounded-2xl text-xs transition">
+                    Retry Connection
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 5. BANNED PAGE -->
+    <main id="page-banned" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
+        <div class="glass-card rounded-3xl p-8 space-y-6 relative overflow-hidden border border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-red-500/10 border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                <svg class="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                </svg>
+            </div>
+
+            <div class="space-y-2">
+                <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest mb-1">
+                    <span>Access Denied</span>
+                </div>
+                <h2 class="text-2xl font-extrabold text-white tracking-tight">Account Restricted</h2>
+                <p class="text-xs text-gray-400 leading-relaxed max-w-xs mx-auto">
+                    Your access to Echo Infrastructure Studio has been suspended due to policy violations.
+                </p>
+            </div>
+
+            <div class="pt-2 border-t border-white/10 space-y-3">
+                <a href="/api/auth/logout" class="glass-btn w-full text-red-200 border-red-500/30 hover:border-red-400/50 font-semibold py-3 rounded-2xl text-xs transition block">
+                    Sign Out
+                </a>
+            </div>
         </div>
     </main>
 
@@ -415,6 +462,17 @@
                 const res = await fetch('/api/auth/me');
                 if (res.ok) {
                     const data = await res.json();
+                    
+                    // Route to special views if backend indicates status
+                    if (data.is_banned) {
+                        switchPage('banned');
+                        return;
+                    }
+                    if (data.is_lockdown) {
+                        switchPage('lockdown');
+                        return;
+                    }
+
                     if (data.authenticated) {
                         isAuthenticated = true;
                         document.getElementById('login-btn').classList.add('hidden');
@@ -454,10 +512,13 @@
         }
 
         function switchPage(page) {
-            document.getElementById('page-builder').classList.add('hidden');
-            document.getElementById('page-preview').classList.add('hidden');
-            document.getElementById('page-success').classList.add('hidden');
-            document.getElementById(`page-${page}`).classList.remove('hidden');
+            const pages = ['builder', 'preview', 'success', 'lockdown', 'banned'];
+            pages.forEach(p => {
+                const el = document.getElementById(`page-${p}`);
+                if (el) el.classList.add('hidden');
+            });
+            const target = document.getElementById(`page-${page}`);
+            if (target) target.classList.remove('hidden');
         }
 
         function validateForm() {
@@ -785,13 +846,6 @@
                 if (!res.ok) {
                     alert(responseData.error || "Submission failed.");
                     return;
-                }
-                
-                if (responseData.file_url) {
-                    const cmdEl = document.getElementById('success-build-cmd');
-                    if (cmdEl) {
-                        cmdEl.textContent = `/build file: ${responseData.file_url}`;
-                    }
                 }
                 
                 switchPage('success');
