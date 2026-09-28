@@ -1,6 +1,7 @@
 import os
 import json
 import io
+import time
 import logging
 import requests
 from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, session, url_for
@@ -94,6 +95,46 @@ def get_blueprint_data(guild_id: str):
             logging.error(f"Failed to read blueprint file for guild {guild_id}: {e}")
             
     return None
+
+
+def generate_tier_3_fallback(prompt: str, guild_id: str, server_link: str, separator: str, user: dict) -> dict:
+    """
+    TIER 3 FALLBACK: Local dynamic template generation.
+    Used when both Primary and Secondary remote AI endpoints fail or hit 503 limits.
+    """
+    clean_prompt = prompt.strip()[:25] if prompt else "Community"
+    return {
+        "server_name": f"ORCA — {clean_prompt.title()} Server",
+        "target_guild_id": guild_id,
+        "server_link": server_link,
+        "separator": separator,
+        "creator": user,
+        "roles": ["Administrator", "Moderator", "VIP Member", "Member"],
+        "categories": [
+            {
+                "name": "📌 INFORMATION",
+                "channels": [
+                    {"emoji": "👋", "name": f"welcome{separator}info", "type": "text", "topic": "Welcome to the server!"},
+                    {"emoji": "📜", "name": f"rules{separator}guidelines", "type": "text", "topic": "Server rules"},
+                    {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Official updates"}
+                ]
+            },
+            {
+                "name": "💬 COMMUNITY HUB",
+                "channels": [
+                    {"emoji": "💬", "name": f"general{separator}chat", "type": "text", "topic": "Main conversation area"},
+                    {"emoji": "🤖", "name": f"bot{separator}commands", "type": "text", "topic": "Execute commands here"}
+                ]
+            },
+            {
+                "name": "🎙️ VOICE LOUNGES",
+                "channels": [
+                    {"emoji": "🔊", "name": "General Lounge", "type": "voice", "topic": ""},
+                    {"emoji": "🎮", "name": "Gaming Lounge", "type": "voice", "topic": ""}
+                ]
+            }
+        ]
+    }
 
 
 # ==========================================
@@ -245,54 +286,56 @@ def generate_layout():
         f"Server Purpose / Theme: {prompt}"
     )
 
-    try:
-        if not client:
-            raise Exception("Gemini Client not initialized. Missing GEMINI_API_KEY.")
+    layout_data = None
 
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=full_user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-                temperature=0.3,
+    # --- TIER 1: PRIMARY AI MODEL (gemini-2.5-flash) ---
+    if client:
+        try:
+            logging.info("[ORCA AI] Executing Tier 1 generation (gemini-2.5-flash)...")
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=full_user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                    temperature=0.3,
+                )
             )
-        )
-        
-        layout_data = json.loads(response.text)
-        layout_data["target_guild_id"] = guild_id
-        layout_data["server_link"] = server_link
-        layout_data["separator"] = separator
-        layout_data["creator"] = user
-        return jsonify(layout_data)
+            layout_data = json.loads(response.text)
+            logging.info("[ORCA AI] Tier 1 layout generation succeeded.")
+        except Exception as e1:
+            logging.warning(f"[ORCA AI] Tier 1 Failed ({e1}). Escalating to Tier 2...")
 
-    except Exception as e:
-        logging.error(f"Error generating layout: {e}")
-        fallback = {
-            "server_name": "Generated Community",
-            "target_guild_id": guild_id,
-            "server_link": server_link,
-            "separator": separator,
-            "creator": user,
-            "roles": ["Admin", "Moderator", "Member"],
-            "categories": [
-                {
-                    "name": "WELCOME",
-                    "channels": [
-                        {"emoji": "👋", "name": f"rules{separator}info", "type": "text", "topic": "Server rules"},
-                        {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Updates"}
-                    ]
-                },
-                {
-                    "name": "COMMUNITY",
-                    "channels": [
-                        {"emoji": "💬", "name": f"general{separator}chat", "type": "text", "topic": "General lounge"},
-                        {"emoji": "🔊", "name": "General Voice", "type": "voice", "topic": ""}
-                    ]
-                }
-            ]
-        }
-        return jsonify(fallback)
+    # --- TIER 2: SECONDARY / LIGHTWEIGHT BACKUP MODEL (gemini-1.5-flash) ---
+    if not layout_data and client:
+        try:
+            time.sleep(0.5)  # Backoff delay before hit to secondary endpoint
+            logging.info("[ORCA AI] Executing Tier 2 generation (gemini-1.5-flash)...")
+            response = client.models.generate_content(
+                model='gemini-1.5-flash',
+                contents=full_user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                    temperature=0.3,
+                )
+            )
+            layout_data = json.loads(response.text)
+            logging.info("[ORCA AI] Tier 2 layout generation succeeded.")
+        except Exception as e2:
+            logging.warning(f"[ORCA AI] Tier 2 Failed ({e2}). Escalating to Tier 3...")
+
+    # --- TIER 3: DYNAMIC HARDCODED FALLBACK ---
+    if not layout_data:
+        logging.info("[ORCA AI] Applying Tier 3 dynamic hardcoded fallback layout.")
+        layout_data = generate_tier_3_fallback(prompt, guild_id, server_link, separator, user)
+
+    # Enforce standard tracking fields on payload
+    layout_data["target_guild_id"] = guild_id
+    layout_data["server_link"] = server_link
+    layout_data["separator"] = separator
+    layout_data["creator"] = user
+    return jsonify(layout_data)
 
 
 @app.route('/api/submit-design', methods=['POST'])
