@@ -1,7 +1,9 @@
 import os
+import json
 import asyncio
 import threading
 import logging
+from flask import request, jsonify, render_template, session
 import discord
 from discord.ext import commands
 
@@ -9,6 +11,123 @@ from discord.ext import commands
 from ai_brain import app
 
 logging.basicConfig(level=logging.INFO)
+
+# -------------------------------------------------------------
+# 0. WEBSITE BAN & LOCKDOWN BACKEND SYSTEM INTEGRATION
+# -------------------------------------------------------------
+BOT_API_KEY = os.environ.get("BOT_API_KEY", "").strip()
+BANNED_USERS_FILE = "banned_users.json"
+IS_LOCKDOWN = False
+
+def load_banned_users():
+    if not os.path.exists(BANNED_USERS_FILE):
+        return []
+    try:
+        with open(BANNED_USERS_FILE, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        logging.error(f"❌ Failed to load ban file: {e}")
+        return []
+
+def save_banned_users(ban_list):
+    try:
+        with open(BANNED_USERS_FILE, "w") as f:
+            json.dump(ban_list, f, indent=4)
+    except Exception as e:
+        logging.error(f"❌ Failed to save ban file: {e}")
+
+banned_users = load_banned_users()
+
+
+# --- Security API Routes for Bot Communication ---
+
+@app.route('/api/security/ban', methods=['POST'])
+def api_security_ban():
+    """Endpoint called by /ban command in cogs/orca.py"""
+    global banned_users
+    auth_header = request.headers.get('X-Bot-Auth', '').strip()
+    if BOT_API_KEY and auth_header != BOT_API_KEY:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json() or {}
+    user_id = str(data.get('user_id', '')).strip()
+    action = data.get('action', 'ban')
+    reason = data.get('reason', 'No reason provided')
+
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+
+    if action == "ban":
+        if not any(u.get('user_id') == user_id for u in banned_users):
+            banned_users.append({'user_id': user_id, 'reason': reason})
+            save_banned_users(banned_users)
+            logging.info(f"🚫 Web Ban applied to user: {user_id}")
+    elif action == "unban":
+        banned_users = [u for u in banned_users if u.get('user_id') != user_id]
+        save_banned_users(banned_users)
+        logging.info(f"✅ Web Unban applied to user: {user_id}")
+
+    return jsonify({"success": True, "banned_count": len(banned_users)}), 200
+
+
+@app.route('/api/security/bans', methods=['GET'])
+@app.route('/api/bans', methods=['GET'])
+def api_security_bans():
+    """Endpoint called by /ban-list command in cogs/orca.py"""
+    auth_header = request.headers.get('X-Bot-Auth', '').strip()
+    if BOT_API_KEY and auth_header != BOT_API_KEY:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    return jsonify({"banned_users": banned_users}), 200
+
+
+@app.route('/api/security/lockdown', methods=['POST'])
+def api_security_lockdown():
+    """Endpoint called by /lockdown command in cogs/orca.py"""
+    global IS_LOCKDOWN
+    auth_header = request.headers.get('X-Bot-Auth', '').strip()
+    if BOT_API_KEY and auth_header != BOT_API_KEY:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json() or {}
+    IS_LOCKDOWN = bool(data.get('enable', False))
+    logging.info(f"🔒 Maintenance mode state updated to: {IS_LOCKDOWN}")
+    return jsonify({"success": True, "is_lockdown": IS_LOCKDOWN}), 200
+
+
+# --- Global Request Interceptor for Ban & Lockdown Enforcement ---
+
+@app.before_request
+def enforce_security_and_maintenance():
+    # Exclude internal API routes and static assets from lockdown/ban checks
+    if request.path.startswith('/api/security') or request.path.startswith('/static'):
+        return None
+
+    user = session.get('user', {})
+    current_user_id = str(user.get('id', '')).strip()
+
+    # 1. Check if the current user is Banned from website
+    if current_user_id:
+        ban_entry = next((u for u in banned_users if u.get('user_id') == current_user_id), None)
+        if ban_entry:
+            reason = ban_entry.get('reason', 'Violating platform rules')
+            return render_template(
+                'index.html',
+                is_banned=True,
+                ban_reason=reason,
+                is_lockdown=False,
+                user=user
+            ), 403
+
+    # 2. Check if Website Lockdown is Active
+    if IS_LOCKDOWN:
+        return render_template(
+            'index.html',
+            is_lockdown=True,
+            is_banned=False,
+            user=user
+        ), 530
+
 
 # -------------------------------------------------------------
 # 1. DISCORD BOT INITIALIZATION
