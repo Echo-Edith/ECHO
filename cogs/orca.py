@@ -1,6 +1,8 @@
 import time
 import json
 import asyncio
+import datetime
+import collections
 import aiohttp
 import discord
 from discord import app_commands
@@ -12,6 +14,10 @@ from ai_brain import get_blueprint_data, WEB_BUILDER_URL
 AUTHORIZED_USER_ID = 1219266886143967245
 is_lockdown = False
 start_time = time.time()
+
+# Spam detection thresholds
+SPAM_THRESHOLD = 5  # Max messages allowed
+TIME_WINDOW = 5     # Time window in seconds
 
 
 def is_owner():
@@ -33,6 +39,45 @@ def is_owner():
 class OrcaCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # Track message timestamps per user: {user_id: [timestamp1, timestamp2, ...]}
+        self.user_message_logs = collections.defaultdict(list)
+
+    # --- AUTOMATED ANTI-SPAM LISTENER ---
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.author.bot or not message.guild:
+            return
+
+        user_id = message.author.id
+        current_time = time.time()
+
+        # Track message timestamps and drop expired entries outside the time window
+        self.user_message_logs[user_id].append(current_time)
+        self.user_message_logs[user_id] = [
+            t for t in self.user_message_logs[user_id] if current_time - t <= TIME_WINDOW
+        ]
+
+        # Trigger 12-hour timeout if threshold is reached
+        if len(self.user_message_logs[user_id]) >= SPAM_THRESHOLD:
+            try:
+                # Apply 12-hour timeout using native Discord timeout functionality
+                duration = datetime.timedelta(hours=12)
+                await message.author.timeout(duration, reason="Automated Anti-Spam: Excessive message frequency.")
+
+                # Reset message log to prevent repeated triggering
+                self.user_message_logs[user_id] = []
+
+                embed = discord.Embed(
+                    title="🚫 Member Restricted",
+                    description=f"{message.author.mention} has been restricted for **12 hours** due to spamming.",
+                    color=0xE74C3C
+                )
+                embed.set_footer(text="ORCA AI — Anti-Spam Protection")
+                await message.channel.send(embed=embed)
+            except discord.Forbidden:
+                print(f"Failed to restrict {message.author}: Missing 'Moderate Members' permission.")
+            except Exception as e:
+                print(f"Error applying timeout: {e}")
 
     # --- 1. /help COMMAND (PUBLIC) ---
     @app_commands.command(name="help", description="Learn how to create and deploy a custom Discord server.")
@@ -97,11 +142,9 @@ class OrcaCog(commands.Cog):
     ):
         target_id = server_id.strip() if server_id else (str(interaction.guild.id) if interaction.guild else "N/A")
         
-        # If no invite link provided, try to create or lookup one if in a guild
         formatted_invite = invite_link.strip() if invite_link else None
         if not formatted_invite and interaction.guild:
             try:
-                # Find first channel where bot can create an invite
                 for channel in interaction.guild.text_channels:
                     if channel.permissions_for(interaction.guild.me).create_instant_invite:
                         inv = await channel.create_invite(max_age=0, max_uses=0)
@@ -120,20 +163,71 @@ class OrcaCog(commands.Cog):
             description="Copy the Server ID or Invite Link below for use in the ORCA Web Builder:",
             color=0x5865F2
         )
-        embed.add_field(
-            name="🆔 Server ID",
-            value=f"`{target_id}`",
-            inline=False
-        )
-        embed.add_field(
-            name="🔗 Invite Link",
-            value=f"`{formatted_invite}`",
-            inline=False
-        )
+        embed.add_field(name="🆔 Server ID", value=f"`{target_id}`", inline=False)
+        embed.add_field(name="🔗 Invite Link", value=f"`{formatted_invite}`", inline=False)
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
-    # --- 4. /build COMMAND (OWNER ONLY) ---
+    # --- 4. /ban COMMAND (MODERATION) ---
+    @app_commands.command(name="ban", description="Ban a member from the server.")
+    @app_commands.describe(
+        member="The member to ban",
+        reason="Reason for banning the user"
+    )
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def ban_command(
+        self,
+        interaction: discord.Interaction,
+        member: discord.Member,
+        reason: str = "Violating server rules"
+    ):
+        try:
+            await member.ban(reason=reason)
+            embed = discord.Embed(
+                title="🔨 Member Banned",
+                description=f"Successfully banned {member.mention} for: **{reason}**",
+                color=0xE74C3C
+            )
+            embed.set_footer(text="ORCA AI — Server Moderation")
+            await interaction.response.send_message(embed=embed)
+        except discord.Forbidden:
+            await interaction.response.send_message("❌ I do not have permissions to ban this member.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Failed to ban member: {e}", ephemeral=True)
+
+    # --- 5. /un-restrict COMMAND (MODERATION) ---
+    @app_commands.command(name="un-restrict", description="Remove a 12-hour spam timeout from a user.")
+    @app_commands.describe(
+        member="The member to un-restrict",
+        reason="Reason for removing the timeout"
+    )
+    @app_commands.checks.has_permissions(moderate_members=True)
+    async def un_restrict_command(
+        self,
+        interaction: discord.Interaction,
+        member: discord.Member,
+        reason: str = "False positive spam flag"
+    ):
+        try:
+            # Clear timeout state
+            await member.timeout(None, reason=reason)
+            
+            # Clear local tracking history
+            self.user_message_logs[member.id] = []
+
+            embed = discord.Embed(
+                title="✅ Restriction Removed",
+                description=f"Removed timeout restriction from {member.mention}.\n**Reason:** {reason}",
+                color=0x2ECC71
+            )
+            embed.set_footer(text="ORCA AI — Server Moderation")
+            await interaction.response.send_message(embed=embed)
+        except discord.Forbidden:
+            await interaction.response.send_message("❌ I do not have permission to modify timeouts for this member.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Failed to un-restrict member: {e}", ephemeral=True)
+
+    # --- 6. /build COMMAND (OWNER ONLY) ---
     @app_commands.command(name="build", description="Builds server layout from blueprint URL or uploaded JSON file.")
     @app_commands.describe(
         file="Direct file link or HTTP URL to blueprint JSON",
@@ -146,13 +240,11 @@ class OrcaCog(commands.Cog):
         file: str = None, 
         attachment: discord.Attachment = None
     ):
-        # Display "Building Server..." instead of standard thinking message
         await interaction.response.send_message("Building Server...")
 
         blueprint = None
         source_identifier = "Unknown"
 
-        # Case 1: Attachment provided
         if attachment:
             if not attachment.filename.endswith(".json"):
                 embed = discord.Embed(
@@ -178,7 +270,6 @@ class OrcaCog(commands.Cog):
                 await interaction.followup.send(embed=embed)
                 return
 
-        # Case 2: URL string provided
         elif file:
             clean_file = file.strip()
             source_identifier = clean_file
@@ -208,7 +299,6 @@ class OrcaCog(commands.Cog):
                     await interaction.followup.send(embed=embed)
                     return
             else:
-                # Direct Guild ID lookup or local filename query
                 blueprint = get_blueprint_data(clean_file)
 
         else:
@@ -231,11 +321,9 @@ class OrcaCog(commands.Cog):
             await interaction.followup.send(embed=embed)
             return
 
-        # Verification Checks
         target_guild_id = str(blueprint.get("target_guild_id", "")).strip()
         current_guild_id = str(interaction.guild.id)
 
-        # Check Guild ID Match
         if target_guild_id and target_guild_id != current_guild_id:
             embed = discord.Embed(
                 title="⛔ Build Denied — Server ID Mismatch",
@@ -252,7 +340,6 @@ class OrcaCog(commands.Cog):
         guild = interaction.guild
         current_channel = interaction.channel
 
-        # 1. Purge Channels (except current channel executing command)
         for channel in guild.channels:
             if channel.id != current_channel.id:
                 try:
@@ -261,7 +348,6 @@ class OrcaCog(commands.Cog):
                 except Exception:
                     pass
 
-        # 2. Purge Roles
         for role in guild.roles:
             if role.name != "@everyone" and not role.managed and role < guild.me.top_role:
                 try:
@@ -273,7 +359,6 @@ class OrcaCog(commands.Cog):
         roles_created = 0
         channels_created = 0
 
-        # 3. Create Roles
         for role_name in blueprint.get("roles", []):
             if role_name.lower() in ["everyone", "@everyone"]:
                 continue
@@ -284,7 +369,6 @@ class OrcaCog(commands.Cog):
             except Exception:
                 pass
 
-        # 4. Create Categories & Channels
         for cat_data in blueprint.get("categories", []):
             try:
                 category = await guild.create_category(name=cat_data.get("name", "CATEGORY"))
@@ -315,13 +399,11 @@ class OrcaCog(commands.Cog):
                 except Exception:
                     pass
 
-        # Delete command execution channel
         try:
             await current_channel.delete()
         except Exception:
             pass
 
-        # Send completion embed into the first created text channel
         target_channel = guild.text_channels[0] if guild.text_channels else None
         if target_channel:
             embed = discord.Embed(
@@ -335,7 +417,7 @@ class OrcaCog(commands.Cog):
             embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
             await target_channel.send(embed=embed)
 
-    # --- 5. /lockdown COMMAND (OWNER ONLY) ---
+    # --- 7. /lockdown COMMAND (OWNER ONLY) ---
     @app_commands.command(name="lockdown", description="Toggles web portal maintenance screen.")
     @is_owner()
     @app_commands.choices(state=[
@@ -354,7 +436,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # --- 6. /status COMMAND (OWNER ONLY) ---
+    # --- 8. /status COMMAND (OWNER ONLY) ---
     @app_commands.command(name="status", description="Displays real-time bot latency and operational statistics.")
     @is_owner()
     async def status(self, interaction: discord.Interaction):
@@ -367,7 +449,7 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="ORCA AI — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # --- 7. /nuke COMMAND (OWNER ONLY) ---
+    # --- 9. /nuke COMMAND (OWNER ONLY) ---
     @app_commands.command(name="nuke", description="Deletes all channels/categories except the command channel.")
     @is_owner()
     async def nuke(self, interaction: discord.Interaction):
@@ -394,6 +476,5 @@ class OrcaCog(commands.Cog):
         await interaction.followup.send(embed=embed)
 
 
-# REQUIRED SETUP ENTRY POINT FOR DISCORD.PY EXTENSIONS
 async def setup(bot: commands.Bot):
     await bot.add_cog(OrcaCog(bot))
