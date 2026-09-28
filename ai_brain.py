@@ -19,6 +19,9 @@ DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
 DISCORD_API_BASE_URL = "https://discord.com/api/v10"
 
+# Bot API Auth Key for internal bot-to-web API security
+BOT_API_KEY = os.environ.get("BOT_API_KEY", "super-secret-bot-key").strip()
+
 # Storage directory setup
 BLUEPRINT_STORAGE = {}
 BLUEPRINT_DIR = os.path.join(os.getcwd(), "blueprints")
@@ -36,6 +39,44 @@ WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-
 client = None
 if GEMINI_API_KEY:
     client = genai.Client(api_key=GEMINI_API_KEY)
+
+# ==========================================
+# WEBSITE SECURITY & ACCESS CONTROL STATE
+# ==========================================
+# In-memory storage for banned Discord User IDs
+BANNED_USER_IDS = set()
+
+# Global Lockdown Flag (True = Dashboard restricted to authorized admins)
+IS_LOCKDOWN_ACTIVE = False
+
+# Hardcoded Primary Owner ID exempted from website lockdown restrictions
+PRIMARY_OWNER_ID = "1219266886143967245"
+
+
+@app.before_request
+def enforce_security_middleware():
+    """Middleware enforcing site bans and lockdown restrictions prior to handling requests."""
+    # Exempt essential static resources and OAuth login callback routes
+    exempt_endpoints = ['static', 'discord_login', 'discord_callback', 'handle_ban_user', 'handle_lockdown']
+    if request.endpoint in exempt_endpoints:
+        return None
+
+    user = session.get('user')
+    user_id = str(user.get('id')).strip() if user else None
+
+    # 1. ENFORCE WEBSITE BANS
+    if user_id and user_id in BANNED_USER_IDS:
+        session.pop('user', None)  # Wipe session
+        if request.path.startswith('/api/'):
+            return jsonify({"error": "Access Denied. You are banned from utilizing the ORCA Web Portal."}), 403
+        return "<h1>403 Forbidden</h1><p>You have been banned from accessing the ORCA AI Web Portal.</p>", 403
+
+    # 2. ENFORCE GLOBAL LOCKDOWN
+    if IS_LOCKDOWN_ACTIVE:
+        if not user_id or user_id != PRIMARY_OWNER_ID:
+            if request.path.startswith('/api/'):
+                return jsonify({"error": "System Under Maintenance. The dashboard is currently locked."}), 530
+            return "<h1>530 Site Under Maintenance</h1><p>The ORCA AI Portal is currently undergoing maintenance. Please try again later.</p>", 530
 
 
 def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields: list = None):
@@ -138,6 +179,56 @@ def generate_tier_3_fallback(prompt: str, guild_id: str, server_link: str, separ
 
 
 # ==========================================
+# BOT SECURITY CONTROL ENDPOINTS
+# ==========================================
+
+@app.route('/api/security/ban', methods=['POST'])
+def handle_ban_user():
+    """API endpoint called by bot moderation (/ban) to ban/unban users on the website."""
+    auth_header = request.headers.get("X-Bot-Auth")
+    if auth_header != BOT_API_KEY:
+        return jsonify({"error": "Unauthorized endpoint access."}), 401
+
+    data = request.get_json() or {}
+    target_user_id = str(data.get("user_id", "")).strip()
+    action = data.get("action", "ban").lower()
+
+    if not target_user_id:
+        return jsonify({"error": "Missing user_id parameter."}), 400
+
+    if action == "ban":
+        BANNED_USER_IDS.add(target_user_id)
+        logging.info(f"[SECURITY] User ID {target_user_id} was banned from website access.")
+        return jsonify({"status": "success", "message": f"User {target_user_id} banned from portal."}), 200
+    else:
+        BANNED_USER_IDS.discard(target_user_id)
+        logging.info(f"[SECURITY] User ID {target_user_id} unbanned from website access.")
+        return jsonify({"status": "success", "message": f"User {target_user_id} unbanned."}), 200
+
+
+@app.route('/api/security/lockdown', methods=['POST'])
+def handle_lockdown():
+    """API endpoint called by bot management (/lockdown) to toggle website maintenance mode."""
+    auth_header = request.headers.get("X-Bot-Auth")
+    if auth_header != BOT_API_KEY:
+        return jsonify({"error": "Unauthorized endpoint access."}), 401
+
+    global IS_LOCKDOWN_ACTIVE
+    data = request.get_json() or {}
+    enable_lockdown = data.get("enable", True)
+
+    IS_LOCKDOWN_ACTIVE = bool(enable_lockdown)
+    status_str = "ENABLED" if IS_LOCKDOWN_ACTIVE else "DISABLED"
+    logging.info(f"[SECURITY] Website maintenance lockdown is now {status_str}.")
+
+    return jsonify({
+        "status": "success",
+        "lockdown": IS_LOCKDOWN_ACTIVE,
+        "message": f"Website lockdown mode has been {status_str.lower()}."
+    }), 200
+
+
+# ==========================================
 # DISCORD OAUTH2 AUTHENTICATION ROUTES
 # ==========================================
 
@@ -190,9 +281,15 @@ def discord_callback():
         user_res.raise_for_status()
         user_profile = user_res.json()
 
+        user_id = str(user_profile.get('id')).strip()
+
+        # Immediately reject login if user is banned
+        if user_id in BANNED_USER_IDS:
+            return "<h1>403 Forbidden</h1><p>Your Discord account is banned from accessing this dashboard.</p>", 403
+
         # Save identity in session cookie
         session['user'] = {
-            'id': user_profile.get('id'),
+            'id': user_id,
             'username': user_profile.get('username'),
             'avatar': user_profile.get('avatar'),
             'discriminator': user_profile.get('discriminator')
@@ -201,7 +298,7 @@ def discord_callback():
         # Send activity alert to System Log Webhook
         send_system_log(
             title="🔑 User Authenticated",
-            description=f"User **@{user_profile.get('username')}** (`{user_profile.get('id')}`) logged into the web dashboard.",
+            description=f"User **@{user_profile.get('username')}** (`{user_id}`) logged into the web dashboard.",
             color=0x3B82F6
         )
 
@@ -309,7 +406,7 @@ def generate_layout():
     # --- TIER 2: SECONDARY / LIGHTWEIGHT BACKUP MODEL (gemini-1.5-flash) ---
     if not layout_data and client:
         try:
-            time.sleep(0.5)  # Backoff delay before hit to secondary endpoint
+            time.sleep(0.5)  # Backoff delay before hitting secondary endpoint
             logging.info("[ORCA AI] Executing Tier 2 generation (gemini-1.5-flash)...")
             response = client.models.generate_content(
                 model='gemini-1.5-flash',
