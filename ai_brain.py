@@ -243,8 +243,9 @@ def extract_invite_code(url_or_code: str) -> str:
 
 
 def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
-    """Verifies whether the user holds Administrator permissions in target guild via Bot API."""
-    if str(user_id).strip() == PRIMARY_OWNER_ID:
+    """Verifies whether the user is the Server Owner or holds Administrator permissions in target guild via Bot API."""
+    user_id_str = str(user_id).strip()
+    if user_id_str == PRIMARY_OWNER_ID:
         return True
 
     if not BOT_TOKEN:
@@ -252,7 +253,15 @@ def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
 
     headers = {"Authorization": f"Bot {BOT_TOKEN}"}
     try:
-        res = requests.get(f"{DISCORD_API_BASE_URL}/guilds/{guild_id}/members/{user_id}", headers=headers, timeout=5)
+        # Check if user is the Server Owner directly from guild details
+        guild_res = requests.get(f"{DISCORD_API_BASE_URL}/guilds/{guild_id}", headers=headers, timeout=5)
+        if guild_res.status_code == 200:
+            guild_data = guild_res.json()
+            if str(guild_data.get("owner_id", "")).strip() == user_id_str:
+                return True
+
+        # Fallback to Administrator permission check on member roles
+        res = requests.get(f"{DISCORD_API_BASE_URL}/guilds/{guild_id}/members/{user_id_str}", headers=headers, timeout=5)
         if res.status_code != 200:
             return False
 
@@ -522,7 +531,7 @@ def verify_server():
         if not check_user_guild_admin(user_id, guild_id):
             return jsonify({
                 "valid": False,
-                "error": "Admin check failed. You must hold Administrator permissions in the target server."
+                "error": "Admin check failed. You must hold Administrator permissions or be the Server Owner in the target server."
             }), 403
 
         return jsonify({"valid": True, "message": "Verification successful."})
@@ -778,6 +787,10 @@ def generate_layout():
     guild_id = str(data.get('guild_id', '')).strip()
     server_link = data.get('server_link', '').strip()
     separator = data.get('separator', '-')
+    
+    # Optional preferred category and channel counts
+    categories_count = data.get('categories_count')
+    channels_count = data.get('channels_count')
 
     if not prompt or not guild_id or not server_link:
         return jsonify({"error": "Prompt, Guild ID, and Server Link are required."}), 400
@@ -787,12 +800,19 @@ def generate_layout():
         "{\"server_name\": \"String\", \"roles\": [\"String\"], \"categories\": [{\"name\": \"String\", \"channels\": [{\"emoji\": \"💬\", \"name\": \"string\", \"type\": \"text|voice|announcement\", \"topic\": \"string\"}]}]}"
     )
 
+    # Build prompt parameters including optional channel/category constraints
+    prompt_payload = f"Guild ID: {guild_id}\nPrompt: {prompt}"
+    if categories_count is not None and str(categories_count).isdigit():
+        prompt_payload += f"\nPreferred Categories Count: {categories_count}"
+    if channels_count is not None and str(channels_count).isdigit():
+        prompt_payload += f"\nPreferred Total Channels Count: {channels_count}"
+
     layout_data = None
     if client:
         try:
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
-                contents=f"Guild ID: {guild_id}\nPrompt: {prompt}",
+                contents=prompt_payload,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
                     response_mime_type="application/json"
