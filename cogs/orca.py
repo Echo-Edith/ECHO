@@ -318,6 +318,7 @@ class OrcaCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
+        """Fires when the bot joins a new server; sends TOS & agreement embed to system/first available channel."""
         if not guild.me.guild_permissions.administrator:
             return
 
@@ -360,6 +361,7 @@ class OrcaCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        """Fires on every message to apply a 12-hour timeout if a user sends 5+ messages within 5 seconds."""
         if message.author.bot or not message.guild:
             return
 
@@ -433,6 +435,7 @@ class OrcaCog(commands.Cog):
             return False, f"Verification Error: `{e}`"
 
     async def check_and_apply_design_ratelimit(self, user_id: str) -> tuple[bool, str]:
+        """Applies a 12-hour web portal ban if a user requests > 3 web layout generations within 10 minutes."""
         now = time.time()
         uid = str(user_id)
         
