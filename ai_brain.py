@@ -78,7 +78,31 @@ BANNED_IPS = {}            # { ip: ban_expiration_timestamp }
 USER_DESIGN_TIMESTAMPS = {}  # { user_id: [timestamp1, timestamp2, ...] }
 
 IS_LOCKDOWN_ACTIVE = False
-PRIMARY_OWNER_ID = "1219266886143967245"
+PRIMARY_OWNER_ID = os.environ.get("PRIMARY_OWNER_ID", "1219266886143967245").strip()
+
+
+def get_blueprint_data(guild_id: str = None) -> dict:
+    """
+    Retrieves stored blueprint data for a given guild_id.
+    Exported for use by Discord bot cogs (e.g. cogs/orca.py).
+    """
+    if not guild_id:
+        return BLUEPRINT_STORAGE
+
+    guild_id = str(guild_id).strip()
+    if guild_id in BLUEPRINT_STORAGE:
+        return BLUEPRINT_STORAGE[guild_id]
+
+    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                BLUEPRINT_STORAGE[guild_id] = data
+                return data
+        except Exception as e:
+            logger.error("Error reading blueprint file for guild %s: %s", guild_id, e)
+    return {}
 
 
 @app.before_request
@@ -226,7 +250,7 @@ def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
         guild_roles = {r["id"]: int(r["permissions"]) for r in roles_res.json()}
         user_role_ids = member_data.get("roles", [])
 
-        # Check for ADMINISTRATOR bitflag (0x8)
+        # Check for ADMINISTRATOR bitflag (0x8) or MANAGE_GUILD (0x20)
         for r_id in user_role_ids:
             perms = guild_roles.get(r_id, 0)
             if (perms & 0x8) == 0x8 or (perms & 0x20) == 0x20:
@@ -516,6 +540,12 @@ def get_current_user():
 @app.route('/maintenance')
 def index():
     return render_template('index.html')
+
+
+@app.route('/blueprint/<guild_id>.json', methods=['GET'])
+def serve_blueprint(guild_id):
+    """Serves the generated layout JSON for a given guild_id."""
+    return send_from_directory(BLUEPRINT_DIR, f"{guild_id}.json", mimetype='application/json')
 
 
 @app.route('/api/generate-layout', methods=['POST'])
