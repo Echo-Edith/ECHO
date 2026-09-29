@@ -309,6 +309,27 @@
                 </div>
             </div>
 
+            <!-- PREFERRED COUNTS (OPTIONAL) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label for="categories-count-input" class="flex justify-between items-center text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                        <span>Preferred Categories</span>
+                        <span class="text-[9px] text-gray-500 font-normal">Optional</span>
+                    </label>
+                    <input type="number" id="categories-count-input" min="1" max="50" placeholder="e.g. 5" oninput="validateForm()"
+                        class="glass-input w-full rounded-2xl p-3.5 text-xs font-mono transition" />
+                </div>
+
+                <div class="space-y-2">
+                    <label for="channels-count-input" class="flex justify-between items-center text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                        <span>Preferred Channels</span>
+                        <span class="text-[9px] text-gray-500 font-normal">Optional</span>
+                    </label>
+                    <input type="number" id="channels-count-input" min="1" max="500" placeholder="e.g. 15" oninput="validateForm()"
+                        class="glass-input w-full rounded-2xl p-3.5 text-xs font-mono transition" />
+                </div>
+            </div>
+
             <div class="flex items-center space-x-2 pt-1 border-t border-white/5">
                 <span class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Quick Separators:</span>
                 <div class="flex space-x-1.5">
@@ -876,6 +897,12 @@
             const serverLink = document.getElementById('server-link-input').value.trim();
             const separatorVal = document.getElementById('separator-input').value.trim() || '-';
             
+            const categoriesCountVal = document.getElementById('categories-count-input').value.trim();
+            const channelsCountVal = document.getElementById('channels-count-input').value.trim();
+
+            const categoriesCount = categoriesCountVal ? parseInt(categoriesCountVal, 10) : null;
+            const channelsCount = channelsCountVal ? parseInt(channelsCountVal, 10) : null;
+
             const btnText = document.getElementById('btn-text');
             const btnEl = document.getElementById('btn-generate');
 
@@ -915,6 +942,8 @@
                         guild_id: guildId, 
                         server_link: serverLink, 
                         separator: separatorVal,
+                        categories_count: categoriesCount,
+                        channels_count: channelsCount,
                         captcha_token: captchaToken
                     })
                 });
@@ -1305,6 +1334,8 @@
             document.getElementById('prompt-input').value = '';
             document.getElementById('guild-id-input').value = '';
             document.getElementById('server-link-input').value = '';
+            document.getElementById('categories-count-input').value = '';
+            document.getElementById('channels-count-input').value = '';
             serverBlueprint = null;
             captchaToken = null;
             if (window.grecaptcha) window.grecaptcha.reset();
