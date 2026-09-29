@@ -23,8 +23,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import Flask application and helpers from ai_brain.py
-from ai_brain import (
+# Import Flask application and helpers from keep_alive.py
+from keep_alive import (
     app,
     is_user_banned_db,
     check_lockdown_status_db,
