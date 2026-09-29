@@ -57,7 +57,7 @@ limiter = Limiter(
 # -------------------------------------------------------------
 BOT_API_KEY = os.environ.get("BOT_API_KEY", "").strip()
 MONGO_URI = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
-SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", "").strip()
+SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", os.environ.get("WEBHOOK_LOG_URL", "")).strip()
 DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
 PRIMARY_OWNER_ID = os.environ.get("PRIMARY_OWNER_ID", "1219266886143967245").strip()
 
