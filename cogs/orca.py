@@ -298,14 +298,53 @@ class OrcaCog(commands.Cog):
 
         return {"authenticated": True, "user_id": uid}
 
-    async def handle_api_verify_server(self, payload: dict, user_id: int) -> dict:
-        """Validates captcha token and verifies server matching, invite lifetime, and bot admin rights."""
+    async def check_user_oauth_guild_admin(self, user_id: int, guild_id: str, access_token: str = None) -> tuple[bool, str]:
+        """Checks whether the user owns or has Administrator/Manage Guild permissions in the target guild via OAuth2."""
+        if user_id == AUTHORIZED_USER_ID:
+            return True, "Owner immunity granted."
+
+        if not access_token:
+            return False, "Missing Discord OAuth access token."
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {"Authorization": f"Bearer {access_token}"}
+                async with session.get("https://discord.com/api/v10/users/@me/guilds", headers=headers, timeout=5) as resp:
+                    if resp.status != 200:
+                        return False, "Could not verify user permissions with Discord API."
+                    
+                    guilds = await resp.json()
+                    target_guild = next((g for g in guilds if str(g.get("id")) == str(guild_id)), None)
+
+                    if not target_guild:
+                        return False, "You are not a member of the specified target server."
+
+                    if target_guild.get("owner"):
+                        return True, "Server Owner verified."
+
+                    permissions = int(target_guild.get("permissions", 0))
+                    # Check for ADMINISTRATOR (0x8) or MANAGE_GUILD (0x20)
+                    if (permissions & 0x8) == 0x8 or (permissions & 0x20) == 0x20:
+                        return True, "User administrative permissions verified."
+
+                    return False, "You must be the Server Owner or have Admin/Manage Server permissions in the target server."
+
+        except Exception as e:
+            return False, f"Error verifying user server access: {e}"
+
+    async def handle_api_verify_server(self, payload: dict, user_id: int, access_token: str = None) -> dict:
+        """Validates captcha token and verifies server matching, invite lifetime, and bot/user admin rights."""
         captcha_token = payload.get("captcha_token")
         if captcha_token and not await self.verify_recaptcha(captcha_token):
             return {"valid": False, "error": "Security CAPTCHA verification failed."}
 
         guild_id = payload.get("guild_id") or payload.get("server_id")
         server_link = payload.get("server_link") or payload.get("invite_url", "")
+
+        # Verify user permission in target guild via OAuth2
+        user_authorized, auth_msg = await self.check_user_oauth_guild_admin(user_id, str(guild_id), access_token)
+        if not user_authorized:
+            return {"valid": False, "error": auth_msg}
 
         valid, msg = await self.verify_invite_matches_server(server_link, str(guild_id))
         return {"valid": valid, "message" if valid else "error": msg}
