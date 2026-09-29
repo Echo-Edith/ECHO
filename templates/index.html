@@ -116,15 +116,6 @@
             box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.85), 0 0 40px rgba(239, 68, 68, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.15);
         }
 
-        .glass-card-interactive {
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .glass-card-interactive:hover {
-            border-color: rgba(168, 85, 247, 0.3);
-            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.75), 0 0 20px rgba(168, 85, 247, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-        }
-
         .glass-input {
             background: rgba(10, 10, 16, 0.6);
             backdrop-filter: blur(16px);
@@ -510,7 +501,7 @@
         </div>
     </main>
 
-    <!-- 5. BANNED PAGE (Clean Glass UI with Live Countdown) -->
+    <!-- 5. BANNED PAGE -->
     <main id="page-banned" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
         <div class="glass-card-red rounded-3xl p-8 space-y-6 relative overflow-hidden">
             <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-red-500/10 border border-red-500/30 shadow-[0_0_35px_rgba(239,68,68,0.3)]">
@@ -566,13 +557,12 @@
         let captchaToken = null;
         let countdownInterval = null;
 
-        // DESIGN RATE-LIMITING STATE (Max 3 designs per 10 mins)
         const RATE_LIMIT_KEY = 'echo_design_timestamps';
         const BAN_EXPIRY_KEY = 'echo_ban_expiry_timestamp';
         const MAX_DESIGNS = 3;
-        const TIME_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
-        const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hour ban duration
-        const TWELVE_HOUR_MS = 12 * 60 * 60 * 1000; // 12 hours ban duration
+        const TIME_WINDOW_MS = 10 * 60 * 1000; 
+        const ONE_HOUR_MS = 60 * 60 * 1000; 
+        const TWELVE_HOUR_MS = 12 * 60 * 60 * 1000; 
 
         const DISCORD_PERMISSIONS = [
             { key: "view_channel", label: "View Channel" },
@@ -585,7 +575,6 @@
             { key: "manage_channels", label: "Manage Channel" }
         ];
 
-        // CAPTCHA CALLBACKS
         function onCaptchaSuccess(token) {
             captchaToken = token;
             validateForm();
@@ -596,7 +585,6 @@
             validateForm();
         }
 
-        // CHECK BAN COUNTDOWN
         function checkActiveBanTimer() {
             const expiry = localStorage.getItem(BAN_EXPIRY_KEY);
             if (!expiry) return false;
@@ -643,16 +631,13 @@
             countdownInterval = setInterval(updateTimer, 1000);
         }
 
-        // CHECK AUTHENTICATION, IP BANS & ALT ACCOUNT STATUS ON LOAD
         async function checkAuth() {
             try {
-                // Check local persistent ban timer first
                 if (checkActiveBanTimer()) {
                     showBanPage("Temporary Ban Active");
                     return;
                 }
 
-                // Verify IP Rate Limit Status from backend
                 const ipRes = await fetch('/api/check-ip-status', { credentials: 'include' });
                 if (ipRes.ok) {
                     const ipData = await ipRes.json();
@@ -675,7 +660,6 @@
                     return;
                 }
 
-                // Persistent fetch session with include
                 const res = await fetch('/api/auth/me', { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
@@ -690,7 +674,6 @@
                     }
 
                     if (data.authenticated) {
-                        // ALT ACCOUNT DETECTION (0-30 days account age check)
                         const snowflake = BigInt(data.user.id);
                         const createdAt = new Date(Number((snowflake >> 22n) + 1420070400000n));
                         const ageDays = Math.floor((new Date() - createdAt) / (1000 * 60 * 60 * 24));
@@ -715,8 +698,6 @@
                         }
 
                         document.getElementById('auth-warning').classList.add('hidden');
-
-                        // Log detailed entry telemetry
                         logDetailedEntryInfo(data.user);
                     } else {
                         setUnauthenticated();
@@ -744,7 +725,6 @@
             }
         }
 
-        // DETAILED ENTRY LOGGING TO WEBHOOK / API
         async function logDetailedEntryInfo(user) {
             try {
                 const snowflake = BigInt(user.id);
@@ -777,15 +757,12 @@
             }
         }
 
-        // RATE-LIMIT CHECK AND AUTO-BAN ENFORCEMENT
         async function checkAndApplyRateLimit() {
             const now = Date.now();
             let timestamps = JSON.parse(localStorage.getItem(RATE_LIMIT_KEY) || '[]');
             
-            // Filter timestamps within current 10-minute window
             timestamps = timestamps.filter(ts => (now - ts) < TIME_WINDOW_MS);
 
-            // Trigger 12-Hour ban if exceeding 3 layouts under 10 minutes
             if (timestamps.length >= MAX_DESIGNS) {
                 await triggerRateLimitBan();
                 return false;
@@ -876,7 +853,6 @@
             const guildIdVal = document.getElementById('guild-id-input').value.trim();
             const serverLinkVal = document.getElementById('server-link-input').value.trim();
             
-            // Form is valid only if fields are filled, user is authenticated, and CAPTCHA is verified
             const isValid = (promptVal.length > 0 && guildIdVal.length > 0 && serverLinkVal.length > 0 && isAuthenticated && captchaToken !== null);
             document.getElementById('btn-generate').disabled = !isValid;
         }
@@ -892,7 +868,6 @@
                 return;
             }
 
-            // Check design rate limit (3 layouts under 10 minutes violation fallback)
             const rateLimitPassed = await checkAndApplyRateLimit();
             if (!rateLimitPassed) return;
 
@@ -906,8 +881,7 @@
 
             if (btnEl) btnEl.disabled = true;
 
-            // STEP 1: Verify Invite, 24-Hour Active Status, Guild Match & Admin Permission
-            if (btnText) btnText.textContent = "Verifying Link, Admin Permission & Guild Match...";
+            if (btnText) btnText.textContent = "Verifying Link & Permissions...";
 
             try {
                 const verifyRes = await fetch('/api/verify-server', {
@@ -924,13 +898,12 @@
                 const verifyData = await verifyRes.json();
 
                 if (!verifyRes.ok || !verifyData.valid) {
-                    alert(verifyData.error || "Verification Failed: Ensure the invite link is active for 24+ hours, matches the target Server ID, and that you have Admin permissions.");
+                    alert(verifyData.error || "Verification Failed: Ensure the invite link is active, matches the target Server ID, and that you have Admin permissions.");
                     if (btnText) btnText.textContent = "Generate Server Layout";
                     validateForm();
                     return;
                 }
 
-                // STEP 2: Proceed to Layout Generation
                 if (btnText) btnText.textContent = "Generating Layout...";
 
                 const res = await fetch('/api/generate-layout', {
@@ -1002,7 +975,6 @@
             if (!serverBlueprint) return;
             document.getElementById('preview-server-name').textContent = serverBlueprint.server_name || "Community Blueprint";
 
-            // Render Configured Roles
             const rolesContainer = document.getElementById('roles-list');
             rolesContainer.innerHTML = (serverBlueprint.roles || []).map((r, idx) => 
                 `<span class="px-3 py-1 rounded-full bg-purple-500/10 text-[10px] font-medium text-purple-200 border border-purple-500/30 flex items-center space-x-1.5 shadow-sm">
@@ -1011,7 +983,6 @@
                  </span>`
             ).join('');
 
-            // Render Role Selector in Channel Settings
             const roleSelect = document.getElementById('perm-role-select');
             const currentSelectedRole = roleSelect.value;
             roleSelect.innerHTML = (serverBlueprint.roles || []).map(r => 
@@ -1022,7 +993,6 @@
                 roleSelect.value = currentSelectedRole;
             }
 
-            // Render Categories & Channels Structure List
             const listContainer = document.getElementById('discord-structure-list');
             listContainer.innerHTML = '';
 
@@ -1235,14 +1205,7 @@
             ch.topic = document.getElementById('edit-channel-topic').value;
             
             document.getElementById('editor-title').textContent = `Channel — #${ch.name}`;
-            const selectedChannelEl = document.querySelector(`#discord-structure-list > div:nth-child(${activeCatIndex + 1}) > div:nth-child(${activeChIndex + 2}) span.truncate`);
-            if (selectedChannelEl) {
-                selectedChannelEl.textContent = ch.name;
-            }
-            const selectedEmojiEl = document.querySelector(`#discord-structure-list > div:nth-child(${activeCatIndex + 1}) > div:nth-child(${activeChIndex + 2}) span.font-mono`);
-            if (selectedEmojiEl) {
-                selectedEmojiEl.textContent = ch.emoji || '#';
-            }
+            renderPreview();
         }
 
         function renderRolePermissions() {
@@ -1259,19 +1222,37 @@
             }
 
             const permGrid = document.getElementById('permissions-toggle-grid');
-            permGrid.innerHTML = DISCORD_PERMISSIONS.map(p => {
+            permGrid.innerHTML = '';
+
+            DISCORD_PERMISSIONS.forEach(p => {
                 const isChecked = ch.permissions[selectedRole][p.key] !== false;
-                const safeRole = escapeHtml(selectedRole).replace(/'/g, "\\'");
-                return `
-                    <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-[10px] border border-white/5">
-                        <span class="text-gray-300 font-medium">${p.label}</span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="togglePermission('${safeRole}', '${p.key}', this.checked)" class="sr-only peer">
-                            <div class="w-7 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-600"></div>
-                        </label>
-                    </div>
-                `;
-            }).join('');
+                const permRow = document.createElement('div');
+                permRow.className = 'flex items-center justify-between p-2 rounded-xl bg-white/5 text-[10px] border border-white/5';
+                
+                const label = document.createElement('span');
+                label.className = 'text-gray-300 font-medium';
+                label.textContent = p.label;
+
+                const switchLabel = document.createElement('label');
+                switchLabel.className = 'relative inline-flex items-center cursor-pointer';
+
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = isChecked;
+                input.className = 'sr-only peer';
+                input.addEventListener('change', (e) => {
+                    togglePermission(selectedRole, p.key, e.target.checked);
+                });
+
+                const switchDiv = document.createElement('div');
+                switchDiv.className = "w-7 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-600";
+
+                switchLabel.appendChild(input);
+                switchLabel.appendChild(switchDiv);
+                permRow.appendChild(label);
+                permRow.appendChild(switchLabel);
+                permGrid.appendChild(permRow);
+            });
         }
 
         function togglePermission(role, permKey, isEnabled) {
@@ -1284,7 +1265,6 @@
         }
 
         async function submitDesign() {
-            // Rate limit check before submission
             const rateLimitPassed = await checkAndApplyRateLimit();
             if (!rateLimitPassed) return;
 
@@ -1352,7 +1332,6 @@
             anchor.remove();
         }
 
-        // Initialize session check on load
         checkAuth();
     </script>
 </body>
