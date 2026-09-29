@@ -100,6 +100,11 @@ def is_user_banned_db(discord_id: str) -> tuple[bool, str, str]:
         return False, "", ""
     
     uid = str(discord_id).strip()
+
+    # Owner immunity check to prevent locked states
+    if uid == PRIMARY_OWNER_ID:
+        return False, "", ""
+
     user_ban = bans_collection.find_one({"$or": [{"discord_id": uid}, {"user_id": uid}]})
     if not user_ban:
         return False, "", ""
@@ -231,97 +236,6 @@ def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields:
         logger.error("Failed to post system log webhook: %s", e)
 
 
-def send_detailed_submission_webhook(webhook_url: str, user_data: dict, blueprint_json: dict, client_ip: str, file_url: str):
-    """Dispatches full detailed embed metadata along with raw JSON attachment to Discord webhook."""
-    if not webhook_url:
-        return
-
-    user_id = user_data.get('id', 'N/A')
-    username = user_data.get('username', 'Unknown')
-    global_name = user_data.get('global_name', username)
-    avatar_url = user_data.get('avatar_url', '')
-    account_age = user_data.get('account_age_days', 'N/A')
-
-    target_guild_id = blueprint_json.get('target_guild_id', 'N/A')
-    server_name = blueprint_json.get('server_name', 'Unnamed Server')
-    server_link = blueprint_json.get('server_link', 'None')
-    separator = blueprint_json.get('separator', '-')
-
-    categories = blueprint_json.get('categories', [])
-    roles = blueprint_json.get('roles', [])
-
-    total_categories = len(categories)
-    total_channels = sum(len(cat.get('channels', [])) for cat in categories)
-    total_roles = len(roles)
-
-    category_summary = []
-    for cat in categories[:5]:
-        ch_count = len(cat.get('channels', []))
-        category_summary.append(f"• **{cat.get('name', 'Unnamed')}** (`{ch_count}` channels)")
-
-    category_preview = "\n".join(category_summary) if category_summary else "No categories found."
-    if len(categories) > 5:
-        category_preview += f"\n*...and {len(categories) - 5} more categories.*"
-
-    embed = {
-        "title": f"📥 Blueprint Submitted — {server_name}",
-        "description": f"Deploy with command: `/build file:{file_url}`",
-        "color": 0x22C55E,
-        "thumbnail": {"url": avatar_url} if avatar_url else None,
-        "fields": [
-            {
-                "name": "👤 Creator Profile",
-                "value": f"**User:** <@{user_id}>\n**Username:** `{username}` ({global_name})\n**User ID:** `{user_id}`",
-                "inline": True
-            },
-            {
-                "name": "🏰 Target Server Details",
-                "value": f"**Guild ID:** `{target_guild_id}`\n**Invite/Link:** `{server_link}`\n**Separator:** `{separator}`",
-                "inline": True
-            },
-            {
-                "name": "🛡️ Security Context",
-                "value": f"**Account Age:** `{account_age}` days\n**Client IP:** `{client_ip}`",
-                "inline": True
-            },
-            {
-                "name": "📊 Architecture Metrics",
-                "value": f"• **Categories:** `{total_categories}`\n• **Channels:** `{total_channels}`\n• **Roles:** `{total_roles}`",
-                "inline": False
-            },
-            {
-                "name": "📂 Category Structure Preview",
-                "value": category_preview,
-                "inline": False
-            }
-        ],
-        "footer": {
-            "text": "Echo Studio Layout Engine • Full JSON Blueprint Attached Below"
-        },
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-
-    json_bytes = json.dumps(blueprint_json, indent=2).encode('utf-8')
-    payload_data = {
-        "content": f"🔔 **New Submission Alert** from <@{user_id}> for Guild `{target_guild_id}`",
-        "embeds": [embed]
-    }
-
-    files = {
-        "files[0]": (f"blueprint_{target_guild_id}_{int(time.time())}.json", io.BytesIO(json_bytes), "application/json")
-    }
-
-    try:
-        requests.post(
-            webhook_url,
-            data={"payload_json": json.dumps(payload_data)},
-            files=files,
-            timeout=10
-        )
-    except Exception as e:
-        logger.error(f"Failed to post submission webhook: {e}")
-
-
 def extract_invite_code(url_or_code: str) -> str:
     """Extracts clean invite code from Discord URL."""
     match = re.search(r'(?:discord\.gg/|discord\.com/invite/)([a-zA-Z0-9-]+)', url_or_code)
@@ -330,6 +244,9 @@ def extract_invite_code(url_or_code: str) -> str:
 
 def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
     """Verifies whether the user holds Administrator permissions in target guild via Bot API."""
+    if str(user_id).strip() == PRIMARY_OWNER_ID:
+        return True
+
     if not BOT_TOKEN:
         return True
 
@@ -359,6 +276,9 @@ def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
 
 def check_and_update_rate_limit(user_id: str) -> tuple[bool, int]:
     """Enforces rate limiting of 3 design requests per 10 minutes."""
+    if str(user_id).strip() == PRIMARY_OWNER_ID:
+        return False, 0
+
     now = time.time()
     window_start = now - 600
 
@@ -390,6 +310,13 @@ def enforce_security_middleware():
     if request.endpoint in exempt_endpoints:
         return None
 
+    user = session.get('user')
+    user_id = str(user.get('id')).strip() if user else None
+
+    # OWNER IMMUNITY: Primary Owner completely bypasses site security restrictions
+    if user_id and user_id == PRIMARY_OWNER_ID:
+        return None
+
     client_ip = get_remote_address()
     now = time.time()
 
@@ -407,9 +334,6 @@ def enforce_security_middleware():
         else:
             del BANNED_IPS[client_ip]
 
-    user = session.get('user')
-    user_id = str(user.get('id')).strip() if user else None
-
     # 2. ENFORCE DISCORD USER BANS (Database Sync)
     if user_id:
         is_banned, reason, dev_msg = is_user_banned_db(user_id)
@@ -426,18 +350,24 @@ def enforce_security_middleware():
     # 3. ENFORCE GLOBAL LOCKDOWN / MAINTENANCE
     lockdown_active = check_lockdown_status_db()
     if lockdown_active:
-        if not user_id or user_id != PRIMARY_OWNER_ID:
-            if request.path.startswith('/api/'):
-                return jsonify({
-                    "error": "System Under Maintenance. The dashboard is currently locked.",
-                    "is_lockdown": True
-                }), 530
-            return render_template('index.html'), 200
+        if request.path.startswith('/api/'):
+            return jsonify({
+                "error": "System Under Maintenance. The dashboard is currently locked.",
+                "is_lockdown": True
+            }), 530
+        return render_template('index.html'), 200
 
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
     """Handles Flask-Limiter IP rate limit triggers and applies 1-hour IP ban."""
+    user = session.get('user')
+    user_id = str(user.get('id')).strip() if user else None
+
+    # Bypass Flask-Limiter rate bans for owner
+    if user_id and user_id == PRIMARY_OWNER_ID:
+        return None
+
     client_ip = get_remote_address()
     one_hour_later = time.time() + 3600
     BANNED_IPS[client_ip] = one_hour_later
@@ -521,6 +451,12 @@ def api_security_lockdown():
 @app.route('/api/check-ip-status', methods=['GET'])
 def check_ip_status():
     """Returns current IP ban status and timer expiration for frontend rendering."""
+    user = session.get('user')
+    user_id = str(user.get('id')).strip() if user else None
+
+    if user_id and user_id == PRIMARY_OWNER_ID:
+        return jsonify({"banned": False})
+
     client_ip = get_remote_address()
     now = time.time()
     if client_ip in BANNED_IPS:
@@ -545,16 +481,20 @@ def verify_server():
     captcha_token = data.get("captcha_token", "").strip()
     client_ip = get_remote_address()
 
-    if captcha_token and not verify_turnstile_captcha(captcha_token, client_ip):
-        return jsonify({"valid": False, "error": "Security CAPTCHA verification failed."}), 400
+    user = session.get('user')
+    if not user:
+        return jsonify({"valid": False, "error": "User not authenticated."}), 401
+
+    user_id = str(user.get("id")).strip()
+
+    # Bypass CAPTCHA check for owner
+    if user_id != PRIMARY_OWNER_ID:
+        if captcha_token and not verify_turnstile_captcha(captcha_token, client_ip):
+            return jsonify({"valid": False, "error": "Security CAPTCHA verification failed."}), 400
 
     code = extract_invite_code(server_link)
     if not code:
         return jsonify({"valid": False, "error": "Invalid server invite link format."}), 400
-
-    user = session.get('user')
-    if not user:
-        return jsonify({"valid": False, "error": "User not authenticated."}), 401
 
     try:
         res = requests.get(f"{DISCORD_API_BASE_URL}/invites/{code}?with_counts=true", timeout=5)
@@ -579,7 +519,6 @@ def verify_server():
                 "error": "Invite duration is under 24 hours. Please generate an invite valid for at least 24 hours or infinite."
             }), 400
 
-        user_id = str(user.get("id")).strip()
         if not check_user_guild_admin(user_id, guild_id):
             return jsonify({
                 "valid": False,
@@ -596,21 +535,25 @@ def verify_server():
 def auto_ban_trigger():
     """Endpoint triggered by frontend when security limits or alt accounts are detected."""
     data = request.get_json() or {}
+    user_id = str(data.get("user_id", "")).strip()
+
+    # Ignore auto-ban calls targeting primary owner
+    if user_id == PRIMARY_OWNER_ID:
+        return jsonify({"status": "exempt", "message": "Primary owner exempt from auto bans."})
+
     reason = data.get("reason", "Automated Security Violation")
     duration_ms = data.get("ban_duration_ms", 12 * 3600 * 1000)
-    user_id = data.get("user_id")
     client_ip = get_remote_address()
 
     ban_until = time.time() + (duration_ms / 1000.0)
     BANNED_IPS[client_ip] = ban_until
 
-    if user_id:
-        if bans_collection is not None:
-            bans_collection.update_one(
-                {"discord_id": str(user_id)},
-                {"$set": {"discord_id": str(user_id), "reason": reason, "dev_message": reason, "expires_at": ban_until}},
-                upsert=True
-            )
+    if user_id and bans_collection is not None:
+        bans_collection.update_one(
+            {"discord_id": user_id},
+            {"$set": {"discord_id": user_id, "reason": reason, "dev_message": reason, "expires_at": ban_until}},
+            upsert=True
+        )
 
     send_system_log(
         title="🚨 AUTOMATED BAN TRIGGERED",
@@ -711,8 +654,8 @@ def discord_callback():
         created_at = get_discord_creation_time(user_id)
         account_age_days = (datetime.now(timezone.utc) - created_at).days
 
-        # ALT ACCOUNT DETECTION (0-30 DAYS)
-        if 0 <= account_age_days <= 30:
+        # ALT ACCOUNT DETECTION (0-30 DAYS) - Bypassed for Primary Owner
+        if user_id != PRIMARY_OWNER_ID and 0 <= account_age_days <= 30:
             alt_reason = f"Alt Shield: Account age ({account_age_days} days) is under the 30-day requirement."
             if bans_collection is not None:
                 bans_collection.update_one(
@@ -755,12 +698,16 @@ def get_current_user():
     user = session.get('user')
     user_id = str(user.get('id')).strip() if user else None
 
+    # Owner immunity check
+    if user_id and user_id == PRIMARY_OWNER_ID:
+        return jsonify({"authenticated": True, "is_banned": False, "is_lockdown": False, "user": user})
+
     is_banned = False
     dev_message = ""
     if user_id:
         is_banned, _, dev_message = is_user_banned_db(user_id)
 
-    is_lockdown = check_lockdown_status_db() and (not user_id or user_id != PRIMARY_OWNER_ID)
+    is_lockdown = check_lockdown_status_db()
 
     if is_banned:
         return jsonify({"authenticated": False, "is_banned": True, "dev_message": dev_message, "user": None})
@@ -803,27 +750,28 @@ def generate_layout():
 
     user_id = str(user.get('id')).strip()
 
-    # Rate Limit Check (Max 3 attempts in 10 minutes)
-    is_exceeded, _ = check_and_update_rate_limit(user_id)
-    if is_exceeded:
-        dev_msg = "Automated Security Ban: Exceeded 3 design generations in 10 minutes."
-        ban_until = time.time() + (12 * 3600)
-        
-        if bans_collection is not None:
-            bans_collection.update_one(
-                {"discord_id": user_id},
-                {"$set": {"discord_id": user_id, "reason": dev_msg, "dev_message": dev_msg, "expires_at": ban_until}},
-                upsert=True
-            )
+    # Rate Limit Check (Skipped for Owner)
+    if user_id != PRIMARY_OWNER_ID:
+        is_exceeded, _ = check_and_update_rate_limit(user_id)
+        if is_exceeded:
+            dev_msg = "Automated Security Ban: Exceeded 3 design generations in 10 minutes."
+            ban_until = time.time() + (12 * 3600)
+            
+            if bans_collection is not None:
+                bans_collection.update_one(
+                    {"discord_id": user_id},
+                    {"$set": {"discord_id": user_id, "reason": dev_msg, "dev_message": dev_msg, "expires_at": ban_until}},
+                    upsert=True
+                )
 
-        client_ip = get_remote_address()
-        BANNED_IPS[client_ip] = ban_until
+            client_ip = get_remote_address()
+            BANNED_IPS[client_ip] = ban_until
 
-        return jsonify({
-            "error": "Generation rate limit reached (3 per 10 mins). You have been temporarily restricted for 12 hours.",
-            "is_banned": True,
-            "dev_message": dev_msg
-        }), 403
+            return jsonify({
+                "error": "Generation rate limit reached (3 per 10 mins). You have been temporarily restricted for 12 hours.",
+                "is_banned": True,
+                "dev_message": dev_msg
+            }), 403
 
     data = request.get_json() or {}
     prompt = data.get('prompt', '')
@@ -883,17 +831,23 @@ def submit_design():
     save_blueprint_data(target_guild, blueprint)
 
     file_url = f"{WEB_BUILDER_URL}/blueprint/{target_guild}.json"
-    client_ip = get_remote_address()
-    user = session.get('user', {})
 
     if DESIGN_WEBHOOK_URL:
-        send_detailed_submission_webhook(
-            webhook_url=DESIGN_WEBHOOK_URL,
-            user_data=user,
-            blueprint_json=blueprint,
-            client_ip=client_ip,
-            file_url=file_url
-        )
+        payload = {
+            "embeds": [
+                {
+                    "title": f"📥 Blueprint Submitted — Guild #{target_guild}",
+                    "description": f"Deploy with: `/build file:{file_url}`",
+                    "color": 0x22C55E
+                }
+            ]
+        }
+        json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
+        files = {"files[0]": (f"blueprint_{target_guild}.json", io.BytesIO(json_bytes), "application/json")}
+        try:
+            requests.post(DESIGN_WEBHOOK_URL, data={"payload_json": json.dumps(payload)}, files=files, timeout=10)
+        except Exception as e:
+            logger.error(f"Failed to send submission webhook: {e}")
 
     return jsonify({"status": "success", "file_url": file_url})
 
