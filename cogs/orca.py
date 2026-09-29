@@ -46,10 +46,15 @@ system_status_collection = db["system_status"] if db is not None else None
 
 
 def is_user_banned(discord_id: str) -> bool:
-    """Checks if a user ID is currently banned in MongoDB (considering ban expiration)."""
+    """Checks if a user ID is currently banned in MongoDB (considering ban expiration). Owner is immune."""
+    str_id = str(discord_id).strip()
+    if str_id == str(AUTHORIZED_USER_ID):
+        return False
+
     if bans_collection is None:
         return False
-    user = bans_collection.find_one({"discord_id": str(discord_id)})
+
+    user = bans_collection.find_one({"$or": [{"discord_id": str_id}, {"user_id": str_id}]})
     if not user:
         return False
 
@@ -64,17 +69,20 @@ def is_user_banned(discord_id: str) -> bool:
 def ban_user(discord_id: str, reason: str = "No reason provided", dev_message: str = "", duration_seconds: int = 0) -> bool:
     """
     Bans a user ID in MongoDB with optional duration.
-    duration_seconds = 0 -> Permanent Ban
-    duration_seconds > 0 -> Temporary Ban with active expiry timer
+    Primary Owner (AUTHORIZED_USER_ID) is completely immune.
     """
+    str_id = str(discord_id).strip()
+    if str_id == str(AUTHORIZED_USER_ID):
+        return False
+
     if bans_collection is None:
         return False
-    str_id = str(discord_id)
+
     now = time.time()
     expires_at = now + duration_seconds if duration_seconds > 0 else 0
 
     result = bans_collection.update_one(
-        {"discord_id": str_id},
+        {"$or": [{"discord_id": str_id}, {"user_id": str_id}]},
         {
             "$set": {
                 "discord_id": str_id,
@@ -91,10 +99,11 @@ def ban_user(discord_id: str, reason: str = "No reason provided", dev_message: s
 
 
 def unban_user(discord_id: str) -> bool:
-    """Unbans a user ID from MongoDB."""
+    """Unbans a user ID from MongoDB across both discord_id and user_id fields."""
     if bans_collection is None:
         return False
-    result = bans_collection.delete_one({"discord_id": str(discord_id)})
+    str_id = str(discord_id).strip()
+    result = bans_collection.delete_many({"$or": [{"discord_id": str_id}, {"user_id": str_id}]})
     return result.deleted_count > 0
 
 
@@ -105,19 +114,29 @@ def get_all_bans() -> list:
     now = time.time()
     active_bans = []
     for ban in bans_collection.find({}, {"_id": 0, "discord_id": 1, "user_id": 1, "reason": 1, "dev_message": 1, "expires_at": 1}):
+        uid = ban.get("discord_id") or ban.get("user_id")
+        if str(uid) == str(AUTHORIZED_USER_ID):
+            unban_user(uid)
+            continue
+
         expires_at = ban.get("expires_at", 0)
         if expires_at == 0 or now < expires_at:
             active_bans.append(ban)
         else:
-            unban_user(ban.get("discord_id") or ban.get("user_id"))
+            unban_user(uid)
     return active_bans
 
 
 def get_user_ban_details(discord_id: str) -> dict:
     """Retrieves full ban details for a specific user ID if active."""
+    str_id = str(discord_id).strip()
+    if str_id == str(AUTHORIZED_USER_ID):
+        return None
+
     if bans_collection is None:
         return None
-    ban = bans_collection.find_one({"$or": [{"discord_id": str(discord_id)}, {"user_id": str(discord_id)}]}, {"_id": 0})
+
+    ban = bans_collection.find_one({"$or": [{"discord_id": str_id}, {"user_id": str_id}]}, {"_id": 0})
     if not ban:
         return None
     expires_at = ban.get("expires_at", 0)
@@ -150,7 +169,7 @@ def is_owner():
 def can_build():
     """Custom check allowing primary AUTHORIZED_USER_ID and granted builders to run /build."""
     async def predicate(interaction: discord.Interaction) -> bool:
-        if interaction.user.id in ALLOWED_BUILDERS:
+        if interaction.user.id in ALLOWED_BUILDERS or interaction.user.id == AUTHORIZED_USER_ID:
             return True
         embed = discord.Embed(
             title="403 Access Denied",
@@ -259,10 +278,16 @@ class OrcaCog(commands.Cog):
     async def handle_api_check_auth(self, user_id: str) -> dict:
         """Endpoint handler for checking user auth status, maintenance status, and ban state."""
         global is_lockdown
+        uid = str(user_id).strip()
+
+        # Primary Owner Immunity
+        if uid == str(AUTHORIZED_USER_ID):
+            return {"authenticated": True, "user_id": uid, "is_owner": True}
+
         if is_lockdown:
             return {"authenticated": True, "is_lockdown": True}
 
-        ban_info = get_user_ban_details(user_id)
+        ban_info = get_user_ban_details(uid)
         if ban_info:
             return {
                 "authenticated": True,
@@ -271,7 +296,7 @@ class OrcaCog(commands.Cog):
                 "dev_message": ban_info.get("dev_message", "")
             }
 
-        return {"authenticated": True, "user_id": str(user_id)}
+        return {"authenticated": True, "user_id": uid}
 
     async def handle_api_verify_server(self, payload: dict, user_id: int) -> dict:
         """Validates captcha token and verifies server matching, invite lifetime, and bot admin rights."""
@@ -365,6 +390,10 @@ class OrcaCog(commands.Cog):
         if message.author.bot or not message.guild:
             return
 
+        # Bypass primary owner
+        if message.author.id == AUTHORIZED_USER_ID:
+            return
+
         user_id = message.author.id
         current_time = time.time()
 
@@ -435,10 +464,14 @@ class OrcaCog(commands.Cog):
             return False, f"Verification Error: `{e}`"
 
     async def check_and_apply_design_ratelimit(self, user_id: str) -> tuple[bool, str]:
-        """Applies a 12-hour web portal ban if a user requests > 3 web layout generations within 10 minutes."""
+        """Applies a 12-hour web portal ban if a user requests > 3 web layout generations within 10 minutes. Owner is immune."""
         now = time.time()
-        uid = str(user_id)
+        uid = str(user_id).strip()
         
+        # Primary owner immunity check
+        if uid == str(AUTHORIZED_USER_ID):
+            return True, "OK"
+
         self.design_rate_limits[uid] = [
             t for t in self.design_rate_limits[uid] if now - t <= DESIGN_LIMIT_WINDOW
         ]
@@ -482,6 +515,12 @@ class OrcaCog(commands.Cog):
         return True, "OK"
 
     async def log_web_entry_and_check_alt(self, user_id: int, ip_address: str = "N/A", user_agent: str = "N/A") -> tuple[bool, str]:
+        uid_str = str(user_id).strip()
+
+        # Primary owner immunity check
+        if uid_str == str(AUTHORIZED_USER_ID):
+            return True, "OK"
+
         try:
             user = await self.bot.fetch_user(user_id)
         except Exception:
@@ -499,7 +538,7 @@ class OrcaCog(commands.Cog):
 
         if telemetry_collection is not None:
             telemetry_collection.insert_one({
-                "user_id": str(user_id),
+                "user_id": uid_str,
                 "ip_address": ip_address,
                 "user_agent": user_agent,
                 "is_alt": is_alt,
@@ -535,7 +574,6 @@ class OrcaCog(commands.Cog):
         await send_system_webhook_log(embed=embed)
 
         if is_alt:
-            uid_str = str(user_id)
             reason = f"Alt Account Detected: Account age is {account_age_days} days (minimum required is 30 days)."
             dev_msg = "Automated Alt Security Shield: Accounts under 30 days old are restricted."
             ban_user(uid_str, reason=reason, dev_message=dev_msg, duration_seconds=0)
@@ -593,7 +631,7 @@ class OrcaCog(commands.Cog):
     @app_commands.command(name="website", description="Provides the link to the web-based layout builder.")
     async def website(self, interaction: discord.Interaction):
         global is_lockdown
-        if is_lockdown:
+        if is_lockdown and interaction.user.id != AUTHORIZED_USER_ID:
             embed = discord.Embed(
                 title="530 Site Under Maintenance",
                 description="```\nHTTP 530: The web portal is currently undergoing scheduled maintenance.\nPlease check back later.\n```",
@@ -674,7 +712,12 @@ class OrcaCog(commands.Cog):
         reason: str = "No internal reason specified."
     ):
         await interaction.response.defer(ephemeral=True)
-        target_id = str(user.id)
+        target_id = str(user.id).strip()
+
+        if target_id == str(AUTHORIZED_USER_ID):
+            await interaction.followup.send("❌ Action forbidden: You cannot ban the primary owner.", ephemeral=True)
+            return
+
         loc = location.value
         report = []
 
@@ -749,8 +792,13 @@ class OrcaCog(commands.Cog):
                 await interaction.response.send_message("❌ Invalid input. Please enter a valid numeric Discord User ID.", ephemeral=True)
                 return
 
+            # Clear Database record
             unbanned = unban_user(target_id)
 
+            # Clear in-memory rate limits so user doesn't re-trigger rate limit ban on next click
+            self.design_rate_limits[target_id] = []
+
+            # Sync with Flask Web API
             try:
                 async with aiohttp.ClientSession() as session:
                     payload = {"user_id": target_id, "action": "unban"}
@@ -767,9 +815,9 @@ class OrcaCog(commands.Cog):
                 )
             else:
                 embed = discord.Embed(
-                    title="⚠️ User Not Banned",
-                    description=f"User ID `{target_id}` was not found in the website ban list.",
-                    color=0xF1C40F
+                    title="✅ Website Access Verified",
+                    description=f"User ID `{target_id}` ban record was cleared (or was not active). Access fully restored.",
+                    color=0x2ECC71
                 )
             embed.set_footer(text="Echo Studio — Web Moderation")
             await interaction.response.send_message(embed=embed)
@@ -913,6 +961,7 @@ class OrcaCog(commands.Cog):
         try:
             await member.timeout(None, reason=reason)
             self.user_message_logs[member.id] = []
+            self.user_message_logs[str(member.id)] = []
 
             embed = discord.Embed(
                 title="✅ Restriction Removed",
