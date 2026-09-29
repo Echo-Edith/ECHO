@@ -231,6 +231,97 @@ def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields:
         logger.error("Failed to post system log webhook: %s", e)
 
 
+def send_detailed_submission_webhook(webhook_url: str, user_data: dict, blueprint_json: dict, client_ip: str, file_url: str):
+    """Dispatches full detailed embed metadata along with raw JSON attachment to Discord webhook."""
+    if not webhook_url:
+        return
+
+    user_id = user_data.get('id', 'N/A')
+    username = user_data.get('username', 'Unknown')
+    global_name = user_data.get('global_name', username)
+    avatar_url = user_data.get('avatar_url', '')
+    account_age = user_data.get('account_age_days', 'N/A')
+
+    target_guild_id = blueprint_json.get('target_guild_id', 'N/A')
+    server_name = blueprint_json.get('server_name', 'Unnamed Server')
+    server_link = blueprint_json.get('server_link', 'None')
+    separator = blueprint_json.get('separator', '-')
+
+    categories = blueprint_json.get('categories', [])
+    roles = blueprint_json.get('roles', [])
+
+    total_categories = len(categories)
+    total_channels = sum(len(cat.get('channels', [])) for cat in categories)
+    total_roles = len(roles)
+
+    category_summary = []
+    for cat in categories[:5]:
+        ch_count = len(cat.get('channels', []))
+        category_summary.append(f"• **{cat.get('name', 'Unnamed')}** (`{ch_count}` channels)")
+
+    category_preview = "\n".join(category_summary) if category_summary else "No categories found."
+    if len(categories) > 5:
+        category_preview += f"\n*...and {len(categories) - 5} more categories.*"
+
+    embed = {
+        "title": f"📥 Blueprint Submitted — {server_name}",
+        "description": f"Deploy with command: `/build file:{file_url}`",
+        "color": 0x22C55E,
+        "thumbnail": {"url": avatar_url} if avatar_url else None,
+        "fields": [
+            {
+                "name": "👤 Creator Profile",
+                "value": f"**User:** <@{user_id}>\n**Username:** `{username}` ({global_name})\n**User ID:** `{user_id}`",
+                "inline": True
+            },
+            {
+                "name": "🏰 Target Server Details",
+                "value": f"**Guild ID:** `{target_guild_id}`\n**Invite/Link:** `{server_link}`\n**Separator:** `{separator}`",
+                "inline": True
+            },
+            {
+                "name": "🛡️ Security Context",
+                "value": f"**Account Age:** `{account_age}` days\n**Client IP:** `{client_ip}`",
+                "inline": True
+            },
+            {
+                "name": "📊 Architecture Metrics",
+                "value": f"• **Categories:** `{total_categories}`\n• **Channels:** `{total_channels}`\n• **Roles:** `{total_roles}`",
+                "inline": False
+            },
+            {
+                "name": "📂 Category Structure Preview",
+                "value": category_preview,
+                "inline": False
+            }
+        ],
+        "footer": {
+            "text": "Echo Studio Layout Engine • Full JSON Blueprint Attached Below"
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+    json_bytes = json.dumps(blueprint_json, indent=2).encode('utf-8')
+    payload_data = {
+        "content": f"🔔 **New Submission Alert** from <@{user_id}> for Guild `{target_guild_id}`",
+        "embeds": [embed]
+    }
+
+    files = {
+        "files[0]": (f"blueprint_{target_guild_id}_{int(time.time())}.json", io.BytesIO(json_bytes), "application/json")
+    }
+
+    try:
+        requests.post(
+            webhook_url,
+            data={"payload_json": json.dumps(payload_data)},
+            files=files,
+            timeout=10
+        )
+    except Exception as e:
+        logger.error(f"Failed to post submission webhook: {e}")
+
+
 def extract_invite_code(url_or_code: str) -> str:
     """Extracts clean invite code from Discord URL."""
     match = re.search(r'(?:discord\.gg/|discord\.com/invite/)([a-zA-Z0-9-]+)', url_or_code)
@@ -792,23 +883,17 @@ def submit_design():
     save_blueprint_data(target_guild, blueprint)
 
     file_url = f"{WEB_BUILDER_URL}/blueprint/{target_guild}.json"
+    client_ip = get_remote_address()
+    user = session.get('user', {})
 
     if DESIGN_WEBHOOK_URL:
-        payload = {
-            "embeds": [
-                {
-                    "title": f"📥 Blueprint Submitted — Guild #{target_guild}",
-                    "description": f"Deploy with: `/build file:{file_url}`",
-                    "color": 0x22C55E
-                }
-            ]
-        }
-        json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
-        files = {"files[0]": (f"blueprint_{target_guild}.json", io.BytesIO(json_bytes), "application/json")}
-        try:
-            requests.post(DESIGN_WEBHOOK_URL, data={"payload_json": json.dumps(payload)}, files=files, timeout=10)
-        except Exception as e:
-            logger.error(f"Failed to send submission webhook: {e}")
+        send_detailed_submission_webhook(
+            webhook_url=DESIGN_WEBHOOK_URL,
+            user_data=user,
+            blueprint_json=blueprint,
+            client_ip=client_ip,
+            file_url=file_url
+        )
 
     return jsonify({"status": "success", "file_url": file_url})
 
