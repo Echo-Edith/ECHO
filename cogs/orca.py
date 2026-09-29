@@ -22,17 +22,18 @@ start_time = time.time()
 # Webhook URL for web system logs and auto-ban alerts
 SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", "")
 
-# Spam detection thresholds
+# Spam detection thresholds (Discord channel spam)
 SPAM_THRESHOLD = 5  # Max messages allowed
 TIME_WINDOW = 5     # Time window in seconds
 
-# Design rate limits: Max 3 designs per 10 minutes (600 seconds)
+# Web Layout Rate limits: Max 3 designs per 10 minutes (600 seconds)
 DESIGN_LIMIT_MAX = 3
 DESIGN_LIMIT_WINDOW = 600
+DESIGN_BAN_DURATION = 43200  # 12 hours in seconds
 
 # ---------------------------------------------------------------------------
 # PYMONGO DATABASE CONNECTION & HELPER FUNCTIONS
-# Exported for use in keep_alive.py
+# Exported for use in keep_alive.py / web portal
 # ---------------------------------------------------------------------------
 MONGO_URI = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
 mongo_client = MongoClient(MONGO_URI) if MONGO_URI else None
@@ -42,18 +43,35 @@ bans_collection = db["website_bans"] if db is not None else None
 
 
 def is_user_banned(discord_id: str) -> bool:
-    """Checks if a user ID is banned in MongoDB."""
+    """Checks if a user ID is currently banned in MongoDB (considering ban expiration)."""
     if bans_collection is None:
         return False
     user = bans_collection.find_one({"discord_id": str(discord_id)})
-    return user is not None
+    if not user:
+        return False
+
+    ban_expires_at = user.get("expires_at", 0)
+    # Permanent ban if expires_at is 0, or temporary ban if current time is before expiration
+    if ban_expires_at == 0 or time.time() < ban_expires_at:
+        return True
+    else:
+        # Ban has expired; automatically remove it from DB
+        unban_user(discord_id)
+        return False
 
 
-def ban_user(discord_id: str, reason: str = "No reason provided", dev_message: str = "") -> bool:
-    """Bans a user ID in MongoDB with optional developer notes."""
+def ban_user(discord_id: str, reason: str = "No reason provided", dev_message: str = "", duration_seconds: int = 0) -> bool:
+    """
+    Bans a user ID in MongoDB with optional duration.
+    duration_seconds = 0 -> Permanent Ban
+    duration_seconds > 0 -> Temporary Ban with active expiry timer
+    """
     if bans_collection is None:
         return False
     str_id = str(discord_id)
+    now = time.time()
+    expires_at = now + duration_seconds if duration_seconds > 0 else 0
+
     result = bans_collection.update_one(
         {"discord_id": str_id},
         {
@@ -61,7 +79,8 @@ def ban_user(discord_id: str, reason: str = "No reason provided", dev_message: s
                 "discord_id": str_id,
                 "reason": reason,
                 "dev_message": dev_message,
-                "updated_at": time.time()
+                "updated_at": now,
+                "expires_at": expires_at
             }
         },
         upsert=True
@@ -78,17 +97,32 @@ def unban_user(discord_id: str) -> bool:
 
 
 def get_all_bans() -> list:
-    """Returns a list of all banned user dictionaries from MongoDB."""
+    """Returns a list of all active banned user dictionaries from MongoDB."""
     if bans_collection is None:
         return []
-    return list(bans_collection.find({}, {"_id": 0, "discord_id": 1, "reason": 1, "dev_message": 1}))
+    now = time.time()
+    active_bans = []
+    for ban in bans_collection.find({}, {"_id": 0, "discord_id": 1, "reason": 1, "dev_message": 1, "expires_at": 1}):
+        expires_at = ban.get("expires_at", 0)
+        if expires_at == 0 or now < expires_at:
+            active_bans.append(ban)
+        else:
+            unban_user(ban.get("discord_id"))
+    return active_bans
 
 
 def get_user_ban_details(discord_id: str) -> dict:
-    """Retrieves full ban details (reason, dev_message) for a specific user ID."""
+    """Retrieves full ban details for a specific user ID if active."""
     if bans_collection is None:
         return None
-    return bans_collection.find_one({"discord_id": str(discord_id)}, {"_id": 0})
+    ban = bans_collection.find_one({"discord_id": str(discord_id)}, {"_id": 0})
+    if not ban:
+        return None
+    expires_at = ban.get("expires_at", 0)
+    if expires_at != 0 and time.time() >= expires_at:
+        unban_user(discord_id)
+        return None
+    return ban
 
 
 # ---------------------------------------------------------------------------
@@ -160,7 +194,7 @@ async def send_system_webhook_log(content: str = None, embed: discord.Embed = No
 class BotJoinTosView(discord.ui.View):
     """Interactive button view on join requiring acknowledgment of terms by the inviter/owner."""
     def __init__(self, inviter_id: int):
-        super().__init__(timeout=None)  # Persistent button state
+        super().__init__(timeout=None)
         self.inviter_id = inviter_id
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -272,30 +306,57 @@ class OrcaCog(commands.Cog):
             except Exception as e:
                 print(f"Error applying timeout: {e}")
 
-    # --- HELPER: VERIFY INVITE LINK MATCHES SERVER ID ---
+    # --- HELPER: VERIFY INVITE LINK, SERVER MATCH, & BOT ADMIN PERMISSIONS ---
     async def verify_invite_matches_server(self, invite_url: str, server_id: str) -> tuple[bool, str]:
-        """Validates if the provided server invite URL actually leads to the target server_id."""
+        """
+        Validates:
+        1. Invite code existence & lifetime (must be valid for at least 24 hours or permanent).
+        2. Invite Target Server ID matches input `server_id`.
+        3. Echo Bot is in target guild AND holds Administrator permissions.
+        """
         clean_invite = invite_url.strip()
         code = clean_invite.split("/")[-1].split("?")[0]
         
         try:
             invite = await self.bot.fetch_invite(code)
-            if invite and invite.guild:
-                if str(invite.guild.id) == str(server_id).strip():
-                    return True, f"Verified: Invite matches server **{invite.guild.name}** (`{invite.guild.id}`)."
-                else:
-                    return False, f"Mismatch: Invite belongs to **{invite.guild.name}** (`{invite.guild.id}`), not Target Server ID `{server_id}`."
-            return False, "Invalid Invite: Could not retrieve server information from invite code."
+            if not invite or not invite.guild:
+                return False, "Invalid Invite: Could not retrieve server details from invite link."
+
+            # Check 1: Match Target Guild ID
+            target_id_str = str(server_id).strip()
+            if str(invite.guild.id) != target_id_str:
+                return False, f"Mismatch: Invite belongs to **{invite.guild.name}** (`{invite.guild.id}`), not Target Server ID `{target_id_str}`."
+
+            # Check 2: Verify Invite Expiration >= 24 Hours (86400s) or Permanent (max_age == 0)
+            if invite.max_age is not None and 0 < invite.max_age < 86400:
+                return False, f"Invalid Invite Expiration: Invite link must be active for at least 24 hours (Current duration: {invite.max_age // 3600} hours)."
+
+            # Check 3: Verify Bot Presence and Administrator Permissions in the Target Guild
+            guild = self.bot.get_guild(invite.guild.id)
+            if not guild:
+                try:
+                    guild = await self.bot.fetch_guild(invite.guild.id)
+                except Exception:
+                    guild = None
+
+            if not guild:
+                return False, f"Bot Missing: Echo Studio Bot is not present in server **{invite.guild.name}** (`{invite.guild.id}`). Please invite the bot first."
+
+            if not guild.me or not guild.me.guild_permissions.administrator:
+                return False, f"Missing Permissions: Echo Studio Bot is present in **{guild.name}**, but does NOT have Administrator permissions."
+
+            return True, f"Verified: Invite matched server **{guild.name}** (`{guild.id}`) and Bot Administrator permissions confirmed."
+
         except discord.NotFound:
-            return False, "Invalid Invite: The invite link does not exist or is expired."
+            return False, "Invalid Invite: The invite link does not exist or has expired."
         except discord.HTTPException as e:
-            return False, f"Verification Error: Failed to check invite ({e})."
+            return False, f"Verification HTTP Error: Failed to check invite ({e})."
         except Exception as e:
             return False, f"Verification Error: `{e}`"
 
-    # --- HELPER: TRACK WEB DESIGN RATE LIMITS ---
+    # --- HELPER: TRACK WEB DESIGN RATE LIMITS (3 per 10m -> 12h BAN) ---
     async def check_and_apply_design_ratelimit(self, user_id: str) -> tuple[bool, str]:
-        """Tracks web design limit (3 per 10 mins). Instantly bans and alerts if exceeded."""
+        """Tracks web design limit (3 per 10 mins). Instantly bans for 12 hours with live countdown if exceeded."""
         now = time.time()
         uid = str(user_id)
         
@@ -307,11 +368,11 @@ class OrcaCog(commands.Cog):
         self.design_rate_limits[uid].append(now)
 
         if len(self.design_rate_limits[uid]) > DESIGN_LIMIT_MAX:
-            reason = f"Exceeded web layout generation rate limit ({DESIGN_LIMIT_MAX} designs per 10 minutes)."
-            dev_msg = "Automated System Action: Excessive layout generation attempts."
+            reason = f"Exceeded layout generation rate limit ({DESIGN_LIMIT_MAX} designs per 10 minutes)."
+            dev_msg = "Automated Anti-Abuse: Excessive layout generation attempts. 12-hour temporary ban applied."
             
-            # Ban from website
-            ban_user(uid, reason=reason, dev_message=dev_msg)
+            # Apply 12-hour ban in MongoDB (43200 seconds)
+            ban_user(uid, reason=reason, dev_message=dev_msg, duration_seconds=DESIGN_BAN_DURATION)
 
             # Sync ban to Web Builder API
             try:
@@ -320,7 +381,8 @@ class OrcaCog(commands.Cog):
                         "user_id": uid,
                         "action": "ban",
                         "reason": reason,
-                        "dev_message": dev_msg
+                        "dev_message": dev_msg,
+                        "duration_seconds": DESIGN_BAN_DURATION
                     }
                     headers = {"X-Bot-Auth": BOT_API_KEY}
                     await session.post(f"{WEB_BUILDER_URL}/api/security/ban", json=payload, headers=headers, timeout=5)
@@ -329,40 +391,50 @@ class OrcaCog(commands.Cog):
 
             # Send System Webhook Alert with Ping
             embed = discord.Embed(
-                title="🚨 Automated Web Ban — Rate Limit Exceeded",
-                description=f"<@{AUTHORIZED_USER_ID}> **A user was automatically banned for spamming layout generation.**",
+                title="🚨 Automated Web Ban — 12-Hour Layout Rate Limit Exceeded",
+                description=f"<@{AUTHORIZED_USER_ID}> **A user was restricted for 12 hours due to layout spam.**",
                 color=0xFF0000,
                 timestamp=datetime.datetime.now(datetime.timezone.utc)
             )
             embed.add_field(name="User ID", value=f"`{uid}` (<@{uid}>)", inline=True)
             embed.add_field(name="Limit Exceeded", value=f"`{len(self.design_rate_limits[uid])}` requests in 10 mins", inline=True)
-            embed.add_field(name="Action Taken", value="Instantly Banned from Website Portal", inline=False)
+            embed.add_field(name="Action Taken", value="Banned from Web Portal for **12 Hours**", inline=False)
             embed.set_footer(text="Echo Studio — Security Enforcement")
 
             await send_system_webhook_log(content=f"<@{AUTHORIZED_USER_ID}>", embed=embed)
-            return False, "Rate limit exceeded. You have been automatically banned from the web portal for spamming."
+            return False, "Rate limit exceeded. You have been banned from the web portal for 12 hours."
 
         return True, "OK"
 
-    # --- HELPER: DETAILED WEB ENTRY LOGGER ---
-    async def log_web_entry(self, user_id: int, ip_address: str = "N/A", user_agent: str = "N/A"):
-        """Logs detailed user profile, account age, and metadata when entering the website."""
+    # --- HELPER: DETAILED WEB ENTRY LOGGER & ALT DETECTION (0-30 DAYS) ---
+    async def log_web_entry_and_check_alt(self, user_id: int, ip_address: str = "N/A", user_agent: str = "N/A") -> tuple[bool, str]:
+        """
+        Logs detailed user profile & checks Discord account age.
+        Instantly bans accounts aged 0-30 days to mitigate alt accounts.
+        """
         try:
             user = await self.bot.fetch_user(user_id)
         except Exception:
             user = None
 
         now = datetime.datetime.now(datetime.timezone.utc)
-        
-        embed = discord.Embed(
-            title="🌐 Website Access Log",
-            color=0x3498DB,
-            timestamp=now
-        )
+        is_alt = False
+        account_age_days = 0
 
         if user:
             created_at = user.created_at
             account_age_days = (now - created_at).days
+            if account_age_days <= 30:
+                is_alt = True
+
+        # Send Webhook Access Log
+        embed = discord.Embed(
+            title="🌐 Website Access Log" if not is_alt else "🚨 Alt Account Detected — Automated Ban",
+            color=0x3498DB if not is_alt else 0xE74C3C,
+            timestamp=now
+        )
+
+        if user:
             badges = [flag.name.replace("_", " ").title() for flag, value in user.public_flags if value]
             badge_str = ", ".join(badges) if badges else "None"
 
@@ -370,7 +442,7 @@ class OrcaCog(commands.Cog):
             embed.add_field(name="Username / Tag", value=f"**{user.name}** (`{user}`)", inline=True)
             embed.add_field(name="Display Name", value=f"{user.display_name}", inline=True)
             embed.add_field(name="User ID", value=f"`{user.id}`", inline=True)
-            embed.add_field(name="Account Created", value=f"<t:{int(created_at.timestamp())}:F>", inline=True)
+            embed.add_field(name="Account Created", value=f"<t:{int(user.created_at.timestamp())}:F>", inline=True)
             embed.add_field(name="Account Age", value=f"`{account_age_days} days old`", inline=True)
             embed.add_field(name="Badges / Flags", value=f"`{badge_str}`", inline=True)
             embed.add_field(name="Avatar URL", value=f"[Link to Avatar]({user.display_avatar.url})", inline=False)
@@ -379,9 +451,33 @@ class OrcaCog(commands.Cog):
 
         embed.add_field(name="IP Address", value=f"`{ip_address}`", inline=True)
         embed.add_field(name="User Agent", value=f"```\n{user_agent[:250]}\n```", inline=False)
-        embed.set_footer(text="Echo Studio — Detailed Web Entry Tracker")
+        embed.set_footer(text="Echo Studio — Detailed Web Security Tracker")
 
         await send_system_webhook_log(embed=embed)
+
+        # Enforce instant ban on alt accounts (0-30 days old)
+        if is_alt:
+            uid_str = str(user_id)
+            reason = f"Alt Account Detected: Account age is {account_age_days} days (minimum required is 30 days)."
+            dev_msg = "Automated Alt Security Shield: Accounts under 30 days old are restricted."
+            ban_user(uid_str, reason=reason, dev_message=dev_msg, duration_seconds=0)
+
+            try:
+                async with aiohttp.ClientSession() as session:
+                    payload = {
+                        "user_id": uid_str,
+                        "action": "ban",
+                        "reason": reason,
+                        "dev_message": dev_msg
+                    }
+                    headers = {"X-Bot-Auth": BOT_API_KEY}
+                    await session.post(f"{WEB_BUILDER_URL}/api/security/ban", json=payload, headers=headers, timeout=5)
+            except Exception as e:
+                print(f"[Echo Alt Shield] Failed to sync web ban: {e}")
+
+            return False, reason
+
+        return True, "OK"
 
     # --- 1. /help COMMAND ---
     @app_commands.command(name="help", description="Learn how to create and deploy a custom Discord server.")
@@ -499,9 +595,8 @@ class OrcaCog(commands.Cog):
         loc = location.value
         report = []
 
-        # 1. Apply Website Ban (Updates MongoDB and syncs Clean Glass UI ban page payload)
         if loc in ("website", "both"):
-            ban_user(target_id, reason=reason, dev_message=dev_message)
+            ban_user(target_id, reason=reason, dev_message=dev_message, duration_seconds=0)
 
             try:
                 async with aiohttp.ClientSession() as session:
@@ -520,7 +615,6 @@ class OrcaCog(commands.Cog):
             except Exception as e:
                 report.append(f"⚠️ **Website Ban API Sync Failed:** {e}")
 
-        # 2. Apply Discord Server Ban
         if loc in ("discord", "both"):
             if interaction.guild:
                 try:
@@ -574,7 +668,6 @@ class OrcaCog(commands.Cog):
 
             unbanned = unban_user(target_id)
 
-            # Sync unban to web server API
             try:
                 async with aiohttp.ClientSession() as session:
                     payload = {"user_id": target_id, "action": "unban"}
@@ -666,15 +759,19 @@ class OrcaCog(commands.Cog):
                 return
 
             description_lines = []
+            now = time.time()
             for entry in banned_users[:25]:
                 uid = entry.get("discord_id", "Unknown")
                 reason = entry.get("reason", "No reason specified")
                 dev_msg = entry.get("dev_message", "")
+                expires_at = entry.get("expires_at", 0)
+                
+                timer_str = "Permanent" if expires_at == 0 else f"Expires <t:{int(expires_at)}:R>"
                 dev_line = f"\n  └ **Dev Note:** `{dev_msg}`" if dev_msg else ""
-                description_lines.append(f"• <@{uid}> (`{uid}`)\n  └ **Reason:** {reason}{dev_line}")
+                description_lines.append(f"• <@{uid}> (`{uid}`) — **{timer_str}**\n  └ **Reason:** {reason}{dev_line}")
 
             embed = discord.Embed(
-                title=f"🌐 Website Ban List ({len(banned_users)} Total Banned)",
+                title=f"🌐 Website Ban List ({len(banned_users)} Total Active Banned)",
                 description="\n".join(description_lines),
                 color=0xE74C3C
             )
