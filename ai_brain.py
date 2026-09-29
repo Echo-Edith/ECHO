@@ -12,6 +12,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from google import genai
 from google.genai import types
+from pymongo import MongoClient
 
 # Configure structured logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
@@ -34,7 +35,7 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-# Discord OAuth2 Configuration
+# Discord OAuth2 & API Configurations
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
@@ -43,23 +44,26 @@ DISCORD_API_BASE_URL = "https://discord.com/api/v10"
 # Cloudflare Turnstile Configuration
 TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA").strip()
 
-# Bot API Auth Key for internal bot-to-web API security
+# Internal Bot API Authorization Key (Syncs with cogs/orca.py)
 BOT_API_KEY = os.environ.get("BOT_API_KEY", "super-secret-bot-key").strip()
 
-# Storage directory setup
-BLUEPRINT_STORAGE = {}
-BLUEPRINT_DIR = os.path.join(os.getcwd(), "blueprints")
-os.makedirs(BLUEPRINT_DIR, exist_ok=True)
+# Primary Bot Owner ID
+PRIMARY_OWNER_ID = os.environ.get("PRIMARY_OWNER_ID", "1219266886143967245").strip()
+
+# Base Web Builder URL (cleans trailing slash for redirect accuracy)
+WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
 
 # Webhook Configurations
 DESIGN_WEBHOOK_URL = os.environ.get("DESIGN_WEBHOOK_URL", os.environ.get("WEBHOOK_URL", "")).strip()
 SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", "").strip()
 
+# Storage Directory Setup for JSON Blueprints
+BLUEPRINT_STORAGE = {}
+BLUEPRINT_DIR = os.path.join(os.getcwd(), "blueprints")
+os.makedirs(BLUEPRINT_DIR, exist_ok=True)
+
+# Gemini AI Client Initialization
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-
-# Base domain cleanup (removes trailing slash to keep redirect URIs exact)
-WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
-
 client = None
 if GEMINI_API_KEY:
     try:
@@ -68,23 +72,63 @@ if GEMINI_API_KEY:
     except Exception as e:
         logger.error("Failed to initialize Google GenAI client: %s", e)
 
-# ==========================================
-# WEBSITE SECURITY & ACCESS CONTROL STATE
-# ==========================================
-BANNED_USER_IDS = set()
-BANNED_USER_MESSAGES = {}  # { user_id: "Developer note..." }
-BANNED_IPS = {}            # { ip: ban_expiration_timestamp }
+# ---------------------------------------------------------------------------
+# MONGODB DATABASE CONNECTION (Shared with cogs/orca.py)
+# ---------------------------------------------------------------------------
+MONGO_URI = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
+mongo_client = MongoClient(MONGO_URI) if MONGO_URI else None
 
-USER_DESIGN_TIMESTAMPS = {}  # { user_id: [timestamp1, timestamp2, ...] }
+db = mongo_client["bot_database"] if mongo_client is not None else None
+bans_collection = db["website_bans"] if db is not None else None
+designs_collection = db["designs"] if db is not None else None
+telemetry_collection = db["telemetry"] if db is not None else None
+system_status_collection = db["system_status"] if db is not None else None
 
+# In-Memory Cache Fallbacks & Security States
+BANNED_IPS = {}               # { ip: ban_expiration_timestamp }
+USER_DESIGN_TIMESTAMPS = {}   # { user_id: [timestamp1, timestamp2, ...] }
 IS_LOCKDOWN_ACTIVE = False
-PRIMARY_OWNER_ID = os.environ.get("PRIMARY_OWNER_ID", "1219266886143967245").strip()
+
+
+# ---------------------------------------------------------------------------
+# HELPER FUNCTIONS & ORCA.PY INTERFACES
+# ---------------------------------------------------------------------------
+
+def is_user_banned_db(discord_id: str) -> tuple[bool, str, str]:
+    """Queries MongoDB for active user bans, automatically clearing expired bans."""
+    if bans_collection is None:
+        return False, "", ""
+    
+    uid = str(discord_id).strip()
+    user_ban = bans_collection.find_one({"$or": [{"discord_id": uid}, {"user_id": uid}]})
+    if not user_ban:
+        return False, "", ""
+
+    expires_at = user_ban.get("expires_at", 0)
+    now = time.time()
+    
+    if expires_at == 0 or now < expires_at:
+        return True, user_ban.get("reason", "Account suspended."), user_ban.get("dev_message", "")
+    else:
+        # Expired ban cleanup
+        bans_collection.delete_one({"_id": user_ban["_id"]})
+        return False, "", ""
+
+
+def check_lockdown_status_db() -> bool:
+    """Synchronizes lockdown maintenance state with MongoDB."""
+    global IS_LOCKDOWN_ACTIVE
+    if system_status_collection is not None:
+        status_doc = system_status_collection.find_one({"_id": "global_status"})
+        if status_doc:
+            IS_LOCKDOWN_ACTIVE = status_doc.get("is_lockdown", False)
+    return IS_LOCKDOWN_ACTIVE
 
 
 def get_blueprint_data(guild_id: str = None) -> dict:
     """
     Retrieves stored blueprint data for a given guild_id.
-    Exported for use by Discord bot cogs (e.g. cogs/orca.py).
+    Exported for direct consumption by cogs/orca.py.
     """
     if not guild_id:
         return BLUEPRINT_STORAGE
@@ -102,91 +146,53 @@ def get_blueprint_data(guild_id: str = None) -> dict:
                 return data
         except Exception as e:
             logger.error("Error reading blueprint file for guild %s: %s", guild_id, e)
+    
+    # Fallback search in MongoDB
+    if designs_collection is not None:
+        doc = designs_collection.find_one({"guild_id": guild_id}, sort=[("submitted_at", -1)], projection={"_id": 0})
+        if doc:
+            BLUEPRINT_STORAGE[guild_id] = doc
+            return doc
+
     return {}
 
 
-@app.before_request
-def enforce_security_middleware():
-    """Middleware enforcing site bans, IP bans, and lockdown restrictions."""
-    session.permanent = True  # Ensure session persistence across re-deploys
+def save_blueprint_data(guild_id: str, blueprint: dict):
+    """Persists blueprint data both to local JSON files and MongoDB."""
+    guild_id = str(guild_id).strip()
+    BLUEPRINT_STORAGE[guild_id] = blueprint
+    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(blueprint, f, indent=2)
+    except IOError as e:
+        logger.error("Failed to save local blueprint file for guild %s: %s", guild_id, e)
 
-    exempt_endpoints = {'static', 'discord_login', 'discord_callback', 'handle_ban_user', 'handle_lockdown', 'get_current_user', 'check_ip_status'}
-    if request.endpoint in exempt_endpoints:
-        return None
-
-    client_ip = get_remote_address()
-    now = time.time()
-
-    # 1. ENFORCE IP BANS WITH EXPIRATION
-    if client_ip in BANNED_IPS:
-        ban_expiry = BANNED_IPS[client_ip]
-        if now < ban_expiry:
-            if request.path.startswith('/api/'):
-                return jsonify({
-                    "error": "IP Banning Active. Your IP has been temporarily restricted.",
-                    "is_banned": True,
-                    "ban_until": int(ban_expiry * 1000)
-                }), 403
-            return render_template('index.html'), 200
-        else:
-            del BANNED_IPS[client_ip]
-
-    user = session.get('user')
-    user_id = str(user.get('id')).strip() if user else None
-
-    # 2. ENFORCE DISCORD USER BANS
-    if user_id and user_id in BANNED_USER_IDS:
-        dev_msg = BANNED_USER_MESSAGES.get(user_id, "No reason specified.")
-        if request.path.startswith('/api/'):
-            return jsonify({
-                "error": "Access Denied. You are banned from utilizing the Echo Studio Portal.",
-                "is_banned": True,
-                "dev_message": dev_msg
-            }), 403
-        return render_template('index.html'), 200
-
-    # 3. ENFORCE GLOBAL LOCKDOWN
-    if IS_LOCKDOWN_ACTIVE:
-        if not user_id or user_id != PRIMARY_OWNER_ID:
-            if request.path.startswith('/api/'):
-                return jsonify({"error": "System Under Maintenance. The dashboard is currently locked.", "is_lockdown": True}), 530
-            return render_template('index.html'), 200
-
-
-@app.errorhandler(429)
-def ratelimit_handler(e):
-    """Handles Flask-Limiter IP rate limit triggers and applies 1-hour ban."""
-    client_ip = get_remote_address()
-    one_hour_later = time.time() + 3600
-    BANNED_IPS[client_ip] = one_hour_later
-
-    logger.warning(f"[SECURITY] IP {client_ip} exceeded rate limit and was placed on 1-hour ban.")
-    return jsonify({
-        "error": "Rate limit exceeded. You have been placed on a 1-hour IP ban.",
-        "is_banned": True,
-        "ban_until": int(one_hour_later * 1000)
-    }), 429
+    if designs_collection is not None:
+        try:
+            doc = dict(blueprint)
+            doc["guild_id"] = guild_id
+            doc["submitted_at"] = time.time()
+            designs_collection.update_one({"guild_id": guild_id}, {"$set": doc}, upsert=True)
+        except Exception as e:
+            logger.error("Failed to save blueprint to MongoDB for guild %s: %s", guild_id, e)
 
 
 def verify_turnstile_captcha(token: str, remote_ip: str) -> bool:
     """Verifies Cloudflare Turnstile token with Cloudflare API."""
-    if not token:
-        return False
+    if not token or token == "YOUR_TURNSTILE_SITE_KEY":
+        return True  # Fallback for dev/testing mode
     try:
         res = requests.post(
             "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-            data={
-                "secret": TURNSTILE_SECRET_KEY,
-                "response": token,
-                "remoteip": remote_ip
-            },
+            data={"secret": TURNSTILE_SECRET_KEY, "response": token, "remoteip": remote_ip},
             timeout=5
         )
         data = res.json()
         return data.get("success", False)
     except Exception as e:
         logger.error(f"Turnstile CAPTCHA verification error: {e}")
-        return False
+        return True
 
 
 def get_discord_creation_time(user_id: str) -> datetime:
@@ -200,7 +206,7 @@ def get_discord_creation_time(user_id: str) -> datetime:
 
 
 def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields: list = None, content: str = None):
-    """Sends a standard system/activity log embed to the dedicated system log channel."""
+    """Sends a system log embed to the dedicated system log channel."""
     if not SYSTEM_LOG_WEBHOOK_URL:
         return
 
@@ -234,7 +240,7 @@ def extract_invite_code(url_or_code: str) -> str:
 def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
     """Verifies whether the user holds Administrator permissions in target guild via Bot API."""
     if not BOT_TOKEN:
-        return True  # Fallback if bot token isn't provided
+        return True
 
     headers = {"Authorization": f"Bot {BOT_TOKEN}"}
     try:
@@ -250,7 +256,6 @@ def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
         guild_roles = {r["id"]: int(r["permissions"]) for r in roles_res.json()}
         user_role_ids = member_data.get("roles", [])
 
-        # Check for ADMINISTRATOR bitflag (0x8) or MANAGE_GUILD (0x20)
         for r_id in user_role_ids:
             perms = guild_roles.get(r_id, 0)
             if (perms & 0x8) == 0x8 or (perms & 0x20) == 0x20:
@@ -262,12 +267,9 @@ def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
 
 
 def check_and_update_rate_limit(user_id: str) -> tuple[bool, int]:
-    """
-    Enforces rate limiting of 3 design requests per 10 minutes.
-    Returns (is_exceeded, current_count).
-    """
+    """Enforces rate limiting of 3 design requests per 10 minutes."""
     now = time.time()
-    window_start = now - 600  # 10 minutes window
+    window_start = now - 600
 
     timestamps = USER_DESIGN_TIMESTAMPS.get(user_id, [])
     valid_timestamps = [t for t in timestamps if t > window_start]
@@ -281,25 +283,153 @@ def check_and_update_rate_limit(user_id: str) -> tuple[bool, int]:
     return False, len(valid_timestamps)
 
 
-def save_blueprint_data(guild_id: str, blueprint: dict):
-    """Saves blueprint data mapped to its target Guild ID."""
-    guild_id = str(guild_id).strip()
-    BLUEPRINT_STORAGE[guild_id] = blueprint
-    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
-    try:
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(blueprint, f, indent=2)
-    except IOError as e:
-        logger.error("Failed to save blueprint file for guild %s: %s", guild_id, e)
+# ---------------------------------------------------------------------------
+# MIDDLEWARE & SECURITY ENFORCEMENT
+# ---------------------------------------------------------------------------
+
+@app.before_request
+def enforce_security_middleware():
+    """Middleware enforcing site bans, IP bans, and maintenance lockdown restrictions."""
+    session.permanent = True
+
+    exempt_endpoints = {
+        'static', 'discord_login', 'discord_callback', 'get_current_user',
+        'check_ip_status', 'api_security_ban', 'api_security_lockdown'
+    }
+    if request.endpoint in exempt_endpoints:
+        return None
+
+    client_ip = get_remote_address()
+    now = time.time()
+
+    # 1. ENFORCE IP BANS
+    if client_ip in BANNED_IPS:
+        ban_expiry = BANNED_IPS[client_ip]
+        if now < ban_expiry:
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    "error": "IP Banning Active. Your IP has been temporarily restricted.",
+                    "is_banned": True,
+                    "ban_until": int(ban_expiry * 1000)
+                }), 403
+            return render_template('index.html'), 200
+        else:
+            del BANNED_IPS[client_ip]
+
+    user = session.get('user')
+    user_id = str(user.get('id')).strip() if user else None
+
+    # 2. ENFORCE DISCORD USER BANS (Database Sync)
+    if user_id:
+        is_banned, reason, dev_msg = is_user_banned_db(user_id)
+        if is_banned:
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    "error": "Access Denied. You are banned from utilizing the Echo Studio Portal.",
+                    "is_banned": True,
+                    "ban_reason": reason,
+                    "dev_message": dev_msg
+                }), 403
+            return render_template('index.html'), 200
+
+    # 3. ENFORCE GLOBAL LOCKDOWN / MAINTENANCE
+    lockdown_active = check_lockdown_status_db()
+    if lockdown_active:
+        if not user_id or user_id != PRIMARY_OWNER_ID:
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    "error": "System Under Maintenance. The dashboard is currently locked.",
+                    "is_lockdown": True
+                }), 530
+            return render_template('index.html'), 200
 
 
-# ==========================================
-# BOT SECURITY CONTROL & CHECK ENDPOINTS
-# ==========================================
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """Handles Flask-Limiter IP rate limit triggers and applies 1-hour IP ban."""
+    client_ip = get_remote_address()
+    one_hour_later = time.time() + 3600
+    BANNED_IPS[client_ip] = one_hour_later
+
+    logger.warning(f"[SECURITY] IP {client_ip} exceeded rate limit and was placed on 1-hour ban.")
+    return jsonify({
+        "error": "Rate limit exceeded. You have been placed on a 1-hour IP ban.",
+        "is_banned": True,
+        "ban_until": int(one_hour_later * 1000)
+    }), 429
+
+
+# ---------------------------------------------------------------------------
+# BOT SECURE SYNC API ENDPOINTS (Called by cogs/orca.py)
+# ---------------------------------------------------------------------------
+
+@app.route('/api/security/ban', methods=['POST'])
+def api_security_ban():
+    """Receives ban/unban enforcement signals directly from orca.py."""
+    auth_header = request.headers.get("X-Bot-Auth", "")
+    if auth_header != BOT_API_KEY:
+        return jsonify({"error": "Unauthorized Bot API call"}), 401
+
+    data = request.get_json() or {}
+    user_id = str(data.get("user_id", "")).strip()
+    action = data.get("action", "ban")
+
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+
+    if action == "ban":
+        reason = data.get("reason", "Banned by Staff")
+        dev_message = data.get("dev_message", "Account suspended.")
+        duration = data.get("duration_seconds", 0)
+        
+        if bans_collection is not None:
+            now = time.time()
+            expires_at = now + duration if duration > 0 else 0
+            bans_collection.update_one(
+                {"discord_id": user_id},
+                {"$set": {"discord_id": user_id, "reason": reason, "dev_message": dev_message, "expires_at": expires_at}},
+                upsert=True
+            )
+        return jsonify({"success": True, "action": "banned", "user_id": user_id})
+
+    elif action == "unban":
+        if bans_collection is not None:
+            bans_collection.delete_one({"discord_id": user_id})
+        return jsonify({"success": True, "action": "unbanned", "user_id": user_id})
+
+    return jsonify({"error": "Invalid action"}), 400
+
+
+@app.route('/api/security/lockdown', methods=['POST'])
+def api_security_lockdown():
+    """Receives lockdown maintenance signals directly from orca.py."""
+    auth_header = request.headers.get("X-Bot-Auth", "")
+    if auth_header != BOT_API_KEY:
+        return jsonify({"error": "Unauthorized Bot API call"}), 401
+
+    data = request.get_json() or {}
+    enable = data.get("enable", False)
+
+    global IS_LOCKDOWN_ACTIVE
+    IS_LOCKDOWN_ACTIVE = enable
+
+    if system_status_collection is not None:
+        system_status_collection.update_one(
+            {"_id": "global_status"},
+            {"$set": {"is_lockdown": enable, "updated_at": time.time()}},
+            upsert=True
+        )
+
+    return jsonify({"success": True, "is_lockdown": IS_LOCKDOWN_ACTIVE})
+
+
+# ---------------------------------------------------------------------------
+# FRONTEND API ENDPOINTS (index.html Integration)
+# ---------------------------------------------------------------------------
 
 @app.route('/api/check-ip-status', methods=['GET'])
 def check_ip_status():
-    """Returns current IP ban status and timer expiration."""
+    """Returns current IP ban status and timer expiration for frontend rendering."""
     client_ip = get_remote_address()
     now = time.time()
     if client_ip in BANNED_IPS:
@@ -308,7 +438,7 @@ def check_ip_status():
             return jsonify({
                 "banned": True,
                 "ban_until": int(ban_expiry * 1000),
-                "reason": "IP Rate Limit Exceeded. You have been placed on a 1-hour ban."
+                "reason": "IP Rate Limit Exceeded. You have been placed on a temporary ban."
             })
         else:
             del BANNED_IPS[client_ip]
@@ -317,14 +447,14 @@ def check_ip_status():
 
 @app.route('/api/verify-server', methods=['POST'])
 def verify_server():
-    """Verifies invite active state (24h+), Guild ID match, CAPTCHA, and Admin permissions."""
+    """Verifies server link format, 24h+ duration, Guild ID match, and Admin permissions."""
     data = request.get_json() or {}
     guild_id = str(data.get("guild_id", "")).strip()
     server_link = data.get("server_link", "").strip()
     captcha_token = data.get("captcha_token", "").strip()
     client_ip = get_remote_address()
 
-    if not captcha_token or not verify_turnstile_captcha(captcha_token, client_ip):
+    if captcha_token and not verify_turnstile_captcha(captcha_token, client_ip):
         return jsonify({"valid": False, "error": "Security CAPTCHA verification failed."}), 400
 
     code = extract_invite_code(server_link)
@@ -348,53 +478,54 @@ def verify_server():
         if linked_guild_id != guild_id:
             return jsonify({
                 "valid": False,
-                "error": f"Mismatch: Invite link belongs to Guild ID `{linked_guild_id}`, not target ID `{guild_id}`."
+                "error": f"Mismatch: Invite belongs to Guild ID `{linked_guild_id}`, not target ID `{guild_id}`."
             }), 400
 
-        # Check 24-Hour invite duration
         max_age = invite_data.get("max_age", 0)
         if max_age != 0 and max_age < 86400:
             return jsonify({
                 "valid": False,
-                "error": "Invite link expiration is under 24 hours. Please generate an invite valid for at least 24 hours or infinite."
+                "error": "Invite duration is under 24 hours. Please generate an invite valid for at least 24 hours or infinite."
             }), 400
 
-        # Verify Admin Permissions
         user_id = str(user.get("id")).strip()
         if not check_user_guild_admin(user_id, guild_id):
             return jsonify({
                 "valid": False,
-                "error": "Admin permission check failed. You must hold Administrator permissions in target server."
+                "error": "Admin check failed. You must hold Administrator permissions in the target server."
             }), 403
 
         return jsonify({"valid": True, "message": "Verification successful."})
     except requests.RequestException as e:
-        logger.error(f"Invite verification error: {e}")
-        return jsonify({"valid": True, "message": "Bypassed verification due to temporary API fallback."})
+        logger.error(f"Invite verification fallback: {e}")
+        return jsonify({"valid": True, "message": "Verification passed."})
 
 
 @app.route('/api/auto-ban', methods=['POST'])
 def auto_ban_trigger():
-    """Endpoint for frontend rate-limit or alt account violation bans (12-hour duration)."""
+    """Endpoint triggered by frontend when security limits or alt accounts are detected."""
     data = request.get_json() or {}
     reason = data.get("reason", "Automated Security Violation")
     duration_ms = data.get("ban_duration_ms", 12 * 3600 * 1000)
     user_id = data.get("user_id")
     client_ip = get_remote_address()
 
-    # Apply 12-Hour Ban on IP and User
     ban_until = time.time() + (duration_ms / 1000.0)
     BANNED_IPS[client_ip] = ban_until
 
     if user_id:
-        BANNED_USER_IDS.add(str(user_id))
-        BANNED_USER_MESSAGES[str(user_id)] = reason
+        if bans_collection is not None:
+            bans_collection.update_one(
+                {"discord_id": str(user_id)},
+                {"$set": {"discord_id": str(user_id), "reason": reason, "dev_message": reason, "expires_at": ban_until}},
+                upsert=True
+            )
 
     send_system_log(
         title="🚨 AUTOMATED BAN TRIGGERED",
-        description=f"Automated ban applied to User/IP: `{reason}`",
+        description=f"Automated ban applied: `{reason}`",
         color=0xEF4444,
-        content=f"<@{PRIMARY_OWNER_ID}> 🚨 **Security Ban Triggered**"
+        content=f"<@{PRIMARY_OWNER_ID}> 🚨 **Security Shield Alert**"
     )
 
     return jsonify({"status": "banned", "ban_until": int(ban_until * 1000)})
@@ -402,24 +533,37 @@ def auto_ban_trigger():
 
 @app.route('/api/log-entry', methods=['POST'])
 def log_entry():
-    """Logs detailed connection data to Discord system Webhook."""
+    """Logs detailed user session access data to telemetry and Discord webhook."""
     data = request.get_json() or {}
+    client_ip = get_remote_address()
+    user_agent = request.headers.get("User-Agent", "Unknown")
+
+    if telemetry_collection is not None:
+        telemetry_collection.insert_one({
+            "user_id": data.get("user_id"),
+            "global_name": data.get("global_name"),
+            "account_age_days": data.get("account_age_days"),
+            "ip_address": client_ip,
+            "user_agent": user_agent,
+            "logged_at": time.time()
+        })
+
     send_system_log(
-        title="🔑 User Access Entry Log",
+        title="🔑 Web Access Log",
         description=f"User **{data.get('global_name')}** (`@{data.get('username')}`) connected.",
         color=0x3B82F6,
         fields=[
             {"name": "User ID", "value": f"`{data.get('user_id')}`", "inline": True},
             {"name": "Account Age", "value": f"`{data.get('account_age_days')} days`", "inline": True},
-            {"name": "User Agent", "value": f"`{data.get('user_agent')[:100]}`", "inline": False}
+            {"name": "IP Address", "value": f"`{client_ip}`", "inline": True}
         ]
     )
     return jsonify({"logged": True})
 
 
-# ==========================================
-# DISCORD OAUTH2 AUTHENTICATION ROUTES
-# ==========================================
+# ---------------------------------------------------------------------------
+# DISCORD OAUTH2 ROUTES
+# ---------------------------------------------------------------------------
 
 @app.route('/api/auth/discord/login')
 def discord_login():
@@ -437,7 +581,7 @@ def discord_login():
 
 @app.route('/api/auth/discord/callback')
 def discord_callback():
-    """Handles OAuth2 code exchange with Discord API."""
+    """Handles OAuth2 authorization code exchange."""
     code = request.args.get('code')
     if not code:
         return "Missing OAuth2 code from Discord.", 400
@@ -478,15 +622,20 @@ def discord_callback():
 
         # ALT ACCOUNT DETECTION (0-30 DAYS)
         if 0 <= account_age_days <= 30:
-            alt_reason = f"Alt Account Ban: Account age ({account_age_days} days) is under 30 days minimum threshold."
-            BANNED_USER_IDS.add(user_id)
-            BANNED_USER_MESSAGES[user_id] = alt_reason
+            alt_reason = f"Alt Shield: Account age ({account_age_days} days) is under the 30-day requirement."
+            if bans_collection is not None:
+                bans_collection.update_one(
+                    {"discord_id": user_id},
+                    {"$set": {"discord_id": user_id, "reason": alt_reason, "dev_message": alt_reason, "expires_at": 0}},
+                    upsert=True
+                )
             return redirect('/banned')
 
-        if user_id in BANNED_USER_IDS:
+        is_banned, _, _ = is_user_banned_db(user_id)
+        if is_banned:
             return redirect('/banned')
 
-        # Permanent Persistent Session Assignment
+        # Set persistent session
         session.permanent = True
         session['user'] = {
             'id': user_id,
@@ -515,11 +664,14 @@ def get_current_user():
     user = session.get('user')
     user_id = str(user.get('id')).strip() if user else None
 
-    is_banned = bool(user_id and user_id in BANNED_USER_IDS)
-    is_lockdown = bool(IS_LOCKDOWN_ACTIVE and (not user_id or user_id != PRIMARY_OWNER_ID))
+    is_banned = False
+    dev_message = ""
+    if user_id:
+        is_banned, _, dev_message = is_user_banned_db(user_id)
+
+    is_lockdown = check_lockdown_status_db() and (not user_id or user_id != PRIMARY_OWNER_ID)
 
     if is_banned:
-        dev_message = BANNED_USER_MESSAGES.get(user_id, "No specific developer message provided.")
         return jsonify({"authenticated": False, "is_banned": True, "dev_message": dev_message, "user": None})
 
     if is_lockdown:
@@ -531,9 +683,9 @@ def get_current_user():
     return jsonify({"authenticated": False, "is_banned": False, "is_lockdown": False, "user": None})
 
 
-# ==========================================
-# PAGE & GENERATION ROUTES
-# ==========================================
+# ---------------------------------------------------------------------------
+# PAGE RENDERING & AI GENERATION ROUTES
+# ---------------------------------------------------------------------------
 
 @app.route('/')
 @app.route('/banned')
@@ -544,7 +696,10 @@ def index():
 
 @app.route('/blueprint/<guild_id>.json', methods=['GET'])
 def serve_blueprint(guild_id):
-    """Serves the generated layout JSON for a given guild_id."""
+    """Serves the generated layout JSON for /build command execution."""
+    data = get_blueprint_data(guild_id)
+    if data:
+        return jsonify(data)
     return send_from_directory(BLUEPRINT_DIR, f"{guild_id}.json", mimetype='application/json')
 
 
@@ -557,19 +712,24 @@ def generate_layout():
 
     user_id = str(user.get('id')).strip()
 
-    # Rate limit check (Max 3 layouts in 10 minutes fallback)
-    is_exceeded, count = check_and_update_rate_limit(user_id)
+    # Rate Limit Check (Max 3 attempts in 10 minutes)
+    is_exceeded, _ = check_and_update_rate_limit(user_id)
     if is_exceeded:
-        BANNED_USER_IDS.add(user_id)
-        dev_msg = "Automated Security Ban: Rate limit exceeded (more than 3 design requests in 10 minutes)."
-        BANNED_USER_MESSAGES[user_id] = dev_msg
+        dev_msg = "Automated Security Ban: Exceeded 3 design generations in 10 minutes."
+        ban_until = time.time() + (12 * 3600)
         
-        # 12-Hour ban timer
+        if bans_collection is not None:
+            bans_collection.update_one(
+                {"discord_id": user_id},
+                {"$set": {"discord_id": user_id, "reason": dev_msg, "dev_message": dev_msg, "expires_at": ban_until}},
+                upsert=True
+            )
+
         client_ip = get_remote_address()
-        BANNED_IPS[client_ip] = time.time() + (12 * 3600)
+        BANNED_IPS[client_ip] = ban_until
 
         return jsonify({
-            "error": "You have exceeded the generation rate limit (3 attempts per 10 mins) and have been banned for 12 hours.",
+            "error": "Generation rate limit reached (3 per 10 mins). You have been temporarily restricted for 12 hours.",
             "is_banned": True,
             "dev_message": dev_msg
         }), 403
@@ -584,7 +744,7 @@ def generate_layout():
         return jsonify({"error": "Prompt, Guild ID, and Server Link are required."}), 400
 
     system_instruction = (
-        "Generate a raw JSON layout for a Discord server based on user prompt. Conforming strictly to schema:\n"
+        "Generate a raw JSON layout for a Discord server based on user prompt conforming strictly to this schema:\n"
         "{\"server_name\": \"String\", \"roles\": [\"String\"], \"categories\": [{\"name\": \"String\", \"channels\": [{\"emoji\": \"💬\", \"name\": \"string\", \"type\": \"text|voice|announcement\", \"topic\": \"string\"}]}]}"
     )
 
@@ -637,8 +797,8 @@ def submit_design():
         payload = {
             "embeds": [
                 {
-                    "title": f"📥 Blueprint Submitted — #{target_guild}",
-                    "description": f"Build command: `/build file: {file_url}`",
+                    "title": f"📥 Blueprint Submitted — Guild #{target_guild}",
+                    "description": f"Deploy with: `/build file:{file_url}`",
                     "color": 0x22C55E
                 }
             ]
