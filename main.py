@@ -23,7 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import Flask application and helpers from keep_alive.py
+# Import Flask application and helpers from keep_alive.py / ai_brain.py
 from keep_alive import (
     app,
     is_user_banned_db,
@@ -119,7 +119,7 @@ def send_system_log(title: str, description: str, fields: list = None, content: 
 
 def ban_user_in_db(discord_id: str, reason: str = "Automated Security Ban", dev_message: str = "No dev message provided.", duration_seconds: int = 0):
     """Inserts or updates a user ban record in MongoDB."""
-    if bans_collection is None:
+    if bans_collection is None or str(discord_id).strip() == PRIMARY_OWNER_ID:
         return
     try:
         expires_at = time.time() + duration_seconds if duration_seconds > 0 else 0
@@ -253,6 +253,19 @@ def render_glass_banned_page(dev_message: str = "Access to this website has been
 def enforce_security_and_maintenance_main():
     session.permanent = True  # Maintain Discord login state across redeploys
 
+    exempt_prefixes = ('/api/security', '/static', '/api/auth/discord')
+    exempt_paths = ('/health', '/ping', '/banned', '/maintenance')
+
+    if any(request.path.startswith(p) for p in exempt_prefixes) or request.path in exempt_paths:
+        return None
+
+    user = session.get('user', {})
+    current_user_id = str(user.get('id', '')).strip() if user else ""
+
+    # PRIMARY OWNER IMMUNITY: Skip all restrictions for the owner
+    if current_user_id and current_user_id == PRIMARY_OWNER_ID:
+        return None
+
     client_ip = get_remote_address()
     now = time.time()
 
@@ -269,15 +282,6 @@ def enforce_security_and_maintenance_main():
             return redirect('/banned')
         else:
             del BANNED_IPS[client_ip]
-
-    exempt_prefixes = ('/api/security', '/static', '/api/auth/discord')
-    exempt_paths = ('/health', '/ping', '/banned', '/maintenance')
-
-    if any(request.path.startswith(p) for p in exempt_prefixes) or request.path in exempt_paths:
-        return None
-
-    user = session.get('user', {})
-    current_user_id = str(user.get('id', '')).strip() if user else ""
 
     # 2. Alt Account Auto-Ban Check (0-30 days old)
     if current_user_id:
@@ -306,11 +310,10 @@ def enforce_security_and_maintenance_main():
 
     # 4. Lockdown Maintenance Check
     if check_lockdown_status_db():
-        if not current_user_id or current_user_id != PRIMARY_OWNER_ID:
-            if request.path.startswith('/api/'):
-                return jsonify({"error": "System Under Maintenance. Dashboard is locked.", "is_lockdown": True}), 530
+        if request.path.startswith('/api/'):
+            return jsonify({"error": "System Under Maintenance. Dashboard is locked.", "is_lockdown": True}), 530
 
-            return render_template('index.html'), 530
+        return render_template('index.html'), 530
 
 
 # -------------------------------------------------------------
@@ -335,6 +338,11 @@ def check_design_limit():
     """Enforces 3 designs per 10 minutes limit with 12-hour ban duration and live countdown."""
     user = session.get('user', {})
     user_id = str(user.get('id', '')).strip() if user else None
+
+    # Owner immunity check
+    if user_id and user_id == PRIMARY_OWNER_ID:
+        return jsonify({"allowed": True, "remaining": 999}), 200
+
     client_ip = get_remote_address()
 
     key = user_id or client_ip
