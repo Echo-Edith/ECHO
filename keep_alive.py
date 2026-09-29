@@ -5,6 +5,7 @@ import time
 import logging
 import re
 import requests
+from threading import Thread
 from urllib.parse import quote
 from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, session, make_response
@@ -888,4 +889,7 @@ def keep_alive():
 
 
 if __name__ == '__main__':
-    run()
+    keep_alive()
+    # Keep the main process alive when executed directly
+    while True:
+        time.sleep(3600)
