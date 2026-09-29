@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SortableJS library for robust drag-and-drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <!-- Cloudflare Turnstile CAPTCHA API -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -311,6 +313,15 @@
                 </div>
             </div>
 
+            <!-- CAPTCHA CONTAINER -->
+            <div class="space-y-2 pt-2 flex flex-col items-center justify-center">
+                <label class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest text-center">
+                    Security Verification <span class="text-purple-400">*</span>
+                </label>
+                <!-- Cloudflare Turnstile CAPTCHA Widget -->
+                <div class="cf-turnstile" data-sitekey="1x00000000000000000000AA" data-callback="onCaptchaSuccess" data-expired-callback="onCaptchaExpired"></div>
+            </div>
+
             <button id="btn-generate" disabled onclick="handleGenerate()"
                 class="glass-btn glass-btn-primary w-full disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:transform-none text-white font-bold py-4 rounded-2xl text-xs uppercase tracking-wider shadow-2xl flex items-center justify-center space-x-2">
                 <span id="btn-text">Generate Server Layout</span>
@@ -473,7 +484,7 @@
         </div>
     </main>
 
-    <!-- 5. BANNED PAGE (Clean Glass UI with Red Text) -->
+    <!-- 5. BANNED PAGE (Clean Glass UI with Live Countdown) -->
     <main id="page-banned" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
         <div class="glass-card-red rounded-3xl p-8 space-y-6 relative overflow-hidden">
             <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-red-500/10 border border-red-500/30 shadow-[0_0_35px_rgba(239,68,68,0.3)]">
@@ -491,13 +502,19 @@
                 <h2 class="text-3xl font-black text-red-500 tracking-tight uppercase">BANNED</h2>
                 
                 <p class="text-xs text-red-300/80 leading-relaxed max-w-xs mx-auto">
-                    Your account has been suspended from using Echo Infrastructure Studio.
+                    Your account or IP address has been temporarily suspended from using Echo Infrastructure Studio.
                 </p>
+            </div>
+
+            <!-- LIVE COUNTDOWN TIMER DISPLAY -->
+            <div id="ban-timer-container" class="hidden bg-red-950/60 border border-red-500/40 rounded-2xl p-4 text-center space-y-1">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-red-300 block">Ban Expiration Countdown</span>
+                <div id="ban-countdown-timer" class="text-2xl font-mono font-black text-red-400 tracking-wider">00:00:00</div>
             </div>
 
             <!-- Developer Ban Message Display -->
             <div id="ban-dev-message-container" class="hidden bg-red-950/40 border border-red-500/30 rounded-2xl p-4 text-left space-y-1.5">
-                <span class="text-[9px] font-extrabold uppercase tracking-widest text-red-400 block">Developer Message:</span>
+                <span class="text-[9px] font-extrabold uppercase tracking-widest text-red-400 block">Reason / Details:</span>
                 <p id="ban-dev-message" class="text-xs text-red-200/90 font-mono leading-relaxed break-words"></p>
             </div>
 
@@ -520,11 +537,16 @@
         let sortableInstance = null;
         let isAuthenticated = false;
         let currentUser = null;
+        let captchaToken = null;
+        let countdownInterval = null;
 
         // DESIGN RATE-LIMITING STATE (Max 3 designs per 10 mins)
         const RATE_LIMIT_KEY = 'echo_design_timestamps';
+        const BAN_EXPIRY_KEY = 'echo_ban_expiry_timestamp';
         const MAX_DESIGNS = 3;
         const TIME_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+        const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hour ban duration
+        const TWELVE_HOUR_MS = 12 * 60 * 60 * 1000; // 12 hours ban duration
 
         const DISCORD_PERMISSIONS = [
             { key: "view_channel", label: "View Channel" },
@@ -537,9 +559,86 @@
             { key: "manage_channels", label: "Manage Channel" }
         ];
 
-        // CHECK AUTHENTICATION & BAN STATUS ON LOAD
+        // CAPTCHA CALLBACKS
+        function onCaptchaSuccess(token) {
+            captchaToken = token;
+            validateForm();
+        }
+
+        function onCaptchaExpired() {
+            captchaToken = null;
+            validateForm();
+        }
+
+        // CHECK BAN COUNTDOWN
+        function checkActiveBanTimer() {
+            const expiry = localStorage.getItem(BAN_EXPIRY_KEY);
+            if (!expiry) return false;
+
+            const expiryTime = parseInt(expiry, 10);
+            const now = Date.now();
+
+            if (now < expiryTime) {
+                startCountdownTimer(expiryTime);
+                return true;
+            } else {
+                localStorage.removeItem(BAN_EXPIRY_KEY);
+                return false;
+            }
+        }
+
+        function startCountdownTimer(expiryTimestamp) {
+            const timerContainer = document.getElementById('ban-timer-container');
+            const timerEl = document.getElementById('ban-countdown-timer');
+            if (timerContainer) timerContainer.classList.remove('hidden');
+
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            const updateTimer = () => {
+                const now = Date.now();
+                const diff = expiryTimestamp - now;
+
+                if (diff <= 0) {
+                    clearInterval(countdownInterval);
+                    localStorage.removeItem(BAN_EXPIRY_KEY);
+                    if (timerContainer) timerContainer.classList.add('hidden');
+                    window.location.reload();
+                    return;
+                }
+
+                const hours = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+                if (timerEl) timerEl.textContent = `${hours}:${minutes}:${seconds}`;
+            };
+
+            updateTimer();
+            countdownInterval = setInterval(updateTimer, 1000);
+        }
+
+        // CHECK AUTHENTICATION, IP BANS & ALT ACCOUNT STATUS ON LOAD
         async function checkAuth() {
             try {
+                // Check local persistent ban timer first
+                if (checkActiveBanTimer()) {
+                    showBanPage("Temporary Ban Active");
+                    return;
+                }
+
+                // Verify IP Rate Limit Status from backend
+                const ipRes = await fetch('/api/check-ip-status', { credentials: 'include' });
+                if (ipRes.ok) {
+                    const ipData = await ipRes.json();
+                    if (ipData.banned) {
+                        const banDuration = ipData.ban_until || (Date.now() + ONE_HOUR_MS);
+                        localStorage.setItem(BAN_EXPIRY_KEY, banDuration);
+                        startCountdownTimer(banDuration);
+                        showBanPage(ipData.reason || "IP Rate Limit Exceeded. You have been placed on a 1-hour ban.");
+                        return;
+                    }
+                }
+
                 const path = window.location.pathname;
                 if (path === '/ban' || path === '/banned') {
                     showBanPage();
@@ -550,7 +649,8 @@
                     return;
                 }
 
-                const res = await fetch('/api/auth/me');
+                // Persistent fetch session with include
+                const res = await fetch('/api/auth/me', { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
                     
@@ -564,6 +664,18 @@
                     }
 
                     if (data.authenticated) {
+                        // ALT ACCOUNT DETECTION (0-30 days account age check)
+                        const snowflake = BigInt(data.user.id);
+                        const createdAt = new Date(Number((snowflake >> 22n) + 1420070400000n));
+                        const ageDays = Math.floor((new Date() - createdAt) / (1000 * 60 * 60 * 24));
+
+                        if (ageDays >= 0 && ageDays <= 30) {
+                            const altReason = `Alt Account Detected: Discord account age (${ageDays} days) is under 30 days minimum requirement. Instant ban applied.`;
+                            await triggerInstantBan(data.user, altReason, TWELVE_HOUR_MS);
+                            showBanPage(altReason);
+                            return;
+                        }
+
                         isAuthenticated = true;
                         currentUser = data.user;
                         document.getElementById('login-btn').classList.add('hidden');
@@ -609,12 +721,10 @@
         // DETAILED ENTRY LOGGING TO WEBHOOK / API
         async function logDetailedEntryInfo(user) {
             try {
-                // Calculate Discord account creation date from snowflake ID
                 const snowflake = BigInt(user.id);
                 const timestamp = Number((snowflake >> 22n) + 1420070400000n);
                 const createdAt = new Date(timestamp);
-                const now = new Date();
-                const ageDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+                const ageDays = Math.floor((new Date() - createdAt) / (1000 * 60 * 60 * 24));
 
                 const avatarUrl = user.avatar 
                     ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
@@ -623,6 +733,7 @@
                 await fetch('/api/log-entry', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({
                         user_id: user.id,
                         username: user.username,
@@ -648,8 +759,8 @@
             // Filter timestamps within current 10-minute window
             timestamps = timestamps.filter(ts => (now - ts) < TIME_WINDOW_MS);
 
+            // Trigger 12-Hour ban if exceeding 3 layouts under 10 minutes
             if (timestamps.length >= MAX_DESIGNS) {
-                // Instantly trigger ban due to rate limit violation
                 await triggerRateLimitBan();
                 return false;
             }
@@ -660,24 +771,32 @@
         }
 
         async function triggerRateLimitBan() {
-            const reason = "Rate Limit Exceeded: Exceeded limit of 3 design generations/submissions per 10 minutes.";
-            
+            const reason = "Rate Limit Violation: Exceeded limit of 3 layouts within 10 minutes. 12-Hour ban issued.";
+            const banExpiry = Date.now() + TWELVE_HOUR_MS;
+            localStorage.setItem(BAN_EXPIRY_KEY, banExpiry);
+
+            await triggerInstantBan(currentUser, reason, TWELVE_HOUR_MS);
+            startCountdownTimer(banExpiry);
+            showBanPage(reason);
+        }
+
+        async function triggerInstantBan(user, reason, durationMs = ONE_HOUR_MS) {
             try {
                 await fetch('/api/auto-ban', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({
                         reason: reason,
                         ping_webhook: true,
-                        user_id: currentUser ? currentUser.id : null,
-                        username: currentUser ? currentUser.username : 'Unknown'
+                        ban_duration_ms: durationMs,
+                        user_id: user ? user.id : null,
+                        username: user ? user.username : 'Unknown'
                     })
                 });
             } catch (err) {
-                console.error("Auto-ban notification failed:", err);
+                console.error("Instant ban trigger failed:", err);
             }
-
-            showBanPage(reason);
         }
 
         function setUnauthenticated() {
@@ -731,7 +850,8 @@
             const guildIdVal = document.getElementById('guild-id-input').value.trim();
             const serverLinkVal = document.getElementById('server-link-input').value.trim();
             
-            const isValid = (promptVal.length > 0 && guildIdVal.length > 0 && serverLinkVal.length > 0 && isAuthenticated);
+            // Form is valid only if fields are filled, user is authenticated, and CAPTCHA is verified
+            const isValid = (promptVal.length > 0 && guildIdVal.length > 0 && serverLinkVal.length > 0 && isAuthenticated && captchaToken !== null);
             document.getElementById('btn-generate').disabled = !isValid;
         }
 
@@ -741,7 +861,12 @@
                 return;
             }
 
-            // Check design generation rate limit before proceeding
+            if (!captchaToken) {
+                alert("Please complete the CAPTCHA security verification.");
+                return;
+            }
+
+            // Check design rate limit (3 layouts under 10 minutes violation fallback)
             const rateLimitPassed = await checkAndApplyRateLimit();
             if (!rateLimitPassed) return;
 
@@ -755,23 +880,25 @@
 
             if (btnEl) btnEl.disabled = true;
 
-            // STEP 1: Verify Invite & Server ID Match
-            if (btnText) btnText.textContent = "Verifying information...";
+            // STEP 1: Verify Invite, 24-Hour Active Status, Guild Match & Admin Permission
+            if (btnText) btnText.textContent = "Verifying Link, Admin Permission & Guild Match...";
 
             try {
                 const verifyRes = await fetch('/api/verify-server', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ 
                         guild_id: guildId, 
-                        server_link: serverLink 
+                        server_link: serverLink,
+                        captcha_token: captchaToken
                     })
                 });
 
                 const verifyData = await verifyRes.json();
 
                 if (!verifyRes.ok || !verifyData.valid) {
-                    alert(verifyData.error || "Verification failed: The provided server link does not belong to the given Server ID.");
+                    alert(verifyData.error || "Verification Failed: Ensure the invite link is active for 24+ hours, matches the target Server ID, and that you have Admin permissions.");
                     if (btnText) btnText.textContent = "Generate Server Layout";
                     validateForm();
                     return;
@@ -783,11 +910,13 @@
                 const res = await fetch('/api/generate-layout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ 
                         prompt: promptText, 
                         guild_id: guildId, 
                         server_link: serverLink, 
-                        separator: separatorVal 
+                        separator: separatorVal,
+                        captcha_token: captchaToken
                     })
                 });
 
@@ -1143,6 +1272,7 @@
                 const res = await fetch('/api/submit-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(serverBlueprint)
                 });
                 
@@ -1170,6 +1300,8 @@
             document.getElementById('guild-id-input').value = '';
             document.getElementById('server-link-input').value = '';
             serverBlueprint = null;
+            captchaToken = null;
+            if (window.turnstile) window.turnstile.reset();
             validateForm();
             switchPage('builder');
         }
