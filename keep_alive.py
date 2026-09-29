@@ -2,9 +2,13 @@ import os
 import logging
 import time
 import requests
+import re
 from collections import defaultdict
 from threading import Thread
+from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, jsonify, session, make_response, redirect, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Import the PyMongo ban check directly from cogs/orca.py
 try:
@@ -25,15 +29,31 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger("keep_alive")
 
 app = Flask(__name__, template_folder='templates')
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-change-me")
 
-# Configuration & Webhooks
+# Persistent Session Key and Lifespan (Prevents logging users out on redeploy/unban)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-echo-studio-persistent")
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get("FLASK_ENV") == "production"
+
+# Initialize IP Limiter
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+# Configuration, CAPTCHA, and Webhooks
 PRIMARY_OWNER_ID = "1219266886143967245"
-DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
-SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", "")
+DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
+SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", "").strip()
+TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA").strip()
 
-# In-memory Rate Limiting Tracker (user_id/ip -> timestamp list)
-design_attempts = defaultdict(list)
+# In-memory Trackers
+design_attempts = defaultdict(list)  # { user_id/ip: [timestamp1, timestamp2] }
+BANNED_IPS = {}                      # { ip: ban_expiration_timestamp }
 
 
 def is_maintenance_mode() -> bool:
@@ -62,9 +82,120 @@ def send_system_webhook(title: str, description: str, fields: list = None, color
         logger.error("Failed to send webhook log: %s", err)
 
 
+def verify_turnstile_captcha(token: str, remote_ip: str) -> bool:
+    """Verifies Cloudflare Turnstile token with Cloudflare API."""
+    if not token:
+        return False
+    try:
+        res = requests.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={
+                "secret": TURNSTILE_SECRET_KEY,
+                "response": token,
+                "remoteip": remote_ip
+            },
+            timeout=5
+        )
+        data = res.json()
+        return data.get("success", False)
+    except Exception as e:
+        logger.error(f"Turnstile CAPTCHA verification error: {e}")
+        return False
+
+
+def extract_invite_code(url_or_code: str) -> str:
+    """Extracts clean invite code from Discord URL."""
+    match = re.search(r'(?:discord\.gg/|discord\.com/invite/)([a-zA-Z0-9-]+)', url_or_code)
+    return match.group(1) if match else url_or_code.strip()
+
+
+def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
+    """Verifies whether the user holds Administrator permissions in target guild via Bot API."""
+    if not DISCORD_BOT_TOKEN:
+        return True
+
+    headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
+    try:
+        res = requests.get(f"https://discord.com/api/v10/guilds/{guild_id}/members/{user_id}", headers=headers, timeout=5)
+        if res.status_code != 200:
+            return False
+
+        member_data = res.json()
+        roles_res = requests.get(f"https://discord.com/api/v10/guilds/{guild_id}/roles", headers=headers, timeout=5)
+        if roles_res.status_code != 200:
+            return False
+
+        guild_roles = {r["id"]: int(r["permissions"]) for r in roles_res.json()}
+        user_role_ids = member_data.get("roles", [])
+
+        # Check for ADMINISTRATOR bitflag (0x8) or MANAGE_GUILD (0x20)
+        for r_id in user_role_ids:
+            perms = guild_roles.get(r_id, 0)
+            if (perms & 0x8) == 0x8 or (perms & 0x20) == 0x20:
+                return True
+        return False
+    except Exception as e:
+        logger.error(f"Error checking admin permissions: {e}")
+        return True
+
+
 # ---------------------------------------------------------------------------
-# OVERRIDE ERROR HANDLERS TO PREVENT WHITE PLAIN-TEXT PAGES
+# MIDDLEWARE & ERROR HANDLERS
 # ---------------------------------------------------------------------------
+
+@app.before_request
+def enforce_security_middleware():
+    """Middleware enforcing site bans, IP bans, and maintenance restrictions."""
+    session.permanent = True  # Keep Discord session alive across redeploys
+
+    client_ip = get_remote_address()
+    now = time.time()
+
+    # IP Ban Handling with Expiration
+    if client_ip in BANNED_IPS:
+        ban_expiry = BANNED_IPS[client_ip]
+        if now < ban_expiry:
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    "error": "IP Ban Active. Access restricted.",
+                    "is_banned": True,
+                    "ban_until": int(ban_expiry * 1000)
+                }), 403
+            return redirect('/banned')
+        else:
+            del BANNED_IPS[client_ip]
+
+    user_data = session.get('user', {})
+    user_id = str(user_data.get('id', '')).strip() if user_data else None
+
+    # Alt Account Detection (0-30 days old)
+    if user_id:
+        created_at_ts = ((int(user_id) >> 22) + 1420070400000) / 1000.0 if user_id.isdigit() else time.time()
+        account_age_days = (time.time() - created_at_ts) / 86400.0
+        if 0 <= account_age_days <= 30:
+            ban_reason = f"Alt Account Auto-Ban: Account is {int(account_age_days)} days old (Minimum limit 30 days)."
+            ban_user_db(user_id, reason=ban_reason, dev_message=ban_reason)
+            session.pop('user', None)
+            if request.path.startswith('/api/'):
+                return jsonify({"error": ban_reason, "is_banned": True}), 403
+            return redirect('/banned')
+
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """Handles Flask-Limiter IP rate limit triggers and applies 1-hour ban."""
+    client_ip = get_remote_address()
+    one_hour_later = time.time() + 3600
+    BANNED_IPS[client_ip] = one_hour_later
+
+    logger.warning(f"[SECURITY] IP {client_ip} exceeded rate limit. Applied 1-hour ban.")
+    return jsonify({
+        "error": "Rate limit exceeded. You have been placed on a 1-hour IP ban.",
+        "is_banned": True,
+        "ban_until": int(one_hour_later * 1000)
+    }), 429
+
+
 @app.errorhandler(403)
 @app.errorhandler(404)
 @app.errorhandler(500)
@@ -97,17 +228,13 @@ def index():
 
 @app.route('/banned')
 def banned_page():
-    """
-    Renders a dedicated, glassmorphism UI page for banned users
-    with bold red header and developer ban message.
-    """
+    """Renders glassmorphism UI page for banned users."""
     user_data = session.get('user', {})
     user_id = str(user_data.get('id', ''))
     
     ban_info = get_ban_details(user_id) if user_id else {}
     dev_msg = ban_info.get('dev_message') or "You have been restricted from accessing this website."
 
-    # Direct Glassmorphism HTML string for clean rendering
     html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -268,9 +395,7 @@ def log_entry():
 
     user_id = user.get('id', 'Unknown')
     username = f"{user.get('username')}#{user.get('discriminator', '0')}"
-    avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{user.get('avatar')}.png" if user.get('avatar') else ""
     
-    # Calculate account creation timestamp from Snowflake ID
     created_at_timestamp = (int(user_id) >> 22) + 1420070400000 if user_id.isdigit() else 0
     account_created_str = f"<t:{int(created_at_timestamp / 1000)}:R>" if created_at_timestamp else "N/A"
 
@@ -291,66 +416,91 @@ def log_entry():
 
 
 @app.route('/api/verify_and_generate', methods=['POST'])
+@limiter.limit("5 per minute")
 def verify_and_generate():
     """
-    Verifies guild matching via Discord REST API and enforces 3 designs / 10 min rate limit.
-    Instantly bans user and notifies Webhook upon rate limit violation.
+    Verifies CAPTCHA, 24-hour invite link, guild match, Admin perms,
+    and enforces 3 designs / 10 min rate limit with 12-hour ban duration.
     """
+    data = request.json or {}
+    captcha_token = data.get('captcha_token', '').strip()
+    client_ip = get_remote_address()
+
+    # 1. Verify CAPTCHA
+    if not captcha_token or not verify_turnstile_captcha(captcha_token, client_ip):
+        return jsonify({"success": False, "message": "Security CAPTCHA verification failed."}), 400
+
     user_data = session.get('user')
     user_id = str(user_data.get('id', '')).strip() if user_data else request.remote_addr
 
-    # 1. Rate Limiting Check (3 per 10 minutes)
+    # 2. Rate Limiting Check (3 per 10 minutes -> 12-Hour Ban)
     now = time.time()
     user_history = [t for t in design_attempts[user_id] if now - t < 600]
     user_history.append(now)
     design_attempts[user_id] = user_history
 
     if len(user_history) > 3:
-        # Instant Ban Trigger
-        ban_user_db(user_id, reason="Exceeded 3 layout generations per 10 minutes.", dev_message="Automated ban: Excessive design requests detected.")
-        
-        # Dispatch alert ping to System Webhook
+        twelve_hours_later = time.time() + (12 * 3600)
+        BANNED_IPS[client_ip] = twelve_hours_later
+
+        if user_data:
+            ban_user_db(user_id, reason="Exceeded 3 layout generations per 10 minutes.", dev_message="Automated 12-hour ban: Excessive layout attempts.")
+
         send_system_webhook(
-            title="🚨 INSTANT BAN: Rate Limit Exceeded",
-            description=f"User <@{user_id}> (`{user_id}`) exceeded the design limit (3 actions / 10 min) and was instantly banned.",
-            fields=[{"name": "IP Address", "value": f"`{request.remote_addr}`", "inline": True}],
+            title="🚨 INSTANT 12-HOUR BAN: Rate Limit Exceeded",
+            description=f"User <@{user_id}> (`{user_id}`) exceeded limit (3 actions / 10 min) and was banned for 12 hours.",
+            fields=[{"name": "IP Address", "value": f"`{client_ip}`", "inline": True}],
             color=0xFF0000
         )
-        session.pop('user', None)
-        return jsonify({"error": "Rate limit exceeded. You have been banned.", "is_banned": True}), 403
+        return jsonify({
+            "error": "Rate limit exceeded (3 layouts in 10 mins). You have been banned for 12 hours.",
+            "is_banned": True,
+            "ban_until": int(twelve_hours_later * 1000)
+        }), 403
 
-    # 2. Extract payload
-    data = request.json or {}
+    # 3. Extract payload
     server_id = str(data.get('server_id', '')).strip()
     server_invite = data.get('server_link', '').strip()
 
     if not server_id or not server_invite:
         return jsonify({"success": False, "message": "Missing server ID or invite link."}), 400
 
-    # Extract code from invite URL (e.g. discord.gg/abc -> abc)
-    invite_code = server_invite.split('/')[-1]
+    invite_code = extract_invite_code(server_invite)
 
-    # 3. Verify server link and server ID against Discord API
+    # 4. Verify server link, server ID, 24h duration, & Admin permissions via Discord API
     headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"} if DISCORD_BOT_TOKEN else {}
     try:
-        res = requests.get(f"https://discord.com/api/v10/invites/{invite_code}", headers=headers, timeout=5)
+        res = requests.get(f"https://discord.com/api/v10/invites/{invite_code}?with_counts=true", headers=headers, timeout=5)
         if res.status_code == 200:
             invite_data = res.json()
-            resolved_guild_id = str(invite_data.get('guild', {}).get('id', ''))
+            resolved_guild_id = str(invite_data.get('guild', {}).get('id', '')).strip()
 
             if resolved_guild_id != server_id:
                 return jsonify({
                     "success": False,
-                    "message": "Verification failed: Server link does not match the provided Server ID."
+                    "message": f"Verification failed: Invite belongs to Guild ID `{resolved_guild_id}`, not target ID `{server_id}`."
                 }), 400
+
+            max_age = invite_data.get("max_age", 0)
+            if max_age != 0 and max_age < 86400:
+                return jsonify({
+                    "success": False,
+                    "message": "Verification failed: Server invite link must be active for at least 24 hours (or infinite)."
+                }), 400
+
+            if user_data and not check_user_guild_admin(user_id, server_id):
+                return jsonify({
+                    "success": False,
+                    "message": "Verification failed: You do not hold Administrator permissions in this target server."
+                }), 403
         else:
             return jsonify({
                 "success": False,
-                "message": "Verification failed: Unable to validate server invite link."
+                "message": "Verification failed: Provided invite link is invalid or expired."
             }), 400
     except Exception as err:
         logger.error("Guild verification error: %s", err)
-        return jsonify({"success": False, "message": "Verification failed due to internal error."}), 500
+        return jsonify({"success": False, "message": "Verification failed due to internal connection error."}), 500
 
     return jsonify({"success": True, "message": "Verification successful. Generating layout..."}), 200
 
