@@ -23,7 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import Flask application and mongo helpers from ai_brain.py
+# Import Flask application and helpers from ai_brain.py
 from ai_brain import (
     app,
     is_user_banned_db,
@@ -38,7 +38,7 @@ from ai_brain import (
 # -------------------------------------------------------------
 # SESSION PERSISTENCE & SECURITY CONFIGURATION
 # -------------------------------------------------------------
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-echo-studio-persistent")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-echo-studio-persistent-2026")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -72,7 +72,7 @@ if MONGO_URI:
         db = mongo_client["bot_database"]
         bans_collection = db["website_bans"]
         telemetry_collection = db["telemetry"]
-        logger.info("MongoDB client initialized in main.py.")
+        logger.info("MongoDB client initialized successfully in main.py.")
     except Exception as e:
         logger.error("Failed to initialize MongoDB client in main.py: %s", e)
 
