@@ -84,6 +84,21 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.12);
         }
 
+        /* Glassmorphic Container for CAPTCHA */
+        .glass-captcha-card {
+            background: rgba(13, 13, 20, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .glass-captcha-card:hover {
+            border-color: rgba(168, 85, 247, 0.4);
+            box-shadow: 0 12px 35px -5px rgba(168, 85, 247, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+        }
+
         /* Status-specific Glass Cards */
         .glass-card-amber {
             background: rgba(24, 18, 12, 0.55);
@@ -313,13 +328,19 @@
                 </div>
             </div>
 
-            <!-- CAPTCHA CONTAINER -->
-            <div class="space-y-2 pt-2 flex flex-col items-center justify-center">
-                <label class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest text-center">
-                    Security Verification <span class="text-purple-400">*</span>
+            <!-- GLASS CAPTCHA CONTAINER -->
+            <div class="space-y-2.5 pt-2 flex flex-col items-center justify-center">
+                <label class="block text-[10px] font-bold text-purple-300 uppercase tracking-widest text-center flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    <span>Security Verification</span>
+                    <span class="text-purple-400">*</span>
                 </label>
-                <!-- Cloudflare Turnstile CAPTCHA Widget -->
-                <div class="cf-turnstile" data-sitekey="1x00000000000000000000AA" data-callback="onCaptchaSuccess" data-expired-callback="onCaptchaExpired"></div>
+                <div class="glass-captcha-card p-3 rounded-2xl flex items-center justify-center border border-purple-500/20 shadow-lg">
+                    <!-- Cloudflare Turnstile CAPTCHA Widget -->
+                    <div class="cf-turnstile" data-sitekey="1x00000000000000000000AA" data-theme="dark" data-callback="onCaptchaSuccess" data-expired-callback="onCaptchaExpired"></div>
+                </div>
             </div>
 
             <button id="btn-generate" disabled onclick="handleGenerate()"
