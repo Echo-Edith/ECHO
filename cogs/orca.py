@@ -54,15 +54,19 @@ def is_user_banned(discord_id: str) -> bool:
     if bans_collection is None:
         return False
 
-    user = bans_collection.find_one({"$or": [{"discord_id": str_id}, {"user_id": str_id}]})
-    if not user:
-        return False
+    try:
+        user = bans_collection.find_one({"$or": [{"discord_id": str_id}, {"user_id": str_id}]})
+        if not user:
+            return False
 
-    ban_expires_at = user.get("expires_at", 0)
-    if ban_expires_at == 0 or time.time() < ban_expires_at:
-        return True
-    else:
-        unban_user(discord_id)
+        ban_expires_at = user.get("expires_at", 0)
+        if ban_expires_at == 0 or time.time() < ban_expires_at:
+            return True
+        else:
+            unban_user(discord_id)
+            return False
+    except Exception as e:
+        print(f"[Database Error] Failed to check ban status: {e}")
         return False
 
 
@@ -81,21 +85,25 @@ def ban_user(discord_id: str, reason: str = "No reason provided", dev_message: s
     now = time.time()
     expires_at = now + duration_seconds if duration_seconds > 0 else 0
 
-    result = bans_collection.update_one(
-        {"$or": [{"discord_id": str_id}, {"user_id": str_id}]},
-        {
-            "$set": {
-                "discord_id": str_id,
-                "user_id": str_id,
-                "reason": reason,
-                "dev_message": dev_message,
-                "updated_at": now,
-                "expires_at": expires_at
-            }
-        },
-        upsert=True
-    )
-    return result.upserted_id is not None or result.modified_count > 0
+    try:
+        result = bans_collection.update_one(
+            {"$or": [{"discord_id": str_id}, {"user_id": str_id}]},
+            {
+                "$set": {
+                    "discord_id": str_id,
+                    "user_id": str_id,
+                    "reason": reason,
+                    "dev_message": dev_message,
+                    "updated_at": now,
+                    "expires_at": expires_at
+                }
+            },
+            upsert=True
+        )
+        return result.upserted_id is not None or result.modified_count > 0
+    except Exception as e:
+        print(f"[Database Error] Failed to ban user {str_id}: {e}")
+        return False
 
 
 def unban_user(discord_id: str) -> bool:
@@ -103,8 +111,12 @@ def unban_user(discord_id: str) -> bool:
     if bans_collection is None:
         return False
     str_id = str(discord_id).strip()
-    result = bans_collection.delete_many({"$or": [{"discord_id": str_id}, {"user_id": str_id}]})
-    return result.deleted_count > 0
+    try:
+        result = bans_collection.delete_many({"$or": [{"discord_id": str_id}, {"user_id": str_id}]})
+        return result.deleted_count > 0
+    except Exception as e:
+        print(f"[Database Error] Failed to unban user {str_id}: {e}")
+        return False
 
 
 def get_all_bans() -> list:
@@ -113,17 +125,21 @@ def get_all_bans() -> list:
         return []
     now = time.time()
     active_bans = []
-    for ban in bans_collection.find({}, {"_id": 0, "discord_id": 1, "user_id": 1, "reason": 1, "dev_message": 1, "expires_at": 1}):
-        uid = ban.get("discord_id") or ban.get("user_id")
-        if str(uid) == str(AUTHORIZED_USER_ID):
-            unban_user(uid)
-            continue
+    try:
+        cursor = bans_collection.find({}, {"_id": 0, "discord_id": 1, "user_id": 1, "reason": 1, "dev_message": 1, "expires_at": 1})
+        for ban in cursor:
+            uid = ban.get("discord_id") or ban.get("user_id")
+            if str(uid) == str(AUTHORIZED_USER_ID):
+                unban_user(uid)
+                continue
 
-        expires_at = ban.get("expires_at", 0)
-        if expires_at == 0 or now < expires_at:
-            active_bans.append(ban)
-        else:
-            unban_user(uid)
+            expires_at = ban.get("expires_at", 0)
+            if expires_at == 0 or now < expires_at:
+                active_bans.append(ban)
+            else:
+                unban_user(uid)
+    except Exception as e:
+        print(f"[Database Error] Failed to fetch active bans: {e}")
     return active_bans
 
 
@@ -136,14 +152,18 @@ def get_user_ban_details(discord_id: str) -> dict:
     if bans_collection is None:
         return None
 
-    ban = bans_collection.find_one({"$or": [{"discord_id": str_id}, {"user_id": str_id}]}, {"_id": 0})
-    if not ban:
+    try:
+        ban = bans_collection.find_one({"$or": [{"discord_id": str_id}, {"user_id": str_id}]}, {"_id": 0})
+        if not ban:
+            return None
+        expires_at = ban.get("expires_at", 0)
+        if expires_at != 0 and time.time() >= expires_at:
+            unban_user(discord_id)
+            return None
+        return ban
+    except Exception as e:
+        print(f"[Database Error] Failed to get ban details for {str_id}: {e}")
         return None
-    expires_at = ban.get("expires_at", 0)
-    if expires_at != 0 and time.time() >= expires_at:
-        unban_user(discord_id)
-        return None
-    return ban
 
 
 # ---------------------------------------------------------------------------
@@ -185,11 +205,15 @@ def can_build():
 async def update_website_lockdown_status(enable: bool):
     """Helper function to synchronize website lockdown maintenance mode."""
     if system_status_collection is not None:
-        system_status_collection.update_one(
-            {"_id": "global_status"},
-            {"$set": {"is_lockdown": enable, "updated_at": time.time()}},
-            upsert=True
-        )
+        try:
+            system_status_collection.update_one(
+                {"_id": "global_status"},
+                {"$set": {"is_lockdown": enable, "updated_at": time.time()}},
+                upsert=True
+            )
+        except Exception as e:
+            print(f"[Database Error] Failed to persist status update: {e}")
+
     try:
         async with aiohttp.ClientSession() as session:
             payload = {"enable": enable}
@@ -266,13 +290,16 @@ class OrcaCog(commands.Cog):
         if not token or token == "YOUR_RECAPTCHA_SITE_KEY":
             return False
 
-        async with aiohttp.ClientSession() as session:
-            url = "https://www.google.com/recaptcha/api/siteverify"
-            payload = {"secret": RECAPTCHA_SECRET_KEY, "response": token}
-            async with session.post(url, data=payload) as resp:
-                if resp.status == 200:
-                    result = await resp.json()
-                    return result.get("success", False)
+        try:
+            async with aiohttp.ClientSession() as session:
+                url = "https://www.google.com/recaptcha/api/siteverify"
+                payload = {"secret": RECAPTCHA_SECRET_KEY, "response": token}
+                async with session.post(url, data=payload, timeout=5) as resp:
+                    if resp.status == 200:
+                        result = await resp.json()
+                        return result.get("success", False)
+        except Exception as e:
+            print(f"[Recaptcha Error] Failed to verify token: {e}")
         return False
 
     async def handle_api_check_auth(self, user_id: str) -> dict:
@@ -282,21 +309,23 @@ class OrcaCog(commands.Cog):
 
         # Primary Owner Immunity
         if uid == str(AUTHORIZED_USER_ID):
-            return {"authenticated": True, "user_id": uid, "is_owner": True}
+            return {"authenticated": True, "user_id": uid, "is_owner": True, "is_banned": False, "is_lockdown": False}
 
         if is_lockdown:
-            return {"authenticated": True, "is_lockdown": True}
+            return {"authenticated": True, "user_id": uid, "is_lockdown": True, "is_banned": False}
 
         ban_info = get_user_ban_details(uid)
         if ban_info:
             return {
                 "authenticated": True,
+                "user_id": uid,
                 "is_banned": True,
+                "is_lockdown": False,
                 "ban_reason": ban_info.get("reason", "Account suspended."),
                 "dev_message": ban_info.get("dev_message", "")
             }
 
-        return {"authenticated": True, "user_id": uid}
+        return {"authenticated": True, "user_id": uid, "is_banned": False, "is_lockdown": False}
 
     async def check_user_oauth_guild_admin(self, user_id: int, guild_id: str, access_token: str = None) -> tuple[bool, str]:
         """Checks whether the user owns or has Administrator/Manage Guild permissions in the target guild via OAuth2."""
@@ -352,16 +381,19 @@ class OrcaCog(commands.Cog):
     async def handle_api_submit_design(self, payload: dict, user_id: int) -> dict:
         """Submits and persists layout blueprint details into MongoDB."""
         if designs_collection is not None:
-            doc = {
-                "user_id": str(user_id),
-                "guild_id": payload.get("target_guild_id"),
-                "server_link": payload.get("server_link"),
-                "separator": payload.get("separator"),
-                "categories": payload.get("categories", []),
-                "roles": payload.get("roles", []),
-                "submitted_at": time.time()
-            }
-            designs_collection.insert_one(doc)
+            try:
+                doc = {
+                    "user_id": str(user_id),
+                    "guild_id": payload.get("target_guild_id"),
+                    "server_link": payload.get("server_link"),
+                    "separator": payload.get("separator"),
+                    "categories": payload.get("categories", []),
+                    "roles": payload.get("roles", []),
+                    "submitted_at": time.time()
+                }
+                designs_collection.insert_one(doc)
+            except Exception as e:
+                print(f"[Database Error] Failed to insert design record: {e}")
 
         embed = discord.Embed(
             title="📐 New Server Design Submitted",
@@ -576,14 +608,17 @@ class OrcaCog(commands.Cog):
                 is_alt = True
 
         if telemetry_collection is not None:
-            telemetry_collection.insert_one({
-                "user_id": uid_str,
-                "ip_address": ip_address,
-                "user_agent": user_agent,
-                "is_alt": is_alt,
-                "account_age_days": account_age_days,
-                "logged_at": time.time()
-            })
+            try:
+                telemetry_collection.insert_one({
+                    "user_id": uid_str,
+                    "ip_address": ip_address,
+                    "user_agent": user_agent,
+                    "is_alt": is_alt,
+                    "account_age_days": account_age_days,
+                    "logged_at": time.time()
+                })
+            except Exception as e:
+                print(f"[Database Error] Failed to log telemetry: {e}")
 
         embed = discord.Embed(
             title="🌐 Website Access Log" if not is_alt else "🚨 Alt Account Detected — Automated Ban",
@@ -1134,13 +1169,16 @@ class OrcaCog(commands.Cog):
         else:
             # Fallback to DB check for recently submitted design by this user
             if designs_collection is not None:
-                doc = designs_collection.find_one(
-                    {"user_id": str(interaction.user.id), "guild_id": str(interaction.guild.id)},
-                    sort=[("submitted_at", -1)]
-                )
-                if doc:
-                    blueprint = doc
-                    source_identifier = "MongoDB Database Sync"
+                try:
+                    doc = designs_collection.find_one(
+                        {"user_id": str(interaction.user.id), "guild_id": str(interaction.guild.id)},
+                        sort=[("submitted_at", -1)]
+                    )
+                    if doc:
+                        blueprint = doc
+                        source_identifier = "MongoDB Database Sync"
+                except Exception as e:
+                    print(f"[Database Error] Failed to fetch submitted design: {e}")
 
         if not blueprint:
             embed = discord.Embed(
@@ -1289,11 +1327,11 @@ class OrcaCog(commands.Cog):
     async def nuke(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
         guild = interaction.guild
-        current_channel = interaction.channel
+        current_channel_id = interaction.channel.id if interaction.channel else None
 
         deleted_count = 0
-        for channel in guild.channels:
-            if channel.id != current_channel.id:
+        for channel in list(guild.channels):
+            if channel.id != current_channel_id:
                 try:
                     await channel.delete()
                     deleted_count += 1
