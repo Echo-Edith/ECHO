@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SortableJS library for robust drag-and-drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <!-- Cloudflare Turnstile CAPTCHA API -->
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <!-- Google reCAPTCHA v2 API -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -338,8 +338,13 @@
                     <span class="text-purple-400">*</span>
                 </label>
                 <div class="glass-captcha-card p-3 rounded-2xl flex items-center justify-center border border-purple-500/20 shadow-lg">
-                    <!-- Cloudflare Turnstile CAPTCHA Widget -->
-                    <div class="cf-turnstile" data-sitekey="1x00000000000000000000AA" data-theme="dark" data-callback="onCaptchaSuccess" data-expired-callback="onCaptchaExpired"></div>
+                    <!-- Google reCAPTCHA v2 Widget -->
+                    <div class="g-recaptcha" 
+                         data-sitekey="YOUR_RECAPTCHA_SITE_KEY" 
+                         data-theme="dark" 
+                         data-callback="onCaptchaSuccess" 
+                         data-expired-callback="onCaptchaExpired">
+                    </div>
                 </div>
             </div>
 
@@ -1322,7 +1327,7 @@
             document.getElementById('server-link-input').value = '';
             serverBlueprint = null;
             captchaToken = null;
-            if (window.turnstile) window.turnstile.reset();
+            if (window.grecaptcha) window.grecaptcha.reset();
             validateForm();
             switchPage('builder');
         }
