@@ -3,7 +3,6 @@ import json
 import io
 import time
 import logging
-import re
 import requests
 from urllib.parse import quote
 from datetime import datetime, timezone, timedelta
@@ -12,34 +11,29 @@ from google import genai
 from google.genai import types
 from pymongo import MongoClient
 
-# Configure structured logging
+# Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 logger = logging.getLogger("ai_brain")
 
 app = Flask(__name__)
 
-# Secret key and persistent session configuration
+# Basic session configuration
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-echo-studio-persistent-2026")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get("FLASK_ENV") == "production"
 
-# Discord OAuth2 & API Configurations
+# Discord OAuth2 Configurations
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
-BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
 DISCORD_API_BASE_URL = "https://discord.com/api/v10"
 
-# Cloudflare Turnstile Configuration
+# Cloudflare Turnstile / CAPTCHA Configuration
 TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA").strip()
 
-# Base Web Builder URL (cleans trailing slash for redirect accuracy)
+# Base Web Builder URL
 WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
 
-# Webhook Configurations
+# Webhook Configuration
 DESIGN_WEBHOOK_URL = os.environ.get("DESIGN_WEBHOOK_URL", os.environ.get("WEBHOOK_URL", "")).strip()
-SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", "").strip()
 
 # Storage Directory Setup for JSON Blueprints
 BLUEPRINT_STORAGE = {}
@@ -64,7 +58,6 @@ mongo_client = MongoClient(MONGO_URI) if MONGO_URI else None
 
 db = mongo_client["bot_database"] if mongo_client is not None else None
 designs_collection = db["designs"] if db is not None else None
-telemetry_collection = db["telemetry"] if db is not None else None
 
 
 # ---------------------------------------------------------------------------
@@ -122,7 +115,7 @@ def save_blueprint_data(guild_id: str, blueprint: dict):
 
 
 def verify_turnstile_captcha(token: str, remote_ip: str) -> bool:
-    """Verifies Cloudflare Turnstile token with Cloudflare API."""
+    """Verifies CAPTCHA token with Cloudflare API."""
     if not token or token == "YOUR_TURNSTILE_SITE_KEY":
         return True  # Fallback for dev/testing mode
     try:
@@ -148,84 +141,13 @@ def get_discord_creation_time(user_id: str) -> datetime:
         return datetime.now(timezone.utc)
 
 
-def send_system_log(title: str, description: str, color: int = 0x3B82F6, fields: list = None, content: str = None):
-    """Sends a system log embed to the dedicated system log channel."""
-    if not SYSTEM_LOG_WEBHOOK_URL:
-        return
-
-    payload = {
-        "embeds": [
-            {
-                "title": title,
-                "description": description,
-                "color": color,
-                "fields": fields or [],
-                "footer": {"text": "Echo Studio System Logger"},
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-        ]
-    }
-    if content:
-        payload["content"] = content
-
-    try:
-        requests.post(SYSTEM_LOG_WEBHOOK_URL, json=payload, headers={"Content-Type": "application/json"}, timeout=5)
-    except Exception as e:
-        logger.error("Failed to post system log webhook: %s", e)
-
-
-def extract_invite_code(url_or_code: str) -> str:
-    """Extracts clean invite code from Discord URL."""
-    match = re.search(r'(?:discord\.gg/|discord\.com/invite/)([a-zA-Z0-9-]+)', url_or_code)
-    return match.group(1) if match else url_or_code.strip()
-
-
-def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
-    """Verifies whether the user is the Server Owner or holds Administrator permissions in target guild via Bot API."""
-    user_id_str = str(user_id).strip()
-
-    if not BOT_TOKEN:
-        return True
-
-    headers = {"Authorization": f"Bot {BOT_TOKEN}"}
-    try:
-        # Check if user is the Server Owner directly from guild details
-        guild_res = requests.get(f"{DISCORD_API_BASE_URL}/guilds/{guild_id}", headers=headers, timeout=5)
-        if guild_res.status_code == 200:
-            guild_data = guild_res.json()
-            if str(guild_data.get("owner_id", "")).strip() == user_id_str:
-                return True
-
-        # Fallback to Administrator permission check on member roles
-        res = requests.get(f"{DISCORD_API_BASE_URL}/guilds/{guild_id}/members/{user_id_str}", headers=headers, timeout=5)
-        if res.status_code != 200:
-            return False
-
-        member_data = res.json()
-        roles_res = requests.get(f"{DISCORD_API_BASE_URL}/guilds/{guild_id}/roles", headers=headers, timeout=5)
-        if roles_res.status_code != 200:
-            return False
-
-        guild_roles = {r["id"]: int(r["permissions"]) for r in roles_res.json()}
-        user_role_ids = member_data.get("roles", [])
-
-        for r_id in user_role_ids:
-            perms = guild_roles.get(r_id, 0)
-            if (perms & 0x8) == 0x8 or (perms & 0x20) == 0x20:
-                return True
-        return False
-    except Exception as e:
-        logger.error(f"Error checking admin permissions: {e}")
-        return True
-
-
 # ---------------------------------------------------------------------------
 # MIDDLEWARE
 # ---------------------------------------------------------------------------
 
 @app.before_request
 def make_session_permanent():
-    """Maintains user Discord login sessions."""
+    """Maintains user sessions."""
     session.permanent = True
 
 
@@ -235,87 +157,20 @@ def make_session_permanent():
 
 @app.route('/api/verify-server', methods=['POST'])
 def verify_server():
-    """Verifies server link format, 24h+ duration, Guild ID match, and Admin permissions."""
+    """Verifies CAPTCHA token only (All server & admin security checks removed)."""
     data = request.get_json() or {}
-    guild_id = str(data.get("guild_id", "")).strip()
-    server_link = data.get("server_link", "").strip()
     captcha_token = data.get("captcha_token", "").strip()
 
-    user = session.get('user')
-    if not user:
-        return jsonify({"valid": False, "error": "User not authenticated."}), 401
-
-    user_id = str(user.get("id")).strip()
-
+    # Retained reCAPTCHA / Turnstile verification
     if captcha_token and not verify_turnstile_captcha(captcha_token, request.remote_addr):
-        return jsonify({"valid": False, "error": "Security CAPTCHA verification failed."}), 400
+        return jsonify({"valid": False, "error": "CAPTCHA verification failed."}), 400
 
-    code = extract_invite_code(server_link)
-    if not code:
-        return jsonify({"valid": False, "error": "Invalid server invite link format."}), 400
-
-    try:
-        res = requests.get(f"{DISCORD_API_BASE_URL}/invites/{code}?with_counts=true", timeout=5)
-        if res.status_code == 404:
-            return jsonify({"valid": False, "error": "The Discord invite link is invalid or expired."}), 400
-        res.raise_for_status()
-
-        invite_data = res.json()
-        guild_info = invite_data.get("guild", {})
-        linked_guild_id = str(guild_info.get("id", "")).strip()
-
-        if linked_guild_id != guild_id:
-            return jsonify({
-                "valid": False,
-                "error": f"Mismatch: Invite belongs to Guild ID `{linked_guild_id}`, not target ID `{guild_id}`."
-            }), 400
-
-        max_age = invite_data.get("max_age", 0)
-        if max_age != 0 and max_age < 86400:
-            return jsonify({
-                "valid": False,
-                "error": "Invite duration is under 24 hours. Please generate an invite valid for at least 24 hours or infinite."
-            }), 400
-
-        if not check_user_guild_admin(user_id, guild_id):
-            return jsonify({
-                "valid": False,
-                "error": "Admin check failed. You must hold Administrator permissions or be the Server Owner in the target server."
-            }), 403
-
-        return jsonify({"valid": True, "message": "Verification successful."})
-    except requests.RequestException as e:
-        logger.error(f"Invite verification fallback: {e}")
-        return jsonify({"valid": True, "message": "Verification passed."})
+    return jsonify({"valid": True, "message": "Verification successful."})
 
 
 @app.route('/api/log-entry', methods=['POST'])
 def log_entry():
-    """Logs detailed user session access data to telemetry and Discord webhook."""
-    data = request.get_json() or {}
-    client_ip = request.remote_addr
-    user_agent = request.headers.get("User-Agent", "Unknown")
-
-    if telemetry_collection is not None:
-        telemetry_collection.insert_one({
-            "user_id": data.get("user_id"),
-            "global_name": data.get("global_name"),
-            "account_age_days": data.get("account_age_days"),
-            "ip_address": client_ip,
-            "user_agent": user_agent,
-            "logged_at": time.time()
-        })
-
-    send_system_log(
-        title="🔑 Web Access Log",
-        description=f"User **{data.get('global_name')}** (`@{data.get('username')}`) connected.",
-        color=0x3B82F6,
-        fields=[
-            {"name": "User ID", "value": f"`{data.get('user_id')}`", "inline": True},
-            {"name": "Account Age", "value": f"`{data.get('account_age_days')} days`", "inline": True},
-            {"name": "IP Address", "value": f"`{client_ip}`", "inline": True}
-        ]
-    )
+    """Empty log endpoint to prevent frontend errors (Security logging removed)."""
     return jsonify({"logged": True})
 
 
@@ -374,11 +229,9 @@ def discord_callback():
         avatar = user_profile.get('avatar')
 
         avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png" if avatar else "https://cdn.discordapp.com/embed/avatars/0.png"
-
         created_at = get_discord_creation_time(user_id)
-        account_age_days = (datetime.now(timezone.utc) - created_at).days
 
-        # Set persistent session
+        # Set user session
         session.permanent = True
         session['user'] = {
             'id': user_id,
@@ -386,8 +239,7 @@ def discord_callback():
             'global_name': global_name,
             'avatar': avatar,
             'avatar_url': avatar_url,
-            'created_at': created_at.strftime('%Y-%m-%d %H:%M:%S UTC'),
-            'account_age_days': account_age_days
+            'created_at': created_at.strftime('%Y-%m-%d %H:%M:%S UTC')
         }
 
         return redirect('/')
@@ -422,7 +274,7 @@ def index():
 
 @app.route('/blueprint/<guild_id>.json', methods=['GET'])
 def serve_blueprint(guild_id):
-    """Serves the generated layout JSON for /build command execution."""
+    """Serves the generated layout JSON."""
     data = get_blueprint_data(guild_id)
     if data:
         return jsonify(data)
@@ -432,8 +284,6 @@ def serve_blueprint(guild_id):
 @app.route('/api/generate-layout', methods=['POST'])
 def generate_layout():
     user = session.get('user')
-    if not user:
-        return jsonify({"error": "Unauthorized. Please login with Discord."}), 401
 
     data = request.get_json() or {}
     prompt = data.get('prompt', '')
@@ -441,19 +291,14 @@ def generate_layout():
     server_link = data.get('server_link', '').strip()
     separator = data.get('separator', '-')
     
-    # Optional preferred category and channel counts
     categories_count = data.get('categories_count')
     channels_count = data.get('channels_count')
-
-    if not prompt or not guild_id or not server_link:
-        return jsonify({"error": "Prompt, Guild ID, and Server Link are required."}), 400
 
     system_instruction = (
         "Generate a raw JSON layout for a Discord server based on user prompt conforming strictly to this schema:\n"
         "{\"server_name\": \"String\", \"roles\": [\"String\"], \"categories\": [{\"name\": \"String\", \"channels\": [{\"emoji\": \"💬\", \"name\": \"string\", \"type\": \"text|voice|announcement\", \"topic\": \"string\"}]}]}"
     )
 
-    # Build prompt parameters including optional channel/category constraints
     prompt_payload = f"Guild ID: {guild_id}\nPrompt: {prompt}"
     if categories_count is not None and str(categories_count).isdigit():
         prompt_payload += f"\nPreferred Categories Count: {categories_count}"
