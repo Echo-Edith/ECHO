@@ -52,29 +52,6 @@
             filter: blur(90px);
         }
 
-        /* Ambient glows for maintenance and banned states */
-        .glass-aura-amber {
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 550px;
-            height: 550px;
-            background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.1) 50%, rgba(0, 0, 0, 0) 70%);
-            filter: blur(100px);
-        }
-
-        .glass-aura-red {
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 550px;
-            height: 550px;
-            background: radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, rgba(185, 28, 28, 0.15) 50%, rgba(0, 0, 0, 0) 70%);
-            filter: blur(100px);
-        }
-
         /* Enhanced High-End Glassmorphism */
         .glass-card {
             background: rgba(18, 18, 26, 0.55);
@@ -97,23 +74,6 @@
         .glass-captcha-card:hover {
             border-color: rgba(168, 85, 247, 0.4);
             box-shadow: 0 12px 35px -5px rgba(168, 85, 247, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.15);
-        }
-
-        /* Status-specific Glass Cards */
-        .glass-card-amber {
-            background: rgba(24, 18, 12, 0.55);
-            backdrop-filter: blur(32px);
-            -webkit-backdrop-filter: blur(32px);
-            border: 1px solid rgba(245, 158, 11, 0.25);
-            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.75), 0 0 30px rgba(245, 158, 11, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.15);
-        }
-
-        .glass-card-red {
-            background: rgba(26, 12, 14, 0.65);
-            backdrop-filter: blur(32px);
-            -webkit-backdrop-filter: blur(32px);
-            border: 1px solid rgba(239, 68, 68, 0.35);
-            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.85), 0 0 40px rgba(239, 68, 68, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.15);
         }
 
         .glass-input {
@@ -165,30 +125,6 @@
             box-shadow: 0 15px 35px -5px rgba(168, 85, 247, 0.5), 0 0 30px rgba(168, 85, 247, 0.3);
         }
 
-        .glass-btn-amber {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.1) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(245, 158, 11, 0.4);
-        }
-
-        .glass-btn-amber:hover:not(:disabled) {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.4) 0%, rgba(217, 119, 6, 0.2) 100%);
-            border-color: rgba(245, 158, 11, 0.6);
-            box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.2);
-        }
-
-        .glass-btn-red {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(185, 28, 28, 0.1) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(239, 68, 68, 0.4);
-        }
-
-        .glass-btn-red:hover:not(:disabled) {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.4) 0%, rgba(185, 28, 28, 0.2) 100%);
-            border-color: rgba(239, 68, 68, 0.6);
-            box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2);
-        }
-
         /* Drag and drop styling */
         .drag-handle {
             cursor: grab;
@@ -226,11 +162,9 @@
     <div class="glass-aura-container">
         <div id="aura-default-1" class="glass-aura-1"></div>
         <div id="aura-default-2" class="glass-aura-2"></div>
-        <div id="aura-amber" class="glass-aura-amber hidden"></div>
-        <div id="aura-red" class="glass-aura-red hidden"></div>
     </div>
 
-    <!-- AUTHENTICATION TOP BAR -->
+    <!-- AUTHENTICATION TOP BAR (DISCORD LOGIN) -->
     <header class="relative z-20 w-full max-w-5xl flex justify-between items-center py-2 px-4 mb-4">
         <div class="flex items-center space-x-2">
             <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse"></span>
@@ -340,7 +274,7 @@
                 </div>
             </div>
 
-            <!-- GLASS CAPTCHA CONTAINER -->
+            <!-- GLASS CAPTCHA CONTAINER (RECAPTCHA REJOINED) -->
             <div class="space-y-2.5 pt-2 flex flex-col items-center justify-center">
                 <label class="block text-[10px] font-bold text-purple-300 uppercase tracking-widest text-center flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -494,76 +428,6 @@
         </div>
     </main>
 
-    <!-- 4. LOCKDOWN PAGE -->
-    <main id="page-lockdown" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
-        <div class="glass-card-amber rounded-3xl p-8 space-y-6 relative overflow-hidden">
-            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-amber-500/10 border border-amber-500/30 shadow-[0_0_35px_rgba(245,158,11,0.25)]">
-                <svg class="w-10 h-10 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                </svg>
-            </div>
-
-            <div class="space-y-2">
-                <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-widest mb-1 shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                    <span>System Maintenance</span>
-                </div>
-                <h2 class="text-2xl font-extrabold text-white tracking-tight">Studio Under Lockdown</h2>
-                <p class="text-xs text-amber-200/70 leading-relaxed max-w-xs mx-auto">
-                    The architect service is currently undergoing scheduled maintenance or system updates. Layout generation is temporarily restricted.
-                </p>
-            </div>
-
-            <div class="pt-2 border-t border-amber-500/20 space-y-3">
-                <button onclick="checkAuth()" class="glass-btn glass-btn-amber w-full text-amber-200 font-semibold py-3 rounded-2xl text-xs transition">
-                    Retry Connection
-                </button>
-            </div>
-        </div>
-    </main>
-
-    <!-- 5. BANNED PAGE -->
-    <main id="page-banned" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
-        <div class="glass-card-red rounded-3xl p-8 space-y-6 relative overflow-hidden">
-            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-red-500/10 border border-red-500/30 shadow-[0_0_35px_rgba(239,68,68,0.3)]">
-                <svg class="w-10 h-10 text-red-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-                </svg>
-            </div>
-
-            <div class="space-y-3">
-                <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
-                    <span>Access Revoked</span>
-                </div>
-                
-                <h2 class="text-3xl font-black text-red-500 tracking-tight uppercase">BANNED</h2>
-                
-                <p class="text-xs text-red-300/80 leading-relaxed max-w-xs mx-auto">
-                    Your account or IP address has been temporarily suspended from using Echo Infrastructure Studio.
-                </p>
-            </div>
-
-            <!-- LIVE COUNTDOWN TIMER DISPLAY -->
-            <div id="ban-timer-container" class="hidden bg-red-950/60 border border-red-500/40 rounded-2xl p-4 text-center space-y-1">
-                <span class="text-[10px] font-bold uppercase tracking-widest text-red-300 block">Ban Expiration Countdown</span>
-                <div id="ban-countdown-timer" class="text-2xl font-mono font-black text-red-400 tracking-wider">00:00:00</div>
-            </div>
-
-            <!-- Developer Ban Message Display -->
-            <div id="ban-dev-message-container" class="hidden bg-red-950/40 border border-red-500/30 rounded-2xl p-4 text-left space-y-1.5">
-                <span class="text-[9px] font-extrabold uppercase tracking-widest text-red-400 block">Reason / Details:</span>
-                <p id="ban-dev-message" class="text-xs text-red-200/90 font-mono leading-relaxed break-words"></p>
-            </div>
-
-            <div class="pt-2 border-t border-red-500/20 space-y-3">
-                <a href="/api/auth/logout" class="glass-btn glass-btn-red w-full text-red-200 font-semibold py-3 rounded-2xl text-xs transition block">
-                    Sign Out
-                </a>
-            </div>
-        </div>
-    </main>
-
     <footer class="relative z-10 text-center py-4 text-[10px] text-gray-500 font-mono">
         &copy; 2026 Echo Infrastructure Studio. All rights reserved.
     </footer>
@@ -576,14 +440,6 @@
         let isAuthenticated = false;
         let currentUser = null;
         let captchaToken = null;
-        let countdownInterval = null;
-
-        const RATE_LIMIT_KEY = 'echo_design_timestamps';
-        const BAN_EXPIRY_KEY = 'echo_ban_expiry_timestamp';
-        const MAX_DESIGNS = 3;
-        const TIME_WINDOW_MS = 10 * 60 * 1000; 
-        const ONE_HOUR_MS = 60 * 60 * 1000; 
-        const TWELVE_HOUR_MS = 12 * 60 * 60 * 1000; 
 
         const DISCORD_PERMISSIONS = [
             { key: "view_channel", label: "View Channel" },
@@ -606,106 +462,13 @@
             validateForm();
         }
 
-        function checkActiveBanTimer() {
-            const expiry = localStorage.getItem(BAN_EXPIRY_KEY);
-            if (!expiry) return false;
-
-            const expiryTime = parseInt(expiry, 10);
-            const now = Date.now();
-
-            if (now < expiryTime) {
-                startCountdownTimer(expiryTime);
-                return true;
-            } else {
-                localStorage.removeItem(BAN_EXPIRY_KEY);
-                return false;
-            }
-        }
-
-        function startCountdownTimer(expiryTimestamp) {
-            const timerContainer = document.getElementById('ban-timer-container');
-            const timerEl = document.getElementById('ban-countdown-timer');
-            if (timerContainer) timerContainer.classList.remove('hidden');
-
-            if (countdownInterval) clearInterval(countdownInterval);
-
-            const updateTimer = () => {
-                const now = Date.now();
-                const diff = expiryTimestamp - now;
-
-                if (diff <= 0) {
-                    clearInterval(countdownInterval);
-                    localStorage.removeItem(BAN_EXPIRY_KEY);
-                    if (timerContainer) timerContainer.classList.add('hidden');
-                    window.location.reload();
-                    return;
-                }
-
-                const hours = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
-
-                if (timerEl) timerEl.textContent = `${hours}:${minutes}:${seconds}`;
-            };
-
-            updateTimer();
-            countdownInterval = setInterval(updateTimer, 1000);
-        }
-
         async function checkAuth() {
             try {
-                if (checkActiveBanTimer()) {
-                    showBanPage("Temporary Ban Active");
-                    return;
-                }
-
-                const ipRes = await fetch('/api/check-ip-status', { credentials: 'include' });
-                if (ipRes.ok) {
-                    const ipData = await ipRes.json();
-                    if (ipData.banned) {
-                        const banDuration = ipData.ban_until || (Date.now() + ONE_HOUR_MS);
-                        localStorage.setItem(BAN_EXPIRY_KEY, banDuration);
-                        startCountdownTimer(banDuration);
-                        showBanPage(ipData.reason || "IP Rate Limit Exceeded. You have been placed on a 1-hour ban.");
-                        return;
-                    }
-                }
-
-                const path = window.location.pathname;
-                if (path === '/ban' || path === '/banned') {
-                    showBanPage();
-                    return;
-                }
-                if (path === '/maintenance') {
-                    switchPage('lockdown');
-                    return;
-                }
-
                 const res = await fetch('/api/auth/me', { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
                     
-                    if (data.is_banned) {
-                        showBanPage(data.ban_reason || data.dev_message);
-                        return;
-                    }
-                    if (data.is_lockdown) {
-                        switchPage('lockdown');
-                        return;
-                    }
-
                     if (data.authenticated) {
-                        const snowflake = BigInt(data.user.id);
-                        const createdAt = new Date(Number((snowflake >> 22n) + 1420070400000n));
-                        const ageDays = Math.floor((new Date() - createdAt) / (1000 * 60 * 60 * 24));
-
-                        if (ageDays >= 0 && ageDays <= 30) {
-                            const altReason = `Alt Account Detected: Discord account age (${ageDays} days) is under 30 days minimum requirement. Instant ban applied.`;
-                            await triggerInstantBan(data.user, altReason, TWELVE_HOUR_MS);
-                            showBanPage(altReason);
-                            return;
-                        }
-
                         isAuthenticated = true;
                         currentUser = data.user;
                         document.getElementById('login-btn').classList.add('hidden');
@@ -719,7 +482,6 @@
                         }
 
                         document.getElementById('auth-warning').classList.add('hidden');
-                        logDetailedEntryInfo(data.user);
                     } else {
                         setUnauthenticated();
                     }
@@ -731,96 +493,6 @@
                 setUnauthenticated();
             }
             validateForm();
-        }
-
-        function showBanPage(reasonMessage) {
-            switchPage('banned');
-            const msgContainer = document.getElementById('ban-dev-message-container');
-            const msgEl = document.getElementById('ban-dev-message');
-            
-            if (reasonMessage && reasonMessage.trim().length > 0) {
-                msgEl.textContent = reasonMessage;
-                msgContainer.classList.remove('hidden');
-            } else {
-                msgContainer.classList.add('hidden');
-            }
-        }
-
-        async function logDetailedEntryInfo(user) {
-            try {
-                const snowflake = BigInt(user.id);
-                const timestamp = Number((snowflake >> 22n) + 1420070400000n);
-                const createdAt = new Date(timestamp);
-                const ageDays = Math.floor((new Date() - createdAt) / (1000 * 60 * 60 * 24));
-
-                const avatarUrl = user.avatar 
-                    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
-                    : 'https://cdn.discordapp.com/embed/avatars/0.png';
-
-                await fetch('/api/log-entry', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        user_id: user.id,
-                        username: user.username,
-                        global_name: user.global_name || user.username,
-                        avatar_url: avatarUrl,
-                        account_created_at: createdAt.toISOString(),
-                        account_age_days: ageDays,
-                        mfa_enabled: user.mfa_enabled || false,
-                        locale: user.locale || 'en-US',
-                        user_agent: navigator.userAgent
-                    })
-                });
-            } catch (err) {
-                console.warn("Detailed logging suppressed:", err);
-            }
-        }
-
-        async function checkAndApplyRateLimit() {
-            const now = Date.now();
-            let timestamps = JSON.parse(localStorage.getItem(RATE_LIMIT_KEY) || '[]');
-            
-            timestamps = timestamps.filter(ts => (now - ts) < TIME_WINDOW_MS);
-
-            if (timestamps.length >= MAX_DESIGNS) {
-                await triggerRateLimitBan();
-                return false;
-            }
-
-            timestamps.push(now);
-            localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(timestamps));
-            return true;
-        }
-
-        async function triggerRateLimitBan() {
-            const reason = "Rate Limit Violation: Exceeded limit of 3 layouts within 10 minutes. 12-Hour ban issued.";
-            const banExpiry = Date.now() + TWELVE_HOUR_MS;
-            localStorage.setItem(BAN_EXPIRY_KEY, banExpiry);
-
-            await triggerInstantBan(currentUser, reason, TWELVE_HOUR_MS);
-            startCountdownTimer(banExpiry);
-            showBanPage(reason);
-        }
-
-        async function triggerInstantBan(user, reason, durationMs = ONE_HOUR_MS) {
-            try {
-                await fetch('/api/auto-ban', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        reason: reason,
-                        ping_webhook: true,
-                        ban_duration_ms: durationMs,
-                        user_id: user ? user.id : null,
-                        username: user ? user.username : 'Unknown'
-                    })
-                });
-            } catch (err) {
-                console.error("Instant ban trigger failed:", err);
-            }
         }
 
         function setUnauthenticated() {
@@ -836,37 +508,14 @@
             validateForm();
         }
 
-        function updateAuraBackground(page) {
-            const defaultAura1 = document.getElementById('aura-default-1');
-            const defaultAura2 = document.getElementById('aura-default-2');
-            const amberAura = document.getElementById('aura-amber');
-            const redAura = document.getElementById('aura-red');
-
-            defaultAura1.classList.add('hidden');
-            defaultAura2.classList.add('hidden');
-            amberAura.classList.add('hidden');
-            redAura.classList.add('hidden');
-
-            if (page === 'lockdown') {
-                amberAura.classList.remove('hidden');
-            } else if (page === 'banned') {
-                redAura.classList.remove('hidden');
-            } else {
-                defaultAura1.classList.remove('hidden');
-                defaultAura2.classList.remove('hidden');
-            }
-        }
-
         function switchPage(page) {
-            const pages = ['builder', 'preview', 'success', 'lockdown', 'banned'];
+            const pages = ['builder', 'preview', 'success'];
             pages.forEach(p => {
                 const el = document.getElementById(`page-${p}`);
                 if (el) el.classList.add('hidden');
             });
             const target = document.getElementById(`page-${page}`);
             if (target) target.classList.remove('hidden');
-
-            updateAuraBackground(page);
         }
 
         function validateForm() {
@@ -888,9 +537,6 @@
                 alert("Please complete the CAPTCHA security verification.");
                 return;
             }
-
-            const rateLimitPassed = await checkAndApplyRateLimit();
-            if (!rateLimitPassed) return;
 
             const promptText = document.getElementById('prompt-input').value.trim();
             const guildId = document.getElementById('guild-id-input').value.trim();
@@ -1294,9 +940,6 @@
         }
 
         async function submitDesign() {
-            const rateLimitPassed = await checkAndApplyRateLimit();
-            if (!rateLimitPassed) return;
-
             const btn = document.getElementById('btn-submit-design');
             if (btn) {
                 btn.disabled = true;
@@ -1320,7 +963,7 @@
                 
                 switchPage('success');
             } catch (err) {
-                console.error("Webhook submission error:", err);
+                console.error("Submission error:", err);
                 alert("An error occurred while submitting the design.");
             } finally {
                 if (btn) {
