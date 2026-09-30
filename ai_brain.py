@@ -8,8 +8,6 @@ import requests
 from urllib.parse import quote
 from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, session
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from google import genai
 from google.genai import types
 from pymongo import MongoClient
@@ -27,14 +25,6 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get("FLASK_ENV") == "production"
 
-# Initialize IP Limiter
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"
-)
-
 # Discord OAuth2 & API Configurations
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
@@ -43,12 +33,6 @@ DISCORD_API_BASE_URL = "https://discord.com/api/v10"
 
 # Cloudflare Turnstile Configuration
 TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA").strip()
-
-# Internal Bot API Authorization Key (Syncs with cogs/orca.py)
-BOT_API_KEY = os.environ.get("BOT_API_KEY", "super-secret-bot-key").strip()
-
-# Primary Bot Owner ID
-PRIMARY_OWNER_ID = os.environ.get("PRIMARY_OWNER_ID", "1219266886143967245").strip()
 
 # Base Web Builder URL (cleans trailing slash for redirect accuracy)
 WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
@@ -73,68 +57,22 @@ if GEMINI_API_KEY:
         logger.error("Failed to initialize Google GenAI client: %s", e)
 
 # ---------------------------------------------------------------------------
-# MONGODB DATABASE CONNECTION (Shared with cogs/orca.py)
+# MONGODB DATABASE CONNECTION
 # ---------------------------------------------------------------------------
 MONGO_URI = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
 mongo_client = MongoClient(MONGO_URI) if MONGO_URI else None
 
 db = mongo_client["bot_database"] if mongo_client is not None else None
-bans_collection = db["website_bans"] if db is not None else None
 designs_collection = db["designs"] if db is not None else None
 telemetry_collection = db["telemetry"] if db is not None else None
-system_status_collection = db["system_status"] if db is not None else None
-
-# In-Memory Cache Fallbacks & Security States
-BANNED_IPS = {}               # { ip: ban_expiration_timestamp }
-USER_DESIGN_TIMESTAMPS = {}   # { user_id: [timestamp1, timestamp2, ...] }
-IS_LOCKDOWN_ACTIVE = False
 
 
 # ---------------------------------------------------------------------------
-# HELPER FUNCTIONS & ORCA.PY INTERFACES
+# HELPER FUNCTIONS
 # ---------------------------------------------------------------------------
-
-def is_user_banned_db(discord_id: str) -> tuple[bool, str, str]:
-    """Queries MongoDB for active user bans, automatically clearing expired bans."""
-    if bans_collection is None:
-        return False, "", ""
-    
-    uid = str(discord_id).strip()
-
-    # Owner immunity check to prevent locked states
-    if uid == PRIMARY_OWNER_ID:
-        return False, "", ""
-
-    user_ban = bans_collection.find_one({"$or": [{"discord_id": uid}, {"user_id": uid}]})
-    if not user_ban:
-        return False, "", ""
-
-    expires_at = user_ban.get("expires_at", 0)
-    now = time.time()
-    
-    if expires_at == 0 or now < expires_at:
-        return True, user_ban.get("reason", "Account suspended."), user_ban.get("dev_message", "")
-    else:
-        # Expired ban cleanup
-        bans_collection.delete_one({"_id": user_ban["_id"]})
-        return False, "", ""
-
-
-def check_lockdown_status_db() -> bool:
-    """Synchronizes lockdown maintenance state with MongoDB."""
-    global IS_LOCKDOWN_ACTIVE
-    if system_status_collection is not None:
-        status_doc = system_status_collection.find_one({"_id": "global_status"})
-        if status_doc:
-            IS_LOCKDOWN_ACTIVE = status_doc.get("is_lockdown", False)
-    return IS_LOCKDOWN_ACTIVE
-
 
 def get_blueprint_data(guild_id: str = None) -> dict:
-    """
-    Retrieves stored blueprint data for a given guild_id.
-    Exported for direct consumption by cogs/orca.py.
-    """
+    """Retrieves stored blueprint data for a given guild_id."""
     if not guild_id:
         return BLUEPRINT_STORAGE
 
@@ -245,8 +183,6 @@ def extract_invite_code(url_or_code: str) -> str:
 def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
     """Verifies whether the user is the Server Owner or holds Administrator permissions in target guild via Bot API."""
     user_id_str = str(user_id).strip()
-    if user_id_str == PRIMARY_OWNER_ID:
-        return True
 
     if not BOT_TOKEN:
         return True
@@ -283,203 +219,19 @@ def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
         return True
 
 
-def check_and_update_rate_limit(user_id: str) -> tuple[bool, int]:
-    """Enforces rate limiting of 3 design requests per 10 minutes."""
-    if str(user_id).strip() == PRIMARY_OWNER_ID:
-        return False, 0
-
-    now = time.time()
-    window_start = now - 600
-
-    timestamps = USER_DESIGN_TIMESTAMPS.get(user_id, [])
-    valid_timestamps = [t for t in timestamps if t > window_start]
-    
-    if len(valid_timestamps) >= 3:
-        USER_DESIGN_TIMESTAMPS[user_id] = valid_timestamps
-        return True, len(valid_timestamps)
-
-    valid_timestamps.append(now)
-    USER_DESIGN_TIMESTAMPS[user_id] = valid_timestamps
-    return False, len(valid_timestamps)
-
-
 # ---------------------------------------------------------------------------
-# MIDDLEWARE & SECURITY ENFORCEMENT
+# MIDDLEWARE
 # ---------------------------------------------------------------------------
 
 @app.before_request
-def enforce_security_middleware():
-    """Middleware enforcing site bans, IP bans, and maintenance lockdown restrictions."""
+def make_session_permanent():
+    """Maintains user Discord login sessions."""
     session.permanent = True
 
-    exempt_endpoints = {
-        'static', 'discord_login', 'discord_callback', 'get_current_user',
-        'check_ip_status', 'api_security_ban', 'api_security_lockdown'
-    }
-    if request.endpoint in exempt_endpoints:
-        return None
-
-    user = session.get('user')
-    user_id = str(user.get('id')).strip() if user else None
-
-    # OWNER IMMUNITY: Primary Owner completely bypasses site security restrictions
-    if user_id and user_id == PRIMARY_OWNER_ID:
-        return None
-
-    client_ip = get_remote_address()
-    now = time.time()
-
-    # 1. ENFORCE IP BANS
-    if client_ip in BANNED_IPS:
-        ban_expiry = BANNED_IPS[client_ip]
-        if now < ban_expiry:
-            if request.path.startswith('/api/'):
-                return jsonify({
-                    "error": "IP Banning Active. Your IP has been temporarily restricted.",
-                    "is_banned": True,
-                    "ban_until": int(ban_expiry * 1000)
-                }), 403
-            return render_template('index.html'), 200
-        else:
-            del BANNED_IPS[client_ip]
-
-    # 2. ENFORCE DISCORD USER BANS (Database Sync)
-    if user_id:
-        is_banned, reason, dev_msg = is_user_banned_db(user_id)
-        if is_banned:
-            if request.path.startswith('/api/'):
-                return jsonify({
-                    "error": "Access Denied. You are banned from utilizing the Echo Studio Portal.",
-                    "is_banned": True,
-                    "ban_reason": reason,
-                    "dev_message": dev_msg
-                }), 403
-            return render_template('index.html'), 200
-
-    # 3. ENFORCE GLOBAL LOCKDOWN / MAINTENANCE
-    lockdown_active = check_lockdown_status_db()
-    if lockdown_active:
-        if request.path.startswith('/api/'):
-            return jsonify({
-                "error": "System Under Maintenance. The dashboard is currently locked.",
-                "is_lockdown": True
-            }), 530
-        return render_template('index.html'), 200
-
-
-@app.errorhandler(429)
-def ratelimit_handler(e):
-    """Handles Flask-Limiter IP rate limit triggers and applies 1-hour IP ban."""
-    user = session.get('user')
-    user_id = str(user.get('id')).strip() if user else None
-
-    # Bypass Flask-Limiter rate bans for owner
-    if user_id and user_id == PRIMARY_OWNER_ID:
-        return None
-
-    client_ip = get_remote_address()
-    one_hour_later = time.time() + 3600
-    BANNED_IPS[client_ip] = one_hour_later
-
-    logger.warning(f"[SECURITY] IP {client_ip} exceeded rate limit and was placed on 1-hour ban.")
-    return jsonify({
-        "error": "Rate limit exceeded. You have been placed on a 1-hour IP ban.",
-        "is_banned": True,
-        "ban_until": int(one_hour_later * 1000)
-    }), 429
-
 
 # ---------------------------------------------------------------------------
-# BOT SECURE SYNC API ENDPOINTS (Called by cogs/orca.py)
+# FRONTEND API ENDPOINTS
 # ---------------------------------------------------------------------------
-
-@app.route('/api/security/ban', methods=['POST'])
-def api_security_ban():
-    """Receives ban/unban enforcement signals directly from orca.py."""
-    auth_header = request.headers.get("X-Bot-Auth", "")
-    if auth_header != BOT_API_KEY:
-        return jsonify({"error": "Unauthorized Bot API call"}), 401
-
-    data = request.get_json() or {}
-    user_id = str(data.get("user_id", "")).strip()
-    action = data.get("action", "ban")
-
-    if not user_id:
-        return jsonify({"error": "Missing user_id"}), 400
-
-    if action == "ban":
-        reason = data.get("reason", "Banned by Staff")
-        dev_message = data.get("dev_message", "Account suspended.")
-        duration = data.get("duration_seconds", 0)
-        
-        if bans_collection is not None:
-            now = time.time()
-            expires_at = now + duration if duration > 0 else 0
-            bans_collection.update_one(
-                {"discord_id": user_id},
-                {"$set": {"discord_id": user_id, "reason": reason, "dev_message": dev_message, "expires_at": expires_at}},
-                upsert=True
-            )
-        return jsonify({"success": True, "action": "banned", "user_id": user_id})
-
-    elif action == "unban":
-        if bans_collection is not None:
-            bans_collection.delete_one({"discord_id": user_id})
-        return jsonify({"success": True, "action": "unbanned", "user_id": user_id})
-
-    return jsonify({"error": "Invalid action"}), 400
-
-
-@app.route('/api/security/lockdown', methods=['POST'])
-def api_security_lockdown():
-    """Receives lockdown maintenance signals directly from orca.py."""
-    auth_header = request.headers.get("X-Bot-Auth", "")
-    if auth_header != BOT_API_KEY:
-        return jsonify({"error": "Unauthorized Bot API call"}), 401
-
-    data = request.get_json() or {}
-    enable = data.get("enable", False)
-
-    global IS_LOCKDOWN_ACTIVE
-    IS_LOCKDOWN_ACTIVE = enable
-
-    if system_status_collection is not None:
-        system_status_collection.update_one(
-            {"_id": "global_status"},
-            {"$set": {"is_lockdown": enable, "updated_at": time.time()}},
-            upsert=True
-        )
-
-    return jsonify({"success": True, "is_lockdown": IS_LOCKDOWN_ACTIVE})
-
-
-# ---------------------------------------------------------------------------
-# FRONTEND API ENDPOINTS (index.html Integration)
-# ---------------------------------------------------------------------------
-
-@app.route('/api/check-ip-status', methods=['GET'])
-def check_ip_status():
-    """Returns current IP ban status and timer expiration for frontend rendering."""
-    user = session.get('user')
-    user_id = str(user.get('id')).strip() if user else None
-
-    if user_id and user_id == PRIMARY_OWNER_ID:
-        return jsonify({"banned": False})
-
-    client_ip = get_remote_address()
-    now = time.time()
-    if client_ip in BANNED_IPS:
-        ban_expiry = BANNED_IPS[client_ip]
-        if now < ban_expiry:
-            return jsonify({
-                "banned": True,
-                "ban_until": int(ban_expiry * 1000),
-                "reason": "IP Rate Limit Exceeded. You have been placed on a temporary ban."
-            })
-        else:
-            del BANNED_IPS[client_ip]
-    return jsonify({"banned": False})
-
 
 @app.route('/api/verify-server', methods=['POST'])
 def verify_server():
@@ -488,7 +240,6 @@ def verify_server():
     guild_id = str(data.get("guild_id", "")).strip()
     server_link = data.get("server_link", "").strip()
     captcha_token = data.get("captcha_token", "").strip()
-    client_ip = get_remote_address()
 
     user = session.get('user')
     if not user:
@@ -496,10 +247,8 @@ def verify_server():
 
     user_id = str(user.get("id")).strip()
 
-    # Bypass CAPTCHA check for owner
-    if user_id != PRIMARY_OWNER_ID:
-        if captcha_token and not verify_turnstile_captcha(captcha_token, client_ip):
-            return jsonify({"valid": False, "error": "Security CAPTCHA verification failed."}), 400
+    if captcha_token and not verify_turnstile_captcha(captcha_token, request.remote_addr):
+        return jsonify({"valid": False, "error": "Security CAPTCHA verification failed."}), 400
 
     code = extract_invite_code(server_link)
     if not code:
@@ -540,45 +289,11 @@ def verify_server():
         return jsonify({"valid": True, "message": "Verification passed."})
 
 
-@app.route('/api/auto-ban', methods=['POST'])
-def auto_ban_trigger():
-    """Endpoint triggered by frontend when security limits or alt accounts are detected."""
-    data = request.get_json() or {}
-    user_id = str(data.get("user_id", "")).strip()
-
-    # Ignore auto-ban calls targeting primary owner
-    if user_id == PRIMARY_OWNER_ID:
-        return jsonify({"status": "exempt", "message": "Primary owner exempt from auto bans."})
-
-    reason = data.get("reason", "Automated Security Violation")
-    duration_ms = data.get("ban_duration_ms", 12 * 3600 * 1000)
-    client_ip = get_remote_address()
-
-    ban_until = time.time() + (duration_ms / 1000.0)
-    BANNED_IPS[client_ip] = ban_until
-
-    if user_id and bans_collection is not None:
-        bans_collection.update_one(
-            {"discord_id": user_id},
-            {"$set": {"discord_id": user_id, "reason": reason, "dev_message": reason, "expires_at": ban_until}},
-            upsert=True
-        )
-
-    send_system_log(
-        title="🚨 AUTOMATED BAN TRIGGERED",
-        description=f"Automated ban applied: `{reason}`",
-        color=0xEF4444,
-        content=f"<@{PRIMARY_OWNER_ID}> 🚨 **Security Shield Alert**"
-    )
-
-    return jsonify({"status": "banned", "ban_until": int(ban_until * 1000)})
-
-
 @app.route('/api/log-entry', methods=['POST'])
 def log_entry():
     """Logs detailed user session access data to telemetry and Discord webhook."""
     data = request.get_json() or {}
-    client_ip = get_remote_address()
+    client_ip = request.remote_addr
     user_agent = request.headers.get("User-Agent", "Unknown")
 
     if telemetry_collection is not None:
@@ -663,21 +378,6 @@ def discord_callback():
         created_at = get_discord_creation_time(user_id)
         account_age_days = (datetime.now(timezone.utc) - created_at).days
 
-        # ALT ACCOUNT DETECTION (0-30 DAYS) - Bypassed for Primary Owner
-        if user_id != PRIMARY_OWNER_ID and 0 <= account_age_days <= 30:
-            alt_reason = f"Alt Shield: Account age ({account_age_days} days) is under the 30-day requirement."
-            if bans_collection is not None:
-                bans_collection.update_one(
-                    {"discord_id": user_id},
-                    {"$set": {"discord_id": user_id, "reason": alt_reason, "dev_message": alt_reason, "expires_at": 0}},
-                    upsert=True
-                )
-            return redirect('/banned')
-
-        is_banned, _, _ = is_user_banned_db(user_id)
-        if is_banned:
-            return redirect('/banned')
-
         # Set persistent session
         session.permanent = True
         session['user'] = {
@@ -705,29 +405,10 @@ def discord_logout():
 @app.route('/api/auth/me')
 def get_current_user():
     user = session.get('user')
-    user_id = str(user.get('id')).strip() if user else None
-
-    # Owner immunity check
-    if user_id and user_id == PRIMARY_OWNER_ID:
-        return jsonify({"authenticated": True, "is_banned": False, "is_lockdown": False, "user": user})
-
-    is_banned = False
-    dev_message = ""
-    if user_id:
-        is_banned, _, dev_message = is_user_banned_db(user_id)
-
-    is_lockdown = check_lockdown_status_db()
-
-    if is_banned:
-        return jsonify({"authenticated": False, "is_banned": True, "dev_message": dev_message, "user": None})
-
-    if is_lockdown:
-        return jsonify({"authenticated": False, "is_lockdown": True, "user": None})
-
     if user:
-        return jsonify({"authenticated": True, "is_banned": False, "is_lockdown": False, "user": user})
+        return jsonify({"authenticated": True, "user": user})
 
-    return jsonify({"authenticated": False, "is_banned": False, "is_lockdown": False, "user": None})
+    return jsonify({"authenticated": False, "user": None})
 
 
 # ---------------------------------------------------------------------------
@@ -735,8 +416,6 @@ def get_current_user():
 # ---------------------------------------------------------------------------
 
 @app.route('/')
-@app.route('/banned')
-@app.route('/maintenance')
 def index():
     return render_template('index.html')
 
@@ -751,36 +430,10 @@ def serve_blueprint(guild_id):
 
 
 @app.route('/api/generate-layout', methods=['POST'])
-@limiter.limit("5 per minute")
 def generate_layout():
     user = session.get('user')
     if not user:
         return jsonify({"error": "Unauthorized. Please login with Discord."}), 401
-
-    user_id = str(user.get('id')).strip()
-
-    # Rate Limit Check (Skipped for Owner)
-    if user_id != PRIMARY_OWNER_ID:
-        is_exceeded, _ = check_and_update_rate_limit(user_id)
-        if is_exceeded:
-            dev_msg = "Automated Security Ban: Exceeded 3 design generations in 10 minutes."
-            ban_until = time.time() + (12 * 3600)
-            
-            if bans_collection is not None:
-                bans_collection.update_one(
-                    {"discord_id": user_id},
-                    {"$set": {"discord_id": user_id, "reason": dev_msg, "dev_message": dev_msg, "expires_at": ban_until}},
-                    upsert=True
-                )
-
-            client_ip = get_remote_address()
-            BANNED_IPS[client_ip] = ban_until
-
-            return jsonify({
-                "error": "Generation rate limit reached (3 per 10 mins). You have been temporarily restricted for 12 hours.",
-                "is_banned": True,
-                "dev_message": dev_msg
-            }), 403
 
     data = request.get_json() or {}
     prompt = data.get('prompt', '')
