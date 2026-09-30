@@ -3,7 +3,6 @@ import json
 import io
 import time
 import logging
-import re
 import requests
 from threading import Thread
 from urllib.parse import quote
@@ -13,29 +12,26 @@ from google import genai
 from google.genai import types
 from pymongo import MongoClient
 
-# Configure structured logging
+# Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 logger = logging.getLogger("keep_alive")
 
 app = Flask(__name__, template_folder='templates')
 
-# Persistent Session Key and Lifespan
+# Flask Session Setup
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-echo-studio-persistent-2026")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get("FLASK_ENV") == "production"
 
-# Discord OAuth2 & API Configurations
+# Discord OAuth2 Configurations
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
 DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
 DISCORD_API_BASE_URL = "https://discord.com/api/v10"
 
-# Cloudflare Turnstile Configuration
-TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA").strip()
+# Google reCAPTCHA Configuration
+RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY", "").strip()
 
-# Base Web Builder URL (cleans trailing slash for redirect accuracy)
+# Base Web Builder URL
 WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
 
 # Webhook Configurations
@@ -121,25 +117,25 @@ def save_blueprint_data(guild_id: str, blueprint: dict):
             logger.error("Failed to save blueprint to MongoDB for guild %s: %s", guild_id, e)
 
 
-def verify_turnstile_captcha(token: str, remote_ip: str) -> bool:
-    """Verifies Cloudflare Turnstile token with Cloudflare API."""
-    if not token or token == "1x0000000000000000000000000000000AA":
-        return True  # Fallback for dev mode
+def verify_recaptcha(token: str, remote_ip: str) -> bool:
+    """Verifies Google reCAPTCHA token."""
+    if not RECAPTCHA_SECRET_KEY:
+        return True  # Fallback if secret key is not set
     try:
         res = requests.post(
-            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-            data={"secret": TURNSTILE_SECRET_KEY, "response": token, "remoteip": remote_ip},
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={"secret": RECAPTCHA_SECRET_KEY, "response": token, "remoteip": remote_ip},
             timeout=5
         )
         data = res.json()
         return data.get("success", False)
     except Exception as e:
-        logger.error(f"Turnstile CAPTCHA verification error: {e}")
+        logger.error(f"reCAPTCHA verification error: {e}")
         return True
 
 
 def send_system_webhook(title: str, description: str, fields: list = None, color: int = 0x3B82F6, content: str = None):
-    """Sends structured alert logs to Discord System Log Webhook."""
+    """Sends structured logs to Discord Webhook."""
     if not SYSTEM_LOG_WEBHOOK_URL:
         return
 
@@ -150,7 +146,7 @@ def send_system_webhook(title: str, description: str, fields: list = None, color
                 "description": description,
                 "color": color,
                 "fields": fields or [],
-                "footer": {"text": "Echo Studio System Logger"},
+                "footer": {"text": "Echo Studio Logger"},
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
         ]
@@ -164,85 +160,27 @@ def send_system_webhook(title: str, description: str, fields: list = None, color
         logger.error("Failed to post system log webhook: %s", e)
 
 
-def extract_invite_code(url_or_code: str) -> str:
-    """Extracts clean invite code from Discord URL."""
-    match = re.search(r'(?:discord\.gg/|discord\.com/invite/)([a-zA-Z0-9-]+)', url_or_code)
-    return match.group(1) if match else url_or_code.strip()
-
-
-def check_user_guild_admin(user_id: str, guild_id: str) -> bool:
-    """Verifies whether the user holds Administrator permissions in target guild via Bot API."""
-    if not DISCORD_BOT_TOKEN:
-        return True
-
-    headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
-    try:
-        res = requests.get(f"{DISCORD_API_BASE_URL}/guilds/{guild_id}/members/{user_id}", headers=headers, timeout=5)
-        if res.status_code != 200:
-            return False
-
-        member_data = res.json()
-        roles_res = requests.get(f"{DISCORD_API_BASE_URL}/guilds/{guild_id}/roles", headers=headers, timeout=5)
-        if roles_res.status_code != 200:
-            return False
-
-        guild_roles = {r["id"]: int(r["permissions"]) for r in roles_res.json()}
-        user_role_ids = member_data.get("roles", [])
-
-        for r_id in user_role_ids:
-            perms = guild_roles.get(r_id, 0)
-            if (perms & 0x8) == 0x8 or (perms & 0x20) == 0x20:
-                return True
-        return False
-    except Exception as e:
-        logger.error(f"Error checking admin permissions: {e}")
-        return True
-
-
 # ---------------------------------------------------------------------------
-# MIDDLEWARE
+# MIDDLEWARE & MAIN ROUTES
 # ---------------------------------------------------------------------------
 
 @app.before_request
 def make_session_permanent():
-    """Maintains user Discord login sessions."""
     session.permanent = True
 
 
-@app.errorhandler(403)
-@app.errorhandler(404)
-@app.errorhandler(500)
-@app.errorhandler(502)
-@app.errorhandler(503)
-def force_html_error(e):
-    """Intercepts HTTP errors and returns index.html or JSON error payload."""
-    if request.path.startswith('/api/'):
-        return jsonify({
-            "error": "An error occurred handling this API request.",
-            "status_code": getattr(e, 'code', 500)
-        }), getattr(e, 'code', 500)
-    return make_response(render_template('index.html'), 200)
-
-
-# ---------------------------------------------------------------------------
-# MAIN ROUTES
-# ---------------------------------------------------------------------------
-
 @app.route('/')
 def index():
-    """Serves the primary UI container."""
     return render_template('index.html')
 
 
 @app.route('/health')
 def health():
-    """Health check endpoint."""
     return jsonify({"status": "online"}), 200
 
 
 @app.route('/blueprint/<guild_id>.json', methods=['GET'])
 def serve_blueprint(guild_id):
-    """Serves the generated layout JSON for /build command execution."""
     data = get_blueprint_data(guild_id)
     if data:
         return jsonify(data)
@@ -255,7 +193,6 @@ def serve_blueprint(guild_id):
 
 @app.route('/api/auth/discord/login')
 def discord_login():
-    """Redirects user to Discord OAuth2 authorization URL."""
     redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
     oauth_url = (
         f"{DISCORD_API_BASE_URL}/oauth2/authorize"
@@ -269,7 +206,6 @@ def discord_login():
 
 @app.route('/api/auth/discord/callback')
 def discord_callback():
-    """Handles OAuth2 authorization code exchange."""
     code = request.args.get('code')
     if not code:
         return "Missing OAuth2 code from Discord.", 400
@@ -327,7 +263,6 @@ def logout():
 
 @app.route('/api/auth/me')
 def auth_me():
-    """Client-side authentication status verification endpoint."""
     try:
         user_data = session.get('user')
         if user_data:
@@ -346,7 +281,6 @@ def auth_me():
 
 @app.route('/api/log_entry', methods=['POST'])
 def log_entry():
-    """Logs user profile access to telemetry database and webhooks."""
     user = session.get('user', {})
     if not user:
         return jsonify({"status": "ignored"}), 200
@@ -377,69 +311,27 @@ def log_entry():
 
 @app.route('/api/verify_and_generate', methods=['POST'])
 def verify_and_generate():
-    """
-    Verifies CAPTCHA, 24-hour invite link, guild match, Admin perms,
-    and triggers Gemini AI layout generation.
-    """
     data = request.json or {}
     captcha_token = data.get('captcha_token', '').strip()
 
-    # 1. Verify CAPTCHA
-    if not verify_turnstile_captcha(captcha_token, request.remote_addr):
-        return jsonify({"success": False, "message": "Security CAPTCHA verification failed."}), 400
+    # Verify Google reCAPTCHA
+    if not verify_recaptcha(captcha_token, request.remote_addr):
+        return jsonify({"success": False, "message": "Google reCAPTCHA verification failed."}), 400
 
     user_data = session.get('user')
     if not user_data:
         return jsonify({"success": False, "message": "Unauthorized. Please login with Discord."}), 401
 
-    user_id = str(user_data.get('id', '')).strip()
-
-    # 2. Extract payload
+    # Extract payload parameters directly without strict validations
     server_id = str(data.get('server_id', '')).strip()
     server_invite = data.get('server_link', '').strip()
     prompt = data.get('prompt', '').strip()
     separator = data.get('separator', '-')
 
-    if not server_id or not server_invite or not prompt:
-        return jsonify({"success": False, "message": "Missing server ID, invite link, or prompt."}), 400
+    if not server_id or not prompt:
+        return jsonify({"success": False, "message": "Missing server ID or prompt."}), 400
 
-    invite_code = extract_invite_code(server_invite)
-
-    # 3. Verify server link, server ID, duration, & Admin permissions
-    headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"} if DISCORD_BOT_TOKEN else {}
-    try:
-        res = requests.get(f"{DISCORD_API_BASE_URL}/invites/{invite_code}?with_counts=true", headers=headers, timeout=5)
-        if res.status_code == 200:
-            invite_data = res.json()
-            resolved_guild_id = str(invite_data.get('guild', {}).get('id', '')).strip()
-
-            if resolved_guild_id != server_id:
-                return jsonify({
-                    "success": False,
-                    "message": f"Verification failed: Invite belongs to Guild ID `{resolved_guild_id}`, not target ID `{server_id}`."
-                }), 400
-
-            max_age = invite_data.get("max_age", 0)
-            if max_age != 0 and max_age < 86400:
-                return jsonify({
-                    "success": False,
-                    "message": "Verification failed: Server invite link must be active for at least 24 hours (or infinite)."
-                }), 400
-
-            if not check_user_guild_admin(user_id, server_id):
-                return jsonify({
-                    "success": False,
-                    "message": "Verification failed: You do not hold Administrator permissions in this target server."
-                }), 403
-        else:
-            return jsonify({
-                "success": False,
-                "message": "Verification failed: Provided invite link is invalid or expired."
-            }), 400
-    except Exception as err:
-        logger.error("Guild verification error: %s", err)
-
-    # 4. Gemini Layout Generation using google-genai SDK (`gemini-2.5-flash`)
+    # Gemini Layout Generation using google-genai SDK
     system_instruction = (
         "Generate a raw JSON layout for a Discord server based on user prompt conforming strictly to this schema:\n"
         "{\"server_name\": \"String\", \"roles\": [\"String\"], \"categories\": [{\"name\": \"String\", \"channels\": [{\"emoji\": \"💬\", \"name\": \"string\", \"type\": \"text|voice|announcement\", \"topic\": \"string\"}]}]}"
@@ -477,7 +369,7 @@ def verify_and_generate():
     layout_data["separator"] = separator
     layout_data["creator"] = user_data
 
-    # Save blueprint automatically
+    # Save blueprint
     save_blueprint_data(server_id, layout_data)
     file_url = f"{WEB_BUILDER_URL}/blueprint/{server_id}.json"
 
@@ -510,13 +402,11 @@ def verify_and_generate():
 # ---------------------------------------------------------------------------
 
 def run():
-    """Runs the Flask web server."""
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port, use_reloader=False)
 
 
 def keep_alive():
-    """Spawns the web server as a daemon thread."""
     server_thread = Thread(target=run, daemon=True)
     server_thread.start()
     logger.info("Keep-alive server thread initiated successfully.")
@@ -524,6 +414,5 @@ def keep_alive():
 
 if __name__ == '__main__':
     keep_alive()
-    # Keep the main process alive when executed directly
     while True:
         time.sleep(3600)
