@@ -274,7 +274,7 @@
                 </div>
             </div>
 
-            <!-- GLASS CAPTCHA CONTAINER (RECAPTCHA REJOINED) -->
+            <!-- GLASS CAPTCHA CONTAINER -->
             <div class="space-y-2.5 pt-2 flex flex-col items-center justify-center">
                 <label class="block text-[10px] font-bold text-purple-300 uppercase tracking-widest text-center flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,40 +553,18 @@
             const btnEl = document.getElementById('btn-generate');
 
             if (btnEl) btnEl.disabled = true;
-
-            if (btnText) btnText.textContent = "Verifying Link & Permissions...";
+            if (btnText) btnText.textContent = "Generating Layout...";
 
             try {
-                const verifyRes = await fetch('/api/verify-server', {
+                // Unified request directly targeting the server layout route
+                const res = await fetch('/api/verify_and_generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                     body: JSON.stringify({ 
-                        guild_id: guildId, 
-                        server_link: serverLink,
-                        captcha_token: captchaToken
-                    })
-                });
-
-                const verifyData = await verifyRes.json();
-
-                if (!verifyRes.ok || !verifyData.valid) {
-                    alert(verifyData.error || "Verification Failed: Ensure the invite link is active, matches the target Server ID, and that you have Admin permissions.");
-                    if (btnText) btnText.textContent = "Generate Server Layout";
-                    validateForm();
-                    return;
-                }
-
-                if (btnText) btnText.textContent = "Generating Layout...";
-
-                const res = await fetch('/api/generate-layout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ 
-                        prompt: promptText, 
-                        guild_id: guildId, 
+                        server_id: guildId,
                         server_link: serverLink, 
+                        prompt: promptText, 
                         separator: separatorVal,
                         categories_count: categoriesCount,
                         channels_count: channelsCount,
@@ -594,11 +572,15 @@
                     })
                 });
 
-                if (!res.ok) {
-                    throw new Error(`Server responded with HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (!res.ok || (data.success === false)) {
+                    alert(data.message || data.error || "Failed to generate server layout. Please verify details and try again.");
+                    return;
                 }
 
-                serverBlueprint = await res.json();
+                // Handle server response whether returned under 'layout' key or directly as JSON payload
+                serverBlueprint = data.layout || data;
                 
                 serverBlueprint.target_guild_id = guildId;
                 serverBlueprint.server_link = serverLink;
