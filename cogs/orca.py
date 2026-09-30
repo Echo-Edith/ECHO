@@ -14,28 +14,16 @@ from pymongo import MongoClient
 from pymongo.database import Database
 
 # Import blueprint retrieval helper and dynamic web URL from ai_brain.py
-from ai_brain import BOT_API_KEY, WEB_BUILDER_URL, get_blueprint_data
+from ai_brain import WEB_BUILDER_URL, get_blueprint_data
 
 # Configuration & Constants
 AUTHORIZED_USER_ID: int = 1219266886143967245
 ALLOWED_BUILDERS: set[int] = {AUTHORIZED_USER_ID}  # Dynamic set of allowed user IDs
-is_lockdown: bool = False
 start_time: float = time.time()
 
 SYSTEM_LOG_WEBHOOK_URL: str = os.environ.get(
     "SYSTEM_LOG_WEBHOOK_URL", os.environ.get("WEBHOOK_LOG_URL", "")
 )
-RECAPTCHA_SECRET_KEY: str = os.environ.get(
-    "RECAPTCHA_SECRET_KEY", "YOUR_RECAPTCHA_SECRET_KEY"
-)
-
-# Spam Detection & Rate Limit Constraints
-SPAM_THRESHOLD: int = 5  # Max messages
-TIME_WINDOW: int = 5  # Time window in seconds
-
-DESIGN_LIMIT_MAX: int = 3
-DESIGN_LIMIT_WINDOW: int = 600  # 10 minutes
-DESIGN_BAN_DURATION: int = 43200  # 12 hours
 
 # ---------------------------------------------------------------------------
 # DATABASE INITIALIZATION
@@ -44,141 +32,8 @@ MONGO_URI: Optional[str] = os.environ.get("MONGO_URI") or os.environ.get("MONGOD
 mongo_client: Optional[MongoClient] = MongoClient(MONGO_URI) if MONGO_URI else None
 
 db: Optional[Database] = mongo_client["bot_database"] if mongo_client is not None else None
-bans_collection = db["website_bans"] if db is not None else None
 designs_collection = db["designs"] if db is not None else None
 telemetry_collection = db["telemetry"] if db is not None else None
-system_status_collection = db["system_status"] if db is not None else None
-
-
-# ---------------------------------------------------------------------------
-# HELPER & DATABASE UTILITIES
-# ---------------------------------------------------------------------------
-def is_user_banned(discord_id: str) -> bool:
-    """Check if a user ID is banned in MongoDB (evaluating ban expiration). Owner is immune."""
-    str_id = str(discord_id).strip()
-    if str_id == str(AUTHORIZED_USER_ID) or bans_collection is None:
-        return False
-
-    try:
-        user = bans_collection.find_one({"$or": [{"discord_id": str_id}, {"user_id": str_id}]})
-        if not user:
-            return False
-
-        ban_expires_at = user.get("expires_at", 0)
-        if ban_expires_at == 0 or time.time() < ban_expires_at:
-            return True
-
-        unban_user(discord_id)
-        return False
-    except Exception as e:
-        print(f"[Database Error] Failed to check ban status: {e}")
-        return False
-
-
-def ban_user(
-    discord_id: str,
-    reason: str = "No reason provided",
-    dev_message: str = "",
-    duration_seconds: int = 0,
-) -> bool:
-    """Ban a user ID in MongoDB with an optional expiration window."""
-    str_id = str(discord_id).strip()
-    if str_id == str(AUTHORIZED_USER_ID) or bans_collection is None:
-        return False
-
-    now = time.time()
-    expires_at = now + duration_seconds if duration_seconds > 0 else 0
-
-    try:
-        result = bans_collection.update_one(
-            {"$or": [{"discord_id": str_id}, {"user_id": str_id}]},
-            {
-                "$set": {
-                    "discord_id": str_id,
-                    "user_id": str_id,
-                    "reason": reason,
-                    "dev_message": dev_message,
-                    "updated_at": now,
-                    "expires_at": expires_at,
-                }
-            },
-            upsert=True,
-        )
-        return result.upserted_id is not None or result.modified_count > 0
-    except Exception as e:
-        print(f"[Database Error] Failed to ban user {str_id}: {e}")
-        return False
-
-
-def unban_user(discord_id: str) -> bool:
-    """Remove ban records for a target user ID from MongoDB."""
-    if bans_collection is None:
-        return False
-    str_id = str(discord_id).strip()
-    try:
-        result = bans_collection.delete_many(
-            {"$or": [{"discord_id": str_id}, {"user_id": str_id}]}
-        )
-        return result.deleted_count > 0
-    except Exception as e:
-        print(f"[Database Error] Failed to unban user {str_id}: {e}")
-        return False
-
-
-def get_all_bans() -> List[Dict[str, Any]]:
-    """Fetch active banned user entries from MongoDB."""
-    if bans_collection is None:
-        return []
-    now = time.time()
-    active_bans = []
-    try:
-        cursor = bans_collection.find(
-            {},
-            {
-                "_id": 0,
-                "discord_id": 1,
-                "user_id": 1,
-                "reason": 1,
-                "dev_message": 1,
-                "expires_at": 1,
-            },
-        )
-        for ban in cursor:
-            uid = ban.get("discord_id") or ban.get("user_id")
-            if str(uid) == str(AUTHORIZED_USER_ID):
-                unban_user(str(uid))
-                continue
-
-            expires_at = ban.get("expires_at", 0)
-            if expires_at == 0 or now < expires_at:
-                active_bans.append(ban)
-            else:
-                unban_user(str(uid))
-    except Exception as e:
-        print(f"[Database Error] Failed to fetch active bans: {e}")
-    return active_bans
-
-
-def get_user_ban_details(discord_id: str) -> Optional[Dict[str, Any]]:
-    """Retrieve full ban record for a specific user ID if active."""
-    str_id = str(discord_id).strip()
-    if str_id == str(AUTHORIZED_USER_ID) or bans_collection is None:
-        return None
-
-    try:
-        ban = bans_collection.find_one(
-            {"$or": [{"discord_id": str_id}, {"user_id": str_id}]}, {"_id": 0}
-        )
-        if not ban:
-            return None
-        expires_at = ban.get("expires_at", 0)
-        if expires_at != 0 and time.time() >= expires_at:
-            unban_user(discord_id)
-            return None
-        return ban
-    except Exception as e:
-        print(f"[Database Error] Failed to get ban details for {str_id}: {e}")
-        return None
 
 
 # ---------------------------------------------------------------------------
@@ -216,34 +71,6 @@ def can_build():
         return False
 
     return app_commands.check(predicate)
-
-
-async def update_website_lockdown_status(enable: bool) -> bool:
-    """Synchronize lockdown status across database and external REST endpoint."""
-    if system_status_collection is not None:
-        try:
-            system_status_collection.update_one(
-                {"_id": "global_status"},
-                {"$set": {"is_lockdown": enable, "updated_at": time.time()}},
-                upsert=True,
-            )
-        except Exception as e:
-            print(f"[Database Error] Failed to persist status update: {e}")
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            payload = {"enable": enable}
-            headers = {"X-Bot-Auth": BOT_API_KEY}
-            async with session.post(
-                f"{WEB_BUILDER_URL}/api/security/lockdown",
-                json=payload,
-                headers=headers,
-                timeout=5,
-            ) as resp:
-                return resp.status == 200
-    except Exception as e:
-        print(f"[Echo API] Failed to update website lockdown state: {e}")
-        return False
 
 
 async def send_system_webhook_log(
@@ -317,56 +144,6 @@ class BotJoinTosView(discord.ui.View):
 class OrcaCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.user_message_logs: Dict[int, List[float]] = collections.defaultdict(list)
-        self.design_rate_limits: Dict[str, List[float]] = collections.defaultdict(list)
-
-    # --- API & BACKEND HANDLERS ---
-    async def verify_recaptcha(self, token: str) -> bool:
-        """Validate Google reCAPTCHA token."""
-        if not token or token == "YOUR_RECAPTCHA_SITE_KEY":
-            return False
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                url = "https://www.google.com/recaptcha/api/siteverify"
-                payload = {"secret": RECAPTCHA_SECRET_KEY, "response": token}
-                async with session.post(url, data=payload, timeout=5) as resp:
-                    if resp.status == 200:
-                        result = await resp.json()
-                        return result.get("success", False)
-        except Exception as e:
-            print(f"[Recaptcha Error] Failed to verify token: {e}")
-        return False
-
-    async def handle_api_check_auth(self, user_id: str) -> Dict[str, Any]:
-        """Process web auth verification state."""
-        global is_lockdown
-        uid = str(user_id).strip()
-
-        if uid == str(AUTHORIZED_USER_ID):
-            return {
-                "authenticated": True,
-                "user_id": uid,
-                "is_owner": True,
-                "is_banned": False,
-                "is_lockdown": False,
-            }
-
-        if is_lockdown:
-            return {"authenticated": True, "user_id": uid, "is_lockdown": True, "is_banned": False}
-
-        ban_info = get_user_ban_details(uid)
-        if ban_info:
-            return {
-                "authenticated": True,
-                "user_id": uid,
-                "is_banned": True,
-                "is_lockdown": False,
-                "ban_reason": ban_info.get("reason", "Account suspended."),
-                "dev_message": ban_info.get("dev_message", ""),
-            }
-
-        return {"authenticated": True, "user_id": uid, "is_banned": False, "is_lockdown": False}
 
     async def check_user_oauth_guild_admin(
         self, user_id: int, guild_id: str, access_token: Optional[str] = None
@@ -413,11 +190,7 @@ class OrcaCog(commands.Cog):
     async def handle_api_verify_server(
         self, payload: Dict[str, Any], user_id: int, access_token: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Verify invite integrity, CAPTCHA, and permissions for web layout generation."""
-        captcha_token = payload.get("captcha_token")
-        if captcha_token and not await self.verify_recaptcha(captcha_token):
-            return {"valid": False, "error": "Security CAPTCHA verification failed."}
-
+        """Verify invite integrity and permissions for web layout generation."""
         guild_id = payload.get("guild_id") or payload.get("server_id")
         server_link = payload.get("server_link") or payload.get("invite_url", "")
 
@@ -491,8 +264,7 @@ class OrcaCog(commands.Cog):
             description=(
                 "**Echo Studio has joined your server with Administrator privileges.**\n\n"
                 "### 🛠️ Automated Operations Overview:\n"
-                "• **Automated Structure Deployment**: When `/build` is executed, existing channels and roles will be removed and rebuilt.\n"
-                "• **Moderation & Security**: Active 12-hour automated anti-spam protection applies.\n\n"
+                "• **Automated Structure Deployment**: When `/build` is executed, existing channels and roles will be removed and rebuilt.\n\n"
                 "### ⚖️ Terms of Service Disclaimer:\n"
                 "**By confirming below, you acknowledge that the bot developers are NOT liable for any lost messages, deleted roles, or purged channels executed during operations.**"
             ),
@@ -501,42 +273,6 @@ class OrcaCog(commands.Cog):
         tos_embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await target_channel.send(embed=tos_embed, view=BotJoinTosView(inviter_id=inviter_id))
 
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message) -> None:
-        """Apply anti-spam timeouts to non-owners exceeding message thresholds."""
-        if message.author.bot or not message.guild or message.author.id == AUTHORIZED_USER_ID:
-            return
-
-        user_id = message.author.id
-        now = time.time()
-
-        self.user_message_logs[user_id].append(now)
-        self.user_message_logs[user_id] = [
-            t for t in self.user_message_logs[user_id] if now - t <= TIME_WINDOW
-        ]
-
-        if len(self.user_message_logs[user_id]) >= SPAM_THRESHOLD:
-            try:
-                duration = datetime.timedelta(hours=12)
-                if isinstance(message.author, discord.Member):
-                    await message.author.timeout(
-                        duration, reason="Automated Anti-Spam: Excessive message frequency."
-                    )
-                    self.user_message_logs[user_id] = []
-
-                    embed = discord.Embed(
-                        title="🚫 Member Restricted",
-                        description=f"{message.author.mention} has been restricted for **12 hours** due to spamming.",
-                        color=0xE74C3C,
-                    )
-                    embed.set_footer(text="Echo Studio — Anti-Spam Protection")
-                    await message.channel.send(embed=embed)
-            except discord.Forbidden:
-                print(f"Failed to restrict {message.author}: Missing permissions.")
-            except Exception as e:
-                print(f"Error applying timeout: {e}")
-
-    # --- SECURITY & RATE LIMITING ---
     async def verify_invite_matches_server(
         self, invite_url: str, server_id: str
     ) -> Tuple[bool, str]:
@@ -572,143 +308,6 @@ class OrcaCog(commands.Cog):
         except Exception as e:
             return False, f"Verification Error: `{e}`"
 
-    async def check_and_apply_design_ratelimit(self, user_id: str) -> Tuple[bool, str]:
-        now = time.time()
-        uid = str(user_id).strip()
-
-        if uid == str(AUTHORIZED_USER_ID):
-            return True, "OK"
-
-        self.design_rate_limits[uid] = [
-            t for t in self.design_rate_limits[uid] if now - t <= DESIGN_LIMIT_WINDOW
-        ]
-        self.design_rate_limits[uid].append(now)
-
-        if len(self.design_rate_limits[uid]) > DESIGN_LIMIT_MAX:
-            reason = f"Exceeded layout limit ({DESIGN_LIMIT_MAX} designs per 10m)."
-            dev_msg = "Automated Anti-Abuse: Temporary 12-hour restriction applied."
-
-            ban_user(uid, reason=reason, dev_message=dev_msg, duration_seconds=DESIGN_BAN_DURATION)
-
-            try:
-                async with aiohttp.ClientSession() as session:
-                    payload = {
-                        "user_id": uid,
-                        "action": "ban",
-                        "reason": reason,
-                        "dev_message": dev_msg,
-                        "duration_seconds": DESIGN_BAN_DURATION,
-                    }
-                    headers = {"X-Bot-Auth": BOT_API_KEY}
-                    await session.post(
-                        f"{WEB_BUILDER_URL}/api/security/ban",
-                        json=payload,
-                        headers=headers,
-                        timeout=5,
-                    )
-            except Exception as e:
-                print(f"[Echo RateLimit] Failed to sync web ban: {e}")
-
-            embed = discord.Embed(
-                title="🚨 Automated Web Ban — Rate Limit Exceeded",
-                description=f"<@{AUTHORIZED_USER_ID}> **User restricted due to rate limiting.**",
-                color=0xFF0000,
-                timestamp=datetime.datetime.now(datetime.timezone.utc),
-            )
-            embed.add_field(name="User ID", value=f"`{uid}` (<@{uid}>)", inline=True)
-            embed.add_field(name="Action Taken", value="Banned from Web Portal for **12 Hours**", inline=False)
-            embed.set_footer(text="Echo Studio — Security Enforcement")
-
-            await send_system_webhook_log(content=f"<@{AUTHORIZED_USER_ID}>", embed=embed)
-            return False, "Rate limit exceeded. Banned from portal for 12 hours."
-
-        return True, "OK"
-
-    async def log_web_entry_and_check_alt(
-        self, user_id: int, ip_address: str = "N/A", user_agent: str = "N/A"
-    ) -> Tuple[bool, str]:
-        uid_str = str(user_id).strip()
-        if uid_str == str(AUTHORIZED_USER_ID):
-            return True, "OK"
-
-        try:
-            user = await self.bot.fetch_user(user_id)
-        except Exception:
-            user = None
-
-        now = datetime.datetime.now(datetime.timezone.utc)
-        is_alt = False
-        account_age_days = 0
-
-        if user:
-            account_age_days = (now - user.created_at).days
-            if account_age_days <= 30:
-                is_alt = True
-
-        if telemetry_collection is not None:
-            try:
-                telemetry_collection.insert_one(
-                    {
-                        "user_id": uid_str,
-                        "ip_address": ip_address,
-                        "user_agent": user_agent,
-                        "is_alt": is_alt,
-                        "account_age_days": account_age_days,
-                        "logged_at": time.time(),
-                    }
-                )
-            except Exception as e:
-                print(f"[Database Error] Failed to log telemetry: {e}")
-
-        embed = discord.Embed(
-            title="🌐 Website Access Log" if not is_alt else "🚨 Alt Account Detected — Automated Ban",
-            color=0x3498DB if not is_alt else 0xE74C3C,
-            timestamp=now,
-        )
-
-        if user:
-            badges = [flag.name.replace("_", " ").title() for flag, value in user.public_flags if value]
-            embed.set_thumbnail(url=user.display_avatar.url)
-            embed.add_field(name="Username", value=f"**{user.name}** (`{user}`)", inline=True)
-            embed.add_field(name="User ID", value=f"`{user.id}`", inline=True)
-            embed.add_field(name="Account Age", value=f"`{account_age_days} days`", inline=True)
-            embed.add_field(name="Badges", value=f"`{', '.join(badges) if badges else 'None'}`", inline=True)
-        else:
-            embed.add_field(name="User ID", value=f"`{user_id}` (Unknown User)", inline=False)
-
-        embed.add_field(name="IP Address", value=f"`{ip_address}`", inline=True)
-        embed.add_field(name="User Agent", value=f"```\n{user_agent[:250]}\n```", inline=False)
-        embed.set_footer(text="Echo Studio — Web Security Tracker")
-
-        await send_system_webhook_log(embed=embed)
-
-        if is_alt:
-            reason = f"Alt Account Detected: Account age is {account_age_days} days (30 required)."
-            dev_msg = "Automated Shield: Accounts under 30 days old are restricted."
-            ban_user(uid_str, reason=reason, dev_message=dev_msg, duration_seconds=0)
-
-            try:
-                async with aiohttp.ClientSession() as session:
-                    payload = {
-                        "user_id": uid_str,
-                        "action": "ban",
-                        "reason": reason,
-                        "dev_message": dev_msg,
-                    }
-                    headers = {"X-Bot-Auth": BOT_API_KEY}
-                    await session.post(
-                        f"{WEB_BUILDER_URL}/api/security/ban",
-                        json=payload,
-                        headers=headers,
-                        timeout=5,
-                    )
-            except Exception as e:
-                print(f"[Echo Alt Shield] Failed to sync web ban: {e}")
-
-            return False, reason
-
-        return True, "OK"
-
     # --- SLASH COMMANDS ---
     @app_commands.command(
         name="help",
@@ -738,17 +337,6 @@ class OrcaCog(commands.Cog):
         name="website", description="Provides the link to the web layout builder."
     )
     async def website(self, interaction: discord.Interaction) -> None:
-        global is_lockdown
-        if is_lockdown and interaction.user.id != AUTHORIZED_USER_ID:
-            embed = discord.Embed(
-                title="530 Site Under Maintenance",
-                description="```\nHTTP 530: Portal is undergoing scheduled maintenance.\n```",
-                color=0xF1C40F,
-            )
-            embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
-
         embed = discord.Embed(
             title="🛠️ Interactive Server Builder",
             description=f"Launch the Web Builder:\n\n🔗 **[Echo Web Builder Portal]({WEB_BUILDER_URL})**",
@@ -798,80 +386,103 @@ class OrcaCog(commands.Cog):
         embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="ban", description="Ban a user from Website, Discord, or Both.")
+    @app_commands.command(
+        name="build",
+        description="Deploy a layout blueprint JSON to the current server.",
+    )
     @app_commands.describe(
-        user="Target user to ban",
-        location="Ban target location",
-        dev_message="Developer note shown to user",
-        reason="Internal reason",
+        file="Blueprint JSON attachment or URL to apply",
+        guild_id="Target Guild ID to fetch layout for (optional)",
     )
-    @app_commands.choices(
-        location=[
-            app_commands.Choice(name="Website Only", value="website"),
-            app_commands.Choice(name="Discord Server Only", value="discord"),
-            app_commands.Choice(name="Both Website & Discord", value="both"),
-        ]
-    )
-    @app_commands.checks.has_permissions(ban_members=True)
-    async def ban_command(
+    @can_build()
+    async def build(
         self,
         interaction: discord.Interaction,
-        user: discord.User,
-        location: app_commands.Choice[str],
-        dev_message: str = "Violating platform rules.",
-        reason: str = "No internal reason specified.",
+        file: Optional[discord.Attachment] = None,
+        guild_id: Optional[str] = None,
     ) -> None:
-        await interaction.response.defer(ephemeral=True)
-        target_id = str(user.id).strip()
-
-        if target_id == str(AUTHORIZED_USER_ID):
-            await interaction.followup.send(
-                "❌ Action forbidden: Primary owner is immune.", ephemeral=True
+        if not interaction.guild:
+            await interaction.response.send_message(
+                "❌ This command can only be executed within a Discord server.",
+                ephemeral=True,
             )
             return
 
-        loc = location.value
-        report: List[str] = []
+        await interaction.response.defer()
 
-        if loc in ("website", "both"):
-            ban_user(target_id, reason=reason, dev_message=dev_message, duration_seconds=0)
+        blueprint: Optional[Dict[str, Any]] = None
+
+        if file:
+            if not file.filename.endswith(".json"):
+                await interaction.followup.send("❌ Attached file must be a `.json` file.")
+                return
             try:
-                async with aiohttp.ClientSession() as session:
-                    payload = {
-                        "user_id": target_id,
-                        "action": "ban",
-                        "reason": reason,
-                        "dev_message": dev_message,
-                    }
-                    headers = {"X-Bot-Auth": BOT_API_KEY}
-                    async with session.post(
-                        f"{WEB_BUILDER_URL}/api/security/ban",
-                        json=payload,
-                        headers=headers,
-                        timeout=5,
-                    ) as resp:
-                        if resp.status == 200:
-                            report.append("✅ **Website Ban:** Applied.")
-                        else:
-                            report.append(f"⚠️ **Website API Warning:** HTTP {resp.status}")
+                content = await file.read()
+                blueprint = json.loads(content.decode("utf-8"))
             except Exception as e:
-                report.append(f"⚠️ **Website Sync Failed:** {e}")
+                await interaction.followup.send(f"❌ Failed to parse JSON attachment: `{e}`")
+                return
+        elif guild_id:
+            blueprint = get_blueprint_data(guild_id.strip())
+            if not blueprint:
+                await interaction.followup.send(
+                    f"❌ No blueprint found for Guild ID `{guild_id.strip()}`."
+                )
+                return
+        else:
+            blueprint = get_blueprint_data(str(interaction.guild.id))
+            if not blueprint:
+                await interaction.followup.send(
+                    "❌ No blueprint attached and none found for this server. Please attach a `.json` blueprint or specify a `guild_id`."
+                )
+                return
 
-        if loc in ("discord", "both"):
-            if interaction.guild:
-                try:
-                    await interaction.guild.ban(
-                        user, reason=f"{reason} | Dev Note: {dev_message}"
-                    )
-                    report.append("✅ **Discord Ban:** Applied.")
-                except Exception as e:
-                    report.append(f"❌ **Discord Ban Failed:** {e}")
-            else:
-                report.append("❌ **Discord Ban Error:** Execution must occur inside a server.")
+        guild = interaction.guild
+        sep = blueprint.get("separator", "-")
 
-        embed = discord.Embed(
-            title="🔨 Ban Summary", description="\n".join(report), color=0xE74C3C
-        )
-        embed.add_field(name="Target", value=f"{user.mention} (`{user.id}`)", inline=True)
-        embed.add_field(name="Location", value=f"`{location.name}`", inline=True)
-        embed.add_field(name="Dev Message", value=f"```{dev_message}
+        try:
+            # Rebuild Categories & Channels
+            categories = blueprint.get("categories", [])
+            for cat_data in categories:
+                cat_name = cat_data.get("name", "UNNAMED CATEGORY")
+                category = await guild.create_category(cat_name)
+
+                for ch_data in cat_data.get("channels", []):
+                    ch_name = ch_data.get("name", "channel").replace(" ", sep)
+                    ch_type = ch_data.get("type", "text")
+                    ch_topic = ch_data.get("topic", "")
+                    emoji = ch_data.get("emoji", "")
+
+                    full_name = f"{emoji} {ch_name}".strip() if emoji else ch_name
+
+                    if ch_type == "voice":
+                        await guild.create_voice_channel(full_name, category=category)
+                    else:
+                        await guild.create_text_channel(
+                            full_name, category=category, topic=ch_topic
+                        )
+
+            # Rebuild Roles
+            roles = blueprint.get("roles", [])
+            for role_name in roles:
+                if role_name not in [r.name for r in guild.roles]:
+                    await guild.create_role(name=role_name)
+
+            embed = discord.Embed(
+                title="🚀 Infrastructure Deployment Complete",
+                description=f"Successfully deployed blueprint **{blueprint.get('server_name', guild.name)}**.",
+                color=0x2ECC71,
+            )
+            embed.add_field(name="Categories Created", value=str(len(categories)), inline=True)
+            embed.add_field(name="Roles Configured", value=str(len(roles)), inline=True)
+            embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
+
+            await interaction.followup.send(embed=embed)
+        except Exception as e:
+            await interaction.followup.send(
+                f"❌ Deployment failed midway due to an error: `{e}`"
+            )
+
+
+async def setup(bot: commands.Bot) -> None:
+    await bot.add_cog(OrcaCog(bot))
