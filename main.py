@@ -20,9 +20,7 @@ from keep_alive import (
     app,
     save_blueprint_data,
     get_blueprint_data,
-    verify_turnstile_captcha,
-    extract_invite_code,
-    check_user_guild_admin
+    verify_recaptcha
 )
 
 # -------------------------------------------------------------
@@ -30,9 +28,6 @@ from keep_alive import (
 # -------------------------------------------------------------
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-echo-studio-persistent-2026")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get("FLASK_ENV") == "production"
 
 DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
 
