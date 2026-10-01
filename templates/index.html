@@ -572,7 +572,8 @@
                 const result = await response.json();
 
                 if (!response.ok) {
-                    alert(result.error || result.message || "Failed to generate server layout blueprint.");
+                    const errorMsg = result.error || result.message || "Unknown backend error occurred.";
+                    alert(`Generation Error (${response.status}): ${errorMsg}`);
                     return;
                 }
 
@@ -591,8 +592,8 @@
                 renderPreview();
                 switchPage('preview');
             } catch (err) {
-                console.error("AI Generation error:", err);
-                alert("An error occurred while connecting to the AI generator service.");
+                console.error("AI Generation network/script error:", err);
+                alert(`Connection Failed: ${err.message || 'Unable to reach the server.'}`);
             } finally {
                 btn.disabled = false;
                 btnText.textContent = "Generate Server Layout";
