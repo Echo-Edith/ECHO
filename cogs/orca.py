@@ -1,39 +1,25 @@
-import asyncio
-import collections
 import datetime
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
-from pymongo import MongoClient
-from pymongo.database import Database
 
-# Import blueprint retrieval helper and dynamic web URL from ai_brain.py
+# Import helper functions and web URL configuration from ai_brain
 from ai_brain import WEB_BUILDER_URL, get_blueprint_data
 
 # Configuration & Constants
 AUTHORIZED_USER_ID: int = 1219266886143967245
-ALLOWED_BUILDERS: set[int] = {AUTHORIZED_USER_ID}  # Dynamic set of allowed user IDs
-start_time: float = time.time()
+ALLOWED_BUILDERS: set[int] = {AUTHORIZED_USER_ID}
+START_TIME: float = time.time()
 
 SYSTEM_LOG_WEBHOOK_URL: str = os.environ.get(
     "SYSTEM_LOG_WEBHOOK_URL", os.environ.get("WEBHOOK_LOG_URL", "")
 )
-
-# ---------------------------------------------------------------------------
-# DATABASE INITIALIZATION
-# ---------------------------------------------------------------------------
-MONGO_URI: Optional[str] = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
-mongo_client: Optional[MongoClient] = MongoClient(MONGO_URI) if MONGO_URI else None
-
-db: Optional[Database] = mongo_client["bot_database"] if mongo_client is not None else None
-designs_collection = db["designs"] if db is not None else None
-telemetry_collection = db["telemetry"] if db is not None else None
 
 
 # ---------------------------------------------------------------------------
@@ -187,92 +173,6 @@ class OrcaCog(commands.Cog):
         except Exception as e:
             return False, f"Error verifying user server access: {e}"
 
-    async def handle_api_verify_server(
-        self, payload: Dict[str, Any], user_id: int, access_token: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Verify invite integrity and permissions for web layout generation."""
-        guild_id = payload.get("guild_id") or payload.get("server_id")
-        server_link = payload.get("server_link") or payload.get("invite_url", "")
-
-        user_authorized, auth_msg = await self.check_user_oauth_guild_admin(
-            user_id, str(guild_id), access_token
-        )
-        if not user_authorized:
-            return {"valid": False, "error": auth_msg}
-
-        valid, msg = await self.verify_invite_matches_server(server_link, str(guild_id))
-        return {"valid": valid, "message" if valid else "error": msg}
-
-    async def handle_api_submit_design(self, payload: Dict[str, Any], user_id: int) -> Dict[str, Any]:
-        """Persist design records to MongoDB and dispatch webhook metrics."""
-        if designs_collection is not None:
-            try:
-                doc = {
-                    "user_id": str(user_id),
-                    "guild_id": payload.get("target_guild_id"),
-                    "server_link": payload.get("server_link"),
-                    "separator": payload.get("separator"),
-                    "categories": payload.get("categories", []),
-                    "roles": payload.get("roles", []),
-                    "submitted_at": time.time(),
-                }
-                designs_collection.insert_one(doc)
-            except Exception as e:
-                print(f"[Database Error] Failed to insert design record: {e}")
-
-        embed = discord.Embed(
-            title="📐 New Server Design Submitted",
-            description=f"User <@{user_id}> generated and submitted a new blueprint.",
-            color=0x9333EA,
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
-        )
-        embed.add_field(name="Target Guild ID", value=str(payload.get("target_guild_id")), inline=True)
-        embed.add_field(name="Categories", value=str(len(payload.get("categories", []))), inline=True)
-        embed.add_field(name="Roles Configured", value=str(len(payload.get("roles", []))), inline=True)
-
-        await send_system_webhook_log(embed=embed)
-        return {"success": True}
-
-    # --- DISCORD EVENT LISTENERS ---
-    @commands.Cog.listener()
-    async def on_guild_join(self, guild: discord.Guild) -> None:
-        """Send initialization instructions and TOS upon joining a guild."""
-        if not guild.me.guild_permissions.administrator:
-            return
-
-        inviter_id = guild.owner_id
-        try:
-            async for entry in guild.audit_logs(action=discord.AuditLogAction.bot_add, limit=5):
-                if entry.target and entry.target.id == self.bot.user.id:
-                    inviter_id = entry.user.id
-                    break
-        except Exception:
-            pass
-
-        target_channel = guild.system_channel
-        if not target_channel or not target_channel.permissions_for(guild.me).send_messages:
-            for channel in guild.text_channels:
-                if channel.permissions_for(guild.me).send_messages:
-                    target_channel = channel
-                    break
-
-        if not target_channel:
-            return
-
-        tos_embed = discord.Embed(
-            title="⚠️ Echo Studio — Server Integration & Terms of Service",
-            description=(
-                "**Echo Studio has joined your server with Administrator privileges.**\n\n"
-                "### 🛠️ Automated Operations Overview:\n"
-                "• **Automated Structure Deployment**: When `/build` is executed, existing channels and roles will be removed and rebuilt.\n\n"
-                "### ⚖️ Terms of Service Disclaimer:\n"
-                "**By confirming below, you acknowledge that the bot developers are NOT liable for any lost messages, deleted roles, or purged channels executed during operations.**"
-            ),
-            color=0xF1C40F,
-        )
-        tos_embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-        await target_channel.send(embed=tos_embed, view=BotJoinTosView(inviter_id=inviter_id))
-
     async def verify_invite_matches_server(
         self, invite_url: str, server_id: str
     ) -> Tuple[bool, str]:
@@ -307,6 +207,46 @@ class OrcaCog(commands.Cog):
             return False, "Invalid Invite: The link does not exist or has expired."
         except Exception as e:
             return False, f"Verification Error: `{e}`"
+
+    # --- DISCORD EVENT LISTENERS ---
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: discord.Guild) -> None:
+        """Send initialization instructions and TOS upon joining a guild."""
+        if not guild.me.guild_permissions.administrator:
+            return
+
+        inviter_id = guild.owner_id
+        try:
+            async for entry in guild.audit_logs(action=discord.AuditLogAction.bot_add, limit=5):
+                if entry.target and entry.target.id == self.bot.user.id:
+                    inviter_id = entry.user.id
+                    break
+        except Exception:
+            pass
+
+        target_channel = guild.system_channel
+        if not target_channel or not target_channel.permissions_for(guild.me).send_messages:
+            for channel in guild.text_channels:
+                if channel.permissions_for(guild.me).send_messages:
+                    target_channel = channel
+                    break
+
+        if not target_channel:
+            return
+
+        tos_embed = discord.Embed(
+            title="⚠️ Echo Studio — Server Integration & Terms of Service",
+            description=(
+                "**Echo Studio has joined your server with Administrator privileges.**\n\n"
+                "### 🛠️ Automated Operations Overview:\n"
+                "• **Automated Structure Deployment**: When `/build` is executed, existing channels and roles will be created based on your template.\n\n"
+                "### ⚖️ Terms of Service Disclaimer:\n"
+                "**By confirming below, you acknowledge that the bot developers are NOT liable for any issues arising during channel/role deployment.**"
+            ),
+            color=0xF1C40F,
+        )
+        tos_embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
+        await target_channel.send(embed=tos_embed, view=BotJoinTosView(inviter_id=inviter_id))
 
     # --- SLASH COMMANDS ---
     @app_commands.command(
@@ -441,6 +381,13 @@ class OrcaCog(commands.Cog):
         sep = blueprint.get("separator", "-")
 
         try:
+            # Rebuild Roles
+            roles = blueprint.get("roles", [])
+            existing_role_names = [r.name for r in guild.roles]
+            for role_name in roles:
+                if role_name not in existing_role_names:
+                    await guild.create_role(name=role_name)
+
             # Rebuild Categories & Channels
             categories = blueprint.get("categories", [])
             for cat_data in categories:
@@ -457,16 +404,14 @@ class OrcaCog(commands.Cog):
 
                     if ch_type == "voice":
                         await guild.create_voice_channel(full_name, category=category)
+                    elif ch_type == "announcement":
+                        await guild.create_text_channel(
+                            full_name, category=category, topic=ch_topic, news=True
+                        )
                     else:
                         await guild.create_text_channel(
                             full_name, category=category, topic=ch_topic
                         )
-
-            # Rebuild Roles
-            roles = blueprint.get("roles", [])
-            for role_name in roles:
-                if role_name not in [r.name for r in guild.roles]:
-                    await guild.create_role(name=role_name)
 
             embed = discord.Embed(
                 title="🚀 Infrastructure Deployment Complete",
