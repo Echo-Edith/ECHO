@@ -220,7 +220,7 @@ class OrcaCog(commands.Cog):
                 "**Echo Studio has joined your server with Administrator privileges.**\n\n"
                 "### 🛠️ Automated Operations Overview:\n"
                 "• **Automated Structure Deployment**: When `/build` is executed, existing channels and roles will be created based on your template.\n\n"
-                "### ⚖️ Terms of Service Disclaimer:\n"
+                "### ⚖️️ Terms of Service Disclaimer:\n"
                 "**By confirming below, you acknowledge that the bot developers are NOT liable for any issues arising during channel/role deployment.**"
             ),
             color=0xF1C40F,
@@ -379,10 +379,15 @@ class OrcaCog(commands.Cog):
                     ch_topic = ch_data.get("topic", "")
                     emoji = ch_data.get("emoji", "").strip()
 
-                    # Format strictly as: Emoji | Channel Name
+                    # Format strictly with middle separator: Emoji | Channel Name
                     full_name = ch_data.get("formatted_name")
                     if not full_name:
-                        full_name = f"{emoji} {sep} {ch_name}" if emoji else ch_name
+                        if emoji and sep and ch_name:
+                            full_name = f"{emoji} {sep} {ch_name}"
+                        elif emoji and ch_name:
+                            full_name = f"{emoji} {ch_name}"
+                        else:
+                            full_name = ch_name or emoji or "channel"
 
                     if ch_type == "voice":
                         await guild.create_voice_channel(full_name, category=category)
