@@ -527,7 +527,8 @@
             document.getElementById('btn-generate').disabled = !isValid;
         }
 
-        async function handleGenerate() {
+        // GENERATE LOCAL PREVIEW (NO SERVER REQUEST OR LOGGING MADE HERE)
+        function handleGenerate() {
             if (!isAuthenticated) {
                 alert("Please login with Discord to generate server layouts.");
                 return;
@@ -543,61 +544,37 @@
             const serverLink = document.getElementById('server-link-input').value.trim();
             const separatorVal = document.getElementById('separator-input').value.trim() || '-';
             
-            const categoriesCountVal = document.getElementById('categories-count-input').value.trim();
-            const channelsCountVal = document.getElementById('channels-count-input').value.trim();
+            // Build blueprint locally for editing in the preview screen
+            serverBlueprint = {
+                server_name: "Generated Community Blueprint",
+                target_guild_id: guildId,
+                server_link: serverLink,
+                separator: separatorVal,
+                prompt: promptText,
+                roles: ["Admin", "Moderator", "Member"],
+                categories: [
+                    {
+                        name: "INFORMATION",
+                        channels: [
+                            { emoji: "📌", name: `rules${separatorVal}info`, type: "text", topic: "Server rules and information", permissions: {} },
+                            { emoji: "📢", name: `announcements`, type: "announcement", topic: "Important community updates", permissions: {} }
+                        ]
+                    },
+                    {
+                        name: "GENERAL",
+                        channels: [
+                            { emoji: "💬", name: `general${separatorVal}chat`, type: "text", topic: "General community text discussion", permissions: {} },
+                            { emoji: "🔊", name: `General Lounge`, type: "voice", topic: "", permissions: {} }
+                        ]
+                    }
+                ]
+            };
 
-            const categoriesCount = categoriesCountVal ? parseInt(categoriesCountVal, 10) : null;
-            const channelsCount = channelsCountVal ? parseInt(channelsCountVal, 10) : null;
-
-            const btnText = document.getElementById('btn-text');
-            const btnEl = document.getElementById('btn-generate');
-
-            if (btnEl) btnEl.disabled = true;
-            if (btnText) btnText.textContent = "Generating Layout...";
-
-            try {
-                // Unified request directly targeting the server layout route
-                const res = await fetch('/api/verify_and_generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ 
-                        server_id: guildId,
-                        server_link: serverLink, 
-                        prompt: promptText, 
-                        separator: separatorVal,
-                        categories_count: categoriesCount,
-                        channels_count: channelsCount,
-                        captcha_token: captchaToken
-                    })
-                });
-
-                const data = await res.json();
-
-                if (!res.ok || (data.success === false)) {
-                    alert(data.message || data.error || "Failed to generate server layout. Please verify details and try again.");
-                    return;
-                }
-
-                // Handle server response whether returned under 'layout' key or directly as JSON payload
-                serverBlueprint = data.layout || data;
-                
-                serverBlueprint.target_guild_id = guildId;
-                serverBlueprint.server_link = serverLink;
-                serverBlueprint.separator = separatorVal;
-
-                ensurePermissionsStructure();
-                activeCatIndex = 0;
-                activeChIndex = 0;
-                renderPreview();
-                switchPage('preview');
-            } catch (err) {
-                console.error("Layout generation error:", err);
-                alert("Failed to generate server layout. Please verify details and try again.");
-            } finally {
-                if (btnText) btnText.textContent = "Generate Server Layout";
-                validateForm();
-            }
+            ensurePermissionsStructure();
+            activeCatIndex = 0;
+            activeChIndex = 0;
+            renderPreview();
+            switchPage('preview');
         }
 
         function ensurePermissionsStructure() {
@@ -921,6 +898,7 @@
             ch.permissions[role][permKey] = isEnabled;
         }
 
+        // SUBMIT DESIGN ONLY UPON EXPLICIT USER CLICK
         async function submitDesign() {
             const btn = document.getElementById('btn-submit-design');
             if (btn) {
@@ -933,13 +911,16 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify(serverBlueprint)
+                    body: JSON.stringify({
+                        blueprint: serverBlueprint,
+                        captcha_token: captchaToken
+                    })
                 });
                 
                 const responseData = await res.json();
 
                 if (!res.ok) {
-                    alert(responseData.error || "Submission failed.");
+                    alert(responseData.error || responseData.message || "Submission failed.");
                     return;
                 }
                 
