@@ -38,8 +38,9 @@ RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY", "6LeIxAcTAAAAAGG-v
 # Base Web Builder URL
 WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
 
-# Webhook Configuration for Website & Submission Alerts
+# Webhook Configurations
 DESIGN_WEBHOOK_URL = os.environ.get("DESIGN_WEBHOOK_URL", os.environ.get("WEBHOOK_URL", "")).strip()
+SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", os.environ.get("SYSTEM_LOG_WEBHOOK_URL", DESIGN_WEBHOOK_URL)).strip()
 
 # Storage Directory Setup for JSON Blueprints
 BLUEPRINT_STORAGE = {}
@@ -71,12 +72,12 @@ designs_collection = db["designs"] if db is not None else None
 # HELPER FUNCTIONS
 # ---------------------------------------------------------------------------
 
-def send_discord_webhook(payload: dict):
+def send_discord_webhook(webhook_url: str, payload: dict):
     """Utility helper to reliably dispatch webhook events to Discord."""
-    if not DESIGN_WEBHOOK_URL:
+    if not webhook_url:
         return
     try:
-        res = requests.post(DESIGN_WEBHOOK_URL, json=payload, timeout=5)
+        res = requests.post(webhook_url, json=payload, timeout=5)
         logger.info("[WEBHOOK LOG] Dispatched alert to Discord. Status: %d", res.status_code)
     except Exception as e:
         logger.error("[WEBHOOK ERROR] Failed to dispatch webhook alert: %s", e)
@@ -176,7 +177,7 @@ def verify_server():
 
 @app.route('/api/log-entry', methods=['POST'])
 def log_entry():
-    """Logs website visits directly to the Discord Webhook without saving IP data."""
+    """Logs website entry details explicitly to SYSTEM_LOG_WEBHOOK_URL."""
     data = request.get_json() or {}
     user = session.get('user')
     user_name = user.get('username') if user else 'Guest / Anonymous'
@@ -185,17 +186,20 @@ def log_entry():
 
     logger.info("[SITE ENTRY] Event: %s | User: %s | Path: %s", event_type, user_name, path)
 
-    # Dispatch Website Entry Alert to Discord Webhook
-    send_discord_webhook({
-        "embeds": [
-            {
-                "title": "🌐 Website Entry Detected",
-                "description": f"**Event:** `{event_type}`\n**User:** `{user_name}`\n**Path Visited:** `{path}`",
-                "color": 0x3498DB,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-        ]
-    })
+    # Dispatches log event to SYSTEM_LOG_WEBHOOK_URL
+    send_discord_webhook(
+        SYSTEM_LOG_WEBHOOK_URL,
+        {
+            "embeds": [
+                {
+                    "title": "🌐 Website Entry Logged",
+                    "description": f"**Event:** `{event_type}`\n**User:** `{user_name}`\n**Path Visited:** `{path}`",
+                    "color": 0x3498DB,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            ]
+        }
+    )
     return jsonify({"logged": True})
 
 
@@ -345,7 +349,6 @@ def generate_layout():
         except Exception as e:
             logger.error("[GEMINI ERROR] %s", e, exc_info=True)
 
-    # Fallback template structure if AI API key is missing or fails
     if not layout_data or "categories" not in layout_data:
         layout_data = {
             "server_name": f"{prompt.title()} Community",
@@ -368,7 +371,7 @@ def generate_layout():
             ]
         }
 
-    # Format Channel Names so separator sits in the middle of Emoji and Channel Name
+    # Format Channel Names with separator cleanly placed between Emoji and Channel Name
     for cat in layout_data.get("categories", []):
         for ch in cat.get("channels", []):
             raw_name = ch.get("name", "channel").lower().replace(" ", separator)
@@ -396,17 +399,20 @@ def submit_design():
 
     file_url = f"{WEB_BUILDER_URL}/blueprint/{target_guild}.json"
 
-    # Send Clean Webhook Notification (Without failing request on file attachment error)
-    send_discord_webhook({
-        "embeds": [
-            {
-                "title": f"📥 Blueprint Submitted — Guild #{target_guild}",
-                "description": f"**Server Name:** {blueprint.get('server_name', 'Custom Server')}\n**Deploy Command:** `/build file:{file_url}`",
-                "color": 0x2ECC71,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-        ]
-    })
+    # Send Clean Webhook Notification to DESIGN_WEBHOOK_URL
+    send_discord_webhook(
+        DESIGN_WEBHOOK_URL,
+        {
+            "embeds": [
+                {
+                    "title": f"📥 Blueprint Submitted — Guild #{target_guild}",
+                    "description": f"**Server Name:** {blueprint.get('server_name', 'Custom Server')}\n**Deploy Command:** `/build file:{file_url}`",
+                    "color": 0x2ECC71,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            ]
+        }
+    )
 
     return jsonify({"status": "success", "file_url": file_url})
 
