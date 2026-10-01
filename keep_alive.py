@@ -1,6 +1,7 @@
 import os
 import json
 import io
+import sys
 import time
 import logging
 import requests
@@ -12,8 +13,16 @@ from google import genai
 from google.genai import types
 from pymongo import MongoClient
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+# Unbuffer stdout and stderr to prevent large cron log buffers
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
+# Configure compact logging for cronjob friendliness
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 logger = logging.getLogger("keep_alive")
 
 app = Flask(__name__, template_folder='templates')
@@ -68,6 +77,21 @@ telemetry_collection = db["telemetry"] if db is not None else None
 # HELPER FUNCTIONS
 # ---------------------------------------------------------------------------
 
+def apply_middle_separator_formatting(layout_data: dict, separator: str):
+    """Formats channel displays strictly placed in the middle: Emoji | Channel Name."""
+    sep = separator.strip() if separator else "|"
+    for cat in layout_data.get("categories", []):
+        for ch in cat.get("channels", []):
+            raw_name = ch.get("name", "channel").lower().strip()
+            emoji = ch.get("emoji", "").strip()
+            if emoji and sep and raw_name:
+                ch["formatted_name"] = f"{emoji} {sep} {raw_name}"
+            elif emoji and raw_name:
+                ch["formatted_name"] = f"{emoji} {raw_name}"
+            else:
+                ch["formatted_name"] = raw_name or emoji or "channel"
+
+
 def get_blueprint_data(guild_id: str = None) -> dict:
     """Retrieves stored blueprint data for a given guild_id."""
     if not guild_id:
@@ -86,12 +110,15 @@ def get_blueprint_data(guild_id: str = None) -> dict:
                 return data
         except Exception as e:
             logger.error("Error reading blueprint file for guild %s: %s", guild_id, e)
-    
+
     if designs_collection is not None:
-        doc = designs_collection.find_one({"guild_id": guild_id}, sort=[("submitted_at", -1)], projection={"_id": 0})
-        if doc:
-            BLUEPRINT_STORAGE[guild_id] = doc
-            return doc
+        try:
+            doc = designs_collection.find_one({"guild_id": guild_id}, sort=[("submitted_at", -1)], projection={"_id": 0})
+            if doc:
+                BLUEPRINT_STORAGE[guild_id] = doc
+                return doc
+        except Exception as e:
+            logger.error("MongoDB fetch error: %s", e)
 
     return {}
 
@@ -119,18 +146,17 @@ def save_blueprint_data(guild_id: str, blueprint: dict):
 
 def verify_recaptcha(token: str, remote_ip: str) -> bool:
     """Verifies Google reCAPTCHA token."""
-    if not RECAPTCHA_SECRET_KEY:
-        return True  # Fallback if secret key is not set
+    if not RECAPTCHA_SECRET_KEY or token == "YOUR_RECAPTCHA_SITE_KEY":
+        return True
     try:
         res = requests.post(
             "https://www.google.com/recaptcha/api/siteverify",
             data={"secret": RECAPTCHA_SECRET_KEY, "response": token, "remoteip": remote_ip},
             timeout=5
         )
-        data = res.json()
-        return data.get("success", False)
+        return res.json().get("success", False)
     except Exception as e:
-        logger.error(f"reCAPTCHA verification error: {e}")
+        logger.error("reCAPTCHA verification error: %s", e)
         return True
 
 
@@ -289,12 +315,15 @@ def log_entry():
     username = user.get('username', 'Unknown')
 
     if telemetry_collection is not None:
-        telemetry_collection.insert_one({
-            "user_id": user_id,
-            "global_name": user.get('global_name'),
-            "user_agent": request.headers.get("User-Agent", "Unknown"),
-            "logged_at": time.time()
-        })
+        try:
+            telemetry_collection.insert_one({
+                "user_id": user_id,
+                "global_name": user.get('global_name'),
+                "user_agent": request.headers.get("User-Agent", "Unknown"),
+                "logged_at": time.time()
+            })
+        except Exception as e:
+            logger.error("Telemetry insert error: %s", e)
 
     fields = [
         {"name": "User", "value": f"@{username} (`{user_id}`)", "inline": True}
@@ -314,7 +343,6 @@ def verify_and_generate():
     data = request.json or {}
     captcha_token = data.get('captcha_token', '').strip()
 
-    # Verify Google reCAPTCHA
     if not verify_recaptcha(captcha_token, request.remote_addr):
         return jsonify({"success": False, "message": "Google reCAPTCHA verification failed."}), 400
 
@@ -322,16 +350,14 @@ def verify_and_generate():
     if not user_data:
         return jsonify({"success": False, "message": "Unauthorized. Please login with Discord."}), 401
 
-    # Extract payload parameters directly without strict validations
-    server_id = str(data.get('server_id', '')).strip()
+    server_id = str(data.get('server_id') or data.get('target_guild_id', '')).strip()
     server_invite = data.get('server_link', '').strip()
-    prompt = data.get('prompt', '').strip()
-    separator = data.get('separator', '-')
+    prompt = data.get('prompt', 'Community Discord Server').strip()
+    separator = data.get('separator', '|').strip() or '|'
 
     if not server_id or not prompt:
         return jsonify({"success": False, "message": "Missing server ID or prompt."}), 400
 
-    # Gemini Layout Generation using google-genai SDK
     system_instruction = (
         "Generate a raw JSON layout for a Discord server based on user prompt conforming strictly to this schema:\n"
         "{\"server_name\": \"String\", \"roles\": [\"String\"], \"categories\": [{\"name\": \"String\", \"channels\": [{\"emoji\": \"💬\", \"name\": \"string\", \"type\": \"text|voice|announcement\", \"topic\": \"string\"}]}]}"
@@ -350,19 +376,31 @@ def verify_and_generate():
             )
             layout_data = json.loads(response.text)
         except Exception as e:
-            logger.warning(f"AI Generation failed: {e}")
+            logger.warning("AI Generation failed: %s", e)
 
-    if not layout_data:
+    if not layout_data or "categories" not in layout_data:
         layout_data = {
             "server_name": "Echo Studio — Community Layout",
             "roles": ["Administrator", "Moderator", "Member"],
             "categories": [
                 {
                     "name": "📌 INFORMATION",
-                    "channels": [{"emoji": "📜", "name": f"rules{separator}info", "type": "text", "topic": "Server rules"}]
+                    "channels": [
+                        {"emoji": "📜", "name": "rules", "type": "text", "topic": "Server rules"},
+                        {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Updates"}
+                    ]
+                },
+                {
+                    "name": "💬 COMMUNITY",
+                    "channels": [
+                        {"emoji": "💬", "name": "general", "type": "text", "topic": "Main room"}
+                    ]
                 }
             ]
         }
+
+    # Format channel names with middle separator
+    apply_middle_separator_formatting(layout_data, separator)
 
     layout_data["target_guild_id"] = server_id
     layout_data["server_link"] = server_invite
@@ -373,7 +411,7 @@ def verify_and_generate():
     save_blueprint_data(server_id, layout_data)
     file_url = f"{WEB_BUILDER_URL}/blueprint/{server_id}.json"
 
-    # Post Submission Webhook
+    # Post Submission Webhook safely without huge log output
     if DESIGN_WEBHOOK_URL:
         payload = {
             "embeds": [{
@@ -387,7 +425,7 @@ def verify_and_generate():
         try:
             requests.post(DESIGN_WEBHOOK_URL, data={"payload_json": json.dumps(payload)}, files=files, timeout=10)
         except Exception as e:
-            logger.error(f"Failed to send submission webhook: {e}")
+            logger.error("Failed to send submission webhook: %s", e)
 
     return jsonify({
         "success": True,
