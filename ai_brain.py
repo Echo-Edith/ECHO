@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
-from flask import Flask, jsonify, redirect, render_template, request, session
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, session
 from google import genai
 from google.genai import types
 from pymongo import MongoClient
@@ -147,6 +147,21 @@ def verify_google_recaptcha(token: str) -> bool:
         return True
 
 
+def apply_middle_separator_formatting(layout_data: dict, separator: str):
+    """Formats channel displays strictly placed in the middle: Emoji | Channel Name."""
+    sep = separator.strip() if separator else "|"
+    for cat in layout_data.get("categories", []):
+        for ch in cat.get("channels", []):
+            raw_name = ch.get("name", "channel").lower().strip()
+            emoji = ch.get("emoji", "").strip()
+            if emoji and sep and raw_name:
+                ch["formatted_name"] = f"{emoji} {sep} {raw_name}"
+            elif emoji and raw_name:
+                ch["formatted_name"] = f"{emoji} {raw_name}"
+            else:
+                ch["formatted_name"] = raw_name or emoji or "channel"
+
+
 # ---------------------------------------------------------------------------
 # MIDDLEWARE & ENDPOINTS
 # ---------------------------------------------------------------------------
@@ -282,16 +297,14 @@ def serve_blueprint(guild_id):
     return send_from_directory(BLUEPRINT_DIR, f"{guild_id}.json", mimetype='application/json')
 
 
-@app.route('/api/generate-layout', methods=['POST'])
-def generate_layout():
+def _process_ai_layout_generation(data: dict) -> dict:
     user = session.get('user')
-    data = request.get_json() or {}
     prompt = data.get('prompt', 'Community Discord Server')
-    guild_id = str(data.get('guild_id', '')).strip()
+    guild_id = str(data.get('target_guild_id') or data.get('guild_id', '')).strip()
     server_link = data.get('server_link', '').strip()
     separator = data.get('separator', '|').strip() or '|'
-    categories_count = data.get('categories_count', 4)
-    channels_count = data.get('channels_count', 12)
+    categories_count = data.get('preferred_categories') or data.get('categories_count') or 4
+    channels_count = data.get('preferred_channels') or data.get('channels_count') or 12
 
     logger.info("[AI GENERATE] User: %s | Prompt: %s | Separator: %s", user, prompt, separator)
 
@@ -359,26 +372,39 @@ def generate_layout():
             ]
         }
 
-    # Format Channel Names as "Emoji | Channel Name" (e.g. 📌 | rules)
-    for cat in layout_data.get("categories", []):
-        for ch in cat.get("channels", []):
-            raw_name = ch.get("name", "channel").lower().strip()
-            emoji = ch.get("emoji", "").strip()
-            if emoji:
-                ch["formatted_name"] = f"{emoji} {separator} {raw_name}"
-            else:
-                ch["formatted_name"] = raw_name
+    # Format Channel Names with Middle Separator (e.g. 📌 | rules)
+    apply_middle_separator_formatting(layout_data, separator)
 
     layout_data["target_guild_id"] = guild_id
     layout_data["server_link"] = server_link
     layout_data["separator"] = separator
+    layout_data["prompt"] = prompt
     layout_data["creator"] = user
+    return layout_data
+
+
+@app.route('/api/generate-blueprint', methods=['POST'])
+def generate_blueprint():
+    data = request.get_json() or {}
+    captcha_token = data.get("captcha_token", "").strip()
+    if captcha_token and not verify_google_recaptcha(captcha_token):
+        return jsonify({"error": "Google reCAPTCHA verification failed."}), 400
+
+    layout_data = _process_ai_layout_generation(data)
+    return jsonify({"blueprint": layout_data})
+
+
+@app.route('/api/generate-layout', methods=['POST'])
+def generate_layout():
+    data = request.get_json() or {}
+    layout_data = _process_ai_layout_generation(data)
     return jsonify(layout_data)
 
 
 @app.route('/api/submit-design', methods=['POST'])
 def submit_design():
-    blueprint = request.get_json()
+    req_payload = request.get_json() or {}
+    blueprint = req_payload.get("blueprint", req_payload)
     if not blueprint:
         return jsonify({"error": "No blueprint provided"}), 400
 
