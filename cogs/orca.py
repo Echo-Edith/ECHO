@@ -9,10 +9,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-# Import helper functions and web URL configuration from ai_brain
 from ai_brain import WEB_BUILDER_URL, get_blueprint_data
 
-# Configuration & Constants
 AUTHORIZED_USER_ID: int = 1219266886143967245
 ALLOWED_BUILDERS: set[int] = {AUTHORIZED_USER_ID}
 START_TIME: float = time.time()
@@ -22,11 +20,7 @@ SYSTEM_LOG_WEBHOOK_URL: str = os.environ.get(
 )
 
 
-# ---------------------------------------------------------------------------
-# ACCESS CONTROL CHECKS
-# ---------------------------------------------------------------------------
 def is_owner():
-    """Restrict execution strictly to primary AUTHORIZED_USER_ID."""
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.user.id == AUTHORIZED_USER_ID:
             return True
@@ -43,7 +37,6 @@ def is_owner():
 
 
 def can_build():
-    """Allow primary AUTHORIZED_USER_ID and allowed builders to run build operations."""
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.user.id in ALLOWED_BUILDERS or interaction.user.id == AUTHORIZED_USER_ID:
             return True
@@ -62,7 +55,6 @@ def can_build():
 async def send_system_webhook_log(
     content: Optional[str] = None, embed: Optional[discord.Embed] = None
 ) -> None:
-    """Dispatch alert payloads to the configured webhook log channel."""
     if not SYSTEM_LOG_WEBHOOK_URL:
         return
     try:
@@ -78,12 +70,7 @@ async def send_system_webhook_log(
         print(f"[Webhook Log Error] {e}")
 
 
-# ---------------------------------------------------------------------------
-# UI VIEWS
-# ---------------------------------------------------------------------------
 class BotJoinTosView(discord.ui.View):
-    """Terms acknowledgment view dispatched when joining new guilds."""
-
     def __init__(self, inviter_id: int):
         super().__init__(timeout=None)
         self.inviter_id = inviter_id
@@ -124,9 +111,6 @@ class BotJoinTosView(discord.ui.View):
         await interaction.response.edit_message(embed=accepted_embed, view=self)
 
 
-# ---------------------------------------------------------------------------
-# COG IMPLEMENTATION
-# ---------------------------------------------------------------------------
 class OrcaCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -134,7 +118,6 @@ class OrcaCog(commands.Cog):
     async def check_user_oauth_guild_admin(
         self, user_id: int, guild_id: str, access_token: Optional[str] = None
     ) -> Tuple[bool, str]:
-        """Validate user administrative status in target guild via OAuth2."""
         if user_id == AUTHORIZED_USER_ID:
             return True, "Owner immunity granted."
 
@@ -162,7 +145,6 @@ class OrcaCog(commands.Cog):
                         return True, "Server Owner verified."
 
                     permissions = int(target_guild.get("permissions", 0))
-                    # Check ADMINISTRATOR (0x8) or MANAGE_GUILD (0x20)
                     if (permissions & 0x8) == 0x8 or (permissions & 0x20) == 0x20:
                         return True, "User administrative permissions verified."
 
@@ -208,10 +190,8 @@ class OrcaCog(commands.Cog):
         except Exception as e:
             return False, f"Verification Error: `{e}`"
 
-    # --- DISCORD EVENT LISTENERS ---
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild) -> None:
-        """Send initialization instructions and TOS upon joining a guild."""
         if not guild.me.guild_permissions.administrator:
             return
 
@@ -248,7 +228,6 @@ class OrcaCog(commands.Cog):
         tos_embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
         await target_channel.send(embed=tos_embed, view=BotJoinTosView(inviter_id=inviter_id))
 
-    # --- SLASH COMMANDS ---
     @app_commands.command(
         name="help",
         description="Learn how to create and deploy a custom Discord server.",
@@ -378,7 +357,7 @@ class OrcaCog(commands.Cog):
                 return
 
         guild = interaction.guild
-        sep = blueprint.get("separator", "-")
+        sep = blueprint.get("separator", "|").strip() or "|"
 
         try:
             # Rebuild Roles
@@ -395,12 +374,15 @@ class OrcaCog(commands.Cog):
                 category = await guild.create_category(cat_name)
 
                 for ch_data in cat_data.get("channels", []):
-                    ch_name = ch_data.get("name", "channel").replace(" ", sep)
+                    ch_name = ch_data.get("name", "channel").strip()
                     ch_type = ch_data.get("type", "text")
                     ch_topic = ch_data.get("topic", "")
-                    emoji = ch_data.get("emoji", "")
+                    emoji = ch_data.get("emoji", "").strip()
 
-                    full_name = f"{emoji} {ch_name}".strip() if emoji else ch_name
+                    # Format strictly as: Emoji | Channel Name
+                    full_name = ch_data.get("formatted_name")
+                    if not full_name:
+                        full_name = f"{emoji} {sep} {ch_name}" if emoji else ch_name
 
                     if ch_type == "voice":
                         await guild.create_voice_channel(full_name, category=category)
