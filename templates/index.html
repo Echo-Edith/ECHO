@@ -527,8 +527,8 @@
             document.getElementById('btn-generate').disabled = !isValid;
         }
 
-        // GENERATE LOCAL PREVIEW (NO SERVER REQUEST OR LOGGING MADE HERE)
-        function handleGenerate() {
+        // GENERATE AI BLUEPRINT VIA BACKEND ENDPOINT
+        async function handleGenerate() {
             if (!isAuthenticated) {
                 alert("Please login with Discord to generate server layouts.");
                 return;
@@ -539,42 +539,64 @@
                 return;
             }
 
+            const btn = document.getElementById('btn-generate');
+            const btnText = document.getElementById('btn-text');
+            btn.disabled = true;
+            btnText.textContent = "Generating AI Layout...";
+
             const promptText = document.getElementById('prompt-input').value.trim();
             const guildId = document.getElementById('guild-id-input').value.trim();
             const serverLink = document.getElementById('server-link-input').value.trim();
             const separatorVal = document.getElementById('separator-input').value.trim() || '-';
-            
-            // Build blueprint locally for editing in the preview screen
-            serverBlueprint = {
-                server_name: "Generated Community Blueprint",
+            const categoriesCountVal = document.getElementById('categories-count-input').value.trim();
+            const channelsCountVal = document.getElementById('channels-count-input').value.trim();
+
+            const requestData = {
+                prompt: promptText,
                 target_guild_id: guildId,
                 server_link: serverLink,
                 separator: separatorVal,
-                prompt: promptText,
-                roles: ["Admin", "Moderator", "Member"],
-                categories: [
-                    {
-                        name: "INFORMATION",
-                        channels: [
-                            { emoji: "📌", name: `rules${separatorVal}info`, type: "text", topic: "Server rules and information", permissions: {} },
-                            { emoji: "📢", name: `announcements`, type: "announcement", topic: "Important community updates", permissions: {} }
-                        ]
-                    },
-                    {
-                        name: "GENERAL",
-                        channels: [
-                            { emoji: "💬", name: `general${separatorVal}chat`, type: "text", topic: "General community text discussion", permissions: {} },
-                            { emoji: "🔊", name: `General Lounge`, type: "voice", topic: "", permissions: {} }
-                        ]
-                    }
-                ]
+                preferred_categories: categoriesCountVal ? parseInt(categoriesCountVal, 10) : null,
+                preferred_channels: channelsCountVal ? parseInt(channelsCountVal, 10) : null,
+                captcha_token: captchaToken
             };
 
-            ensurePermissionsStructure();
-            activeCatIndex = 0;
-            activeChIndex = 0;
-            renderPreview();
-            switchPage('preview');
+            try {
+                const response = await fetch('/api/generate-blueprint', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(requestData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    alert(result.error || result.message || "Failed to generate server layout blueprint.");
+                    return;
+                }
+
+                // Populate global blueprint object from AI backend response
+                serverBlueprint = result.blueprint || result;
+                
+                // Ensure required structural fallbacks
+                if (!serverBlueprint.target_guild_id) serverBlueprint.target_guild_id = guildId;
+                if (!serverBlueprint.server_link) serverBlueprint.server_link = serverLink;
+                if (!serverBlueprint.separator) serverBlueprint.separator = separatorVal;
+                if (!serverBlueprint.prompt) serverBlueprint.prompt = promptText;
+
+                ensurePermissionsStructure();
+                activeCatIndex = 0;
+                activeChIndex = 0;
+                renderPreview();
+                switchPage('preview');
+            } catch (err) {
+                console.error("AI Generation error:", err);
+                alert("An error occurred while connecting to the AI generator service.");
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = "Generate Server Layout";
+            }
         }
 
         function ensurePermissionsStructure() {
