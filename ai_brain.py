@@ -73,7 +73,6 @@ designs_collection = db["designs"] if db is not None else None
 # ---------------------------------------------------------------------------
 
 def send_discord_webhook(webhook_url: str, payload: dict):
-    """Utility helper to reliably dispatch webhook events to Discord."""
     if not webhook_url:
         return
     try:
@@ -148,15 +147,6 @@ def verify_google_recaptcha(token: str) -> bool:
         return True
 
 
-def get_discord_creation_time(user_id: str) -> datetime:
-    try:
-        snowflake = int(user_id)
-        timestamp = ((snowflake >> 22) + 1420070400000) / 1000.0
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc)
-    except Exception:
-        return datetime.now(timezone.utc)
-
-
 # ---------------------------------------------------------------------------
 # MIDDLEWARE & ENDPOINTS
 # ---------------------------------------------------------------------------
@@ -177,7 +167,6 @@ def verify_server():
 
 @app.route('/api/log-entry', methods=['POST'])
 def log_entry():
-    """Logs website entry details explicitly to SYSTEM_LOG_WEBHOOK_URL."""
     data = request.get_json() or {}
     user = session.get('user')
     user_name = user.get('username') if user else 'Guest / Anonymous'
@@ -186,7 +175,6 @@ def log_entry():
 
     logger.info("[SITE ENTRY] Event: %s | User: %s | Path: %s", event_type, user_name, path)
 
-    # Dispatches log event to SYSTEM_LOG_WEBHOOK_URL
     send_discord_webhook(
         SYSTEM_LOG_WEBHOOK_URL,
         {
@@ -301,7 +289,7 @@ def generate_layout():
     prompt = data.get('prompt', 'Community Discord Server')
     guild_id = str(data.get('guild_id', '')).strip()
     server_link = data.get('server_link', '').strip()
-    separator = data.get('separator', '-')
+    separator = data.get('separator', '|').strip() or '|'
     categories_count = data.get('categories_count', 4)
     channels_count = data.get('channels_count', 12)
 
@@ -311,7 +299,7 @@ def generate_layout():
         "You are an expert Discord server architect. Generate a creative, detailed Discord server template as a raw JSON object.\n"
         "Strict Requirements:\n"
         "1. Include server roles and organized category lists.\n"
-        f"2. IMPORTANT: Do NOT place separator symbols directly into the channel 'name' property. Keep 'name' as plain lowercase text (e.g. 'rules'). The separator '{separator}' will be added dynamically between the emoji and the name.\n"
+        "2. Keep channel 'name' as clean text (e.g., 'rules' or 'announcements'). Do not insert separators inside the name itself.\n"
         "3. Provide relevant emojis for every channel.\n"
         "Output Schema JSON strictly:\n"
         "{\n"
@@ -321,7 +309,7 @@ def generate_layout():
         '    {\n'
         '      "name": "CATEGORY NAME",\n'
         '      "channels": [\n'
-        '        {"emoji": "📜", "name": "channel-name", "type": "text|voice|announcement", "topic": "Description"}\n'
+        '        {"emoji": "📌", "name": "rules", "type": "text|voice|announcement", "topic": "Description"}\n'
         '      ]\n'
         '    }\n'
         '  ]\n'
@@ -357,7 +345,7 @@ def generate_layout():
                 {
                     "name": "📌 INFORMATION",
                     "channels": [
-                        {"emoji": "📜", "name": "rules", "type": "text", "topic": "Server guidelines"},
+                        {"emoji": "📌", "name": "rules", "type": "text", "topic": "Server guidelines"},
                         {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Official updates"}
                     ]
                 },
@@ -365,19 +353,19 @@ def generate_layout():
                     "name": "💬 GENERAL CHATS",
                     "channels": [
                         {"emoji": "💬", "name": "general", "type": "text", "topic": "Main chat room"},
-                        {"emoji": "🔊", "name": "Lounge", "type": "voice", "topic": "General voice chat"}
+                        {"emoji": "🔊", "name": "lounge", "type": "voice", "topic": "General voice chat"}
                     ]
                 }
             ]
         }
 
-    # Format Channel Names with separator cleanly placed between Emoji and Channel Name
+    # Format Channel Names as "Emoji | Channel Name" (e.g. 📌 | rules)
     for cat in layout_data.get("categories", []):
         for ch in cat.get("channels", []):
-            raw_name = ch.get("name", "channel").lower().replace(" ", separator)
+            raw_name = ch.get("name", "channel").lower().strip()
             emoji = ch.get("emoji", "").strip()
             if emoji:
-                ch["formatted_name"] = f"{emoji}{separator}{raw_name}"
+                ch["formatted_name"] = f"{emoji} {separator} {raw_name}"
             else:
                 ch["formatted_name"] = raw_name
 
@@ -399,7 +387,6 @@ def submit_design():
 
     file_url = f"{WEB_BUILDER_URL}/blueprint/{target_guild}.json"
 
-    # Send Clean Webhook Notification to DESIGN_WEBHOOK_URL
     send_discord_webhook(
         DESIGN_WEBHOOK_URL,
         {
