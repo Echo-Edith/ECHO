@@ -1,415 +1,409 @@
-import datetime
+import io
 import json
+import logging
 import os
 import time
-from typing import Any, Dict, Optional, Tuple
+from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
-import aiohttp
-import discord
-from discord import app_commands
-from discord.ext import commands
+from flask import Flask, jsonify, redirect, render_template, request, session
+from google import genai
+from google.genai import types
+from pymongo import MongoClient
+import requests
 
-from ai_brain import WEB_BUILDER_URL, get_blueprint_data
-
-AUTHORIZED_USER_ID: int = 1219266886143967245
-ALLOWED_BUILDERS: set[int] = {AUTHORIZED_USER_ID}
-START_TIME: float = time.time()
-
-SYSTEM_LOG_WEBHOOK_URL: str = os.environ.get(
-    "SYSTEM_LOG_WEBHOOK_URL", os.environ.get("WEBHOOK_LOG_URL", "")
+# ---------------------------------------------------------------------------
+# LOGGING CONFIGURATION
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
 )
+logger = logging.getLogger("ai_brain")
+
+app = Flask(__name__)
+
+# Basic session configuration
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-echo-studio-persistent-2026")
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+
+# Discord OAuth2 Configurations
+DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
+DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
+DISCORD_API_BASE_URL = "https://discord.com/api/v10"
+
+# Google reCAPTCHA Configuration
+RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY", "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe").strip()
+
+# Base Web Builder URL
+WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
+
+# Webhook Configurations
+DESIGN_WEBHOOK_URL = os.environ.get("DESIGN_WEBHOOK_URL", os.environ.get("WEBHOOK_URL", "")).strip()
+SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", os.environ.get("SYSTEM_LOG_WEBHOOK_URL", DESIGN_WEBHOOK_URL)).strip()
+
+# Storage Directory Setup for JSON Blueprints
+BLUEPRINT_STORAGE = {}
+BLUEPRINT_DIR = os.path.join(os.getcwd(), "blueprints")
+os.makedirs(BLUEPRINT_DIR, exist_ok=True)
+
+# Gemini AI Client Initialization
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+client = None
+if GEMINI_API_KEY:
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        logger.info("[INIT] Google GenAI client initialized successfully.")
+    except Exception as e:
+        logger.error("[INIT ERROR] Failed to initialize Google GenAI client: %s", e, exc_info=True)
+else:
+    logger.warning("[INIT WARNING] GEMINI_API_KEY missing. Fallback defaults will be used.")
+
+# ---------------------------------------------------------------------------
+# MONGODB DATABASE CONNECTION
+# ---------------------------------------------------------------------------
+MONGO_URI = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
+mongo_client = MongoClient(MONGO_URI) if MONGO_URI else None
+db = mongo_client["bot_database"] if mongo_client is not None else None
+designs_collection = db["designs"] if db is not None else None
 
 
-def is_owner():
-    async def predicate(interaction: discord.Interaction) -> bool:
-        if interaction.user.id == AUTHORIZED_USER_ID:
-            return True
-        embed = discord.Embed(
-            title="403 Access Denied",
-            description="```\nAccess Denied: You do not have permission to execute this administrative command.\n```",
-            color=0xE74C3C,
-        )
-        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return False
+# ---------------------------------------------------------------------------
+# HELPER FUNCTIONS
+# ---------------------------------------------------------------------------
 
-    return app_commands.check(predicate)
-
-
-def can_build():
-    async def predicate(interaction: discord.Interaction) -> bool:
-        if interaction.user.id in ALLOWED_BUILDERS or interaction.user.id == AUTHORIZED_USER_ID:
-            return True
-        embed = discord.Embed(
-            title="403 Access Denied",
-            description="```\nAccess Denied: You do not have permission to execute the /build command.\n```",
-            color=0xE74C3C,
-        )
-        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return False
-
-    return app_commands.check(predicate)
-
-
-async def send_system_webhook_log(
-    content: Optional[str] = None, embed: Optional[discord.Embed] = None
-) -> None:
-    if not SYSTEM_LOG_WEBHOOK_URL:
+def send_discord_webhook(webhook_url: str, payload: dict):
+    if not webhook_url:
         return
     try:
-        async with aiohttp.ClientSession() as session:
-            payload: Dict[str, Any] = {}
-            if content:
-                payload["content"] = content
-            if embed:
-                payload["embeds"] = [embed.to_dict()]
-            async with session.post(SYSTEM_LOG_WEBHOOK_URL, json=payload, timeout=5):
-                pass
+        res = requests.post(webhook_url, json=payload, timeout=5)
+        logger.info("[WEBHOOK LOG] Dispatched alert to Discord. Status: %d", res.status_code)
     except Exception as e:
-        print(f"[Webhook Log Error] {e}")
+        logger.error("[WEBHOOK ERROR] Failed to dispatch webhook alert: %s", e)
 
 
-class BotJoinTosView(discord.ui.View):
-    def __init__(self, inviter_id: int):
-        super().__init__(timeout=None)
-        self.inviter_id = inviter_id
+def get_blueprint_data(guild_id: str = None) -> dict:
+    if not guild_id:
+        return BLUEPRINT_STORAGE
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if (
-            interaction.guild
-            and (interaction.user.id == self.inviter_id or interaction.user.id == interaction.guild.owner_id)
-        ):
-            return True
-        await interaction.response.send_message(
-            "❌ Only the server owner or the administrator who added Echo Studio can accept these terms.",
-            ephemeral=True,
-        )
-        return False
+    guild_id = str(guild_id).strip()
+    if guild_id in BLUEPRINT_STORAGE:
+        return BLUEPRINT_STORAGE[guild_id]
 
-    @discord.ui.button(
-        label="I Understand & Accept Terms",
-        style=discord.ButtonStyle.danger,
-        emoji="⚠️",
-    )
-    async def accept_terms(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ) -> None:
-        button.disabled = True
-        button.label = "Terms Accepted"
-        button.style = discord.ButtonStyle.success
-
-        accepted_embed = discord.Embed(
-            title="✅ Agreement Acknowledged",
-            description=(
-                f"Terms accepted by {interaction.user.mention}.\n"
-                "Echo Studio is active and initialized for this server."
-            ),
-            color=0x2ECC71,
-        )
-        accepted_embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-        await interaction.response.edit_message(embed=accepted_embed, view=self)
-
-
-class OrcaCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
-
-    async def check_user_oauth_guild_admin(
-        self, user_id: int, guild_id: str, access_token: Optional[str] = None
-    ) -> Tuple[bool, str]:
-        if user_id == AUTHORIZED_USER_ID:
-            return True, "Owner immunity granted."
-
-        if not access_token:
-            return False, "Missing Discord OAuth access token."
-
+    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
+    if os.path.exists(file_path):
         try:
-            async with aiohttp.ClientSession() as session:
-                headers = {"Authorization": f"Bearer {access_token}"}
-                async with session.get(
-                    "https://discord.com/api/v10/users/@me/guilds",
-                    headers=headers,
-                    timeout=5,
-                ) as resp:
-                    if resp.status != 200:
-                        return False, "Could not verify user permissions with Discord API."
-
-                    guilds = await resp.json()
-                    target_guild = next((g for g in guilds if str(g.get("id")) == str(guild_id)), None)
-
-                    if not target_guild:
-                        return False, "You are not a member of the specified target server."
-
-                    if target_guild.get("owner"):
-                        return True, "Server Owner verified."
-
-                    permissions = int(target_guild.get("permissions", 0))
-                    if (permissions & 0x8) == 0x8 or (permissions & 0x20) == 0x20:
-                        return True, "User administrative permissions verified."
-
-                    return (
-                        False,
-                        "You must be the Server Owner or have Admin/Manage Server permissions in the target server.",
-                    )
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                BLUEPRINT_STORAGE[guild_id] = data
+                return data
         except Exception as e:
-            return False, f"Error verifying user server access: {e}"
+            logger.error("[BLUEPRINT GET ERROR] %s", e)
 
-    async def verify_invite_matches_server(
-        self, invite_url: str, server_id: str
-    ) -> Tuple[bool, str]:
-        code = invite_url.strip().split("/")[-1].split("?")[0]
+    if designs_collection is not None:
         try:
-            invite = await self.bot.fetch_invite(code)
-            if not invite or not invite.guild:
-                return False, "Invalid Invite: Could not retrieve server details."
-
-            target_id_str = str(server_id).strip()
-            if str(invite.guild.id) != target_id_str:
-                return (
-                    False,
-                    f"Mismatch: Invite belongs to **{invite.guild.name}** (`{invite.guild.id}`), not Target Server ID `{target_id_str}`.",
-                )
-
-            if invite.max_age is not None and 0 < invite.max_age < 86400:
-                return (
-                    False,
-                    f"Invalid Expiration: Invite must remain active for 24+ hours (Current: {invite.max_age // 3600}h).",
-                )
-
-            guild = self.bot.get_guild(invite.guild.id) or await self.bot.fetch_guild(invite.guild.id)
-            if not guild:
-                return False, f"Bot Missing: Echo Studio is not present in server **{invite.guild.name}**."
-
-            if not guild.me or not guild.me.guild_permissions.administrator:
-                return False, f"Missing Permissions: Echo Studio lacks Administrator rights in **{guild.name}**."
-
-            return True, f"Verified target server **{guild.name}** (`{guild.id}`)."
-        except discord.NotFound:
-            return False, "Invalid Invite: The link does not exist or has expired."
+            doc = designs_collection.find_one({"guild_id": guild_id}, sort=[("submitted_at", -1)], projection={"_id": 0})
+            if doc:
+                BLUEPRINT_STORAGE[guild_id] = doc
+                return doc
         except Exception as e:
-            return False, f"Verification Error: `{e}`"
+            logger.error("[BLUEPRINT GET ERROR] MongoDB error: %s", e)
 
-    @commands.Cog.listener()
-    async def on_guild_join(self, guild: discord.Guild) -> None:
-        if not guild.me.guild_permissions.administrator:
-            return
+    return {}
 
-        inviter_id = guild.owner_id
+
+def save_blueprint_data(guild_id: str, blueprint: dict):
+    guild_id = str(guild_id).strip()
+    BLUEPRINT_STORAGE[guild_id] = blueprint
+    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(blueprint, f, indent=2)
+    except IOError as e:
+        logger.error("[BLUEPRINT SAVE ERROR] %s", e)
+
+    if designs_collection is not None:
         try:
-            async for entry in guild.audit_logs(action=discord.AuditLogAction.bot_add, limit=5):
-                if entry.target and entry.target.id == self.bot.user.id:
-                    inviter_id = entry.user.id
-                    break
-        except Exception:
-            pass
-
-        target_channel = guild.system_channel
-        if not target_channel or not target_channel.permissions_for(guild.me).send_messages:
-            for channel in guild.text_channels:
-                if channel.permissions_for(guild.me).send_messages:
-                    target_channel = channel
-                    break
-
-        if not target_channel:
-            return
-
-        tos_embed = discord.Embed(
-            title="⚠️ Echo Studio — Server Integration & Terms of Service",
-            description=(
-                "**Echo Studio has joined your server with Administrator privileges.**\n\n"
-                "### 🛠️ Automated Operations Overview:\n"
-                "• **Automated Structure Deployment**: When `/build` is executed, existing channels and roles will be created based on your template.\n\n"
-                "### ⚖️ Terms of Service Disclaimer:\n"
-                "**By confirming below, you acknowledge that the bot developers are NOT liable for any issues arising during channel/role deployment.**"
-            ),
-            color=0xF1C40F,
-        )
-        tos_embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-        await target_channel.send(embed=tos_embed, view=BotJoinTosView(inviter_id=inviter_id))
-
-    @app_commands.command(
-        name="help",
-        description="Learn how to create and deploy a custom Discord server.",
-    )
-    async def help_command(self, interaction: discord.Interaction) -> None:
-        embed = discord.Embed(
-            title="🛠️ How to Create & Deploy a Custom Discord Server",
-            description=(
-                "Echo Studio lets you automatically generate and deploy complete server layouts!\n\n"
-                f"1️⃣ **Design on Web Builder**: Visit the [Echo Web Builder]({WEB_BUILDER_URL}).\n"
-                "2️⃣ **Generate Layout**: Preview your AI-generated layout.\n"
-                "3️⃣ **Submit Design**: Get your blueprint file link.\n"
-                "4️⃣ **Deploy via `/build`**: Run `/build` attaching your blueprint JSON."
-            ),
-            color=0x5865F2,
-        )
-        embed.add_field(
-            name="🌐 Web Builder Link",
-            value=f"[Launch Web Builder]({WEB_BUILDER_URL})",
-            inline=False,
-        )
-        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(
-        name="website", description="Provides the link to the web layout builder."
-    )
-    async def website(self, interaction: discord.Interaction) -> None:
-        embed = discord.Embed(
-            title="🛠️ Interactive Server Builder",
-            description=f"Launch the Web Builder:\n\n🔗 **[Echo Web Builder Portal]({WEB_BUILDER_URL})**",
-            color=0x5865F2,
-        )
-        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(
-        name="server-info",
-        description="Displays formatted Server ID and Invite Link.",
-    )
-    @app_commands.describe(
-        server_id="Target Discord Server ID", invite_link="Invite URL to target server"
-    )
-    async def server_info(
-        self,
-        interaction: discord.Interaction,
-        server_id: Optional[str] = None,
-        invite_link: Optional[str] = None,
-    ) -> None:
-        target_id = (
-            server_id.strip()
-            if server_id
-            else (str(interaction.guild.id) if interaction.guild else "N/A")
-        )
-        formatted_invite = invite_link.strip() if invite_link else None
-
-        if not formatted_invite and interaction.guild:
-            try:
-                for channel in interaction.guild.text_channels:
-                    if channel.permissions_for(interaction.guild.me).create_instant_invite:
-                        inv = await channel.create_invite(max_age=0, max_uses=0)
-                        formatted_invite = inv.url
-                        break
-            except Exception:
-                pass
-
-        guild_name = interaction.guild.name if interaction.guild else "Server Details"
-        embed = discord.Embed(
-            title=f"📌 {guild_name} — Information", color=0x5865F2
-        )
-        embed.add_field(name="🆔 Server ID", value=f"`{target_id}`", inline=False)
-        embed.add_field(
-            name="🔗 Invite Link", value=f"`{formatted_invite or 'N/A'}`", inline=False
-        )
-        embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(
-        name="build",
-        description="Deploy a layout blueprint JSON to the current server.",
-    )
-    @app_commands.describe(
-        file="Blueprint JSON attachment or URL to apply",
-        guild_id="Target Guild ID to fetch layout for (optional)",
-    )
-    @can_build()
-    async def build(
-        self,
-        interaction: discord.Interaction,
-        file: Optional[discord.Attachment] = None,
-        guild_id: Optional[str] = None,
-    ) -> None:
-        if not interaction.guild:
-            await interaction.response.send_message(
-                "❌ This command can only be executed within a Discord server.",
-                ephemeral=True,
-            )
-            return
-
-        await interaction.response.defer()
-
-        blueprint: Optional[Dict[str, Any]] = None
-
-        if file:
-            if not file.filename.endswith(".json"):
-                await interaction.followup.send("❌ Attached file must be a `.json` file.")
-                return
-            try:
-                content = await file.read()
-                blueprint = json.loads(content.decode("utf-8"))
-            except Exception as e:
-                await interaction.followup.send(f"❌ Failed to parse JSON attachment: `{e}`")
-                return
-        elif guild_id:
-            blueprint = get_blueprint_data(guild_id.strip())
-            if not blueprint:
-                await interaction.followup.send(
-                    f"❌ No blueprint found for Guild ID `{guild_id.strip()}`."
-                )
-                return
-        else:
-            blueprint = get_blueprint_data(str(interaction.guild.id))
-            if not blueprint:
-                await interaction.followup.send(
-                    "❌ No blueprint attached and none found for this server. Please attach a `.json` blueprint or specify a `guild_id`."
-                )
-                return
-
-        guild = interaction.guild
-        sep = blueprint.get("separator", "|").strip() or "|"
-
-        try:
-            # Rebuild Roles
-            roles = blueprint.get("roles", [])
-            existing_role_names = [r.name for r in guild.roles]
-            for role_name in roles:
-                if role_name not in existing_role_names:
-                    await guild.create_role(name=role_name)
-
-            # Rebuild Categories & Channels
-            categories = blueprint.get("categories", [])
-            for cat_data in categories:
-                cat_name = cat_data.get("name", "UNNAMED CATEGORY")
-                category = await guild.create_category(cat_name)
-
-                for ch_data in cat_data.get("channels", []):
-                    ch_name = ch_data.get("name", "channel").strip()
-                    ch_type = ch_data.get("type", "text")
-                    ch_topic = ch_data.get("topic", "")
-                    emoji = ch_data.get("emoji", "").strip()
-
-                    # Format strictly as: Emoji | Channel Name
-                    full_name = ch_data.get("formatted_name")
-                    if not full_name:
-                        full_name = f"{emoji} {sep} {ch_name}" if emoji else ch_name
-
-                    if ch_type == "voice":
-                        await guild.create_voice_channel(full_name, category=category)
-                    elif ch_type == "announcement":
-                        await guild.create_text_channel(
-                            full_name, category=category, topic=ch_topic, news=True
-                        )
-                    else:
-                        await guild.create_text_channel(
-                            full_name, category=category, topic=ch_topic
-                        )
-
-            embed = discord.Embed(
-                title="🚀 Infrastructure Deployment Complete",
-                description=f"Successfully deployed blueprint **{blueprint.get('server_name', guild.name)}**.",
-                color=0x2ECC71,
-            )
-            embed.add_field(name="Categories Created", value=str(len(categories)), inline=True)
-            embed.add_field(name="Roles Configured", value=str(len(roles)), inline=True)
-            embed.set_footer(text="Echo Studio — Automated Server Infrastructure")
-
-            await interaction.followup.send(embed=embed)
+            doc = dict(blueprint)
+            doc["guild_id"] = guild_id
+            doc["submitted_at"] = time.time()
+            designs_collection.update_one({"guild_id": guild_id}, {"$set": doc}, upsert=True)
         except Exception as e:
-            await interaction.followup.send(
-                f"❌ Deployment failed midway due to an error: `{e}`"
+            logger.error("[BLUEPRINT SAVE ERROR] MongoDB update error: %s", e)
+
+
+def verify_google_recaptcha(token: str) -> bool:
+    if not token or token == "YOUR_RECAPTCHA_SITE_KEY":
+        return True
+    try:
+        res = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={"secret": RECAPTCHA_SECRET_KEY, "response": token},
+            timeout=5
+        )
+        return res.json().get("success", False)
+    except Exception as e:
+        logger.error("[RECAPTCHA ERROR] Verification call failed: %s", e)
+        return True
+
+
+# ---------------------------------------------------------------------------
+# MIDDLEWARE & ENDPOINTS
+# ---------------------------------------------------------------------------
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+
+
+@app.route('/api/verify-server', methods=['POST'])
+def verify_server():
+    data = request.get_json() or {}
+    captcha_token = data.get("captcha_token", "").strip()
+    if captcha_token and not verify_google_recaptcha(captcha_token):
+        return jsonify({"valid": False, "error": "Google reCAPTCHA verification failed."}), 400
+    return jsonify({"valid": True, "message": "Verification successful."})
+
+
+@app.route('/api/log-entry', methods=['POST'])
+def log_entry():
+    data = request.get_json() or {}
+    user = session.get('user')
+    user_name = user.get('username') if user else 'Guest / Anonymous'
+    path = data.get('path', '/')
+    event_type = data.get('event', 'Page Entry')
+
+    logger.info("[SITE ENTRY] Event: %s | User: %s | Path: %s", event_type, user_name, path)
+
+    send_discord_webhook(
+        SYSTEM_LOG_WEBHOOK_URL,
+        {
+            "embeds": [
+                {
+                    "title": "🌐 Website Entry Logged",
+                    "description": f"**Event:** `{event_type}`\n**User:** `{user_name}`\n**Path Visited:** `{path}`",
+                    "color": 0x3498DB,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            ]
+        }
+    )
+    return jsonify({"logged": True})
+
+
+# ---------------------------------------------------------------------------
+# DISCORD OAUTH2 ROUTES
+# ---------------------------------------------------------------------------
+
+@app.route('/api/auth/discord/login')
+def discord_login():
+    redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
+    oauth_url = (
+        f"{DISCORD_API_BASE_URL}/oauth2/authorize"
+        f"?client_id={DISCORD_CLIENT_ID}"
+        f"&redirect_uri={quote(redirect_uri, safe='')}"
+        f"&response_type=code"
+        f"&scope=identify"
+    )
+    return redirect(oauth_url)
+
+
+@app.route('/api/auth/discord/callback')
+def discord_callback():
+    code = request.args.get('code')
+    if not code:
+        return "Missing OAuth2 code from Discord.", 400
+
+    redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
+    token_data = {
+        'client_id': DISCORD_CLIENT_ID,
+        'client_secret': DISCORD_CLIENT_SECRET,
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': redirect_uri
+    }
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+
+    try:
+        token_res = requests.post(f"{DISCORD_API_BASE_URL}/oauth2/token", data=token_data, headers=headers, timeout=10)
+        token_res.raise_for_status()
+        tokens = token_res.json()
+
+        user_res = requests.get(
+            f"{DISCORD_API_BASE_URL}/users/@me",
+            headers={'Authorization': f"Bearer {tokens.get('access_token')}"},
+            timeout=10
+        )
+        user_res.raise_for_status()
+        user_profile = user_res.json()
+
+        user_id = str(user_profile.get('id')).strip()
+        username = user_profile.get('username')
+        avatar = user_profile.get('avatar')
+
+        session.permanent = True
+        session['user'] = {
+            'id': user_id,
+            'username': username,
+            'avatar_url': f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png" if avatar else "https://cdn.discordapp.com/embed/avatars/0.png"
+        }
+        return redirect('/')
+    except Exception as e:
+        logger.error("[OAUTH FAILURE] %s", e, exc_info=True)
+        return "Authentication failed.", 500
+
+
+@app.route('/api/auth/logout')
+def discord_logout():
+    session.pop('user', None)
+    return redirect('/')
+
+
+@app.route('/api/auth/me')
+def get_current_user():
+    user = session.get('user')
+    return jsonify({"authenticated": bool(user), "user": user})
+
+
+# ---------------------------------------------------------------------------
+# AI GENERATION & DESIGN SUBMISSION
+# ---------------------------------------------------------------------------
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+@app.route('/blueprint/<guild_id>.json', methods=['GET'])
+def serve_blueprint(guild_id):
+    data = get_blueprint_data(guild_id)
+    if data:
+        return jsonify(data)
+    return send_from_directory(BLUEPRINT_DIR, f"{guild_id}.json", mimetype='application/json')
+
+
+@app.route('/api/generate-layout', methods=['POST'])
+def generate_layout():
+    user = session.get('user')
+    data = request.get_json() or {}
+    prompt = data.get('prompt', 'Community Discord Server')
+    guild_id = str(data.get('guild_id', '')).strip()
+    server_link = data.get('server_link', '').strip()
+    separator = data.get('separator', '|').strip() or '|'
+    categories_count = data.get('categories_count', 4)
+    channels_count = data.get('channels_count', 12)
+
+    logger.info("[AI GENERATE] User: %s | Prompt: %s | Separator: %s", user, prompt, separator)
+
+    system_instruction = (
+        "You are an expert Discord server architect. Generate a creative, detailed Discord server template as a raw JSON object.\n"
+        "Strict Requirements:\n"
+        "1. Include server roles and organized category lists.\n"
+        "2. Keep channel 'name' as clean text (e.g., 'rules' or 'announcements'). Do not insert separators inside the name itself.\n"
+        "3. Provide relevant emojis for every channel.\n"
+        "Output Schema JSON strictly:\n"
+        "{\n"
+        '  "server_name": "String",\n'
+        '  "roles": ["String"],\n'
+        '  "categories": [\n'
+        '    {\n'
+        '      "name": "CATEGORY NAME",\n'
+        '      "channels": [\n'
+        '        {"emoji": "📌", "name": "rules", "type": "text|voice|announcement", "topic": "Description"}\n'
+        '      ]\n'
+        '    }\n'
+        '  ]\n'
+        '}'
+    )
+
+    prompt_payload = (
+        f"Design a complete server layout based on this theme: '{prompt}'.\n"
+        f"Required Target Categories Count: {categories_count}\n"
+        f"Required Target Channels Count: {channels_count}"
+    )
+
+    layout_data = None
+    if client:
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt_payload,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json"
+                )
             )
+            layout_data = json.loads(response.text)
+        except Exception as e:
+            logger.error("[GEMINI ERROR] %s", e, exc_info=True)
+
+    if not layout_data or "categories" not in layout_data:
+        layout_data = {
+            "server_name": f"{prompt.title()} Community",
+            "roles": ["Admin", "Moderator", "VIP", "Member"],
+            "categories": [
+                {
+                    "name": "📌 INFORMATION",
+                    "channels": [
+                        {"emoji": "📌", "name": "rules", "type": "text", "topic": "Server guidelines"},
+                        {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Official updates"}
+                    ]
+                },
+                {
+                    "name": "💬 GENERAL CHATS",
+                    "channels": [
+                        {"emoji": "💬", "name": "general", "type": "text", "topic": "Main chat room"},
+                        {"emoji": "🔊", "name": "lounge", "type": "voice", "topic": "General voice chat"}
+                    ]
+                }
+            ]
+        }
+
+    # Format Channel Names as "Emoji | Channel Name" (e.g. 📌 | rules)
+    for cat in layout_data.get("categories", []):
+        for ch in cat.get("channels", []):
+            raw_name = ch.get("name", "channel").lower().strip()
+            emoji = ch.get("emoji", "").strip()
+            if emoji:
+                ch["formatted_name"] = f"{emoji} {separator} {raw_name}"
+            else:
+                ch["formatted_name"] = raw_name
+
+    layout_data["target_guild_id"] = guild_id
+    layout_data["server_link"] = server_link
+    layout_data["separator"] = separator
+    layout_data["creator"] = user
+    return jsonify(layout_data)
 
 
-async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(OrcaCog(bot))
+@app.route('/api/submit-design', methods=['POST'])
+def submit_design():
+    blueprint = request.get_json()
+    if not blueprint:
+        return jsonify({"error": "No blueprint provided"}), 400
+
+    target_guild = str(blueprint.get("target_guild_id", "Unknown")).strip()
+    save_blueprint_data(target_guild, blueprint)
+
+    file_url = f"{WEB_BUILDER_URL}/blueprint/{target_guild}.json"
+
+    send_discord_webhook(
+        DESIGN_WEBHOOK_URL,
+        {
+            "embeds": [
+                {
+                    "title": f"📥 Blueprint Submitted — Guild #{target_guild}",
+                    "description": f"**Server Name:** {blueprint.get('server_name', 'Custom Server')}\n**Deploy Command:** `/build file:{file_url}`",
+                    "color": 0x2ECC71,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            ]
+        }
+    )
+
+    return jsonify({"status": "success", "file_url": file_url})
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
