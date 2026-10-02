@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Layout Builder — Echo Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SortableJS library for robust drag-and-drop -->
+    <!-- SortableJS library for drag-and-drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- Google reCAPTCHA v2 API -->
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
@@ -19,7 +19,6 @@
             overflow-x: hidden;
         }
 
-        /* Ambient background glow spheres */
         .glass-aura-container {
             position: absolute;
             top: 0;
@@ -52,7 +51,6 @@
             filter: blur(90px);
         }
 
-        /* Enhanced High-End Glassmorphism */
         .glass-card {
             background: rgba(18, 18, 26, 0.55);
             backdrop-filter: blur(28px);
@@ -61,7 +59,6 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.12);
         }
 
-        /* Glassmorphic Container for CAPTCHA */
         .glass-captcha-card {
             background: rgba(13, 13, 20, 0.45);
             backdrop-filter: blur(20px);
@@ -125,7 +122,6 @@
             box-shadow: 0 15px 35px -5px rgba(168, 85, 247, 0.5), 0 0 30px rgba(168, 85, 247, 0.3);
         }
 
-        /* Drag and drop styling */
         .drag-handle {
             cursor: grab;
             user-select: none;
@@ -139,7 +135,6 @@
             border: 1px dashed rgba(168, 85, 247, 0.6);
         }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -164,14 +159,13 @@
         <div id="aura-default-2" class="glass-aura-2"></div>
     </div>
 
-    <!-- AUTHENTICATION TOP BAR (DISCORD LOGIN) -->
+    <!-- AUTHENTICATION TOP BAR -->
     <header class="relative z-20 w-full max-w-5xl flex justify-between items-center py-2 px-4 mb-4">
         <div class="flex items-center space-x-2">
             <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse"></span>
             <span class="text-xs font-bold tracking-wider uppercase text-gray-300">Echo Studio</span>
         </div>
         <div id="auth-container">
-            <!-- Unauthenticated State -->
             <a id="login-btn" href="/api/auth/discord/login" 
                class="glass-btn px-4 py-2 rounded-xl text-xs font-bold text-white flex items-center space-x-2 border border-purple-500/30 hover:border-purple-400">
                 <svg class="w-4 h-4 fill-current text-purple-300" viewBox="0 0 127.14 96.36" aria-hidden="true">
@@ -179,7 +173,6 @@
                 </svg>
                 <span>Login with Discord</span>
             </a>
-            <!-- Authenticated State -->
             <div id="user-profile" class="hidden flex items-center space-x-3 bg-white/5 border border-white/10 px-3 py-1.5 rounded-2xl">
                 <img id="user-avatar" class="w-6 h-6 rounded-full border border-purple-400" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3C/svg%3E" alt="User Avatar" />
                 <span id="user-name" class="text-xs text-purple-300 font-bold"></span>
@@ -243,7 +236,6 @@
                 </div>
             </div>
 
-            <!-- PREFERRED COUNTS (OPTIONAL) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="space-y-2">
                     <label for="categories-count-input" class="flex justify-between items-center text-[10px] font-bold text-gray-300 uppercase tracking-widest">
@@ -284,7 +276,6 @@
                     <span class="text-purple-400">*</span>
                 </label>
                 <div class="glass-captcha-card p-3 rounded-2xl flex items-center justify-center border border-purple-500/20 shadow-lg">
-                    <!-- Google reCAPTCHA v2 Widget -->
                     <div class="g-recaptcha" 
                          data-sitekey="6LeXZdUtAAAAANUMAOtry6Sr1FLPDTM_0QC2G1AH" 
                          data-theme="dark" 
@@ -315,7 +306,6 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Structure List -->
             <div class="glass-card rounded-2xl p-5 space-y-4">
                 <div class="flex justify-between items-center pb-2 border-b border-white/5">
                     <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Server Structure</span>
@@ -326,9 +316,7 @@
                 <div id="discord-structure-list" class="space-y-3 text-xs max-h-[500px] overflow-y-auto pr-1.5"></div>
             </div>
 
-            <!-- Settings & Roles Column -->
             <div class="space-y-5">
-                <!-- Roles Card -->
                 <div class="glass-card rounded-2xl p-5 space-y-3">
                     <div class="flex justify-between items-center pb-2 border-b border-white/5">
                         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Configured Roles</span>
@@ -339,7 +327,6 @@
                     <div id="roles-list" class="flex flex-wrap gap-2 pt-1"></div>
                 </div>
 
-                <!-- Channel Settings Card -->
                 <div class="glass-card rounded-2xl p-5 space-y-4">
                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-white/5" id="editor-title">Channel Settings</div>
                     
@@ -406,7 +393,6 @@
                 </p>
             </div>
 
-            <!-- BOT INVITE ACTION -->
             <div class="pt-2 border-t border-white/10 space-y-3">
                 <p class="text-[11px] font-semibold text-purple-300">
                     Need to add the bot to your server?
@@ -451,6 +437,21 @@
             { key: "speak", label: "Speak (Voice)" },
             { key: "manage_channels", label: "Manage Channel" }
         ];
+
+        // Sanitize URLs to prevent "The string did not match the expected pattern" error
+        function formatUrl(url) {
+            if (!url) return '';
+            let cleaned = url.trim();
+            if (!/^https?:\/\//i.test(cleaned)) {
+                return `https://${cleaned}`;
+            }
+            return cleaned;
+        }
+
+        // Sanitize Guild ID to digits only
+        function sanitizeGuildId(guildId) {
+            return (guildId || '').toString().trim().replace(/\D/g, '');
+        }
 
         function onCaptchaSuccess(token) {
             captchaToken = token;
@@ -520,7 +521,7 @@
 
         function validateForm() {
             const promptVal = document.getElementById('prompt-input').value.trim();
-            const guildIdVal = document.getElementById('guild-id-input').value.trim();
+            const guildIdVal = sanitizeGuildId(document.getElementById('guild-id-input').value);
             const serverLinkVal = document.getElementById('server-link-input').value.trim();
             
             const isValid = (promptVal.length > 0 && guildIdVal.length > 0 && serverLinkVal.length > 0 && isAuthenticated && captchaToken !== null);
@@ -545,14 +546,16 @@
             btnText.textContent = "Generating AI Layout...";
 
             const promptText = document.getElementById('prompt-input').value.trim();
-            const guildId = document.getElementById('guild-id-input').value.trim();
-            const serverLink = document.getElementById('server-link-input').value.trim();
+            const rawGuildId = document.getElementById('guild-id-input').value;
+            const guildId = sanitizeGuildId(rawGuildId);
+            const serverLink = formatUrl(document.getElementById('server-link-input').value);
             const separatorVal = document.getElementById('separator-input').value.trim() || '|';
             const categoriesCountVal = document.getElementById('categories-count-input').value.trim();
             const channelsCountVal = document.getElementById('channels-count-input').value.trim();
 
             const requestData = {
                 prompt: promptText,
+                server_id: guildId,
                 target_guild_id: guildId,
                 server_link: serverLink,
                 separator: separatorVal,
@@ -562,25 +565,33 @@
             };
 
             try {
-                const response = await fetch('/api/generate-blueprint', {
+                // Compatible primary and fallback route handling
+                let response = await fetch('/api/verify_and_generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                     body: JSON.stringify(requestData)
                 });
 
+                if (response.status === 404) {
+                    response = await fetch('/api/generate-blueprint', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(requestData)
+                    });
+                }
+
                 const result = await response.json();
 
-                if (!response.ok) {
-                    const errorMsg = result.error || result.message || "Unknown backend error occurred.";
+                if (!response.ok || result.success === false) {
+                    const errorMsg = result.message || result.error || "Unknown backend error occurred.";
                     alert(`Generation Error (${response.status}): ${errorMsg}`);
                     return;
                 }
 
-                // Populate global blueprint object from AI backend response
-                serverBlueprint = result.blueprint || result;
+                serverBlueprint = result.layout || result.blueprint || result;
                 
-                // Ensure required structural fallbacks
                 if (!serverBlueprint.target_guild_id) serverBlueprint.target_guild_id = guildId;
                 if (!serverBlueprint.server_link) serverBlueprint.server_link = serverLink;
                 if (!serverBlueprint.separator) serverBlueprint.separator = separatorVal;
@@ -628,7 +639,6 @@
             });
         }
 
-        // Helper to consistently format full channel display names with middle separator
         function getFormattedChannelDisplay(ch, separator) {
             const emoji = (ch.emoji || '💬').trim();
             const sep = (separator || '|').trim();
@@ -942,7 +952,6 @@
             ch.permissions[role][permKey] = isEnabled;
         }
 
-        // SUBMIT DESIGN ONLY UPON EXPLICIT USER CLICK
         async function submitDesign() {
             const btn = document.getElementById('btn-submit-design');
             if (btn) {
@@ -951,7 +960,7 @@
             }
 
             try {
-                const res = await fetch('/api/submit-design', {
+                let res = await fetch('/api/submit-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -960,10 +969,25 @@
                         captcha_token: captchaToken
                     })
                 });
+
+                if (res.status === 404) {
+                    res = await fetch('/api/verify_and_generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            prompt: serverBlueprint.prompt || "Discord Layout",
+                            server_id: serverBlueprint.target_guild_id,
+                            server_link: serverBlueprint.server_link,
+                            separator: serverBlueprint.separator,
+                            captcha_token: captchaToken
+                        })
+                    });
+                }
                 
                 const responseData = await res.json();
 
-                if (!res.ok) {
+                if (!res.ok || responseData.success === false) {
                     alert(responseData.error || responseData.message || "Submission failed.");
                     return;
                 }
@@ -997,7 +1021,7 @@
             return String(str || '')
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
+                .replace/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
         }
