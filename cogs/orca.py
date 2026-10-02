@@ -9,14 +9,20 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ai_brain import WEB_BUILDER_URL, get_blueprint_data
+# Import dynamic web configuration and helper from ai_brain
+try:
+    from ai_brain import WEB_BUILDER_URL, get_blueprint_data
+except ImportError:
+    WEB_BUILDER_URL = os.environ.get("WEB_BUILDER_URL", "https://example.com")
+    def get_blueprint_data(guild_id: str) -> Optional[Dict[str, Any]]:
+        return None
 
 AUTHORIZED_USER_ID: int = 1219266886143967245
 ALLOWED_BUILDERS: set[int] = {AUTHORIZED_USER_ID}
 START_TIME: float = time.time()
 
 SYSTEM_LOG_WEBHOOK_URL: str = os.environ.get(
-    "SYSTEM_LOG_WEBHOOK_URL", os.environ.get("WEBHOOK_LOG_URL", "")
+    "SYSTEM_LOG_WEBHOOK_URL", os.environ.get("WEBHOOK_LOG_URL", os.environ.get("WEBHOOK_URL", ""))
 )
 
 
@@ -220,7 +226,7 @@ class OrcaCog(commands.Cog):
                 "**Echo Studio has joined your server with Administrator privileges.**\n\n"
                 "### 🛠️ Automated Operations Overview:\n"
                 "• **Automated Structure Deployment**: When `/build` is executed, existing channels and roles will be created based on your template.\n\n"
-                "### ⚖️️ Terms of Service Disclaimer:\n"
+                "### ⚖ Terms of Service Disclaimer:\n"
                 "**By confirming below, you acknowledge that the bot developers are NOT liable for any issues arising during channel/role deployment.**"
             ),
             color=0xF1C40F,
