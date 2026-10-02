@@ -1,439 +1,174 @@
-import io
-import json
-import logging
 import os
-import time
-from datetime import datetime, timedelta, timezone
-from urllib.parse import quote
-
-from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, session
+import json
+import io
+import logging
+import requests
+from flask import Flask, render_template, request, jsonify
 from google import genai
 from google.genai import types
-from pymongo import MongoClient
-import requests
 
-# ---------------------------------------------------------------------------
-# LOGGING CONFIGURATION
-# ---------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
-)
-logger = logging.getLogger("ai_brain")
-
+logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
-# Basic session configuration
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-echo-studio-persistent-2026")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
-
-# Discord OAuth2 Configurations
-DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
-DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
-DISCORD_API_BASE_URL = "[https://discord.com/api/v10](https://discord.com/api/v10)"
-
-# Google reCAPTCHA Configuration
-RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY", "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe").strip()
-
-# Base Web Builder URL
-WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "[https://echo-dashboard-qn39.onrender.com](https://echo-dashboard-qn39.onrender.com)").strip().rstrip('/')
-
-# Webhook Configurations
-DESIGN_WEBHOOK_URL = os.environ.get("DESIGN_WEBHOOK_URL", os.environ.get("WEBHOOK_URL", "")).strip()
-SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", DESIGN_WEBHOOK_URL).strip()
-
-# Storage Directory Setup for JSON Blueprints
-BLUEPRINT_STORAGE = {}
-BLUEPRINT_DIR = os.path.join(os.getcwd(), "blueprints")
-os.makedirs(BLUEPRINT_DIR, exist_ok=True)
-
-# Gemini AI Client Initialization
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+
 client = None
 if GEMINI_API_KEY:
-    try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        logger.info("[INIT] Google GenAI client initialized successfully.")
-    except Exception as e:
-        logger.error("[INIT ERROR] Failed to initialize Google GenAI client: %s", e, exc_info=True)
-else:
-    logger.warning("[INIT WARNING] GEMINI_API_KEY missing. Fallback defaults will be used.")
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
-# ---------------------------------------------------------------------------
-# MONGODB DATABASE CONNECTION
-# ---------------------------------------------------------------------------
-MONGO_URI = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
-mongo_client = MongoClient(MONGO_URI) if MONGO_URI else None
-db = mongo_client["bot_database"] if mongo_client is not None else None
-designs_collection = db["designs"] if db is not None else None
-
-
-# ---------------------------------------------------------------------------
-# HELPER FUNCTIONS
-# ---------------------------------------------------------------------------
-
-def send_discord_webhook(webhook_url: str, payload: dict):
-    if not webhook_url:
-        return
-    try:
-        res = requests.post(webhook_url, json=payload, timeout=5)
-        logger.info("[WEBHOOK LOG] Dispatched alert to Discord. Status: %d", res.status_code)
-    except Exception as e:
-        logger.error("[WEBHOOK ERROR] Failed to dispatch webhook alert: %s", e)
-
-
-def get_blueprint_data(guild_id: str = None) -> dict:
-    if not guild_id:
-        return BLUEPRINT_STORAGE
-
-    guild_id = str(guild_id).strip()
-    if guild_id in BLUEPRINT_STORAGE:
-        return BLUEPRINT_STORAGE[guild_id]
-
-    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
-    if os.path.exists(file_path):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                BLUEPRINT_STORAGE[guild_id] = data
-                return data
-        except Exception as e:
-            logger.error("[BLUEPRINT GET ERROR] %s", e)
-
-    if designs_collection is not None:
-        try:
-            doc = designs_collection.find_one({"guild_id": guild_id}, sort=[("submitted_at", -1)], projection={"_id": 0})
-            if doc:
-                BLUEPRINT_STORAGE[guild_id] = doc
-                return doc
-        except Exception as e:
-            logger.error("[BLUEPRINT GET ERROR] MongoDB error: %s", e)
-
-    return {}
-
-
-def save_blueprint_data(guild_id: str, blueprint: dict):
-    guild_id = str(guild_id).strip()
-    BLUEPRINT_STORAGE[guild_id] = blueprint
-    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
-    try:
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(blueprint, f, indent=2)
-    except IOError as e:
-        logger.error("[BLUEPRINT SAVE ERROR] %s", e)
-
-    if designs_collection is not None:
-        try:
-            doc = dict(blueprint)
-            doc["guild_id"] = guild_id
-            doc["submitted_at"] = time.time()
-            designs_collection.update_one({"guild_id": guild_id}, {"$set": doc}, upsert=True)
-        except Exception as e:
-            logger.error("[BLUEPRINT SAVE ERROR] MongoDB update error: %s", e)
-
-
-def verify_google_recaptcha(token: str) -> bool:
-    if not token or token == "YOUR_RECAPTCHA_SITE_KEY":
-        return True
-    try:
-        res = requests.post(
-            "[https://www.google.com/recaptcha/api/siteverify](https://www.google.com/recaptcha/api/siteverify)",
-            data={"secret": RECAPTCHA_SECRET_KEY, "response": token},
-            timeout=5
-        )
-        return res.json().get("success", False)
-    except Exception as e:
-        logger.error("[RECAPTCHA ERROR] Verification call failed: %s", e)
-        return True
-
-
-def apply_middle_separator_formatting(layout_data: dict, separator: str):
-    """Formats channel displays strictly placed in the middle: Emoji | Channel Name."""
-    sep = separator.strip() if separator else "|"
-    for cat in layout_data.get("categories", []):
-        for ch in cat.get("channels", []):
-            raw_name = ch.get("name", "channel").lower().strip()
-            emoji = ch.get("emoji", "").strip()
-            if emoji and sep and raw_name:
-                ch["formatted_name"] = f"{emoji} {sep} {raw_name}"
-            elif emoji and raw_name:
-                ch["formatted_name"] = f"{emoji} {raw_name}"
-            else:
-                ch["formatted_name"] = raw_name or emoji or "channel"
-
-
-# ---------------------------------------------------------------------------
-# MIDDLEWARE & ENDPOINTS
-# ---------------------------------------------------------------------------
-
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
-
-
-@app.route('/api/verify-server', methods=['POST'])
-def verify_server():
-    data = request.get_json() or {}
-    captcha_token = data.get("captcha_token", "").strip()
-    if captcha_token and not verify_google_recaptcha(captcha_token):
-        return jsonify({"valid": False, "error": "Google reCAPTCHA verification failed."}), 400
-    return jsonify({"valid": True, "message": "Verification successful."})
-
-
-@app.route('/api/log-entry', methods=['POST'])
-def log_entry():
-    data = request.get_json() or {}
-    user = session.get('user')
-    user_name = user.get('username') if user else 'Guest / Anonymous'
-    path = data.get('path', '/')
-    event_type = data.get('event', 'Page Entry')
-
-    logger.info("[SITE ENTRY] Event: %s | User: %s | Path: %s", event_type, user_name, path)
-
-    send_discord_webhook(
-        SYSTEM_LOG_WEBHOOK_URL,
-        {
-            "embeds": [
-                {
-                    "title": "🌐 Website Entry Logged",
-                    "description": f"**Event:** `{event_type}`\n**User:** `{user_name}`\n**Path Visited:** `{path}`",
-                    "color": 0x3498DB,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                }
-            ]
-        }
-    )
-    return jsonify({"logged": True})
-
-
-# ---------------------------------------------------------------------------
-# DISCORD OAUTH2 ROUTES
-# ---------------------------------------------------------------------------
-
-@app.route('/api/auth/discord/login')
-def discord_login():
-    redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
-    oauth_url = (
-        f"{DISCORD_API_BASE_URL}/oauth2/authorize"
-        f"?client_id={DISCORD_CLIENT_ID}"
-        f"&redirect_uri={quote(redirect_uri, safe='')}"
-        f"&response_type=code"
-        f"&scope=identify"
-    )
-    return redirect(oauth_url)
-
-
-@app.route('/api/auth/discord/callback')
-def discord_callback():
-    code = request.args.get('code')
-    if not code:
-        return "Missing OAuth2 code from Discord.", 400
-
-    redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
-    token_data = {
-        'client_id': DISCORD_CLIENT_ID,
-        'client_secret': DISCORD_CLIENT_SECRET,
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': redirect_uri
-    }
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-
-    try:
-        token_res = requests.post(f"{DISCORD_API_BASE_URL}/oauth2/token", data=token_data, headers=headers, timeout=10)
-        token_res.raise_for_status()
-        tokens = token_res.json()
-
-        user_res = requests.get(
-            f"{DISCORD_API_BASE_URL}/users/@me",
-            headers={'Authorization': f"Bearer {tokens.get('access_token')}"},
-            timeout=10
-        )
-        user_res.raise_for_status()
-        user_profile = user_res.json()
-
-        user_id = str(user_profile.get('id')).strip()
-        username = user_profile.get('username')
-        avatar = user_profile.get('avatar')
-
-        session.permanent = True
-        session['user'] = {
-            'id': user_id,
-            'username': username,
-            'avatar_url': f"[https://cdn.discordapp.com/avatars/](https://cdn.discordapp.com/avatars/){user_id}/{avatar}.png" if avatar else "[https://cdn.discordapp.com/embed/avatars/0.png](https://cdn.discordapp.com/embed/avatars/0.png)"
-        }
-        return redirect('/')
-    except Exception as e:
-        logger.error("[OAUTH FAILURE] %s", e, exc_info=True)
-        return "Authentication failed.", 500
-
-
-@app.route('/api/auth/logout')
-def discord_logout():
-    session.pop('user', None)
-    return redirect('/')
-
-
-@app.route('/api/auth/me')
-def get_current_user():
-    user = session.get('user')
-    return jsonify({"authenticated": bool(user), "user": user})
-
-
-# ---------------------------------------------------------------------------
-# AI GENERATION & DESIGN SUBMISSION
-# ---------------------------------------------------------------------------
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
 
-@app.route('/blueprint/<guild_id>.json', methods=['GET'])
-def serve_blueprint(guild_id):
-    data = get_blueprint_data(guild_id)
-    if data:
-        return jsonify(data)
-    return send_from_directory(BLUEPRINT_DIR, f"{guild_id}.json", mimetype='application/json')
+@app.route('/api/generate-layout', methods=['POST'])
+def generate_layout():
+    data = request.get_json() or {}
+    prompt = data.get('prompt', '')
+    guild_id = data.get('guild_id', '')
+    separator = data.get('separator', '-')
 
-
-def _process_ai_layout_generation(data: dict) -> dict:
-    user = session.get('user')
-    prompt = data.get('prompt', 'Community Discord Server')
-    guild_id = str(data.get('target_guild_id') or data.get('guild_id', '')).strip()
-    server_link = data.get('server_link', '').strip()
-    separator = data.get('separator', '|').strip() or '|'
-    categories_count = data.get('preferred_categories') or data.get('categories_count') or 4
-    channels_count = data.get('preferred_channels') or data.get('channels_count') or 12
-
-    logger.info("[AI GENERATE] User: %s | Prompt: %s | Separator: %s", user, prompt, separator)
+    if not prompt or not guild_id:
+        return jsonify({"error": "Prompt and Guild ID are required."}), 400
 
     system_instruction = (
-        "You are an expert Discord server architect. Generate a creative, detailed Discord server template as a raw JSON object.\n"
-        "Strict Requirements:\n"
-        "1. Include server roles and organized category lists.\n"
-        "2. Keep channel 'name' as clean text (e.g., 'rules' or 'announcements'). Do not insert separators inside the name itself.\n"
-        "3. Provide relevant emojis for every channel.\n"
-        "Output Schema JSON strictly:\n"
+        "You are an expert Discord server architect. "
+        "Generate a structured JSON layout for a Discord server based on the user's prompt. "
+        "Return strictly raw JSON conforming to this schema:\n"
         "{\n"
         '  "server_name": "String",\n'
-        '  "roles": ["String"],\n'
+        '  "target_guild_id": "String",\n'
+        '  "separator": "String",\n'
+        '  "roles": ["Role 1", "Role 2"],\n'
         '  "categories": [\n'
         '    {\n'
         '      "name": "CATEGORY NAME",\n'
         '      "channels": [\n'
-        '        {"emoji": "📌", "name": "rules", "type": "text|voice|announcement", "topic": "Description"}\n'
+        '        {\n'
+        '          "emoji": "💬",\n'
+        '          "name": "channel-name",\n'
+        '          "type": "text|voice|announcement",\n'
+        '          "topic": "Description"\n'
+        '        }\n'
         '      ]\n'
         '    }\n'
         '  ]\n'
-        '}'
+        "}"
     )
 
-    prompt_payload = (
-        f"Design a complete server layout based on this theme: '{prompt}'.\n"
-        f"Required Target Categories Count: {categories_count}\n"
-        f"Required Target Channels Count: {channels_count}"
+    full_user_prompt = (
+        f"Target Guild ID: {guild_id}\n"
+        f"Channel Separator Character: {separator}\n"
+        f"Server Purpose / Theme: {prompt}"
     )
 
-    layout_data = None
-    if client:
-        try:
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt_payload,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    response_mime_type="application/json"
-                )
+    try:
+        if not client:
+            raise Exception("Gemini Client not initialized. Missing GEMINI_API_KEY.")
+
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=full_user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+                temperature=0.3,
             )
-            raw_text = response.text.strip()
-            if raw_text.startswith("```json"):
-                raw_text = raw_text[7:-3].strip()
-            elif raw_text.startswith("```"):
-                raw_text = raw_text[3:-3].strip()
+        )
+        
+        layout_data = json.loads(response.text)
+        layout_data["target_guild_id"] = guild_id
+        layout_data["separator"] = separator
+        return jsonify(layout_data)
 
-            layout_data = json.loads(raw_text)
-        except Exception as e:
-            logger.error("[GEMINI ERROR] %s", e, exc_info=True)
-
-    if not layout_data or "categories" not in layout_data:
-        layout_data = {
-            "server_name": f"{prompt.title()} Community",
-            "roles": ["Admin", "Moderator", "VIP", "Member"],
+    except Exception as e:
+        logging.error(f"Error generating layout: {e}")
+        fallback = {
+            "server_name": "Generated Community",
+            "target_guild_id": guild_id,
+            "separator": separator,
+            "roles": ["Admin", "Moderator", "Member"],
             "categories": [
                 {
-                    "name": "📌 INFORMATION",
+                    "name": "WELCOME",
                     "channels": [
-                        {"emoji": "📌", "name": "rules", "type": "text", "topic": "Server guidelines"},
-                        {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Official updates"}
+                        {"emoji": "👋", "name": f"rules{separator}info", "type": "text", "topic": "Server rules"},
+                        {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Updates"}
                     ]
                 },
                 {
-                    "name": "💬 GENERAL CHATS",
+                    "name": "COMMUNITY",
                     "channels": [
-                        {"emoji": "💬", "name": "general", "type": "text", "topic": "Main chat room"},
-                        {"emoji": "🔊", "name": "lounge", "type": "voice", "topic": "General voice chat"}
+                        {"emoji": "💬", "name": f"general{separator}chat", "type": "text", "topic": "General lounge"},
+                        {"emoji": "🔊", "name": "General Voice", "type": "voice", "topic": ""}
                     ]
                 }
             ]
         }
-
-    # Format Channel Names with Middle Separator (e.g. 📌 | rules)
-    apply_middle_separator_formatting(layout_data, separator)
-
-    layout_data["target_guild_id"] = guild_id
-    layout_data["server_link"] = server_link
-    layout_data["separator"] = separator
-    layout_data["prompt"] = prompt
-    layout_data["creator"] = user
-    return layout_data
-
-
-@app.route('/api/generate-blueprint', methods=['POST'])
-def generate_blueprint():
-    data = request.get_json() or {}
-    captcha_token = data.get("captcha_token", "").strip()
-    if captcha_token and not verify_google_recaptcha(captcha_token):
-        return jsonify({"error": "Google reCAPTCHA verification failed."}), 400
-
-    layout_data = _process_ai_layout_generation(data)
-    return jsonify({"blueprint": layout_data})
-
-
-@app.route('/api/generate-layout', methods=['POST'])
-def generate_layout():
-    data = request.get_json() or {}
-    layout_data = _process_ai_layout_generation(data)
-    return jsonify(layout_data)
+        return jsonify(fallback)
 
 
 @app.route('/api/submit-design', methods=['POST'])
 def submit_design():
-    req_payload = request.get_json() or {}
-    blueprint = req_payload.get("blueprint", req_payload)
+    blueprint = request.get_json()
     if not blueprint:
         return jsonify({"error": "No blueprint provided"}), 400
 
-    target_guild = str(blueprint.get("target_guild_id", "Unknown")).strip()
-    save_blueprint_data(target_guild, blueprint)
+    target_guild = blueprint.get("target_guild_id", "Unknown")
+    server_name = blueprint.get("server_name", "Discord Server")
+    categories = blueprint.get("categories", [])
+    roles = blueprint.get("roles", [])
+    total_channels = sum(len(cat.get("channels", [])) for cat in categories)
 
-    file_url = f"{WEB_BUILDER_URL}/blueprint/{target_guild}.json"
+    # 1. Build embed message
+    embed = {
+        "title": f"📥 New Server Layout Submitted — #{target_guild}",
+        "description": (
+            "A new buyer blueprint layout was generated on the web builder and is ready for staff deployment.\n\n"
+            "📎 **Download the attached `.json` blueprint file below** and attach it to the `/build` command in Discord."
+        ),
+        "color": 0x22C55E,  # Green accent bar
+        "fields": [
+            {"name": "Server Name", "value": f"`{server_name}`", "inline": False},
+            {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": False},
+            {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": False}
+        ],
+        "footer": {"text": "ORCA AI Automated Server Infrastructure"}
+    }
 
-    send_discord_webhook(
-        DESIGN_WEBHOOK_URL,
-        {
-            "embeds": [
-                {
-                    "title": f"📥 Blueprint Submitted — Guild #{target_guild}",
-                    "description": f"**Server Name:** {blueprint.get('server_name', 'Custom Server')}\n**Deploy Command:** `/build file:{file_url}`",
-                    "color": 0x2ECC71,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                }
-            ]
-        }
-    )
+    # 2. Convert blueprint payload into an in-memory .json file attachment
+    filename = f"blueprint_{target_guild}.json"
+    json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
+    file_object = io.BytesIO(json_bytes)
 
-    return jsonify({"status": "success", "file_url": file_url})
+    if WEBHOOK_URL:
+        try:
+            # Discord Webhook requires multipart encoding when attaching files
+            payload_json = json.dumps({"embeds": [embed]})
+            
+            files = {
+                "file": (filename, file_object, "application/json")
+            }
+            data = {
+                "payload_json": payload_json
+            }
+
+            res = requests.post(
+                WEBHOOK_URL,
+                data=data,
+                files=files,
+                timeout=10
+            )
+            logging.info(f"Discord Webhook Response Status: {res.status_code}")
+
+        except Exception as e:
+            logging.error(f"Failed to post file to webhook: {e}")
+    else:
+        logging.warning("WEBHOOK_URL environment variable is not set!")
+
+    return jsonify({"status": "success", "message": "Blueprint submitted and logged successfully"}), 200
 
 
 if __name__ == '__main__':
