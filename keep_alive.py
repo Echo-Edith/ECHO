@@ -1,456 +1,113 @@
-import os
-import json
-import io
-import sys
-import time
 import logging
-import requests
+import os
 from threading import Thread
-from urllib.parse import quote
-from datetime import datetime, timezone, timedelta
-from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, session, make_response
-from google import genai
-from google.genai import types
-from pymongo import MongoClient
+from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
-# Unbuffer stdout and stderr to prevent large cron log buffers
-sys.stdout.reconfigure(line_buffering=True)
-sys.stderr.reconfigure(line_buffering=True)
+# Suppress standard Flask / Werkzeug HTTP logging to keep cronjob output clean
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
-# Configure compact logging for cronjob friendliness
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+app = Flask(__name__)
+CORS(app)
+
+# Rate Limiter setup to prevent spam
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["100 per day", "20 per hour"],
+    storage_uri="memory://"
 )
-logger = logging.getLogger("keep_alive")
-
-app = Flask(__name__, template_folder='templates')
-
-# Flask Session Setup
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-echo-studio-persistent-2026")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
-
-# Discord OAuth2 Configurations
-DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
-DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
-DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
-DISCORD_API_BASE_URL = "https://discord.com/api/v10"
-
-# Google reCAPTCHA Configuration
-RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY", "").strip()
-
-# Base Web Builder URL
-WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
-
-# Webhook Configurations
-DESIGN_WEBHOOK_URL = os.environ.get("DESIGN_WEBHOOK_URL", os.environ.get("WEBHOOK_URL", "")).strip()
-SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", "").strip()
-
-# Storage Directory Setup for JSON Blueprints
-BLUEPRINT_STORAGE = {}
-BLUEPRINT_DIR = os.path.join(os.getcwd(), "blueprints")
-os.makedirs(BLUEPRINT_DIR, exist_ok=True)
-
-# Gemini AI Client Initialization
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-client = None
-if GEMINI_API_KEY:
-    try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        logger.info("Google GenAI client initialized successfully.")
-    except Exception as e:
-        logger.error("Failed to initialize Google GenAI client: %s", e)
-
-# ---------------------------------------------------------------------------
-# MONGODB DATABASE CONNECTION
-# ---------------------------------------------------------------------------
-MONGO_URI = os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI")
-mongo_client = MongoClient(MONGO_URI) if MONGO_URI else None
-
-db = mongo_client["bot_database"] if mongo_client is not None else None
-designs_collection = db["designs"] if db is not None else None
-telemetry_collection = db["telemetry"] if db is not None else None
-
-
-# ---------------------------------------------------------------------------
-# HELPER FUNCTIONS
-# ---------------------------------------------------------------------------
-
-def apply_middle_separator_formatting(layout_data: dict, separator: str):
-    """Formats channel displays strictly placed in the middle: Emoji | Channel Name."""
-    sep = separator.strip() if separator else "|"
-    for cat in layout_data.get("categories", []):
-        for ch in cat.get("channels", []):
-            raw_name = ch.get("name", "channel").lower().strip()
-            emoji = ch.get("emoji", "").strip()
-            if emoji and sep and raw_name:
-                ch["formatted_name"] = f"{emoji} {sep} {raw_name}"
-            elif emoji and raw_name:
-                ch["formatted_name"] = f"{emoji} {raw_name}"
-            else:
-                ch["formatted_name"] = raw_name or emoji or "channel"
-
-
-def get_blueprint_data(guild_id: str = None) -> dict:
-    """Retrieves stored blueprint data for a given guild_id."""
-    if not guild_id:
-        return BLUEPRINT_STORAGE
-
-    guild_id = str(guild_id).strip()
-    if guild_id in BLUEPRINT_STORAGE:
-        return BLUEPRINT_STORAGE[guild_id]
-
-    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
-    if os.path.exists(file_path):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                BLUEPRINT_STORAGE[guild_id] = data
-                return data
-        except Exception as e:
-            logger.error("Error reading blueprint file for guild %s: %s", guild_id, e)
-
-    if designs_collection is not None:
-        try:
-            doc = designs_collection.find_one({"guild_id": guild_id}, sort=[("submitted_at", -1)], projection={"_id": 0})
-            if doc:
-                BLUEPRINT_STORAGE[guild_id] = doc
-                return doc
-        except Exception as e:
-            logger.error("MongoDB fetch error: %s", e)
-
-    return {}
-
-
-def save_blueprint_data(guild_id: str, blueprint: dict):
-    """Persists blueprint data locally and to MongoDB."""
-    guild_id = str(guild_id).strip()
-    BLUEPRINT_STORAGE[guild_id] = blueprint
-    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
-    try:
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(blueprint, f, indent=2)
-    except IOError as e:
-        logger.error("Failed to save local blueprint file for guild %s: %s", guild_id, e)
-
-    if designs_collection is not None:
-        try:
-            doc = dict(blueprint)
-            doc["guild_id"] = guild_id
-            doc["submitted_at"] = time.time()
-            designs_collection.update_one({"guild_id": guild_id}, {"$set": doc}, upsert=True)
-        except Exception as e:
-            logger.error("Failed to save blueprint to MongoDB for guild %s: %s", guild_id, e)
-
-
-def verify_recaptcha(token: str, remote_ip: str) -> bool:
-    """Verifies Google reCAPTCHA token."""
-    if not RECAPTCHA_SECRET_KEY or token == "YOUR_RECAPTCHA_SITE_KEY":
-        return True
-    try:
-        res = requests.post(
-            "https://www.google.com/recaptcha/api/siteverify",
-            data={"secret": RECAPTCHA_SECRET_KEY, "response": token, "remoteip": remote_ip},
-            timeout=5
-        )
-        return res.json().get("success", False)
-    except Exception as e:
-        logger.error("reCAPTCHA verification error: %s", e)
-        return True
-
-
-def send_system_webhook(title: str, description: str, fields: list = None, color: int = 0x3B82F6, content: str = None):
-    """Sends structured logs to Discord Webhook."""
-    if not SYSTEM_LOG_WEBHOOK_URL:
-        return
-
-    payload = {
-        "embeds": [
-            {
-                "title": title,
-                "description": description,
-                "color": color,
-                "fields": fields or [],
-                "footer": {"text": "Echo Studio Logger"},
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-        ]
-    }
-    if content:
-        payload["content"] = content
-
-    try:
-        requests.post(SYSTEM_LOG_WEBHOOK_URL, json=payload, headers={"Content-Type": "application/json"}, timeout=5)
-    except Exception as e:
-        logger.error("Failed to post system log webhook: %s", e)
-
-
-# ---------------------------------------------------------------------------
-# MIDDLEWARE & MAIN ROUTES
-# ---------------------------------------------------------------------------
-
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
-
 
 @app.route('/')
-def index():
+def home():
+    """Renders the single-page application with Landing and Builder views."""
     return render_template('index.html')
-
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "online"}), 200
+    """Lightweight endpoint for uptime pings and cronjobs."""
+    return jsonify({"status": "ok"}), 200
 
+@app.route('/api/generate-layout', methods=['POST'])
+@limiter.limit("10 per minute")
+def mock_generate_layout():
+    """
+    Mock endpoint for front-end testing.
+    This will be bridged with ai_brain.py once configured.
+    """
+    data = request.get_json() or {}
+    prompt = data.get("prompt", "Default Server")
+    guild_id = data.get("guild_id", "000000000000000000")
+    separator = data.get("separator", "|")
 
-@app.route('/blueprint/<guild_id>.json', methods=['GET'])
-def serve_blueprint(guild_id):
-    data = get_blueprint_data(guild_id)
-    if data:
-        return jsonify(data)
-    return send_from_directory(BLUEPRINT_DIR, f"{guild_id}.json", mimetype='application/json')
-
-
-# ---------------------------------------------------------------------------
-# DISCORD OAUTH2 ROUTES
-# ---------------------------------------------------------------------------
-
-@app.route('/api/auth/discord/login')
-def discord_login():
-    redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
-    oauth_url = (
-        f"{DISCORD_API_BASE_URL}/oauth2/authorize"
-        f"?client_id={DISCORD_CLIENT_ID}"
-        f"&redirect_uri={quote(redirect_uri, safe='')}"
-        f"&response_type=code"
-        f"&scope=identify"
-    )
-    return redirect(oauth_url)
-
-
-@app.route('/api/auth/discord/callback')
-def discord_callback():
-    code = request.args.get('code')
-    if not code:
-        return "Missing OAuth2 code from Discord.", 400
-
-    redirect_uri = f"{WEB_BUILDER_URL}/api/auth/discord/callback"
-    token_data = {
-        'client_id': DISCORD_CLIENT_ID,
-        'client_secret': DISCORD_CLIENT_SECRET,
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': redirect_uri
+    # Sample mock layout matching index.html schema requirements
+    mock_response = {
+        "server_name": "AI Mock Generated Community",
+        "target_guild_id": guild_id,
+        "separator": separator,
+        "roles": ["Owner", "Admin", "Moderator", "Member"],
+        "categories": [
+            {
+                "name": "WELCOME",
+                "channels": [
+                    {
+                        "emoji": "👋",
+                        "name": "rules",
+                        "type": "text",
+                        "topic": "Server rules and guidelines",
+                        "permissions": {}
+                    },
+                    {
+                        "emoji": "📢",
+                        "name": "announcements",
+                        "type": "announcement",
+                        "topic": "Official announcements",
+                        "permissions": {}
+                    }
+                ]
+            },
+            {
+                "name": "COMMUNITY CHATS",
+                "channels": [
+                    {
+                        "emoji": "💬",
+                        "name": "general-chat",
+                        "type": "text",
+                        "topic": "General chat room",
+                        "permissions": {}
+                    },
+                    {
+                        "emoji": "🎙️",
+                        "name": "Lounge",
+                        "type": "voice",
+                        "topic": "General voice lounge",
+                        "permissions": {}
+                    }
+                ]
+            }
+        ]
     }
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    return jsonify(mock_response), 200
 
-    try:
-        token_res = requests.post(f"{DISCORD_API_BASE_URL}/oauth2/token", data=token_data, headers=headers, timeout=10)
-        token_res.raise_for_status()
-        tokens = token_res.json()
-        access_token = tokens.get('access_token')
-
-        user_res = requests.get(
-            f"{DISCORD_API_BASE_URL}/users/@me",
-            headers={'Authorization': f"Bearer {access_token}"},
-            timeout=10
-        )
-        user_res.raise_for_status()
-        user_profile = user_res.json()
-
-        user_id = str(user_profile.get('id')).strip()
-        username = user_profile.get('username')
-        global_name = user_profile.get('global_name') or username
-        avatar = user_profile.get('avatar')
-        avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png" if avatar else "https://cdn.discordapp.com/embed/avatars/0.png"
-
-        session.permanent = True
-        session['user'] = {
-            'id': user_id,
-            'username': username,
-            'global_name': global_name,
-            'avatar': avatar,
-            'avatar_url': avatar_url
-        }
-
-        return redirect('/')
-    except Exception as e:
-        logger.error("OAuth2 authentication failure: %s", e)
-        return "Authentication failed.", 500
-
-
-@app.route('/api/auth/logout')
-def logout():
-    session.pop('user', None)
-    return redirect('/')
-
-
-@app.route('/api/auth/me')
-def auth_me():
-    try:
-        user_data = session.get('user')
-        if user_data:
-            return jsonify({"authenticated": True, "user": user_data}), 200
-
-        return jsonify({"authenticated": False, "user": None}), 200
-
-    except Exception as e:
-        logger.error("Error encountered in auth_me route: %s", e)
-        return jsonify({"authenticated": False, "error": "Internal state error"}), 500
-
-
-# ---------------------------------------------------------------------------
-# API: LOGGING & GENERATION
-# ---------------------------------------------------------------------------
-
-@app.route('/api/log_entry', methods=['POST'])
-def log_entry():
-    user = session.get('user', {})
-    if not user:
-        return jsonify({"status": "ignored"}), 200
-
-    user_id = user.get('id', 'Unknown')
-    username = user.get('username', 'Unknown')
-
-    if telemetry_collection is not None:
-        try:
-            telemetry_collection.insert_one({
-                "user_id": user_id,
-                "global_name": user.get('global_name'),
-                "user_agent": request.headers.get("User-Agent", "Unknown"),
-                "logged_at": time.time()
-            })
-        except Exception as e:
-            logger.error("Telemetry insert error: %s", e)
-
-    fields = [
-        {"name": "User", "value": f"@{username} (`{user_id}`)", "inline": True}
-    ]
-
-    send_system_webhook(
-        title="📥 Website Entry Log",
-        description=f"User <@{user_id}> accessed the site.",
-        fields=fields,
-        color=0x3498DB
-    )
-    return jsonify({"status": "logged"}), 200
-
-
-@app.route('/api/verify_and_generate', methods=['POST'])
-def verify_and_generate():
-    data = request.json or {}
-    captcha_token = data.get('captcha_token', '').strip()
-
-    if not verify_recaptcha(captcha_token, request.remote_addr):
-        return jsonify({"success": False, "message": "Google reCAPTCHA verification failed."}), 400
-
-    user_data = session.get('user')
-    if not user_data:
-        return jsonify({"success": False, "message": "Unauthorized. Please login with Discord."}), 401
-
-    server_id = str(data.get('server_id') or data.get('target_guild_id', '')).strip()
-    server_invite = data.get('server_link', '').strip()
-    prompt = data.get('prompt', 'Community Discord Server').strip()
-    separator = data.get('separator', '|').strip() or '|'
-
-    if not server_id or not prompt:
-        return jsonify({"success": False, "message": "Missing server ID or prompt."}), 400
-
-    system_instruction = (
-        "Generate a raw JSON layout for a Discord server based on user prompt conforming strictly to this schema:\n"
-        "{\"server_name\": \"String\", \"roles\": [\"String\"], \"categories\": [{\"name\": \"String\", \"channels\": [{\"emoji\": \"💬\", \"name\": \"string\", \"type\": \"text|voice|announcement\", \"topic\": \"string\"}]}]}"
-    )
-
-    layout_data = None
-    if client:
-        try:
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=f"Guild ID: {server_id}\nPrompt: {prompt}",
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    response_mime_type="application/json"
-                )
-            )
-            layout_data = json.loads(response.text)
-        except Exception as e:
-            logger.warning("AI Generation failed: %s", e)
-
-    if not layout_data or "categories" not in layout_data:
-        layout_data = {
-            "server_name": "Echo Studio — Community Layout",
-            "roles": ["Administrator", "Moderator", "Member"],
-            "categories": [
-                {
-                    "name": "📌 INFORMATION",
-                    "channels": [
-                        {"emoji": "📜", "name": "rules", "type": "text", "topic": "Server rules"},
-                        {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Updates"}
-                    ]
-                },
-                {
-                    "name": "💬 COMMUNITY",
-                    "channels": [
-                        {"emoji": "💬", "name": "general", "type": "text", "topic": "Main room"}
-                    ]
-                }
-            ]
-        }
-
-    # Format channel names with middle separator
-    apply_middle_separator_formatting(layout_data, separator)
-
-    layout_data["target_guild_id"] = server_id
-    layout_data["server_link"] = server_invite
-    layout_data["separator"] = separator
-    layout_data["creator"] = user_data
-
-    # Save blueprint
-    save_blueprint_data(server_id, layout_data)
-    file_url = f"{WEB_BUILDER_URL}/blueprint/{server_id}.json"
-
-    # Post Submission Webhook safely without huge log output
-    if DESIGN_WEBHOOK_URL:
-        payload = {
-            "embeds": [{
-                "title": f"📥 Blueprint Generated & Submitted — Guild #{server_id}",
-                "description": f"Deploy with: `/build file:{file_url}`",
-                "color": 0x22C55E
-            }]
-        }
-        json_bytes = json.dumps(layout_data, indent=2).encode('utf-8')
-        files = {"files[0]": (f"blueprint_{server_id}.json", io.BytesIO(json_bytes), "application/json")}
-        try:
-            requests.post(DESIGN_WEBHOOK_URL, data={"payload_json": json.dumps(payload)}, files=files, timeout=10)
-        except Exception as e:
-            logger.error("Failed to send submission webhook: %s", e)
-
-    return jsonify({
-        "success": True,
-        "message": "Layout generated successfully!",
-        "file_url": file_url,
-        "layout": layout_data
-    }), 200
-
-
-# ---------------------------------------------------------------------------
-# SERVER EXECUTION
-# ---------------------------------------------------------------------------
+@app.route('/api/submit-design', methods=['POST'])
+def mock_submit_design():
+    """Mock endpoint for layout submission."""
+    blueprint = request.get_json() or {}
+    return jsonify({"status": "success", "message": "Blueprint submitted successfully"}), 200
 
 def run():
+    """Runs the web server."""
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port, use_reloader=False)
-
+    app.run(host='0.0.0.0', port=port)
 
 def keep_alive():
-    server_thread = Thread(target=run, daemon=True)
-    server_thread.start()
-    logger.info("Keep-alive server thread initiated successfully.")
+    """Starts the web server in a non-blocking background thread."""
+    t = Thread(target=run)
+    t.daemon = True
+    t.start()
 
-
-if __name__ == '__main__':
-    keep_alive()
-    while True:
-        time.sleep(3600)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
