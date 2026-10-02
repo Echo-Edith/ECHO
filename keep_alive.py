@@ -2,32 +2,29 @@ import os
 import json
 import logging
 import requests
-from flask import Flask
+from flask import Flask, render_template
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# In-memory blueprint storage fallback
+# In-memory blueprint store
 BLUEPRINT_STORE = {}
 
 RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY", "").strip()
 
 
 def save_blueprint_data(guild_id: str, data: dict) -> None:
-    """Saves blueprint JSON in memory indexed by target guild ID."""
     BLUEPRINT_STORE[str(guild_id)] = data
     logger.info(f"Saved blueprint for Guild ID: {guild_id}")
 
 
 def get_blueprint_data(guild_id: str) -> dict:
-    """Retrieves stored blueprint JSON by guild ID."""
     return BLUEPRINT_STORE.get(str(guild_id))
 
 
 def verify_recaptcha(response_token: str) -> bool:
-    """Verifies Google reCAPTCHA token if secret key is supplied."""
     if not RECAPTCHA_SECRET_KEY:
         return True
 
@@ -46,6 +43,13 @@ def verify_recaptcha(response_token: str) -> bool:
         return False
 
 
+# Serve the Web Builder HTML Dashboard
 @app.route('/')
+def index():
+    return render_template('index.html')
+
+
+# Separate endpoint for health checks
+@app.route('/health')
 def health_check():
-    return "OK — Bot and Web Server Operational", 200
+    return "OK", 200
