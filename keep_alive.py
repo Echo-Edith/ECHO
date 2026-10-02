@@ -1,113 +1,51 @@
-import logging
 import os
-from threading import Thread
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+import json
+import logging
+import requests
+from flask import Flask
 
-# Suppress standard Flask / Werkzeug HTTP logging to keep cronjob output clean
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
 
-# Rate Limiter setup to prevent spam
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["100 per day", "20 per hour"],
-    storage_uri="memory://"
-)
+# In-memory blueprint storage fallback
+BLUEPRINT_STORE = {}
+
+RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY", "").strip()
+
+
+def save_blueprint_data(guild_id: str, data: dict) -> None:
+    """Saves blueprint JSON in memory indexed by target guild ID."""
+    BLUEPRINT_STORE[str(guild_id)] = data
+    logger.info(f"Saved blueprint for Guild ID: {guild_id}")
+
+
+def get_blueprint_data(guild_id: str) -> dict:
+    """Retrieves stored blueprint JSON by guild ID."""
+    return BLUEPRINT_STORE.get(str(guild_id))
+
+
+def verify_recaptcha(response_token: str) -> bool:
+    """Verifies Google reCAPTCHA token if secret key is supplied."""
+    if not RECAPTCHA_SECRET_KEY:
+        return True
+
+    try:
+        res = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={
+                "secret": RECAPTCHA_SECRET_KEY,
+                "response": response_token
+            },
+            timeout=5
+        )
+        return res.json().get("success", False)
+    except Exception as e:
+        logger.error(f"reCAPTCHA verification error: {e}")
+        return False
+
 
 @app.route('/')
-def home():
-    """Renders the single-page application with Landing and Builder views."""
-    return render_template('index.html')
-
-@app.route('/health')
-def health():
-    """Lightweight endpoint for uptime pings and cronjobs."""
-    return jsonify({"status": "ok"}), 200
-
-@app.route('/api/generate-layout', methods=['POST'])
-@limiter.limit("10 per minute")
-def mock_generate_layout():
-    """
-    Mock endpoint for front-end testing.
-    This will be bridged with ai_brain.py once configured.
-    """
-    data = request.get_json() or {}
-    prompt = data.get("prompt", "Default Server")
-    guild_id = data.get("guild_id", "000000000000000000")
-    separator = data.get("separator", "|")
-
-    # Sample mock layout matching index.html schema requirements
-    mock_response = {
-        "server_name": "AI Mock Generated Community",
-        "target_guild_id": guild_id,
-        "separator": separator,
-        "roles": ["Owner", "Admin", "Moderator", "Member"],
-        "categories": [
-            {
-                "name": "WELCOME",
-                "channels": [
-                    {
-                        "emoji": "👋",
-                        "name": "rules",
-                        "type": "text",
-                        "topic": "Server rules and guidelines",
-                        "permissions": {}
-                    },
-                    {
-                        "emoji": "📢",
-                        "name": "announcements",
-                        "type": "announcement",
-                        "topic": "Official announcements",
-                        "permissions": {}
-                    }
-                ]
-            },
-            {
-                "name": "COMMUNITY CHATS",
-                "channels": [
-                    {
-                        "emoji": "💬",
-                        "name": "general-chat",
-                        "type": "text",
-                        "topic": "General chat room",
-                        "permissions": {}
-                    },
-                    {
-                        "emoji": "🎙️",
-                        "name": "Lounge",
-                        "type": "voice",
-                        "topic": "General voice lounge",
-                        "permissions": {}
-                    }
-                ]
-            }
-        ]
-    }
-    return jsonify(mock_response), 200
-
-@app.route('/api/submit-design', methods=['POST'])
-def mock_submit_design():
-    """Mock endpoint for layout submission."""
-    blueprint = request.get_json() or {}
-    return jsonify({"status": "success", "message": "Blueprint submitted successfully"}), 200
-
-def run():
-    """Runs the web server."""
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    """Starts the web server in a non-blocking background thread."""
-    t = Thread(target=run)
-    t.daemon = True
-    t.start()
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+def health_check():
+    return "OK — Bot and Web Server Operational", 200
