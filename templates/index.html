@@ -3,123 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Layout Builder — Echo Studio</title>
+    <title>Server Layout Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SortableJS library for drag-and-drop -->
+    <!-- SortableJS library for robust drag-and-drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <!-- Google reCAPTCHA v2 API -->
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
         body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #050508;
-            color: #f3f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background-color: #08080a;
+            color: #f5f5f7;
             overflow-x: hidden;
         }
 
-        .glass-aura-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
+        .glass-aura {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(90px);
             pointer-events: none;
             z-index: 0;
         }
 
-        .glass-aura-1 {
-            position: absolute;
-            top: 25%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 650px;
-            height: 650px;
-            background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(124, 58, 237, 0.15) 45%, rgba(0, 0, 0, 0) 70%);
-            filter: blur(100px);
-        }
-
-        .glass-aura-2 {
-            position: absolute;
-            bottom: 15%;
-            right: 10%;
-            width: 450px;
-            height: 450px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(14, 165, 233, 0.1) 50%, rgba(0, 0, 0, 0) 70%);
-            filter: blur(90px);
-        }
-
         .glass-card {
-            background: rgba(18, 18, 26, 0.55);
-            backdrop-filter: blur(28px);
-            -webkit-backdrop-filter: blur(28px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.12);
-        }
-
-        .glass-captcha-card {
-            background: rgba(13, 13, 20, 0.45);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(168, 85, 247, 0.2);
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .glass-captcha-card:hover {
-            border-color: rgba(168, 85, 247, 0.4);
-            box-shadow: 0 12px 35px -5px rgba(168, 85, 247, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
         }
 
         .glass-input {
-            background: rgba(10, 10, 16, 0.6);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.09);
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             color: #ffffff;
-            transition: all 0.2s ease;
-        }
-
-        .glass-input:hover {
-            border-color: rgba(255, 255, 255, 0.18);
-            background: rgba(15, 15, 24, 0.7);
         }
 
         .glass-input:focus {
             outline: none;
-            border-color: rgba(168, 85, 247, 0.6);
-            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15), 0 0 20px rgba(168, 85, 247, 0.2);
-            background: rgba(18, 18, 28, 0.85);
+            border-color: rgba(168, 85, 247, 0.5);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
         }
 
         .glass-btn {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 100%);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .glass-btn:hover:not(:disabled) {
-            transform: translateY(-1px) scale(1.01);
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.07) 100%);
-            border-color: rgba(255, 255, 255, 0.25);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 255, 255, 0.1);
-        }
-
-        .glass-btn:active:not(:disabled) {
-            transform: translateY(0) scale(0.99);
+            transform: scale(1.02);
+            background: linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.1) 100%);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
         }
 
         .glass-btn-primary {
-            background: linear-gradient(135deg, #9333ea 0%, #4f46e5 50%, #2563eb 100%);
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            box-shadow: 0 10px 25px -5px rgba(147, 51, 234, 0.4);
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.6) 0%, rgba(59, 130, 246, 0.4) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
-        .glass-btn-primary:hover:not(:disabled) {
-            background: linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #3b82f6 100%);
-            box-shadow: 0 15px 35px -5px rgba(168, 85, 247, 0.5), 0 0 30px rgba(168, 85, 247, 0.3);
+        .glass-btn-primary:hover {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.8) 0%, rgba(59, 130, 246, 0.6) 100%);
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
         }
 
         .drag-handle {
@@ -130,97 +80,35 @@
             cursor: grabbing;
         }
         .sortable-ghost {
-            opacity: 0.25;
-            background: rgba(168, 85, 247, 0.25);
-            border: 1px dashed rgba(168, 85, 247, 0.6);
-        }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(168, 85, 247, 0.4);
+            opacity: 0.3;
+            background: rgba(168, 85, 247, 0.2);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between items-center relative p-4 sm:p-6 selection:bg-purple-500/30">
+<body class="min-h-screen flex flex-col justify-center items-center relative p-4 selection:bg-purple-500/30">
 
-    <div class="glass-aura-container">
-        <div id="aura-default-1" class="glass-aura-1"></div>
-        <div id="aura-default-2" class="glass-aura-2"></div>
-    </div>
-
-    <!-- AUTHENTICATION TOP BAR -->
-    <header class="relative z-20 w-full max-w-5xl flex justify-between items-center py-2 px-4 mb-4">
-        <div class="flex items-center space-x-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse"></span>
-            <span class="text-xs font-bold tracking-wider uppercase text-gray-300">Echo Studio</span>
-        </div>
-        <div id="auth-container">
-            <a id="login-btn" href="/api/auth/discord/login" 
-               class="glass-btn px-4 py-2 rounded-xl text-xs font-bold text-white flex items-center space-x-2 border border-purple-500/30 hover:border-purple-400">
-                <svg class="w-4 h-4 fill-current text-purple-300" viewBox="0 0 127.14 96.36" aria-hidden="true">
-                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14c2.64-27.38-4.51-51.11-20.95-72.15ZM42.45,65.69C36.18,65.69,31,60,31,53S36,40.3,42.45,40.3C48.92,40.3,54,46,53.87,53,53.87,60,48.8,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.69,11.44-12.69C91.17,40.3,96.25,46,96.12,53,96.12,60,91.06,65.69,84.69,65.69Z"/>
-                </svg>
-                <span>Login with Discord</span>
-            </a>
-            <div id="user-profile" class="hidden flex items-center space-x-3 bg-white/5 border border-white/10 px-3 py-1.5 rounded-2xl">
-                <img id="user-avatar" class="w-6 h-6 rounded-full border border-purple-400" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3C/svg%3E" alt="User Avatar" />
-                <span id="user-name" class="text-xs text-purple-300 font-bold"></span>
-            </div>
-        </div>
-    </header>
+    <div class="glass-aura"></div>
 
     <!-- 1. BUILDER FORM -->
     <main id="page-builder" class="relative z-10 w-full max-w-xl mx-auto space-y-6 my-auto">
-        <div class="text-center space-y-2">
-            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
-                <span>AI Infrastructure Studio</span>
-            </div>
-            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-400">
-                Discord Server Architect
-            </h1>
-            <p class="text-xs sm:text-sm text-gray-400 max-w-sm mx-auto">
-                Fill in layout details to construct an AI-generated community layout blueprint.
-            </p>
+        <div class="text-center space-y-1">
+            <h1 class="text-3xl font-extrabold tracking-tight text-white">Discord Infrastructure</h1>
+            <p class="text-xs text-gray-400">Fill in parameters to initialize AI schema parsing.</p>
         </div>
 
-        <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6">
-            <div id="auth-warning" class="hidden bg-red-500/10 border border-red-500/30 text-red-300 p-3 rounded-2xl text-xs text-center font-medium">
-                ⚠️ You must log in with Discord above before creating a layout.
-            </div>
-
+        <div class="glass-card rounded-3xl p-6 space-y-5">
             <div class="space-y-2">
-                <label for="prompt-input" class="flex justify-between items-center text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                    <span>Prompt Description <span class="text-purple-400">*</span></span>
-                    <span class="text-[9px] text-gray-500 font-normal">Describe your community theme</span>
+                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    Prompt Description <span class="text-purple-400">*</span>
                 </label>
                 <textarea id="prompt-input" rows="4" maxlength="4000" oninput="validateForm()"
-                    class="glass-input w-full rounded-2xl p-4 text-xs sm:text-sm placeholder-gray-500 transition resize-none leading-relaxed"
-                    placeholder="A dedicated server for a Roblox gaming community featuring announcement channels, VIP lounge, staff forums, voice rooms, and update logs..."></textarea>
+                    class="glass-input w-full rounded-2xl p-4 text-xs placeholder-gray-500 transition resize-none"
+                    placeholder="A dedicated server for a Roblox game that is used to post updates, host voice chats, and announcements..."></textarea>
             </div>
 
-            <div class="space-y-2">
-                <label for="server-link-input" class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                    Server Invite Link <span class="text-purple-400">*</span>
-                </label>
-                <input type="url" id="server-link-input" oninput="validateForm()" placeholder="https://discord.gg/yourcode"
-                    class="glass-input w-full rounded-2xl p-3.5 text-xs sm:text-sm transition" />
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div class="space-y-2 sm:col-span-2">
-                    <label for="guild-id-input" class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
                         Target Discord Server ID <span class="text-purple-400">*</span>
                     </label>
                     <input type="text" id="guild-id-input" oninput="validateForm()" placeholder="123456789012345678"
@@ -228,139 +116,94 @@
                 </div>
 
                 <div class="space-y-2 col-span-1">
-                    <label for="separator-input" class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
                         Separator
                     </label>
-                    <input type="text" id="separator-input" maxlength="3" value="|" oninput="validateForm()"
+                    <input type="text" id="separator-input" maxlength="3" value="-" oninput="validateForm()"
                         class="glass-input w-full rounded-2xl p-3.5 text-xs text-center font-bold transition" />
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="space-y-2">
-                    <label for="categories-count-input" class="flex justify-between items-center text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                        <span>Preferred Categories</span>
-                        <span class="text-[9px] text-gray-500 font-normal">Optional</span>
-                    </label>
-                    <input type="number" id="categories-count-input" min="1" max="50" placeholder="e.g. 5" oninput="validateForm()"
-                        class="glass-input w-full rounded-2xl p-3.5 text-xs font-mono transition" />
-                </div>
-
-                <div class="space-y-2">
-                    <label for="channels-count-input" class="flex justify-between items-center text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                        <span>Preferred Channels</span>
-                        <span class="text-[9px] text-gray-500 font-normal">Optional</span>
-                    </label>
-                    <input type="number" id="channels-count-input" min="1" max="500" placeholder="e.g. 15" oninput="validateForm()"
-                        class="glass-input w-full rounded-2xl p-3.5 text-xs font-mono transition" />
-                </div>
-            </div>
-
-            <div class="flex items-center space-x-2 pt-1 border-t border-white/5">
-                <span class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Quick Separators:</span>
-                <div class="flex space-x-1.5">
-                    <button type="button" onclick="setSeparator('|')" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-purple-500/20 hover:border-purple-500/30 border border-white/10 text-xs text-gray-300 font-mono transition">|</button>
-                    <button type="button" onclick="setSeparator('-')" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-purple-500/20 hover:border-purple-500/30 border border-white/10 text-xs text-gray-300 font-mono transition">-</button>
-                    <button type="button" onclick="setSeparator('•')" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-purple-500/20 hover:border-purple-500/30 border border-white/10 text-xs text-gray-300 font-mono transition">•</button>
-                    <button type="button" onclick="setSeparator('~')" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-purple-500/20 hover:border-purple-500/30 border border-white/10 text-xs text-gray-300 font-mono transition">~</button>
-                </div>
-            </div>
-
-            <!-- GLASS CAPTCHA CONTAINER -->
-            <div class="space-y-2.5 pt-2 flex flex-col items-center justify-center">
-                <label class="block text-[10px] font-bold text-purple-300 uppercase tracking-widest text-center flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
-                    <span>Security Verification</span>
-                    <span class="text-purple-400">*</span>
-                </label>
-                <div class="glass-captcha-card p-3 rounded-2xl flex items-center justify-center border border-purple-500/20 shadow-lg">
-                    <div class="g-recaptcha" 
-                         data-sitekey="6LeXZdUtAAAAANUMAOtry6Sr1FLPDTM_0QC2G1AH" 
-                         data-theme="dark" 
-                         data-callback="onCaptchaSuccess" 
-                         data-expired-callback="onCaptchaExpired">
-                    </div>
-                </div>
+            <div class="flex items-center space-x-2 pt-1">
+                <span class="text-[9px] text-gray-400 uppercase tracking-wider">Quick Separators:</span>
+                <button type="button" onclick="setSeparator('|')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">|</button>
+                <button type="button" onclick="setSeparator('-')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">-</button>
+                <button type="button" onclick="setSeparator('•')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">•</button>
+                <button type="button" onclick="setSeparator('~')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">~</button>
             </div>
 
             <button id="btn-generate" disabled onclick="handleGenerate()"
-                class="glass-btn glass-btn-primary w-full disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:transform-none text-white font-bold py-4 rounded-2xl text-xs uppercase tracking-wider shadow-2xl flex items-center justify-center space-x-2">
-                <span id="btn-text">Generate Server Layout</span>
+                class="glass-btn w-full disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl text-xs shadow-xl flex items-center justify-center space-x-2">
+                <span id="btn-text">⚡ Generate Server Layout</span>
             </button>
         </div>
     </main>
 
     <!-- 2. PREVIEW PAGE -->
-    <main id="page-preview" class="hidden relative z-10 w-full max-w-5xl mx-auto space-y-6 my-auto">
-        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-white/10 pb-4 gap-3">
-            <div>
-                <span class="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Blueprint Editor</span>
-                <h2 id="preview-server-name" class="text-2xl font-extrabold tracking-tight text-white">Server Blueprint</h2>
-            </div>
-            <button onclick="downloadBuildFile()" class="glass-btn px-4 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center space-x-2 self-start sm:self-auto">
-                <svg class="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                <span>Download .json</span>
+    <main id="page-preview" class="hidden relative z-10 w-full max-w-4xl mx-auto space-y-6 my-auto">
+        <div class="flex justify-between items-center border-b border-white/10 pb-4">
+            <h2 id="preview-server-name" class="text-2xl font-bold tracking-tight text-white">Server Blueprint</h2>
+            <button onclick="downloadBuildFile()" class="glass-btn px-4 py-2 rounded-xl text-xs font-medium text-white">
+                Download .json
             </button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass-card rounded-2xl p-5 space-y-4">
-                <div class="flex justify-between items-center pb-2 border-b border-white/5">
-                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Server Structure</span>
-                    <button onclick="addCategory()" class="text-[10px] text-purple-300 hover:text-white font-bold px-3 py-1 rounded-xl bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="glass-card rounded-2xl p-4 space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Server Structure</span>
+                    <button onclick="addCategory()" class="text-[10px] text-purple-400 hover:text-purple-300 font-semibold px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20">
                         + Add Category
                     </button>
                 </div>
-                <div id="discord-structure-list" class="space-y-3 text-xs max-h-[500px] overflow-y-auto pr-1.5"></div>
+                <div id="discord-structure-list" class="space-y-3 text-xs max-h-[480px] overflow-y-auto pr-1"></div>
             </div>
 
-            <div class="space-y-5">
-                <div class="glass-card rounded-2xl p-5 space-y-3">
-                    <div class="flex justify-between items-center pb-2 border-b border-white/5">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Configured Roles</span>
-                        <button onclick="addRole()" class="text-[10px] text-purple-300 hover:text-white font-bold px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition">
+            <div class="space-y-4">
+                <div class="glass-card rounded-2xl p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Configured Roles</span>
+                        <button onclick="addRole()" class="text-[10px] text-purple-400 hover:text-purple-300 font-semibold px-2 py-0.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
                             + Add Role
                         </button>
                     </div>
-                    <div id="roles-list" class="flex flex-wrap gap-2 pt-1"></div>
+                    <div id="roles-list" class="flex flex-wrap gap-2"></div>
                 </div>
 
-                <div class="glass-card rounded-2xl p-5 space-y-4">
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-white/5" id="editor-title">Channel Settings</div>
+                <div class="glass-card rounded-2xl p-4 space-y-3">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider" id="editor-title">Channel Settings</div>
                     
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="space-y-1.5 col-span-1">
-                            <label for="edit-channel-emoji" class="text-[9px] font-bold text-gray-400 uppercase">Emoji / Icon</label>
-                            <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2.5 text-xs font-mono text-center" placeholder="💬" />
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="space-y-1 col-span-1">
+                            <label class="text-[9px] text-gray-400 uppercase">Emoji</label>
+                            <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
                         </div>
-                        <div class="space-y-1.5 col-span-2">
-                            <label for="edit-channel-name" class="text-[9px] font-bold text-gray-400 uppercase">Name</label>
-                            <input type="text" id="edit-channel-name" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2.5 text-xs font-mono" />
+                        <div class="space-y-1 col-span-2">
+                            <label class="text-[9px] text-gray-400 uppercase">Name</label>
+                            <input type="text" id="edit-channel-name" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
                         </div>
                     </div>
 
-                    <div class="space-y-1.5">
-                        <label for="edit-channel-type" class="text-[9px] font-bold text-gray-400 uppercase">Type</label>
-                        <select id="edit-channel-type" onchange="updateActiveChannel()" class="glass-input w-full rounded-xl p-2.5 text-xs bg-black/80">
+                    <div class="space-y-1">
+                        <label class="text-[9px] text-gray-400 uppercase">Type</label>
+                        <select id="edit-channel-type" onchange="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs bg-black">
                             <option value="text">text</option>
                             <option value="voice">voice</option>
                             <option value="announcement">announcement</option>
                         </select>
                     </div>
 
-                    <div class="space-y-1.5">
-                        <label for="edit-channel-topic" class="text-[9px] font-bold text-gray-400 uppercase">Topic</label>
-                        <input type="text" id="edit-channel-topic" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2.5 text-xs" />
+                    <div class="space-y-1">
+                        <label class="text-[9px] text-gray-400 uppercase">Topic</label>
+                        <input type="text" id="edit-channel-topic" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
                     </div>
 
-                    <div class="pt-3 border-t border-white/10 space-y-3">
+                    <div class="pt-3 border-t border-white/10 space-y-2">
                         <div class="flex justify-between items-center">
-                            <label for="perm-role-select" class="text-[10px] font-bold text-purple-300 uppercase tracking-widest">Channel Permissions</label>
-                            <select id="perm-role-select" onchange="renderRolePermissions()" class="glass-input rounded-xl px-2 py-1 text-[10px] bg-black/80 text-gray-200 border-purple-500/30"></select>
+                            <span class="text-[10px] font-bold text-purple-300 uppercase tracking-wider">Channel Permissions</span>
+                            <select id="perm-role-select" onchange="renderRolePermissions()" class="glass-input rounded-lg p-1 text-[10px] bg-black text-gray-200"></select>
                         </div>
-                        <div id="permissions-toggle-grid" class="space-y-2 max-h-[170px] overflow-y-auto pr-1"></div>
+                        <div id="permissions-toggle-grid" class="space-y-2 max-h-[160px] overflow-y-auto pr-1"></div>
                     </div>
                 </div>
             </div>
@@ -368,64 +211,42 @@
 
         <div class="space-y-3 pt-2">
             <button id="btn-submit-design" onclick="submitDesign()" class="glass-btn glass-btn-primary w-full text-white font-bold py-4 rounded-2xl text-xs uppercase tracking-wider shadow-2xl transition">
-                SUBMIT DESIGN
+                🚀 SUBMIT DESIGN
             </button>
 
             <button onclick="switchPage('builder')" class="glass-btn w-full text-gray-300 font-semibold py-3 rounded-2xl text-xs transition">
-                Back to Builder
+                ← Back to Builder
             </button>
         </div>
     </main>
 
     <!-- 3. SUCCESS PAGE -->
     <main id="page-success" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
-        <div class="glass-card rounded-3xl p-8 space-y-6 relative overflow-hidden border border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.2)]">
-            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-3xl bg-gradient-to-tr from-purple-600/40 via-indigo-500/30 to-blue-500/20 border border-purple-400/40 shadow-[0_0_40px_rgba(168,85,247,0.4)]">
-                <svg class="w-10 h-10 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+        <div class="glass-card rounded-3xl p-8 space-y-6 relative overflow-hidden border border-purple-500/30">
+            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-600/30 to-blue-500/20 border border-purple-400/30 shadow-[0_0_30px_rgba(168,85,247,0.35)]">
+                <svg class="w-10 h-10 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                 </svg>
             </div>
 
             <div class="space-y-2">
-                <h2 class="text-2xl font-extrabold text-white tracking-tight">Design Submitted!</h2>
-                <p class="text-xs text-gray-400 leading-relaxed max-w-xs mx-auto">
-                    Your server design has been successfully submitted.
+                <h2 class="text-2xl font-bold text-white tracking-tight">Design Submitted</h2>
+                <p class="text-xs text-gray-400 leading-relaxed">
+                    Your layout and permissions have been transmitted through your Discord webhook.
                 </p>
             </div>
 
-            <div class="pt-2 border-t border-white/10 space-y-3">
-                <p class="text-[11px] font-semibold text-purple-300">
-                    Need to add the bot to your server?
-                </p>
-                <a href="https://discord.com/oauth2/authorize?client_id=1523696020406407178" 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   class="glass-btn glass-btn-primary w-full text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition inline-flex">
-                    <svg class="w-4 h-4 fill-current" viewBox="0 0 127.14 96.36" aria-hidden="true">
-                        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14c2.64-27.38-4.51-51.11-20.95-72.15ZM42.45,65.69C36.18,65.69,31,60,31,53S36,40.3,42.45,40.3C48.92,48.92,54,46,53.87,53,53.87,60,48.8,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.69,11.44-12.69C91.17,40.3,96.25,46,96.12,53,96.12,60,91.06,65.69,84.69,65.69Z"/>
-                    </svg>
-                    <span>Add Bot to Server</span>
-                </a>
-            </div>
-
-            <button onclick="resetApp()" class="glass-btn w-full text-gray-300 font-semibold py-3 rounded-2xl text-xs transition">
-                Return to Start
+            <button onclick="resetApp()" class="glass-btn w-full text-white font-semibold py-3.5 rounded-2xl text-xs transition">
+                🔄 Return to Start
             </button>
         </div>
     </main>
-
-    <footer class="relative z-10 text-center py-4 text-[10px] text-gray-500 font-mono">
-        &copy; 2026 Echo Infrastructure Studio. All rights reserved.
-    </footer>
 
     <script>
         let serverBlueprint = null;
         let activeCatIndex = 0;
         let activeChIndex = 0;
         let sortableInstance = null;
-        let isAuthenticated = false;
-        let currentUser = null;
-        let captchaToken = null;
 
         const DISCORD_PERMISSIONS = [
             { key: "view_channel", label: "View Channel" },
@@ -438,190 +259,58 @@
             { key: "manage_channels", label: "Manage Channel" }
         ];
 
-        // Sanitize URLs to prevent "The string did not match the expected pattern" error
-        function formatUrl(url) {
-            if (!url) return '';
-            let cleaned = url.trim();
-            if (!/^https?:\/\//i.test(cleaned)) {
-                return `https://${cleaned}`;
-            }
-            return cleaned;
-        }
-
-        // Sanitize Guild ID to digits only
-        function sanitizeGuildId(guildId) {
-            return (guildId || '').toString().trim().replace(/\D/g, '');
-        }
-
-        function onCaptchaSuccess(token) {
-            captchaToken = token;
-            validateForm();
-        }
-
-        function onCaptchaExpired() {
-            captchaToken = null;
-            validateForm();
-        }
-
-        async function checkAuth() {
-            try {
-                const res = await fetch('/api/auth/me', { credentials: 'include' });
-                if (res.ok) {
-                    const data = await res.json();
-                    
-                    if (data.authenticated) {
-                        isAuthenticated = true;
-                        currentUser = data.user;
-                        document.getElementById('login-btn').classList.add('hidden');
-                        document.getElementById('user-profile').classList.remove('hidden');
-                        document.getElementById('user-name').textContent = `@${data.user.username}`;
-                        
-                        if (data.user.avatar) {
-                            document.getElementById('user-avatar').src = `https://cdn.discordapp.com/avatars/${data.user.id}/${data.user.avatar}.png`;
-                        } else {
-                            document.getElementById('user-avatar').src = 'https://cdn.discordapp.com/embed/avatars/0.png';
-                        }
-
-                        document.getElementById('auth-warning').classList.add('hidden');
-                    } else {
-                        setUnauthenticated();
-                    }
-                } else {
-                    setUnauthenticated();
-                }
-            } catch (err) {
-                console.error("Auth check failed:", err);
-                setUnauthenticated();
-            }
-            validateForm();
-        }
-
-        function setUnauthenticated() {
-            isAuthenticated = false;
-            currentUser = null;
-            document.getElementById('login-btn').classList.remove('hidden');
-            document.getElementById('user-profile').classList.add('hidden');
-            document.getElementById('auth-warning').classList.remove('hidden');
-        }
-
         function setSeparator(char) {
             document.getElementById('separator-input').value = char;
-            validateForm();
         }
 
         function switchPage(page) {
-            const pages = ['builder', 'preview', 'success'];
-            pages.forEach(p => {
-                const el = document.getElementById(`page-${p}`);
-                if (el) el.classList.add('hidden');
-            });
-            const target = document.getElementById(`page-${page}`);
-            if (target) target.classList.remove('hidden');
+            document.getElementById('page-builder').classList.add('hidden');
+            document.getElementById('page-preview').classList.add('hidden');
+            document.getElementById('page-success').classList.add('hidden');
+            document.getElementById(`page-${page}`).classList.remove('hidden');
         }
 
         function validateForm() {
             const promptVal = document.getElementById('prompt-input').value.trim();
-            const guildIdVal = sanitizeGuildId(document.getElementById('guild-id-input').value);
-            const serverLinkVal = document.getElementById('server-link-input').value.trim();
-            
-            const isValid = (promptVal.length > 0 && guildIdVal.length > 0 && serverLinkVal.length > 0 && isAuthenticated && captchaToken !== null);
-            document.getElementById('btn-generate').disabled = !isValid;
+            const guildIdVal = document.getElementById('guild-id-input').value.trim();
+            document.getElementById('btn-generate').disabled = (promptVal.length === 0 || guildIdVal.length === 0);
         }
 
-        // GENERATE AI BLUEPRINT VIA BACKEND ENDPOINT
         async function handleGenerate() {
-            if (!isAuthenticated) {
-                alert("Please login with Discord to generate server layouts.");
-                return;
-            }
-
-            if (!captchaToken) {
-                alert("Please complete the CAPTCHA security verification.");
-                return;
-            }
-
-            const btn = document.getElementById('btn-generate');
-            const btnText = document.getElementById('btn-text');
-            btn.disabled = true;
-            btnText.textContent = "Generating AI Layout...";
-
             const promptText = document.getElementById('prompt-input').value.trim();
-            const rawGuildId = document.getElementById('guild-id-input').value;
-            const guildId = sanitizeGuildId(rawGuildId);
-            const serverLink = formatUrl(document.getElementById('server-link-input').value);
-            const separatorVal = document.getElementById('separator-input').value.trim() || '|';
-            const categoriesCountVal = document.getElementById('categories-count-input').value.trim();
-            const channelsCountVal = document.getElementById('channels-count-input').value.trim();
+            const guildId = document.getElementById('guild-id-input').value.trim();
+            const separatorVal = document.getElementById('separator-input').value.trim() || '-';
+            const btnText = document.getElementById('btn-text');
+            const btnEl = document.getElementById('btn-generate');
 
-            const requestData = {
-                prompt: promptText,
-                server_id: guildId,
-                target_guild_id: guildId,
-                server_link: serverLink,
-                separator: separatorVal,
-                preferred_categories: categoriesCountVal ? parseInt(categoriesCountVal, 10) : null,
-                preferred_channels: channelsCountVal ? parseInt(channelsCountVal, 10) : null,
-                captcha_token: captchaToken
-            };
+            if (btnText) btnText.textContent = "⚡ Analyzing Layout...";
+            if (btnEl) btnEl.disabled = true;
 
             try {
-                // Compatible primary and fallback route handling
-                let response = await fetch('/api/verify_and_generate', {
+                const res = await fetch('/api/generate-layout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify(requestData)
+                    body: JSON.stringify({ prompt: promptText, guild_id: guildId, separator: separatorVal })
                 });
 
-                if (response.status === 404) {
-                    response = await fetch('/api/generate-blueprint', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify(requestData)
-                    });
-                }
-
-                const result = await response.json();
-
-                if (!response.ok || result.success === false) {
-                    const errorMsg = result.message || result.error || "Unknown backend error occurred.";
-                    alert(`Generation Error (${response.status}): ${errorMsg}`);
-                    return;
-                }
-
-                serverBlueprint = result.layout || result.blueprint || result;
-                
-                if (!serverBlueprint.target_guild_id) serverBlueprint.target_guild_id = guildId;
-                if (!serverBlueprint.server_link) serverBlueprint.server_link = serverLink;
-                if (!serverBlueprint.separator) serverBlueprint.separator = separatorVal;
-                if (!serverBlueprint.prompt) serverBlueprint.prompt = promptText;
-
+                serverBlueprint = await res.json();
                 ensurePermissionsStructure();
-                activeCatIndex = 0;
-                activeChIndex = 0;
                 renderPreview();
                 switchPage('preview');
             } catch (err) {
-                console.error("AI Generation network/script error:", err);
-                alert(`Connection Failed: ${err.message || 'Unable to reach the server.'}`);
+                console.error("Layout generation error:", err);
             } finally {
-                btn.disabled = false;
-                btnText.textContent = "Generate Server Layout";
+                if (btnText) btnText.textContent = "⚡ Generate Server Layout";
+                validateForm();
             }
         }
 
         function ensurePermissionsStructure() {
             if (!serverBlueprint || !serverBlueprint.categories) return;
-            
-            if (!serverBlueprint.roles || serverBlueprint.roles.length === 0) {
-                serverBlueprint.roles = ["Admin", "Moderator", "Member"];
-            }
-
             serverBlueprint.categories.forEach(cat => {
                 (cat.channels || []).forEach(ch => {
                     if (!ch.permissions) ch.permissions = {};
-                    serverBlueprint.roles.forEach(role => {
+                    (serverBlueprint.roles || []).forEach(role => {
                         if (!ch.permissions[role]) {
                             ch.permissions[role] = {
                                 view_channel: true,
@@ -639,99 +328,57 @@
             });
         }
 
-        function getFormattedChannelDisplay(ch, separator) {
-            const emoji = (ch.emoji || '💬').trim();
-            const sep = (separator || '|').trim();
-            const name = (ch.name || '').trim();
-            
-            if (emoji && sep && name) {
-                return `${emoji} ${sep} ${name}`;
-            } else if (emoji && name) {
-                return `${emoji} ${name}`;
-            }
-            return name || emoji || 'channel';
-        }
-
         function renderPreview() {
             if (!serverBlueprint) return;
             document.getElementById('preview-server-name').textContent = serverBlueprint.server_name || "Community Blueprint";
 
+            // Roles Render
             const rolesContainer = document.getElementById('roles-list');
             rolesContainer.innerHTML = (serverBlueprint.roles || []).map((r, idx) => 
-                `<span class="px-3 py-1 rounded-full bg-purple-500/10 text-[10px] font-medium text-purple-200 border border-purple-500/30 flex items-center space-x-1.5 shadow-sm">
-                    <span>@ ${escapeHtml(r)}</span>
-                    <button onclick="removeRole(${idx})" class="hover:text-red-400 font-bold ml-1 transition">×</button>
+                `<span class="px-2.5 py-1 rounded-full bg-white/10 text-[10px] text-white border border-white/10 flex items-center space-x-1">
+                    <span>● ${escapeHtml(r)}</span>
+                    <button onclick="removeRole(${idx})" class="hover:text-red-400 ml-1">×</button>
                  </span>`
             ).join('');
 
+            // Select Role List Options
             const roleSelect = document.getElementById('perm-role-select');
             const currentSelectedRole = roleSelect.value;
             roleSelect.innerHTML = (serverBlueprint.roles || []).map(r => 
                 `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`
             ).join('');
-
             if (currentSelectedRole && (serverBlueprint.roles || []).includes(currentSelectedRole)) {
                 roleSelect.value = currentSelectedRole;
             }
 
+            // Categories & Channels Structure Render
             const listContainer = document.getElementById('discord-structure-list');
             listContainer.innerHTML = '';
 
-            if (!serverBlueprint.categories || serverBlueprint.categories.length === 0) {
-                listContainer.innerHTML = `<div class="text-center text-gray-500 py-8 text-xs">No categories created yet.</div>`;
-                return;
-            }
-
-            const sep = serverBlueprint.separator || '|';
-
-            serverBlueprint.categories.forEach((cat, catIdx) => {
+            (serverBlueprint.categories || []).forEach((cat, catIdx) => {
                 const catDiv = document.createElement('div');
-                catDiv.className = 'glass-card rounded-2xl p-3 space-y-2 border border-white/10';
+                catDiv.className = 'glass-card rounded-xl p-2.5 space-y-2 border border-white/5';
                 catDiv.setAttribute('data-id', catIdx);
 
                 let catHtml = `
-                    <div class="flex justify-between items-center py-1 px-1 border-b border-white/5 pb-2">
-                        <div class="flex items-center space-x-2 drag-handle">
-                            <span class="text-gray-500 text-xs">⋮⋮</span>
-                            <span class="font-bold text-purple-300 uppercase text-[10px] tracking-wider">${escapeHtml(cat.name)}</span>
-                        </div>
-                        <div class="flex items-center space-x-1.5">
-                            <button onclick="editCategoryName(${catIdx})" class="text-[9px] text-gray-400 hover:text-white font-bold px-1.5 py-0.5 rounded hover:bg-white/10 transition">
-                                Edit
-                            </button>
-                            <button onclick="deleteCategory(${catIdx})" class="text-[9px] text-red-400 hover:text-red-300 font-bold px-1.5 py-0.5 rounded hover:bg-red-500/10 transition">
-                                Delete
-                            </button>
-                            <button onclick="addChannel(${catIdx})" class="text-[9px] text-purple-300 hover:text-white font-bold px-2 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition">
-                                + Add Channel
-                            </button>
-                        </div>
+                    <div class="flex justify-between items-center drag-handle py-1">
+                        <span class="font-semibold text-purple-300 uppercase text-[10px]">⋮⋮ ${escapeHtml(cat.name)}</span>
+                        <button onclick="addChannel(${catIdx})" class="text-[9px] text-purple-400 hover:text-purple-300 font-semibold px-2 py-0.5 rounded bg-purple-500/10">
+                            + Add Channel
+                        </button>
                     </div>
                 `;
 
-                if (!cat.channels || cat.channels.length === 0) {
-                    catHtml += `<div class="text-[10px] text-gray-500 italic py-1 px-3">No channels in this category.</div>`;
-                } else {
-                    cat.channels.forEach((ch, chIdx) => {
-                        const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
-                        const activeStyle = isSelected 
-                            ? "bg-purple-500/25 text-white font-semibold border border-purple-500/40 shadow-inner" 
-                            : "text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent";
-                        
-                        const channelDisplay = getFormattedChannelDisplay(ch, sep);
-
-                        catHtml += `
-                            <div onclick="selectChannel(${catIdx}, ${chIdx})" class="group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all text-xs ${activeStyle}">
-                                <div class="flex items-center space-x-2 truncate">
-                                    <span class="truncate font-mono">${escapeHtml(channelDisplay)}</span>
-                                </div>
-                                <button onclick="deleteChannel(event, ${catIdx}, ${chIdx})" class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 font-bold text-xs px-1 transition">
-                                    ×
-                                </button>
-                            </div>
-                        `;
-                    });
-                }
+                (cat.channels || []).forEach((ch, chIdx) => {
+                    const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
+                    const activeStyle = isSelected ? "bg-purple-500/20 text-white font-semibold border border-purple-500/30" : "text-gray-400 hover:text-white hover:bg-white/5";
+                    catHtml += `
+                        <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg cursor-pointer transition text-xs ${activeStyle}">
+                            <span>${escapeHtml(ch.emoji || '#')}</span>
+                            <span>${escapeHtml(ch.name)}</span>
+                        </div>
+                    `;
+                });
 
                 catDiv.innerHTML = catHtml;
                 listContainer.appendChild(catDiv);
@@ -741,6 +388,7 @@
             loadEditorValues();
         }
 
+        // Initialize SortableJS on Category List
         function initSortable() {
             const listContainer = document.getElementById('discord-structure-list');
             if (sortableInstance) sortableInstance.destroy();
@@ -750,7 +398,6 @@
                 animation: 150,
                 ghostClass: 'sortable-ghost',
                 onEnd: function (evt) {
-                    if (evt.oldIndex === evt.newIndex) return;
                     const movedItem = serverBlueprint.categories.splice(evt.oldIndex, 1)[0];
                     serverBlueprint.categories.splice(evt.newIndex, 0, movedItem);
                     activeCatIndex = evt.newIndex;
@@ -762,97 +409,45 @@
         function addRole() {
             if (!serverBlueprint) return;
             const roleName = prompt("Enter new role name:", "New Role");
-            if (!roleName || !roleName.trim()) return;
+            if (!roleName) return;
             if (!serverBlueprint.roles) serverBlueprint.roles = [];
-            
-            const trimmed = roleName.trim();
-            if (!serverBlueprint.roles.includes(trimmed)) {
-                serverBlueprint.roles.push(trimmed);
-                ensurePermissionsStructure();
-                renderPreview();
-            }
+            serverBlueprint.roles.push(roleName.trim());
+            ensurePermissionsStructure();
+            renderPreview();
         }
 
         function removeRole(idx) {
             if (!serverBlueprint || !serverBlueprint.roles) return;
-            const removedRole = serverBlueprint.roles[idx];
             serverBlueprint.roles.splice(idx, 1);
-
-            (serverBlueprint.categories || []).forEach(cat => {
-                (cat.channels || []).forEach(ch => {
-                    if (ch.permissions && ch.permissions[removedRole]) {
-                        delete ch.permissions[removedRole];
-                    }
-                });
-            });
-
             renderPreview();
         }
 
         function addCategory() {
             if (!serverBlueprint) return;
             const catName = prompt("Enter new category name:", "NEW CATEGORY");
-            if (!catName || !catName.trim()) return;
-            
-            if (!serverBlueprint.categories) serverBlueprint.categories = [];
-            
+            if (!catName) return;
+            const sep = serverBlueprint.separator || '-';
             serverBlueprint.categories.push({
-                name: catName.trim().toUpperCase(),
-                channels: [{ emoji: "💬", name: "general-chat", type: "text", topic: "General discussion", permissions: {} }]
+                name: catName.toUpperCase(),
+                channels: [{ emoji: "💬", name: `general${sep}chat`, type: "text", topic: "General discussion", permissions: {} }]
             });
             ensurePermissionsStructure();
-            activeCatIndex = serverBlueprint.categories.length - 1;
-            activeChIndex = 0;
-            renderPreview();
-        }
-
-        function editCategoryName(catIdx) {
-            if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
-            const currentCat = serverBlueprint.categories[catIdx];
-            const newName = prompt("Edit category name:", currentCat.name);
-            if (!newName || !newName.trim()) return;
-            
-            currentCat.name = newName.trim().toUpperCase();
-            renderPreview();
-        }
-
-        function deleteCategory(catIdx) {
-            if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
-            if (!confirm(`Are you sure you want to delete "${serverBlueprint.categories[catIdx].name}" and all its channels?`)) return;
-            
-            serverBlueprint.categories.splice(catIdx, 1);
-            activeCatIndex = Math.max(0, catIdx - 1);
-            activeChIndex = 0;
             renderPreview();
         }
 
         function addChannel(catIdx) {
             if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
             const chName = prompt("Enter new channel name:", "new-channel");
-            if (!chName || !chName.trim()) return;
-            
-            const newIndex = serverBlueprint.categories[catIdx].channels.push({
+            if (!chName) return;
+            const sep = serverBlueprint.separator || '-';
+            serverBlueprint.categories[catIdx].channels.push({
                 emoji: "💬",
-                name: chName.trim().toLowerCase().replace(/\s+/g, '-'),
+                name: chName.toLowerCase().replace(/\s+/g, sep),
                 type: "text",
                 topic: "",
                 permissions: {}
-            }) - 1;
-            
+            });
             ensurePermissionsStructure();
-            activeCatIndex = catIdx;
-            activeChIndex = newIndex;
-            renderPreview();
-        }
-
-        function deleteChannel(event, catIdx, chIdx) {
-            event.stopPropagation();
-            if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
-            
-            serverBlueprint.categories[catIdx].channels.splice(chIdx, 1);
-            if (activeCatIndex === catIdx) {
-                activeChIndex = Math.max(0, chIdx - 1);
-            }
             renderPreview();
         }
 
@@ -867,10 +462,7 @@
             const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
             if (!ch) return;
 
-            const sep = serverBlueprint.separator || '|';
-            const displayTitle = getFormattedChannelDisplay(ch, sep);
-
-            document.getElementById('editor-title').textContent = `Channel — ${displayTitle}`;
+            document.getElementById('editor-title').textContent = `Channel — #${ch.name}`;
             document.getElementById('edit-channel-emoji').value = ch.emoji || '';
             document.getElementById('edit-channel-name').value = ch.name || '';
             document.getElementById('edit-channel-type').value = ch.type || 'text';
@@ -888,11 +480,6 @@
             ch.name = document.getElementById('edit-channel-name').value;
             ch.type = document.getElementById('edit-channel-type').value;
             ch.topic = document.getElementById('edit-channel-topic').value;
-            
-            const sep = serverBlueprint.separator || '|';
-            const displayTitle = getFormattedChannelDisplay(ch, sep);
-
-            document.getElementById('editor-title').textContent = `Channel — ${displayTitle}`;
             renderPreview();
         }
 
@@ -910,37 +497,18 @@
             }
 
             const permGrid = document.getElementById('permissions-toggle-grid');
-            permGrid.innerHTML = '';
-
-            DISCORD_PERMISSIONS.forEach(p => {
+            permGrid.innerHTML = DISCORD_PERMISSIONS.map(p => {
                 const isChecked = ch.permissions[selectedRole][p.key] !== false;
-                const permRow = document.createElement('div');
-                permRow.className = 'flex items-center justify-between p-2 rounded-xl bg-white/5 text-[10px] border border-white/5';
-                
-                const label = document.createElement('span');
-                label.className = 'text-gray-300 font-medium';
-                label.textContent = p.label;
-
-                const switchLabel = document.createElement('label');
-                switchLabel.className = 'relative inline-flex items-center cursor-pointer';
-
-                const input = document.createElement('input');
-                input.type = 'checkbox';
-                input.checked = isChecked;
-                input.className = 'sr-only peer';
-                input.addEventListener('change', (e) => {
-                    togglePermission(selectedRole, p.key, e.target.checked);
-                });
-
-                const switchDiv = document.createElement('div');
-                switchDiv.className = "w-7 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-600";
-
-                switchLabel.appendChild(input);
-                switchLabel.appendChild(switchDiv);
-                permRow.appendChild(label);
-                permRow.appendChild(switchLabel);
-                permGrid.appendChild(permRow);
-            });
+                return `
+                    <div class="flex items-center justify-between p-1.5 rounded-lg bg-white/5 text-[10px]">
+                        <span class="text-gray-300 font-medium">${p.label}</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="togglePermission('${selectedRole}', '${p.key}', this.checked)" class="sr-only peer">
+                            <div class="w-7 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+                `;
+            }).join('');
         }
 
         function togglePermission(role, permKey, isEnabled) {
@@ -954,76 +522,34 @@
 
         async function submitDesign() {
             const btn = document.getElementById('btn-submit-design');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = "SUBMITTING...";
-            }
+            if (btn) btn.disabled = true;
 
             try {
-                let res = await fetch('/api/submit-design', {
+                const res = await fetch('/api/submit-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        blueprint: serverBlueprint,
-                        captcha_token: captchaToken
-                    })
+                    body: JSON.stringify(serverBlueprint)
                 });
-
-                if (res.status === 404) {
-                    res = await fetch('/api/verify_and_generate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            prompt: serverBlueprint.prompt || "Discord Layout",
-                            server_id: serverBlueprint.target_guild_id,
-                            server_link: serverBlueprint.server_link,
-                            separator: serverBlueprint.separator,
-                            captcha_token: captchaToken
-                        })
-                    });
-                }
-                
                 const responseData = await res.json();
-
-                if (!res.ok || responseData.success === false) {
-                    alert(responseData.error || responseData.message || "Submission failed.");
-                    return;
-                }
-                
-                switchPage('success');
+                console.log('Submission Response:', responseData);
             } catch (err) {
-                console.error("Submission error:", err);
-                alert("An error occurred while submitting the design.");
+                console.error("Webhook submission error:", err);
             } finally {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = "SUBMIT DESIGN";
-                }
+                if (btn) btn.disabled = false;
+                switchPage('success');
             }
         }
 
         function resetApp() {
             document.getElementById('prompt-input').value = '';
             document.getElementById('guild-id-input').value = '';
-            document.getElementById('server-link-input').value = '';
-            document.getElementById('categories-count-input').value = '';
-            document.getElementById('channels-count-input').value = '';
             serverBlueprint = null;
-            captchaToken = null;
-            if (window.grecaptcha) window.grecaptcha.reset();
             validateForm();
             switchPage('builder');
         }
 
         function escapeHtml(str) {
-            return String(str || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
         function downloadBuildFile() {
@@ -1031,13 +557,11 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(serverBlueprint, null, 2));
             const anchor = document.createElement('a');
             anchor.setAttribute("href", dataStr);
-            anchor.setAttribute("download", `blueprint_${serverBlueprint.target_guild_id || 'layout'}.json`);
+            anchor.setAttribute("download", `blueprint_${serverBlueprint.target_guild_id}.json`);
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
         }
-
-        checkAuth();
     </script>
 </body>
 </html>
