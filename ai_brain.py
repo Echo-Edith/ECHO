@@ -30,17 +30,17 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 # Discord OAuth2 Configurations
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
-DISCORD_API_BASE_URL = "https://discord.com/api/v10"
+DISCORD_API_BASE_URL = "[https://discord.com/api/v10](https://discord.com/api/v10)"
 
 # Google reCAPTCHA Configuration
 RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY", "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe").strip()
 
 # Base Web Builder URL
-WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").strip().rstrip('/')
+WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "[https://echo-dashboard-qn39.onrender.com](https://echo-dashboard-qn39.onrender.com)").strip().rstrip('/')
 
 # Webhook Configurations
 DESIGN_WEBHOOK_URL = os.environ.get("DESIGN_WEBHOOK_URL", os.environ.get("WEBHOOK_URL", "")).strip()
-SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", os.environ.get("SYSTEM_LOG_WEBHOOK_URL", DESIGN_WEBHOOK_URL)).strip()
+SYSTEM_LOG_WEBHOOK_URL = os.environ.get("SYSTEM_LOG_WEBHOOK_URL", DESIGN_WEBHOOK_URL).strip()
 
 # Storage Directory Setup for JSON Blueprints
 BLUEPRINT_STORAGE = {}
@@ -137,7 +137,7 @@ def verify_google_recaptcha(token: str) -> bool:
         return True
     try:
         res = requests.post(
-            "https://www.google.com/recaptcha/api/siteverify",
+            "[https://www.google.com/recaptcha/api/siteverify](https://www.google.com/recaptcha/api/siteverify)",
             data={"secret": RECAPTCHA_SECRET_KEY, "response": token},
             timeout=5
         )
@@ -260,7 +260,7 @@ def discord_callback():
         session['user'] = {
             'id': user_id,
             'username': username,
-            'avatar_url': f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png" if avatar else "https://cdn.discordapp.com/embed/avatars/0.png"
+            'avatar_url': f"[https://cdn.discordapp.com/avatars/](https://cdn.discordapp.com/avatars/){user_id}/{avatar}.png" if avatar else "[https://cdn.discordapp.com/embed/avatars/0.png](https://cdn.discordapp.com/embed/avatars/0.png)"
         }
         return redirect('/')
     except Exception as e:
@@ -346,7 +346,13 @@ def _process_ai_layout_generation(data: dict) -> dict:
                     response_mime_type="application/json"
                 )
             )
-            layout_data = json.loads(response.text)
+            raw_text = response.text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:-3].strip()
+            elif raw_text.startswith("```"):
+                raw_text = raw_text[3:-3].strip()
+
+            layout_data = json.loads(raw_text)
         except Exception as e:
             logger.error("[GEMINI ERROR] %s", e, exc_info=True)
 
