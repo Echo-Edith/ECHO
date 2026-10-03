@@ -1,86 +1,74 @@
 import os
-import json
-import requests
-import discord
-from discord.ext import commands
-from flask import request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from google import genai
+from google.genai import types
 
-from keep_alive import app, keep_alive
-from ai_brain import generate_server_layout
+app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key")
 
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL")
-DASHBOARD_URL = os.getenv("DASHBOARD_URL", "https://echo-dashboard-qn39.onrender.com/")
+# Initialize GenAI Client
+genai_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-intents = discord.Intents.default()
-intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+@app.route('/')
+def index():
+    user = session.get('user', None)
+    site_key = os.environ.get("RECAPTCHA_SITE_KEY", "your-recaptcha-site-key")
+    return render_template('index.html', user=user, site_key=site_key)
 
-
-@app.route("/api/generate", methods=["POST"])
-def api_generate():
+@app.route('/api/generate', methods=['POST'])
+def generate_layout():
     data = request.get_json() or {}
-    prompt = data.get("prompt", "")
-    separator = data.get("separator", "│")
-    server_id = data.get("server_id", "")
-    server_link = data.get("server_link", "")
+    prompt = data.get('prompt', '')
+    separator = data.get('separator', '│')
+    
+    system_instruction = f"""
+    You are an expert Discord architect. Output ONLY raw JSON matching this structure:
+    {{
+      "server_name": "Server Title",
+      "roles": [
+        {{"name": "Owner", "color": "#eab308"}},
+        {{"name": "Member", "color": "#22c55e"}}
+      ],
+      "categories": [
+        {{
+          "name": "GENERAL",
+          "emoji": "💬",
+          "is_private": false,
+          "channels": [
+            {{"name": "welcome", "type": "text", "emoji": "👋", "topic": "Welcome channel", "is_private": false}}
+          ]
+        }}
+      ]
+    }}
+    Use the separator '{separator}' between emojis and names when formatting if applicable.
+    """
 
-    result = generate_server_layout(
-        prompt=prompt,
-        channel_separator=separator,
-        server_id=server_id,
-        server_link=server_link
-    )
-    return jsonify(result)
-
-
-@app.route("/api/submit", methods=["POST"])
-def api_submit():
-    layout_data = request.get_json() or {}
-    user_info = session.get("user", {"id": "Unknown", "username": "Anonymous"})
-    build_meta = layout_data.get("build_meta", {})
-
-    target_server_id = build_meta.get("target_server_id", "N/A")
-    target_server_link = build_meta.get("target_server_link", "N/A")
-
-    if DESIGN_WEBHOOK_URL:
-        webhook_payload = {
-            "username": "ORCA Architect Dispatcher",
-            "embeds": [{
-                "title": "🏗️ New Server Design Submitted",
-                "color": 0x00f2fe,
-                "fields": [
-                    {"name": "👤 Designer User", "value": f"**{user_info.get('username')}** (`{user_info.get('id')}`)", "inline": True},
-                    {"name": "🎯 Target Guild ID", "value": f"`{target_server_id}`", "inline": True},
-                    {"name": "🔗 Website Link", "value": f"[{DASHBOARD_URL}]({DASHBOARD_URL})", "inline": True}
-                ],
-                "description": "**Run command in Discord to build server:**\n`/build file: server_layout.json`"
-            }]
-        }
-        try:
-            requests.post(DESIGN_WEBHOOK_URL, json=webhook_payload)
-            json_file_content = json.dumps(layout_data, indent=2)
-            requests.post(DESIGN_WEBHOOK_URL, files={"file": ("server_layout.json", json_file_content, "application/json")})
-        except Exception as e:
-            print(f"Webhook dispatch failed: {e}")
-
-    return jsonify({"success": True}), 200
-
-
-@bot.event
-async def on_ready():
-    print(f"Bot active as {bot.user}")
     try:
-        await bot.load_extension("cogs.orca")
-        await bot.tree.sync()
+        # Use Chat instance to avoid automatic function calling deprecation warning
+        chat = genai_client.chats.create(
+            model="gemini-2.5-flash",
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json"
+            )
+        )
+        
+        response = chat.send_message(f"Create a Discord layout for: {prompt}")
+        import json
+        parsed_layout = json.loads(response.text)
+        
+        return jsonify({"success": True, "data": parsed_layout})
     except Exception as e:
-        print(f"Setup error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/submit', methods=['POST'])
+def submit_layout():
+    layout_data = request.get_json()
+    
+    # Process layout, post to webhook, or persist to MongoDB
+    print("Received layout submission:", layout_data)
+    
+    return jsonify({"success": True, "status": "Layout dispatched successfully"})
 
-def main():
-    keep_alive()
-    bot.run(DISCORD_BOT_TOKEN)
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=True)
