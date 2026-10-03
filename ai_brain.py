@@ -35,6 +35,14 @@ class ServerLayoutSchema(BaseModel):
     categories: List[CategoryConfig] = Field(description="List of categories in structured order")
 
 
+# --- GEMINI MODELS FALLBACK SEQUENCE ---
+GEMINI_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash"
+]
+
+
 # --- HELPER FUNCTIONS ---
 def strip_emojis(text: str) -> str:
     """Removes emojis from channel name string to prevent duplicate visual rendering."""
@@ -76,7 +84,6 @@ async def send_webhook_log(
     mention = f"<@{user_id}>" if user_id != "0" else "@unknown"
     account_age = calculate_account_age(user_id) if user_id != "0" else "Unknown"
 
-    # User Information Block (1 Info Per Line)
     user_details_value = (
         f"**User:** {mention}\n"
         f"**Username:** `{username}`\n"
@@ -100,7 +107,6 @@ async def send_webhook_log(
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
-    # Append additional payload metadata
     for key, val in action_details.items():
         embed["fields"].append({
             "name": f"📌 {key}",
@@ -131,7 +137,7 @@ async def generate_server_layout(
     user_info: Optional[Dict[str, Any]] = None,
     webhook_url: Optional[str] = None
 ) -> dict:
-    """Uses Gemini AI to convert natural language prompt into a structured Discord Server Layout."""
+    """Uses Gemini AI to convert natural language prompt into a structured Discord Server Layout, with fallback for 503 errors."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is not set.")
@@ -156,75 +162,92 @@ async def generate_server_layout(
     Apply the separator character '{channel_separator}' appropriately where needed for visual layout formatting.
     """
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=user_query,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-                response_schema=ServerLayoutSchema,
-                temperature=0.7,
-            ),
-        )
+    layout_data = None
+    last_error = None
+    successful_model = None
 
-        layout_data = json.loads(response.text)
-
-        sep = channel_separator.strip() if channel_separator else ""
-        for category in layout_data.get("categories", []):
-            for channel in category.get("channels", []):
-                clean_name = strip_emojis(channel.get("name", ""))
-                emoji = channel.get("emoji", "💬")
-                channel["name"] = clean_name
-
-                if sep and emoji:
-                    channel["formatted_name"] = f"{emoji} {sep} {clean_name}"
-                elif emoji:
-                    channel["formatted_name"] = f"{emoji} {clean_name}"
-                else:
-                    channel["formatted_name"] = clean_name
-
-        layout_data["build_meta"] = {
-            "channel_separator": channel_separator,
-            "target_server_id": server_id.strip(),
-            "target_server_link": server_link.strip(),
-            "prompt_used": prompt
-        }
-
-        # Dispatch Webhook Log if User & Webhook Info is provided
-        if webhook_url and user_info:
-            await send_webhook_log(
-                webhook_url=webhook_url,
-                title="⚡ AI Server Layout Generated",
-                user_info=user_info,
-                action_details={
-                    "Prompt": prompt,
-                    "Target Server ID": server_id or "Not Provided",
-                    "Categories Built": len(layout_data.get("categories", [])),
-                    "Roles Created": len(layout_data.get("roles", []))
-                },
-                color=0x8b5cf6
+    # Fallback Loop through Gemini Models (Primary -> Fallback 1 -> Fallback 2)
+    for model_name in GEMINI_MODELS:
+        try:
+            print(f"Attempting generation using model: {model_name}...")
+            response = client.models.generate_content(
+                model=model_name,
+                contents=user_query,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                    response_schema=ServerLayoutSchema,
+                    temperature=0.7,
+                ),
             )
 
-        return {
-            "success": True,
-            "data": layout_data
-        }
+            layout_data = json.loads(response.text)
+            successful_model = model_name
+            break  # Success! Break out of the loop
 
-    except Exception as e:
+        except Exception as e:
+            last_error = e
+            err_msg = str(e)
+            print(f"[{model_name}] Generation failed: {err_msg}. Retrying with next model...")
+            continue
+
+    if not layout_data:
         if webhook_url and user_info:
             await send_webhook_log(
                 webhook_url=webhook_url,
-                title="⚠️ AI Generation Failed",
+                title="⚠️ AI Generation Failed (All Models)",
                 user_info=user_info,
                 action_details={
                     "Prompt": prompt,
-                    "Error": str(e)
+                    "Error": str(last_error)
                 },
                 color=0xf43f5e
             )
-
         return {
             "success": False,
-            "error": str(e)
+            "error": f"All Gemini models failed. Last error: {str(last_error)}"
         }
+
+    # Process layout formatting
+    sep = channel_separator.strip() if channel_separator else ""
+    for category in layout_data.get("categories", []):
+        for channel in category.get("channels", []):
+            clean_name = strip_emojis(channel.get("name", ""))
+            emoji = channel.get("emoji", "💬")
+            channel["name"] = clean_name
+
+            if sep and emoji:
+                channel["formatted_name"] = f"{emoji} {sep} {clean_name}"
+            elif emoji:
+                channel["formatted_name"] = f"{emoji} {clean_name}"
+            else:
+                channel["formatted_name"] = clean_name
+
+    layout_data["build_meta"] = {
+        "channel_separator": channel_separator,
+        "target_server_id": server_id.strip(),
+        "target_server_link": server_link.strip(),
+        "prompt_used": prompt,
+        "model_used": successful_model
+    }
+
+    # Dispatch Webhook Log on Success
+    if webhook_url and user_info:
+        await send_webhook_log(
+            webhook_url=webhook_url,
+            title="⚡ AI Server Layout Generated",
+            user_info=user_info,
+            action_details={
+                "Prompt": prompt,
+                "Model Used": successful_model,
+                "Target Server ID": server_id or "Not Provided",
+                "Categories Built": len(layout_data.get("categories", [])),
+                "Roles Created": len(layout_data.get("roles", []))
+            },
+            color=0x8b5cf6
+        )
+
+    return {
+        "success": True,
+        "data": layout_data
+    }
