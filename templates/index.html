@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Layout Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SortableJS library for drag-and-drop -->
+    <!-- SortableJS library for robust drag-and-drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         body {
@@ -89,54 +89,8 @@
 
     <div class="glass-aura"></div>
 
-    <!-- 0. LANDING PAGE (DISCORD LOGIN & RECAPTCHA) -->
-    <main id="page-landing" class="relative z-10 w-full max-w-md mx-auto space-y-6 my-auto">
-        <div class="text-center space-y-2">
-            <h1 class="text-3xl font-extrabold tracking-tight text-white">Discord Infrastructure</h1>
-            <p class="text-xs text-gray-400">Authenticate and verify to access the generator.</p>
-        </div>
-
-        <div class="glass-card rounded-3xl p-6 space-y-6">
-            <!-- Discord Auth State -->
-            <div id="discord-auth-box" class="space-y-3">
-                <button id="btn-discord-login" onclick="simulateDiscordLogin()" class="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3.5 rounded-2xl text-xs shadow-lg flex items-center justify-center space-x-2 transition">
-                    <svg class="w-5 h-5 fill-current" viewBox="0 0 127.14 96.36">
-                        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a73.57,73.57,0,0,0,64.3,0c.87.68,1.76,1.36,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14c2.64-27.38-4.51-51.11-18.93-72.12ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.87,53,48.81,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.1,53,91.08,65.69,84.69,65.69Z"/>
-                    </svg>
-                    <span>Connect with Discord</span>
-                </button>
-                <div id="discord-user-badge" class="hidden flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center font-bold text-xs">A</div>
-                        <div class="text-left">
-                            <p id="discord-username" class="text-xs font-semibold text-white">Authorized User</p>
-                            <p class="text-[9px] text-emerald-400">● Authenticated</p>
-                        </div>
-                    </div>
-                    <span class="text-xs text-gray-400">✓</span>
-                </div>
-            </div>
-
-            <!-- Simulated reCAPTCHA Widget -->
-            <div class="p-3 bg-[#222222] border border-[#3c3c3c] rounded-xl flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <input type="checkbox" id="recaptcha-check" onchange="toggleCaptcha(this.checked)" class="w-6 h-6 rounded border-gray-600 accent-purple-600 cursor-pointer">
-                    <label for="recaptcha-check" class="text-xs text-gray-300 cursor-pointer select-none">I'm not a robot</label>
-                </div>
-                <div class="flex flex-col items-center justify-center">
-                    <svg class="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2A10 10 0 1 0 22 12 10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg>
-                    <span class="text-[8px] text-gray-500">reCAPTCHA</span>
-                </div>
-            </div>
-
-            <button id="btn-enter-app" disabled onclick="switchPage('builder')" class="glass-btn glass-btn-primary w-full disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl text-xs transition">
-                Enter Builder →
-            </button>
-        </div>
-    </main>
-
     <!-- 1. BUILDER FORM -->
-    <main id="page-builder" class="hidden relative z-10 w-full max-w-xl mx-auto space-y-6 my-auto">
+    <main id="page-builder" class="relative z-10 w-full max-w-xl mx-auto space-y-6 my-auto">
         <div class="text-center space-y-1">
             <h1 class="text-3xl font-extrabold tracking-tight text-white">Discord Infrastructure</h1>
             <p class="text-xs text-gray-400">Fill in parameters to initialize AI schema parsing.</p>
@@ -165,7 +119,7 @@
                     <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
                         Separator
                     </label>
-                    <input type="text" id="separator-input" maxlength="3" value="|" oninput="validateForm()"
+                    <input type="text" id="separator-input" maxlength="3" value="-" oninput="validateForm()"
                         class="glass-input w-full rounded-2xl p-3.5 text-xs text-center font-bold transition" />
                 </div>
             </div>
@@ -293,8 +247,6 @@
         let activeCatIndex = 0;
         let activeChIndex = 0;
         let sortableInstance = null;
-        let isDiscordLoggedIn = false;
-        let isCaptchaVerified = false;
 
         const DISCORD_PERMISSIONS = [
             { key: "view_channel", label: "View Channel" },
@@ -307,29 +259,11 @@
             { key: "manage_channels", label: "Manage Channel" }
         ];
 
-        function simulateDiscordLogin() {
-            isDiscordLoggedIn = true;
-            document.getElementById('btn-discord-login').classList.add('hidden');
-            document.getElementById('discord-user-badge').classList.remove('hidden');
-            checkLandingVerification();
-        }
-
-        function toggleCaptcha(checked) {
-            isCaptchaVerified = checked;
-            checkLandingVerification();
-        }
-
-        function checkLandingVerification() {
-            const btn = document.getElementById('btn-enter-app');
-            btn.disabled = !(isDiscordLoggedIn && isCaptchaVerified);
-        }
-
         function setSeparator(char) {
             document.getElementById('separator-input').value = char;
         }
 
         function switchPage(page) {
-            document.getElementById('page-landing').classList.add('hidden');
             document.getElementById('page-builder').classList.add('hidden');
             document.getElementById('page-preview').classList.add('hidden');
             document.getElementById('page-success').classList.add('hidden');
@@ -342,17 +276,10 @@
             document.getElementById('btn-generate').disabled = (promptVal.length === 0 || guildIdVal.length === 0);
         }
 
-        function getFormattedChannelDisplay(emoji, name, separator) {
-            const sep = separator || document.getElementById('separator-input').value.trim() || '|';
-            const cleanEmoji = (emoji || '💬').trim();
-            const cleanName = (name || '').trim();
-            return `${cleanEmoji} ${sep} ${cleanName}`;
-        }
-
         async function handleGenerate() {
             const promptText = document.getElementById('prompt-input').value.trim();
             const guildId = document.getElementById('guild-id-input').value.trim();
-            const separatorVal = document.getElementById('separator-input').value.trim() || '|';
+            const separatorVal = document.getElementById('separator-input').value.trim() || '-';
             const btnText = document.getElementById('btn-text');
             const btnEl = document.getElementById('btn-generate');
 
@@ -367,7 +294,6 @@
                 });
 
                 serverBlueprint = await res.json();
-                serverBlueprint.separator = separatorVal;
                 ensurePermissionsStructure();
                 renderPreview();
                 switchPage('preview');
@@ -446,12 +372,10 @@
                 (cat.channels || []).forEach((ch, chIdx) => {
                     const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
                     const activeStyle = isSelected ? "bg-purple-500/20 text-white font-semibold border border-purple-500/30" : "text-gray-400 hover:text-white hover:bg-white/5";
-                    
-                    const channelLabel = getFormattedChannelDisplay(ch.emoji, ch.name, serverBlueprint.separator);
-
                     catHtml += `
                         <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg cursor-pointer transition text-xs ${activeStyle}">
-                            <span>${escapeHtml(channelLabel)}</span>
+                            <span>${escapeHtml(ch.emoji || '#')}</span>
+                            <span>${escapeHtml(ch.name)}</span>
                         </div>
                     `;
                 });
@@ -502,9 +426,10 @@
             if (!serverBlueprint) return;
             const catName = prompt("Enter new category name:", "NEW CATEGORY");
             if (!catName) return;
+            const sep = serverBlueprint.separator || '-';
             serverBlueprint.categories.push({
                 name: catName.toUpperCase(),
-                channels: [{ emoji: "💬", name: "general-chat", type: "text", topic: "General discussion", permissions: {} }]
+                channels: [{ emoji: "💬", name: `general${sep}chat`, type: "text", topic: "General discussion", permissions: {} }]
             });
             ensurePermissionsStructure();
             renderPreview();
@@ -514,9 +439,10 @@
             if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
             const chName = prompt("Enter new channel name:", "new-channel");
             if (!chName) return;
+            const sep = serverBlueprint.separator || '-';
             serverBlueprint.categories[catIdx].channels.push({
                 emoji: "💬",
-                name: chName.toLowerCase().replace(/\s+/g, '-'),
+                name: chName.toLowerCase().replace(/\s+/g, sep),
                 type: "text",
                 topic: "",
                 permissions: {}
@@ -619,7 +545,7 @@
             document.getElementById('guild-id-input').value = '';
             serverBlueprint = null;
             validateForm();
-            switchPage('landing');
+            switchPage('builder');
         }
 
         function escapeHtml(str) {
@@ -631,7 +557,7 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(serverBlueprint, null, 2));
             const anchor = document.createElement('a');
             anchor.setAttribute("href", dataStr);
-            anchor.setAttribute("download", `blueprint_${serverBlueprint.target_guild_id || 'server'}.json`);
+            anchor.setAttribute("download", `blueprint_${serverBlueprint.target_guild_id}.json`);
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
