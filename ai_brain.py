@@ -1,20 +1,23 @@
 import os
 import json
 import re
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
+import aiohttp
 
 
+# --- SCHEMAS ---
 class RoleConfig(BaseModel):
     name: str = Field(description="Role name, e.g. Owner, Admin, VIP, or Member")
-    color: str = Field(default="#5865f2", description="Hex color code for the role, e.g. #f1c40f")
+    color: str = Field(default="#8b5cf6", description="Hex color code for the role, e.g. #f1c40f")
 
 
 class ChannelConfig(BaseModel):
     name: str = Field(description="Clean channel name formatted for Discord without leading emojis, e.g. mod-chat or general")
-    type: str = Field(description="Channel type: 'text' or 'voice'")
+    type: str = Field(description="Channel type: 'text', 'voice', or 'announcement'")
     topic: Optional[str] = Field(default="", description="Brief channel topic/purpose")
     emoji: Optional[str] = Field(default="💬", description="Single emoji representing the channel")
     read_only: bool = Field(default=False, description="True if only admins/bots should speak (e.g. announcements/rules)")
@@ -32,16 +35,101 @@ class ServerLayoutSchema(BaseModel):
     categories: List[CategoryConfig] = Field(description="List of categories in structured order")
 
 
+# --- HELPER FUNCTIONS ---
 def strip_emojis(text: str) -> str:
     """Removes emojis from channel name string to prevent duplicate visual rendering."""
-    return re.sub(r'[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u2600-\u26FF\u2700-\u27BF]', '', text).strip()
+    return re.sub(r'[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u2600-\u26FF\u2700-\u27BF]', '', text or '').strip()
 
 
-def generate_server_layout(
+def calculate_account_age(discord_id: str) -> str:
+    """Calculates Discord account age in days/years from a snowflake ID."""
+    try:
+        snowflake = int(discord_id)
+        # Discord epoch: 2015-01-01T00:00:00Z (1420070400000 ms)
+        timestamp_ms = (snowflake >> 22) + 1420070400000
+        created_at = datetime.fromtimestamp(timestamp_ms / 1000.0, tz=timezone.utc)
+        now = datetime.now(timezone.utc)
+        
+        days_old = (now - created_at).days
+        if days_old >= 365:
+            years = days_old // 365
+            rem_days = days_old % 365
+            return f"{years} yr{'' if years == 1 else 's'}, {rem_days} day{'' if rem_days == 1 else 's'} ({days_old} days total)"
+        return f"{days_old} day{'' if days_old == 1 else 's'}"
+    except Exception:
+        return "Unknown"
+
+
+async def send_webhook_log(
+    webhook_url: str,
+    title: str,
+    user_info: Dict[str, Any],
+    action_details: Dict[str, Any],
+    color: int = 0x8b5cf6
+):
+    """Dispatches a structured, glass-themed webhook log to Discord with clear user metrics."""
+    if not webhook_url:
+        return
+
+    user_id = str(user_info.get("id", "0"))
+    username = user_info.get("username", "Unknown User")
+    mention = f"<@{user_id}>" if user_id != "0" else "@unknown"
+    account_age = calculate_account_age(user_id) if user_id != "0" else "Unknown"
+
+    # User Information Block (1 Info Per Line)
+    user_details_value = (
+        f"**User:** {mention}\n"
+        f"**Username:** `{username}`\n"
+        f"**User ID:** `{user_id}`\n"
+        f"**Account Age:** `{account_age}`"
+    )
+
+    embed = {
+        "title": title,
+        "color": color,
+        "fields": [
+            {
+                "name": "👤 User Information",
+                "value": user_details_value,
+                "inline": False
+            }
+        ],
+        "footer": {
+            "text": "Echo Studio Logging System"
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+    # Append additional payload metadata
+    for key, val in action_details.items():
+        embed["fields"].append({
+            "name": f"📌 {key}",
+            "value": f"```\n{str(val)[:1000]}\n```" if len(str(val)) > 80 else f"`{val}`",
+            "inline": False
+        })
+
+    payload = {
+        "username": "Echo Studio Logger",
+        "avatar_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+        "embeds": [embed]
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(webhook_url, json=payload) as resp:
+                pass
+    except Exception as e:
+        print(f"Failed to send Discord webhook log: {e}")
+
+
+# --- AI GENERATION MAIN FUNCTION ---
+async def generate_server_layout(
     prompt: str,
     channel_separator: str = "│",
     server_id: str = "",
-    server_link: str = ""
+    server_link: str = "",
+    user_info: Optional[Dict[str, Any]] = None,
+    webhook_url: Optional[str] = None
 ) -> dict:
     """Uses Gemini AI to convert natural language prompt into a structured Discord Server Layout."""
     api_key = os.getenv("GEMINI_API_KEY")
@@ -103,12 +191,39 @@ def generate_server_layout(
             "prompt_used": prompt
         }
 
+        # Dispatch Webhook Log if User & Webhook Info is provided
+        if webhook_url and user_info:
+            await send_webhook_log(
+                webhook_url=webhook_url,
+                title="⚡ AI Server Layout Generated",
+                user_info=user_info,
+                action_details={
+                    "Prompt": prompt,
+                    "Target Server ID": server_id or "Not Provided",
+                    "Categories Built": len(layout_data.get("categories", [])),
+                    "Roles Created": len(layout_data.get("roles", []))
+                },
+                color=0x8b5cf6
+            )
+
         return {
             "success": True,
             "data": layout_data
         }
 
     except Exception as e:
+        if webhook_url and user_info:
+            await send_webhook_log(
+                webhook_url=webhook_url,
+                title="⚠️ AI Generation Failed",
+                user_info=user_info,
+                action_details={
+                    "Prompt": prompt,
+                    "Error": str(e)
+                },
+                color=0xf43f5e
+            )
+
         return {
             "success": False,
             "error": str(e)
