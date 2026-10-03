@@ -3,13 +3,17 @@ import json
 import requests
 from datetime import datetime, timezone
 from threading import Thread
-from flask import Flask, redirect, request, session, render_template, jsonify
+from flask import Flask, redirect, request, session, render_template, jsonify, send_from_directory
 from pymongo import MongoClient
 from google import genai
 from google.genai import types
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-fallback")
+
+# Ensure blueprints directory exists for hosting design files
+BLUEPRINTS_DIR = os.path.join(os.getcwd(), "blueprints")
+os.makedirs(BLUEPRINTS_DIR, exist_ok=True)
 
 # Environment Variable Mapping
 CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
@@ -102,16 +106,18 @@ def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc
     if extra_fields:
         for k, v in extra_fields.items():
             val_str = str(v)
-            # Display invite links as clean plain clickable links
             if k == "Invite Link":
                 field_val = val_str
+            elif k.startswith("🔑"):
+                # Keep build command styling clean inside code formatting blocks
+                field_val = f"`{val_str}`"
             elif len(val_str) > 80:
                 field_val = f"```json\n{val_str[:1000]}\n```"
             else:
                 field_val = f"`{val_str}`"
 
             fields.append({
-                "name": f"🔹 {k}",
+                "name": k,
                 "value": field_val,
                 "inline": False
             })
@@ -341,8 +347,19 @@ def submit_design():
     channels_count = data.get("channels_count", 0)
     roles_count = data.get("roles_count", 0)
     
-    # Capture build layout file/JSON string if provided by frontend
     layout = data.get("layout") or data.get("build_file") or data.get("file")
+
+    # Generate unique blueprint filename and save JSON to disk
+    file_id = f"blueprint_{int(datetime.now().timestamp() * 1000)}"
+    filename = f"{file_id}.json"
+    file_path = os.path.join(BLUEPRINTS_DIR, filename)
+    
+    blueprint_content = layout if layout else data
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(blueprint_content, f, indent=2)
+
+    blueprint_url = f"{DASHBOARD_URL.rstrip('/')}/blueprint/{filename}"
+    build_command_text = f"/build url: {blueprint_url}"
 
     user = session.get("user")
 
@@ -351,11 +368,9 @@ def submit_design():
         "Target Server ID": target_server_id,
         "Invite Link": invite_link,
         "Prompt Description": prompt,
+        "🔑 Build Command": build_command_text,
         "Architecture Overview": f"Categories: `{categories_count}` | Channels: `{channels_count}` | Roles: `{roles_count}`"
     }
-
-    if layout:
-        extra_fields["Build File Structure"] = json.dumps(layout, indent=2) if isinstance(layout, (dict, list)) else str(layout)
 
     log_webhook_event(
         webhook_url=DESIGN_WEBHOOK_URL,
@@ -366,7 +381,13 @@ def submit_design():
         extra_fields=extra_fields
     )
 
-    return jsonify({"success": True, "message": "Blueprint successfully dispatched!"})
+    return jsonify({"success": True, "message": "Blueprint successfully dispatched!", "url": blueprint_url})
+
+
+@app.route("/blueprint/<path:filename>")
+def serve_blueprint(filename):
+    """Serves the generated blueprint json file so the bot can fetch it via URL."""
+    return send_from_directory(BLUEPRINTS_DIR, filename, mimetype="application/json")
 
 
 @app.route("/logout")
