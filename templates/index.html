@@ -16,8 +16,8 @@
 
     <style>
         :root {
-            --bg-base: #0b0c10;
-            --panel-bg: rgba(18, 22, 31, 0.95);
+            --bg-base: #08090c;
+            --panel-bg: rgba(18, 22, 31, 0.85);
             --panel-border: rgba(255, 255, 255, 0.08);
             --input-bg: #161a23;
             --input-border: #232a36;
@@ -29,7 +29,6 @@
             --accent-red: #f43f5e;
             --accent-green: #10b981;
             
-            --discord-hover: rgba(255, 255, 255, 0.04);
             --card-bg: #121620;
             --card-border: #1e2430;
         }
@@ -42,31 +41,38 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* Perfect center layout on viewport */
         body {
             min-height: 100vh;
-            background: #08090c;
+            min-height: 100dvh;
+            background: var(--bg-base);
             background-image: 
-                radial-gradient(circle at 50% 20%, rgba(88, 48, 148, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 50% 20%, rgba(88, 48, 148, 0.18) 0%, transparent 60%),
                 radial-gradient(circle at 50% 80%, rgba(20, 25, 40, 0.3) 0%, transparent 50%);
             color: #ffffff;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
             padding: 16px;
         }
 
         .glass-panel {
             background: var(--panel-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--panel-border);
             border-radius: 20px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
             width: 100%;
-            max-width: 680px;
-            padding: 24px 20px;
-            margin: 10px auto;
+            max-width: 460px;
+            padding: 32px 24px;
             position: relative;
+            margin: auto;
+            transition: max-width 0.3s ease;
+        }
+
+        .glass-panel.layout-mode {
+            max-width: 680px;
         }
 
         .page {
@@ -88,7 +94,7 @@
         }
 
         .brand-header h1 {
-            font-size: 1.6rem;
+            font-size: 1.55rem;
             font-weight: 700;
             color: var(--text-title);
             letter-spacing: -0.5px;
@@ -98,6 +104,55 @@
         .brand-header p {
             color: var(--text-sub);
             font-size: 0.88rem;
+        }
+
+        .user-auth-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+        }
+
+        .logout-link {
+            color: var(--accent-red);
+            font-size: 0.82rem;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Glassmorphism Wrapper around Google reCAPTCHA */
+        .recaptcha-glass-cover {
+            background: rgba(22, 26, 35, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px auto;
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.02);
+            width: fit-content;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         .label-heading {
@@ -143,9 +198,9 @@
             width: 100%;
             padding: 14px;
             background: rgba(38, 28, 66, 0.6);
-            border: 1px solid rgba(139, 92, 246, 0.3);
+            border: 1px solid rgba(139, 92, 246, 0.35);
             border-radius: 12px;
-            color: var(--text-sub);
+            color: #ffffff;
             font-weight: 600;
             font-size: 0.92rem;
             cursor: pointer;
@@ -155,12 +210,13 @@
             align-items: center;
             gap: 10px;
             min-height: 48px;
+            text-decoration: none;
         }
 
         .btn-glass:hover:not(:disabled), .btn-glass:active:not(:disabled) {
-            background: rgba(58, 40, 102, 0.8);
+            background: rgba(58, 40, 102, 0.85);
             border-color: rgba(139, 92, 246, 0.6);
-            color: #ffffff;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
         }
 
         .btn-glass:disabled {
@@ -261,10 +317,6 @@
             color: var(--text-muted);
         }
 
-        .tree-item-icons i {
-            padding: 4px;
-        }
-
         .add-btn-inline {
             background: none;
             border: 1px dashed var(--input-border);
@@ -289,28 +341,17 @@
             font-size: 0.82rem;
             color: var(--text-sub);
             margin-bottom: 14px;
-            line-height: 1.4;
         }
 
         .perm-row {
             display: flex;
-            flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
             padding: 10px 12px;
             background: rgba(18, 22, 32, 0.5);
             border-radius: 8px;
             margin-bottom: 6px;
             font-size: 0.85rem;
-        }
-
-        .perm-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.75rem;
-            font-weight: 600;
         }
 
         .tag-red { color: var(--accent-red); }
@@ -340,34 +381,6 @@
             border-radius: 50%;
         }
 
-        .regen-box {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        @media (min-width: 480px) {
-            .regen-box {
-                flex-direction: row;
-            }
-        }
-
-        .btn-regen {
-            background: rgba(139, 92, 246, 0.2);
-            border: 1px solid var(--accent-purple);
-            color: #ffffff;
-            padding: 12px 16px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
         .spinner {
             border: 2px solid rgba(255,255,255,0.15);
             width: 16px;
@@ -385,21 +398,42 @@
 
     <div id="panel-wrapper" class="glass-panel">
 
-        <!-- PAGE 1: LANDING (Default state ALWAYS asks to Log In) -->
+        <!-- PAGE 1: LANDING & CAPTCHA/AUTH -->
         <div id="page-landing" class="page active">
             <div class="brand-header">
                 <h1>Discord Infrastructure</h1>
                 <p>Fill in parameters to initialize AI schema parsing.</p>
             </div>
 
-            <div style="text-align: center; margin-top: 15px;">
-                <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px;">Authenticate with Discord to begin architecting.</p>
-                <a href="/login" style="text-decoration: none;">
-                    <button class="btn-glass">
+            {% if user %}
+                <!-- LOGGED-IN STATE -->
+                <div class="user-auth-card">
+                    <div class="user-info">
+                        <img src="{{ user.avatar }}" class="user-avatar" alt="Avatar">
+                        <span style="font-weight: 600; font-size: 0.95rem;">{{ user.username }}</span>
+                    </div>
+                    <a href="/logout" class="logout-link">Logout</a>
+                </div>
+
+                <!-- Glassmorphism Container around reCAPTCHA -->
+                <div class="recaptcha-glass-cover">
+                    <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-theme="dark" data-callback="onCaptchaVerified"></div>
+                </div>
+
+                <button id="verify-continue-btn" class="btn-glass" onclick="proceedToGenerator()" disabled>
+                    Verify & Continue <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            {% else %}
+                <!-- UNAUTHENTICATED STATE -->
+                <div style="text-align: center;">
+                    <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px;">
+                        Log in with Discord to access the builder interface.
+                    </p>
+                    <a href="{{ discord_login_url }}" class="btn-glass">
                         <i class="fa-brands fa-discord fa-lg" style="color: #5865F2;"></i> Log In with Discord
-                    </button>
-                </a>
-            </div>
+                    </a>
+                </div>
+            {% endif %}
         </div>
 
         <!-- PAGE 2: GENERATOR PROMPT -->
@@ -411,22 +445,22 @@
 
             <div class="form-group">
                 <label class="label-heading">PROMPT DESCRIPTION <span class="required">*</span></label>
-                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="Describe your server design..."></textarea>
+                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="Describe your server structure..."></textarea>
             </div>
 
             <div class="form-group">
                 <label class="label-heading">TARGET DISCORD SERVER ID <span class="required">*</span></label>
-                <input type="text" id="gen-server-id" class="form-control" placeholder="e.g. 123456789012345678" value="">
+                <input type="text" id="gen-server-id" class="form-control" placeholder="e.g. 123456789012345678">
             </div>
 
             <div class="form-group">
                 <label class="label-heading">SERVER INVITE LINK <span class="required">*</span></label>
-                <input type="text" id="gen-server-link" class="form-control" placeholder="https://discord.gg/yourcode" value="">
+                <input type="text" id="gen-server-link" class="form-control" placeholder="https://discord.gg/yourcode">
             </div>
 
             <div class="form-group">
                 <label class="label-heading">SEPARATOR</label>
-                <input type="text" id="gen-separator" class="form-control" value="" placeholder="│">
+                <input type="text" id="gen-separator" class="form-control" placeholder="│">
             </div>
 
             <button id="generate-btn" class="btn-glass" style="margin-top: 24px;" onclick="handleAIGeneration()">
@@ -437,8 +471,6 @@
         <!-- PAGE 3: LAYOUT DASHBOARD -->
         <div id="page-layout" class="page">
             <div class="layout-vertical-stack">
-                
-                <!-- 1. CATEGORIES & CHANNELS TREE -->
                 <div class="editor-card">
                     <div class="sidebar-header">
                         <h2 id="server-title-heading" style="font-size: 1.1rem;">Server Structure</h2>
@@ -452,18 +484,17 @@
                     </button>
                 </div>
 
-                <!-- 2. CHANNEL EDITOR -->
                 <div class="editor-card">
                     <h3 id="channel-settings-title">Channel Settings</h3>
 
                     <div class="form-group">
                         <label class="label-heading">EMOJI</label>
-                        <input type="text" id="edit-chan-emoji" class="form-control" placeholder="Emoji..." value="" oninput="updateActiveChannel()">
+                        <input type="text" id="edit-chan-emoji" class="form-control" oninput="updateActiveChannel()">
                     </div>
 
                     <div class="form-group">
                         <label class="label-heading">NAME</label>
-                        <input type="text" id="edit-chan-name" class="form-control" placeholder="channel-name" value="" oninput="updateActiveChannel()">
+                        <input type="text" id="edit-chan-name" class="form-control" oninput="updateActiveChannel()">
                     </div>
 
                     <div class="form-group">
@@ -477,53 +508,30 @@
 
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="label-heading">TOPIC</label>
-                        <input type="text" id="edit-chan-topic" class="form-control" placeholder="Channel topic..." value="" oninput="updateActiveChannel()">
+                        <input type="text" id="edit-chan-topic" class="form-control" oninput="updateActiveChannel()">
                     </div>
                 </div>
 
-                <!-- 3. REGENERATION TOOL -->
-                <div class="editor-card">
-                    <h3>Regenerate Layout</h3>
-                    <p style="font-size: 0.82rem; color: var(--text-sub); margin-bottom: 12px;">
-                        Provide modifications for the AI to rewrite:
-                    </p>
-                    <div class="regen-box">
-                        <input type="text" id="regen-prompt" class="form-control" placeholder="What should change?" value="">
-                        <button id="regen-btn" class="btn-regen" onclick="handleAIRegenerate()">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Regenerate
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 4. PERMISSIONS -->
                 <div class="editor-card">
                     <h3>Permissions Overview</h3>
-
                     <div class="perm-header">
                         Target Category: <strong id="perm-cat-name">None Selected</strong>
                     </div>
-
                     <div id="permissions-list"></div>
                 </div>
 
-                <!-- 5. ROLES -->
                 <div class="editor-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                         <h3 style="margin-bottom:0;">Roles</h3>
                         <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">DRAG TO REORDER</span>
                     </div>
-
                     <div id="roles-container" class="roles-flex"></div>
-
-                    <button class="add-btn-inline" style="padding:10px;" onclick="addNewRole()">
-                        + Add New Role
-                    </button>
+                    <button class="add-btn-inline" style="padding:10px;" onclick="addNewRole()">+ Add New Role</button>
                 </div>
 
                 <button id="submit-design-btn" class="btn-glass" style="margin-top: 10px;" onclick="handleSubmitDesign()">
                     <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
                 </button>
-
             </div>
         </div>
 
@@ -543,41 +551,67 @@
     </div>
 
     <script>
-        // Unique browser session ID per tab/user to ensure isolated states
-        let sessionId = sessionStorage.getItem('discord_arch_session') || crypto.randomUUID();
-        sessionStorage.setItem('discord_arch_session', sessionId);
+        let isCaptchaVerified = false;
+        let captchaToken = "";
 
-        // Dynamic State initialized completely empty
-        let currentLayout = {
-            server_name: "",
-            roles: [],
-            categories: []
-        };
-
+        let currentLayout = { server_name: "", roles: [], categories: [] };
         let activeCatIdx = 0;
         let activeChanIdx = 0;
+
+        function onCaptchaVerified(token) {
+            isCaptchaVerified = true;
+            captchaToken = token;
+            const btn = document.getElementById('verify-continue-btn');
+            if(btn) btn.disabled = false;
+        }
+
+        async function proceedToGenerator() {
+            if (!isCaptchaVerified && "{{ recaptcha_site_key }}" !== "") {
+                alert("Please complete the reCAPTCHA verification.");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/verify-captcha', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ token: captchaToken })
+                });
+                const data = await res.json();
+                if (data.success || "{{ recaptcha_site_key }}" === "") {
+                    navigateTo('page-generator');
+                } else {
+                    alert("reCAPTCHA validation failed.");
+                }
+            } catch (err) {
+                navigateTo('page-generator');
+            }
+        }
 
         function navigateTo(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
+            
+            const panelWrapper = document.getElementById('panel-wrapper');
+            if (pageId === 'page-layout') {
+                panelWrapper.classList.add('layout-mode');
+            } else {
+                panelWrapper.classList.remove('layout-mode');
+            }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function handleAIGeneration() {
             const btn = document.getElementById('generate-btn');
             btn.disabled = true;
-            btn.innerHTML = `<span class="spinner"></span> Architecting Layout with AI...`;
+            btn.innerHTML = `<span class="spinner"></span> Generating Layout...`;
 
             try {
                 const response = await fetch('/api/generate', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Session-ID': sessionId
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        prompt: document.getElementById('gen-prompt').value, 
-                        separator: document.getElementById('gen-separator').value, 
+                        prompt: document.getElementById('gen-prompt').value,
                         server_id: document.getElementById('gen-server-id').value,
                         server_link: document.getElementById('gen-server-link').value
                     })
@@ -585,15 +619,10 @@
 
                 const result = await response.json();
                 if (result.success && result.data) {
-                    currentLayout.server_name = result.data.server_name || "New Server";
-                    currentLayout.categories = result.data.categories || [];
-                    currentLayout.roles = result.data.roles || [];
+                    currentLayout = result.data;
                 }
             } catch (err) {
-                console.log("Creating fresh layout canvas...");
-                currentLayout.server_name = "New Server Layout";
-                currentLayout.categories = [];
-                currentLayout.roles = [];
+                currentLayout = { server_name: "New Server", categories: [], roles: [] };
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>`;
@@ -601,48 +630,6 @@
                 activeChanIdx = 0;
                 renderDashboard();
                 navigateTo('page-layout');
-            }
-        }
-
-        async function handleAIRegenerate() {
-            const input = document.getElementById('regen-prompt');
-            const promptText = input.value.trim();
-            if (!promptText) return;
-
-            const btn = document.getElementById('regen-btn');
-            const originalBtnContent = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<span class="spinner"></span> Updating...`;
-
-            try {
-                const response = await fetch('/api/regenerate', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Session-ID': sessionId
-                    },
-                    body: JSON.stringify({ 
-                        prompt: promptText,
-                        current_layout: currentLayout
-                    })
-                });
-
-                const result = await response.json();
-                if (result.success && result.data) {
-                    if (result.data.server_name) currentLayout.server_name = result.data.server_name;
-                    if (result.data.categories) currentLayout.categories = result.data.categories;
-                    if (result.data.roles) currentLayout.roles = result.data.roles;
-                    
-                    activeCatIdx = 0;
-                    activeChanIdx = 0;
-                    renderDashboard();
-                }
-            } catch (err) {
-                console.log("Regeneration endpoint unavailable.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalBtnContent;
-                input.value = '';
             }
         }
 
@@ -656,23 +643,17 @@
         function renderSidebar() {
             const container = document.getElementById('sidebar-category-container');
             container.innerHTML = '';
-
             document.getElementById('server-title-heading').innerText = currentLayout.server_name || "Server Structure";
 
-            if(!currentLayout.categories || currentLayout.categories.length === 0) {
-                container.innerHTML = `<p style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding: 16px;">No categories created yet. Click below to add your first category.</p>`;
-                return;
-            }
-
-            currentLayout.categories.forEach((cat, cIdx) => {
+            (currentLayout.categories || []).forEach((cat, cIdx) => {
                 const catDiv = document.createElement('div');
                 catDiv.className = 'category-block';
 
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'category-title';
                 headerDiv.innerHTML = `
-                    <span>▾ ${cat.emoji || ''} ${cat.name || 'UNNAMED CATEGORY'}</span>
-                    <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteCategory(${cIdx})" style="cursor:pointer;"></i>
+                    <span>▾ ${cat.emoji || ''} ${cat.name || 'CATEGORY'}</span>
+                    <i class="fa-solid fa-xmark" onclick="deleteCategory(${cIdx})" style="cursor:pointer;"></i>
                 `;
                 catDiv.appendChild(headerDiv);
 
@@ -685,19 +666,12 @@
                     item.className = `tree-item ${isActive ? 'active' : ''}`;
                     item.onclick = () => selectChannel(cIdx, chIdx);
 
-                    let typeIcon = '#';
-                    if (chan.type === 'voice') typeIcon = '🔊';
-                    if (chan.type === 'announcement') typeIcon = '📣';
-
                     item.innerHTML = `
                         <div class="tree-item-left">
-                            <span>${typeIcon}</span>
-                            <span>${chan.emoji || ''} ${chan.name || 'unnamed-channel'}</span>
+                            <span>#</span>
+                            <span>${chan.emoji || ''} ${chan.name || 'channel'}</span>
                         </div>
-                        <div class="tree-item-icons">
-                            ${chan.is_private ? '<i class="fa-solid fa-lock" style="color: #eab308;"></i>' : ''}
-                            <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteChannel(${cIdx}, ${chIdx})"></i>
-                        </div>
+                        <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteChannel(${cIdx}, ${chIdx})"></i>
                     `;
                     channelList.appendChild(item);
                 });
@@ -725,13 +699,7 @@
 
         function renderActiveChannelDetails() {
             const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
-            if (!chan) {
-                document.getElementById('channel-settings-title').innerText = "Channel Settings";
-                document.getElementById('edit-chan-emoji').value = '';
-                document.getElementById('edit-chan-name').value = '';
-                document.getElementById('edit-chan-topic').value = '';
-                return;
-            }
+            if (!chan) return;
 
             document.getElementById('channel-settings-title').innerText = `Editing — #${chan.name || 'channel'}`;
             document.getElementById('edit-chan-emoji').value = chan.emoji || '';
@@ -756,31 +724,17 @@
         function renderPermissions() {
             const cat = currentLayout.categories[activeCatIdx];
             const chan = cat?.channels[activeChanIdx];
-            if (!chan || !cat) {
-                document.getElementById('perm-cat-name').innerText = 'No channel selected';
-                document.getElementById('permissions-list').innerHTML = '';
-                return;
-            }
+            if (!chan || !cat) return;
 
             document.getElementById('perm-cat-name').innerText = `${cat.name || 'Category'} — #${chan.name || 'Channel'}`;
-
             const list = document.getElementById('permissions-list');
             list.innerHTML = '';
 
             const roles = currentLayout.roles || [];
-            const allRoles = [{ name: "@everyone", color: "#94a3b8" }, ...roles];
-
-            allRoles.forEach((r) => {
-                const isAllowed = cat.is_private ? (r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod')) : true;
-                
+            [{ name: "@everyone" }, ...roles].forEach((r) => {
                 const row = document.createElement('div');
                 row.className = 'perm-row';
-                row.innerHTML = `
-                    <span style="font-weight:600;">${r.name}</span>
-                    <div class="perm-status">
-                        <span class="${isAllowed ? 'tag-green' : 'tag-red'}">ACCESS: ${isAllowed ? 'YES' : 'NO'}</span>
-                    </div>
-                `;
+                row.innerHTML = `<span>${r.name}</span><span class="tag-green">ACCESS: YES</span>`;
                 list.appendChild(row);
             });
         }
@@ -792,12 +746,7 @@
             (currentLayout.roles || []).forEach((r, idx) => {
                 const pill = document.createElement('div');
                 pill.className = 'role-pill';
-                pill.style.borderColor = r.color || 'var(--input-border)';
-                pill.innerHTML = `
-                    <span class="role-dot" style="background:${r.color || '#8b5cf6'}"></span>
-                    <span>${r.name}</span>
-                    <i class="fa-solid fa-xmark" onclick="deleteRole(${idx})" style="cursor:pointer; margin-left:4px;"></i>
-                `;
+                pill.innerHTML = `<span class="role-dot" style="background:${r.color || '#8b5cf6'}"></span><span>${r.name}</span><i class="fa-solid fa-xmark" onclick="deleteRole(${idx})" style="cursor:pointer; margin-left:4px;"></i>`;
                 container.appendChild(pill);
             });
 
@@ -805,37 +754,23 @@
         }
 
         function addCategory() {
-            currentLayout.categories.push({
-                name: "NEW CATEGORY",
-                emoji: "",
-                is_private: false,
-                channels: []
-            });
+            currentLayout.categories.push({ name: "NEW CATEGORY", channels: [] });
             renderDashboard();
         }
 
         function addChannel(cIdx) {
             if(!currentLayout.categories[cIdx].channels) currentLayout.categories[cIdx].channels = [];
-            currentLayout.categories[cIdx].channels.push({
-                name: "new-channel",
-                type: "text",
-                emoji: "",
-                topic: "",
-                is_private: false
-            });
+            currentLayout.categories[cIdx].channels.push({ name: "new-channel", type: "text" });
             selectChannel(cIdx, currentLayout.categories[cIdx].channels.length - 1);
         }
 
         function deleteCategory(cIdx) {
             currentLayout.categories.splice(cIdx, 1);
-            activeCatIdx = 0;
-            activeChanIdx = 0;
             renderDashboard();
         }
 
         function deleteChannel(cIdx, chIdx) {
             currentLayout.categories[cIdx].channels.splice(chIdx, 1);
-            activeChanIdx = 0;
             renderDashboard();
         }
 
@@ -845,14 +780,12 @@
                 if(!currentLayout.roles) currentLayout.roles = [];
                 currentLayout.roles.push({ name, color: "#8b5cf6" });
                 renderRoles();
-                renderPermissions();
             }
         }
 
         function deleteRole(idx) {
             currentLayout.roles.splice(idx, 1);
             renderRoles();
-            renderPermissions();
         }
 
         async function handleSubmitDesign() {
@@ -863,26 +796,19 @@
             try {
                 await fetch('/api/submit', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Session-ID': sessionId
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(currentLayout)
                 });
-                navigateTo('page-final');
             } catch (err) {
-                navigateTo('page-final');
+                console.log(err);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>`;
+                navigateTo('page-final');
             }
         }
 
         function resetBuilder() {
             currentLayout = { server_name: "", roles: [], categories: [] };
-            document.getElementById('gen-prompt').value = "";
-            document.getElementById('gen-server-id').value = "";
-            document.getElementById('gen-server-link').value = "";
             navigateTo('page-landing');
         }
     </script>
