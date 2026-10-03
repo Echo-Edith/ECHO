@@ -16,30 +16,33 @@
 
     <style>
         :root {
-            --bg-base: #08090c;
-            --panel-bg: rgba(18, 22, 31, 0.85);
+            --bg-base: #0f1015;
+            --panel-bg: rgba(22, 24, 34, 0.92);
             --panel-border: rgba(255, 255, 255, 0.08);
-            --input-bg: #12141d;
-            --input-border: #232a36;
+            --input-bg: #1e1f29;
+            --input-border: #2b2d3d;
+            
+            --discord-dark: #2b2d31;
+            --discord-sidebar: #1e1f22;
+            --discord-channel: #949ba4;
+            --discord-hover: #35373c;
             
             --text-title: #ffffff;
             --text-sub: #949ba4;
             --text-muted: #5c626d;
-            --accent-purple: #8b5cf6;
-            --accent-purple-dark: #3b3363;
+            --accent-purple: #5865f2;
+            --accent-green: #2ecc71;
             --accent-red: #f43f5e;
-            --accent-green: #10b981;
             
-            --card-bg: #121620;
-            --card-inner: rgba(0, 0, 0, 0.25);
-            --card-border: #1e2430;
+            --card-bg: #18191c;
+            --card-border: #2b2d31;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -48,8 +51,7 @@
             min-height: 100dvh;
             background: var(--bg-base);
             background-image: 
-                radial-gradient(circle at 50% 20%, rgba(88, 48, 148, 0.18) 0%, transparent 60%),
-                radial-gradient(circle at 50% 80%, rgba(20, 25, 40, 0.3) 0%, transparent 50%);
+                radial-gradient(circle at 50% 15%, rgba(88, 101, 242, 0.15) 0%, transparent 60%);
             color: #ffffff;
             display: flex;
             justify-content: center;
@@ -65,7 +67,7 @@
             border-radius: 20px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
             width: 100%;
-            max-width: 460px;
+            max-width: 480px;
             padding: 32px 24px;
             position: relative;
             margin: auto;
@@ -73,7 +75,7 @@
         }
 
         .glass-panel.layout-mode {
-            max-width: 520px;
+            max-width: 540px;
         }
 
         .page {
@@ -98,7 +100,6 @@
             font-size: 1.55rem;
             font-weight: 700;
             color: var(--text-title);
-            letter-spacing: -0.5px;
             margin-bottom: 6px;
         }
 
@@ -128,7 +129,6 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: var(--accent-purple);
         }
 
         .logout-link {
@@ -140,8 +140,6 @@
 
         .recaptcha-glass-cover {
             background: rgba(22, 26, 35, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 14px;
             padding: 12px;
@@ -149,7 +147,6 @@
             justify-content: center;
             align-items: center;
             margin: 0 auto 20px auto;
-            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.02);
             width: fit-content;
             max-width: 100%;
             overflow: hidden;
@@ -160,7 +157,7 @@
             display: block;
             font-size: 0.7rem;
             font-weight: 700;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
             text-transform: uppercase;
             color: var(--text-sub);
             margin-bottom: 8px;
@@ -179,33 +176,28 @@
             padding: 12px 14px;
             background: var(--input-bg);
             border: 1px solid var(--input-border);
-            border-radius: 10px;
+            border-radius: 8px;
             color: #ffffff;
             font-size: 0.9rem;
             outline: none;
-            transition: all 0.25s ease;
-        }
-
-        .form-control::placeholder {
-            color: var(--text-muted);
+            transition: border-color 0.2s ease;
         }
 
         .form-control:focus {
-            border-color: rgba(139, 92, 246, 0.5);
-            background: #181d29;
+            border-color: var(--accent-purple);
         }
 
         .btn-glass {
             width: 100%;
             padding: 14px;
-            background: rgba(38, 28, 66, 0.6);
-            border: 1px solid rgba(139, 92, 246, 0.35);
-            border-radius: 12px;
+            background: var(--accent-purple);
+            border: none;
+            border-radius: 10px;
             color: #ffffff;
             font-weight: 600;
             font-size: 0.92rem;
             cursor: pointer;
-            transition: all 0.25s ease;
+            transition: opacity 0.2s ease;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -214,10 +206,8 @@
             text-decoration: none;
         }
 
-        .btn-glass:hover:not(:disabled), .btn-glass:active:not(:disabled) {
-            background: rgba(58, 40, 102, 0.85);
-            border-color: rgba(139, 92, 246, 0.6);
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+        .btn-glass:hover:not(:disabled) {
+            opacity: 0.9;
         }
 
         .btn-glass:disabled {
@@ -225,208 +215,124 @@
             cursor: not-allowed;
         }
 
-        .layout-vertical-stack {
+        /* Discord Style Sidebar Layout */
+        .discord-sidebar-wrapper {
+            background: var(--discord-sidebar);
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--card-border);
+            margin-bottom: 16px;
+        }
+
+        .discord-server-header {
+            font-weight: 700;
+            font-size: 1rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 12px;
             display: flex;
-            flex-direction: column;
-            gap: 16px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .discord-category {
+            margin-bottom: 14px;
+        }
+
+        .discord-category-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 6px;
+            cursor: pointer;
+        }
+
+        .discord-channel-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 10px;
+            border-radius: 6px;
+            color: var(--discord-channel);
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 2px;
+            touch-action: pan-y;
+        }
+
+        .discord-channel-item:hover, .discord-channel-item.active {
+            background: var(--discord-hover);
+            color: #ffffff;
+        }
+
+        .discord-channel-item.active {
+            background: rgba(88, 101, 242, 0.25);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .add-btn-inline {
+            background: transparent;
+            border: 1px dashed var(--input-border);
+            border-radius: 6px;
+            color: var(--text-sub);
+            font-size: 0.8rem;
+            padding: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .add-btn-inline:hover {
+            border-color: var(--text-sub);
+            color: #ffffff;
         }
 
         .editor-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 14px;
-            padding: 18px 16px;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
         }
 
         .editor-card h3 {
-            font-size: 1.05rem;
+            font-size: 1rem;
             font-weight: 700;
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            margin-bottom: 14px;
-        }
-
-        .category-block {
-            margin-bottom: 12px;
-            background: rgba(0,0,0,0.2);
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.03);
-        }
-
-        .category-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--text-sub);
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            padding: 4px 2px 8px 2px;
-        }
-
-        .channel-tree-list {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            min-height: 10px;
-        }
-
-        .tree-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            color: var(--text-sub);
-            font-size: 0.88rem;
-            background: var(--input-bg);
-            border: 1px solid transparent;
-            transition: all 0.15s ease;
-        }
-
-        .tree-item.active {
-            background: rgba(139, 92, 246, 0.15);
-            border-color: var(--accent-purple);
-            color: #ffffff;
-        }
-
-        .tree-item-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            word-break: break-word;
-        }
-
-        .add-btn-inline {
-            background: none;
-            border: 1px dashed var(--input-border);
-            border-radius: 8px;
-            color: var(--text-sub);
-            font-size: 0.8rem;
-            padding: 8px 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            width: 100%;
-            margin-top: 6px;
-        }
-
-        .add-btn-inline:hover {
-            border-color: var(--text-sub);
-            color: var(--text-title);
-        }
-
-        .sub-card-panel {
-            background: var(--card-inner);
-            border: 1px solid var(--input-border);
-            border-radius: 10px;
-            padding: 14px;
-            margin-top: 16px;
-        }
-
-        .sub-card-panel h4 {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .hint-text {
-            font-size: 0.78rem;
-            color: var(--text-sub);
-            margin-bottom: 10px;
-            line-height: 1.3;
-        }
-
-        .ai-input-row {
-            display: flex;
-            gap: 8px;
-        }
-
-        .ai-btn {
-            background: var(--accent-purple-dark);
-            border: 1px solid rgba(139, 92, 246, 0.4);
-            color: white;
-            border-radius: 8px;
-            padding: 0 14px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-        }
-
-        .ai-btn:hover {
-            background: var(--accent-purple);
-        }
-
-        .perm-header {
-            background: rgba(22, 28, 40, 0.7);
-            border: 1px solid var(--input-border);
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 0.82rem;
-            color: var(--text-sub);
             margin-bottom: 12px;
         }
-
-        .perm-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 12px;
-            background: rgba(18, 22, 32, 0.5);
-            border-radius: 8px;
-            margin-bottom: 6px;
-            font-size: 0.85rem;
-        }
-
-        .tag-green { color: var(--accent-green); font-weight: 600; }
 
         .roles-flex {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .role-pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            border: 1px solid var(--input-border);
-            background: rgba(255, 255, 255, 0.02);
+            padding: 5px 10px;
+            border-radius: 16px;
+            background: #2b2d31;
             font-size: 0.82rem;
+            touch-action: pan-y;
         }
 
         .role-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
         }
 
         .spinner {
-            border: 2px solid rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.2);
             width: 16px;
             height: 16px;
             border-radius: 50%;
@@ -446,7 +352,7 @@
         <div id="page-landing" class="page active">
             <div class="brand-header">
                 <h1>Discord Infrastructure</h1>
-                <p>Complete verification to begin schema parsing.</p>
+                <p>Verify to begin generating your Discord layout.</p>
             </div>
 
             {% if user %}
@@ -459,8 +365,8 @@
                 </div>
             {% else %}
                 <div style="margin-bottom: 20px;">
-                    <a href="/login" class="btn-glass" style="background: rgba(88, 101, 242, 0.2); border-color: rgba(88, 101, 242, 0.5);">
-                        <i class="fa-brands fa-discord fa-lg" style="color: #5865F2;"></i> Log In with Discord
+                    <a href="/login" class="btn-glass" style="background: #5865F2;">
+                        <i class="fa-brands fa-discord fa-lg"></i> Log In with Discord
                     </a>
                 </div>
             {% endif %}
@@ -478,123 +384,96 @@
         <!-- PAGE 2: GENERATOR PROMPT -->
         <div id="page-generator" class="page">
             <div class="brand-header">
-                <h1>Discord Infrastructure</h1>
-                <p>Fill in parameters to initialize AI schema parsing.</p>
+                <h1>Server Layout Generator</h1>
+                <p>AI will build your Discord channel & role architecture.</p>
             </div>
 
             <div class="form-group">
                 <label class="label-heading">PROMPT DESCRIPTION <span class="required">*</span></label>
-                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="Describe your server structure..."></textarea>
+                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="e.g. Create a professional gaming server layout with VIP tiers, media channels, and staff areas..."></textarea>
             </div>
 
             <div class="form-group">
                 <label class="label-heading">TARGET DISCORD SERVER ID <span class="required">*</span></label>
-                <input type="text" id="gen-server-id" class="form-control" placeholder="e.g. 1554280544605438054">
+                <input type="text" id="gen-server-id" class="form-control" value="1554280544605438054">
             </div>
 
             <div class="form-group">
                 <label class="label-heading">SERVER INVITE LINK <span class="required">*</span></label>
-                <input type="text" id="gen-server-link" class="form-control" placeholder="https://discord.gg/yourcode">
-            </div>
-
-            <div class="form-group">
-                <label class="label-heading">SEPARATOR</label>
-                <input type="text" id="gen-separator" class="form-control" placeholder="│">
+                <input type="text" id="gen-server-link" class="form-control" value="https://discord.gg/6mTr8sr7v">
             </div>
 
             <button id="generate-btn" class="btn-glass" style="margin-top: 24px;" onclick="handleAIGeneration()">
-                <i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate Server Layout</span>
             </button>
         </div>
 
         <!-- PAGE 3: LAYOUT DASHBOARD -->
         <div id="page-layout" class="page">
-            <div class="layout-vertical-stack">
-                <div class="editor-card">
-                    <div class="sidebar-header">
-                        <h2 id="server-title-heading" style="font-size: 1.1rem;">Server Structure</h2>
-                        <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">DRAG TO REORDER</span>
-                    </div>
-
-                    <div id="sidebar-category-container"></div>
-
-                    <button class="add-btn-inline" style="margin-top: 10px; font-weight:700;" onclick="addCategory()">
-                        <i class="fa-solid fa-plus"></i> NEW CATEGORY
-                    </button>
+            <div class="discord-sidebar-wrapper">
+                <div class="discord-server-header">
+                    <span id="server-title-heading">Server Structure</span>
+                    <i class="fa-solid fa-shield-halved" style="color: var(--accent-purple); font-size: 0.9rem;"></i>
                 </div>
 
-                <div class="editor-card">
-                    <h3 id="channel-settings-title">Channel Settings</h3>
+                <div id="sidebar-category-container"></div>
 
-                    <div class="form-group">
-                        <label class="label-heading">EMOJI</label>
-                        <input type="text" id="edit-chan-emoji" class="form-control" placeholder="📋" oninput="updateActiveChannel()">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="label-heading">NAME</label>
-                        <input type="text" id="edit-chan-name" class="form-control" oninput="updateActiveChannel()">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="label-heading">TYPE</label>
-                        <select id="edit-chan-type" class="form-control" onchange="updateActiveChannel()">
-                            <option value="text">text</option>
-                            <option value="voice">voice</option>
-                            <option value="announcement">announcement</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="label-heading">TOPIC</label>
-                        <input type="text" id="edit-chan-topic" class="form-control" placeholder="Automated logs..." oninput="updateActiveChannel()">
-                    </div>
-
-                    <div class="sub-card-panel">
-                        <h4>Regenerate with AI</h4>
-                        <p class="hint-text">Example: "Add a dedicated department structure and make channels private."</p>
-                        <div class="ai-input-row">
-                            <input type="text" id="re-ai-prompt" class="form-control" placeholder="What should change?">
-                            <button class="ai-btn" onclick="handleAIRegenerate()">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Regenerate
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="editor-card">
-                    <h3>Permissions Overview</h3>
-                    <div class="perm-header">
-                        Target Category: <strong id="perm-cat-name">None Selected</strong>
-                    </div>
-                    <div id="permissions-list"></div>
-                </div>
-
-                <div class="editor-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                        <h3 style="margin-bottom:0;">Roles</h3>
-                        <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">DRAG — TOP IS HIGHEST</span>
-                    </div>
-                    <div id="roles-container" class="roles-flex"></div>
-                    <button class="add-btn-inline" style="padding:10px;" onclick="addNewRole()">+ New role</button>
-                </div>
-
-                <button id="submit-design-btn" class="btn-glass" style="margin-top: 10px;" onclick="handleSubmitDesign()">
-                    <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
+                <button class="add-btn-inline" onclick="addCategory()">
+                    <i class="fa-solid fa-plus"></i> Add Category
                 </button>
             </div>
+
+            <div class="editor-card">
+                <h3 id="channel-settings-title">Channel Settings</h3>
+
+                <div class="form-group">
+                    <label class="label-heading">EMOJI</label>
+                    <input type="text" id="edit-chan-emoji" class="form-control" placeholder="💬" oninput="updateActiveChannel()">
+                </div>
+
+                <div class="form-group">
+                    <label class="label-heading">NAME</label>
+                    <input type="text" id="edit-chan-name" class="form-control" oninput="updateActiveChannel()">
+                </div>
+
+                <div class="form-group">
+                    <label class="label-heading">TYPE</label>
+                    <select id="edit-chan-type" class="form-control" onchange="updateActiveChannel()">
+                        <option value="text">Text Channel</option>
+                        <option value="voice">Voice Channel</option>
+                        <option value="announcement">Announcement</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="label-heading">TOPIC</label>
+                    <input type="text" id="edit-chan-topic" class="form-control" placeholder="Channel description..." oninput="updateActiveChannel()">
+                </div>
+            </div>
+
+            <div class="editor-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 style="margin-bottom:0;">Server Roles</h3>
+                </div>
+                <div id="roles-container" class="roles-flex"></div>
+                <button class="add-btn-inline" onclick="addNewRole()">+ New Role</button>
+            </div>
+
+            <button id="submit-design-btn" class="btn-glass" onclick="handleSubmitDesign()">
+                <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
+            </button>
         </div>
 
         <!-- PAGE 4: COMPLETION -->
         <div id="page-final" class="page" style="text-align: center;">
             <i class="fa-solid fa-circle-check fa-3x" style="color: var(--accent-green); margin-bottom: 18px;"></i>
             <div class="brand-header">
-                <h1>Design Dispatched</h1>
-                <p>Your layout specification has been delivered.</p>
+                <h1>Blueprint Submitted!</h1>
+                <p>Your blueprint has been uploaded and sent to staff.</p>
             </div>
 
             <button class="btn-glass" onclick="resetBuilder()" style="margin-top: 20px;">
-                Start Over
+                Start New Layout
             </button>
         </div>
 
@@ -603,22 +482,21 @@
     <script>
         const RECAPTCHA_SITE_KEY = "{{ recaptcha_site_key }}";
         let isCaptchaVerified = false;
-        let captchaToken = "";
 
         let currentLayout = { 
-            server_name: "Hoop Central 🏀", 
+            server_name: "Echo Studio", 
             roles: [
                 { name: "Owner", color: "#f1c40f" },
-                { name: "Coach", color: "#e67e22" },
-                { name: "Moderator", color: "#3498db" }
+                { name: "Admin", color: "#e74c3c" },
+                { name: "Member", color: "#2ecc71" }
             ], 
             categories: [
                 {
-                    name: "PLAYER DEVELOPMENT",
-                    emoji: "📋",
+                    name: "INFORMATION",
+                    emoji: "📌",
                     channels: [
-                        { name: "training-tips", emoji: "🥇", type: "text", topic: "Pro tips" },
-                        { name: "film-room", emoji: "🎥", type: "text", topic: "Game analysis" }
+                        { name: "welcome", emoji: "👋", type: "text", topic: "Welcome channel" },
+                        { name: "announcements", emoji: "📢", type: "text", topic: "Server updates" }
                     ]
                 }
             ] 
@@ -639,7 +517,6 @@
         }
 
         async function onCaptchaVerified(token) {
-            captchaToken = token;
             try {
                 const res = await fetch('/api/verify-captcha', {
                     method: 'POST',
@@ -658,7 +535,6 @@
 
         function onCaptchaExpired() {
             isCaptchaVerified = false;
-            captchaToken = "";
             document.getElementById('verify-continue-btn').disabled = true;
         }
 
@@ -683,7 +559,7 @@
         async function handleAIGeneration() {
             const btn = document.getElementById('generate-btn');
             btn.disabled = true;
-            btn.innerHTML = `<span class="spinner"></span> Generating Layout...`;
+            btn.innerHTML = `<span class="spinner"></span> Generating Layout with AI...`;
 
             try {
                 const response = await fetch('/api/generate', {
@@ -691,8 +567,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         prompt: document.getElementById('gen-prompt').value,
-                        server_id: document.getElementById('gen-server-id').value,
-                        server_link: document.getElementById('gen-server-link').value
+                        server_id: document.getElementById('gen-server-id').value
                     })
                 });
 
@@ -701,10 +576,10 @@
                     currentLayout = result.data;
                 }
             } catch (err) {
-                // Keep template fallback
+                console.error(err);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate Server Layout</span>`;
                 activeCatIdx = 0;
                 activeChanIdx = 0;
                 renderDashboard();
@@ -712,18 +587,9 @@
             }
         }
 
-        async function handleAIRegenerate() {
-            const input = document.getElementById('re-ai-prompt');
-            if (!input.value) return;
-            alert('Re-generating layout variations based on: ' + input.value);
-            input.value = '';
-            renderDashboard();
-        }
-
         function renderDashboard() {
             renderSidebar();
             renderActiveChannelDetails();
-            renderPermissions();
             renderRoles();
         }
 
@@ -734,31 +600,29 @@
 
             (currentLayout.categories || []).forEach((cat, cIdx) => {
                 const catDiv = document.createElement('div');
-                catDiv.className = 'category-block';
+                catDiv.className = 'discord-category';
 
                 const headerDiv = document.createElement('div');
-                headerDiv.className = 'category-title';
+                headerDiv.className = 'discord-category-title';
                 headerDiv.innerHTML = `
-                    <span>▾ ${cat.emoji ? cat.emoji + ' | ' : ''}${cat.name || 'CATEGORY'}</span>
+                    <span>▾ ${cat.emoji ? cat.emoji + ' ' : ''}${cat.name || 'CATEGORY'}</span>
                     <i class="fa-solid fa-xmark" onclick="deleteCategory(${cIdx})" style="cursor:pointer;"></i>
                 `;
                 catDiv.appendChild(headerDiv);
 
                 const channelList = document.createElement('div');
-                channelList.className = 'channel-tree-list';
-
                 (cat.channels || []).forEach((chan, chIdx) => {
                     const item = document.createElement('div');
                     const isActive = (cIdx === activeCatIdx && chIdx === activeChanIdx);
-                    item.className = `tree-item ${isActive ? 'active' : ''}`;
+                    item.className = `discord-channel-item ${isActive ? 'active' : ''}`;
                     item.onclick = () => selectChannel(cIdx, chIdx);
 
                     const icon = chan.type === 'voice' ? '🔊' : '#';
 
                     item.innerHTML = `
-                        <div class="tree-item-left">
+                        <div style="display:flex; align-items:center; gap:8px;">
                             <span>${icon}</span>
-                            <span>${chan.emoji ? chan.emoji + ' | ' : ''}${chan.name || 'channel'}</span>
+                            <span>${chan.emoji ? chan.emoji + ' ' : ''}${chan.name || 'channel'}</span>
                         </div>
                         <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteChannel(${cIdx}, ${chIdx})"></i>
                     `;
@@ -767,17 +631,29 @@
 
                 const addChanBtn = document.createElement('button');
                 addChanBtn.className = 'add-btn-inline';
-                addChanBtn.innerHTML = `+ new-channel`;
+                addChanBtn.innerHTML = `+ add channel`;
                 addChanBtn.onclick = () => addChannel(cIdx);
 
                 catDiv.appendChild(channelList);
                 catDiv.appendChild(addChanBtn);
                 container.appendChild(catDiv);
 
-                new Sortable(channelList, { group: 'channels', animation: 150 });
+                // Configured Sortable JS with delay/threshold to prevent scrolling issues
+                new Sortable(channelList, {
+                    group: 'channels',
+                    animation: 150,
+                    delay: 200,
+                    delayOnTouchOnly: true,
+                    touchStartThreshold: 5
+                });
             });
 
-            new Sortable(container, { animation: 150 });
+            new Sortable(container, {
+                animation: 150,
+                delay: 200,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 5
+            });
         }
 
         function selectChannel(cIdx, chIdx) {
@@ -788,12 +664,9 @@
 
         function renderActiveChannelDetails() {
             const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
-            if (!chan) {
-                document.getElementById('channel-settings-title').innerText = `Channel settings`;
-                return;
-            }
+            if (!chan) return;
 
-            document.getElementById('channel-settings-title').innerText = `Channel settings — #${chan.name || 'channel'}`;
+            document.getElementById('channel-settings-title').innerText = `Channel Settings — #${chan.name || 'channel'}`;
             document.getElementById('edit-chan-emoji').value = chan.emoji || '';
             document.getElementById('edit-chan-name').value = chan.name || '';
             document.getElementById('edit-chan-type').value = chan.type || 'text';
@@ -810,25 +683,6 @@
             chan.topic = document.getElementById('edit-chan-topic').value;
 
             renderSidebar();
-            renderPermissions();
-        }
-
-        function renderPermissions() {
-            const cat = currentLayout.categories[activeCatIdx];
-            const chan = cat?.channels[activeChanIdx];
-            if (!chan || !cat) return;
-
-            document.getElementById('perm-cat-name').innerText = `${cat.name || 'Category'} — #${chan.name || 'Channel'}`;
-            const list = document.getElementById('permissions-list');
-            list.innerHTML = '';
-
-            const roles = currentLayout.roles || [];
-            [{ name: "@everyone" }, ...roles].forEach((r) => {
-                const row = document.createElement('div');
-                row.className = 'perm-row';
-                row.innerHTML = `<span>${r.name}</span><span class="tag-green">ACCESS: YES</span>`;
-                list.appendChild(row);
-            });
         }
 
         function renderRoles() {
@@ -838,12 +692,20 @@
             (currentLayout.roles || []).forEach((r, idx) => {
                 const pill = document.createElement('div');
                 pill.className = 'role-pill';
-                pill.style.borderColor = r.color || '#8b5cf6';
-                pill.innerHTML = `<span class="role-dot" style="background:${r.color || '#8b5cf6'}"></span><span>${r.name}</span><i class="fa-solid fa-xmark" onclick="deleteRole(${idx})" style="cursor:pointer; margin-left:4px;"></i>`;
+                pill.innerHTML = `
+                    <span class="role-dot" style="background:${r.color || '#5865f2'}"></span>
+                    <span>${r.name}</span>
+                    <i class="fa-solid fa-xmark" onclick="deleteRole(${idx})" style="cursor:pointer; margin-left:4px;"></i>
+                `;
                 container.appendChild(pill);
             });
 
-            new Sortable(container, { animation: 150 });
+            new Sortable(container, {
+                animation: 150,
+                delay: 200,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 5
+            });
         }
 
         function addCategory() {
@@ -871,7 +733,7 @@
             const name = prompt("Role name:");
             if (name) {
                 if(!currentLayout.roles) currentLayout.roles = [];
-                currentLayout.roles.push({ name, color: "#8b5cf6" });
+                currentLayout.roles.push({ name, color: "#5865f2" });
                 renderRoles();
             }
         }
