@@ -1,566 +1,644 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Layout Builder</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SortableJS library for robust drag-and-drop -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <title>ORCA — Discord Server Architect</title>
+    
+    <!-- Google reCAPTCHA v2 API -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    
+    <!-- SortableJS for Drag and Drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --glass-glow: rgba(114, 137, 218, 0.25);
+            --accent-purple: #7289da;
+            --accent-cyan: #00f2fe;
+            --accent-red: #ff4757;
+            --accent-green: #2ed573;
+            --text-main: #f1f2f6;
+            --text-muted: #a4b0be;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            user-select: none;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-            background-color: #08080a;
-            color: #f5f5f7;
+            min-height: 100vh;
+            background: radial-gradient(circle at top left, #0f0c20, #090a0f, #050508);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
             overflow-x: hidden;
         }
 
-        .glass-aura {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 550px;
-            height: 550px;
-            background: radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(0, 0, 0, 0) 70%);
-            filter: blur(90px);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-        }
-
-        .glass-input {
-            background: rgba(255, 255, 255, 0.04);
+        /* Glassmorphism Panel Container */
+        .glass-panel {
+            background: var(--glass-bg);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #ffffff;
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+            width: 100%;
+            max-width: 900px;
+            padding: 35px;
+            transition: all 0.4s ease;
+            position: relative;
         }
 
-        .glass-input:focus {
+        /* Ambient Glow Effects */
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(45deg, var(--accent-purple), transparent, var(--accent-cyan));
+            border-radius: 22px;
+            z-index: -1;
+            opacity: 0.2;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Page Management */
+        .page {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .page.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Header */
+        .brand-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .brand-header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .brand-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 5px;
+        }
+
+        /* Form Controls & Inputs */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 0.95rem;
             outline: none;
-            border-color: rgba(168, 85, 247, 0.5);
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            user-select: text;
         }
 
-        .glass-btn {
-            background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 100%);
-            backdrop-filter: blur(25px);
+        .form-control:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 12px rgba(0, 242, 254, 0.2);
+        }
+
+        /* Glass Buttons */
+        .btn-glass {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(114, 137, 218, 0.3), rgba(0, 242, 254, 0.2));
             border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
         }
 
-        .glass-btn:hover:not(:disabled) {
-            transform: scale(1.02);
-            background: linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.1) 100%);
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+        .btn-glass:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(114, 137, 218, 0.5), rgba(0, 242, 254, 0.4));
+            box-shadow: 0 0 20px var(--glass-glow);
+            transform: translateY(-2px);
         }
 
-        .glass-btn-primary {
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.6) 0%, rgba(59, 130, 246, 0.4) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+        .btn-glass:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
         }
 
-        .glass-btn-primary:hover {
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.8) 0%, rgba(59, 130, 246, 0.6) 100%);
-            box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
+        /* User Profile Bar */
+        .user-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 25px;
         }
 
-        .drag-handle {
+        .user-bar img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        /* Drag & Drop Layout Builder */
+        .category-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 450px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .category-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
             cursor: grab;
-            user-select: none;
         }
-        .drag-handle:active {
-            cursor: grabbing;
+
+        .channel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-left: 15px;
+            min-height: 20px;
         }
-        .sortable-ghost {
-            opacity: 0.3;
-            background: rgba(168, 85, 247, 0.2);
+
+        .channel-item {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 10px 14px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.2s ease;
         }
+
+        .channel-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Modal Inspector */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-body {
+            background: rgba(20, 20, 30, 0.95);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            padding: 25px;
+        }
+
+        /* Banned State View */
+        .banned-box {
+            border-color: var(--accent-red) !important;
+            text-align: center;
+        }
+
+        .banned-box h2 {
+            color: var(--accent-red);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.1);
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            border-left-color: #fff;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-center items-center relative p-4 selection:bg-purple-500/30">
+<body>
 
-    <div class="glass-aura"></div>
+    <div class="glass-panel">
 
-    <!-- 1. BUILDER FORM -->
-    <main id="page-builder" class="relative z-10 w-full max-w-xl mx-auto space-y-6 my-auto">
-        <div class="text-center space-y-1">
-            <h1 class="text-3xl font-extrabold tracking-tight text-white">Discord Infrastructure</h1>
-            <p class="text-xs text-gray-400">Fill in parameters to initialize AI schema parsing.</p>
+        <!-- ================= BANNED SCREEN ================= -->
+        {% if is_banned %}
+        <div class="banned-box">
+            <i class="fa-solid fa-ban fa-4x" style="color: var(--accent-red); margin-bottom: 15px;"></i>
+            <h2>BANNED</h2>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">You are currently suspended from using the ORCA web platform.</p>
+            <div style="background: rgba(255,71,87,0.1); border: 1px solid var(--accent-red); padding: 15px; border-radius: 10px;">
+                <strong>Developer Message:</strong><br>
+                <span>{{ dev_message }}</span>
+            </div>
         </div>
+        {% else %}
 
-        <div class="glass-card rounded-3xl p-6 space-y-5">
-            <div class="space-y-2">
-                <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                    Prompt Description <span class="text-purple-400">*</span>
-                </label>
-                <textarea id="prompt-input" rows="4" maxlength="4000" oninput="validateForm()"
-                    class="glass-input w-full rounded-2xl p-4 text-xs placeholder-gray-500 transition resize-none"
-                    placeholder="A dedicated server for a Roblox game that is used to post updates, host voice chats, and announcements..."></textarea>
+        <!-- ================= PAGE 1: LANDING & AUTH ================= -->
+        <div id="page-landing" class="page active">
+            <div class="brand-header">
+                <h1>ORCA ARCHITECT</h1>
+                <p>AI-Powered Discord Server Generation</p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div class="space-y-2 sm:col-span-2">
-                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                        Target Discord Server ID <span class="text-purple-400">*</span>
-                    </label>
-                    <input type="text" id="guild-id-input" oninput="validateForm()" placeholder="123456789012345678"
-                        class="glass-input w-full rounded-2xl p-3.5 text-xs font-mono transition" />
-                </div>
-
-                <div class="space-y-2 col-span-1">
-                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                        Separator
-                    </label>
-                    <input type="text" id="separator-input" maxlength="3" value="-" oninput="validateForm()"
-                        class="glass-input w-full rounded-2xl p-3.5 text-xs text-center font-bold transition" />
-                </div>
-            </div>
-
-            <div class="flex items-center space-x-2 pt-1">
-                <span class="text-[9px] text-gray-400 uppercase tracking-wider">Quick Separators:</span>
-                <button type="button" onclick="setSeparator('|')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">|</button>
-                <button type="button" onclick="setSeparator('-')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">-</button>
-                <button type="button" onclick="setSeparator('•')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">•</button>
-                <button type="button" onclick="setSeparator('~')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-mono">~</button>
-            </div>
-
-            <button id="btn-generate" disabled onclick="handleGenerate()"
-                class="glass-btn w-full disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl text-xs shadow-xl flex items-center justify-center space-x-2">
-                <span id="btn-text">⚡ Generate Server Layout</span>
-            </button>
-        </div>
-    </main>
-
-    <!-- 2. PREVIEW PAGE -->
-    <main id="page-preview" class="hidden relative z-10 w-full max-w-4xl mx-auto space-y-6 my-auto">
-        <div class="flex justify-between items-center border-b border-white/10 pb-4">
-            <h2 id="preview-server-name" class="text-2xl font-bold tracking-tight text-white">Server Blueprint</h2>
-            <button onclick="downloadBuildFile()" class="glass-btn px-4 py-2 rounded-xl text-xs font-medium text-white">
-                Download .json
-            </button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div class="glass-card rounded-2xl p-4 space-y-4">
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Server Structure</span>
-                    <button onclick="addCategory()" class="text-[10px] text-purple-400 hover:text-purple-300 font-semibold px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                        + Add Category
+            {% if not user %}
+            <div class="form-group" style="text-align: center;">
+                <p style="color: var(--text-muted); margin-bottom: 20px;">Authorize with Discord to build and customize your server architecture.</p>
+                <a href="/login" style="text-decoration: none;">
+                    <button class="btn-glass">
+                        <i class="fa-brands fa-discord fa-lg"></i> Log In with Discord
                     </button>
+                </a>
+            </div>
+            {% else %}
+            <div class="user-bar">
+                <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+                <div>
+                    <strong>{{ user.username }}</strong>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">ID: {{ user.id }}</div>
                 </div>
-                <div id="discord-structure-list" class="space-y-3 text-xs max-h-[480px] overflow-y-auto pr-1"></div>
+                <a href="/logout" style="margin-left: auto; color: var(--accent-red); font-size: 0.85rem; text-decoration: none;">Logout</a>
             </div>
 
-            <div class="space-y-4">
-                <div class="glass-card rounded-2xl p-4 space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Configured Roles</span>
-                        <button onclick="addRole()" class="text-[10px] text-purple-400 hover:text-purple-300 font-semibold px-2 py-0.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                            + Add Role
-                        </button>
-                    </div>
-                    <div id="roles-list" class="flex flex-wrap gap-2"></div>
+            <!-- Google reCAPTCHA Container -->
+            <div class="form-group" style="display: flex; justify-content: center;">
+                <div class="g-recaptcha" data-sitekey="6Ld_YOUR_RECAPTCHA_SITE_KEY_HERE" data-callback="enableVerifyBtn"></div>
+            </div>
+
+            <button id="verify-btn" class="btn-glass" onclick="handleVerification()" disabled>
+                <span>Verify & Continue</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- ================= PAGE 2: GENERATOR PROMPT ================= -->
+        <div id="page-generator" class="page">
+            <div class="brand-header">
+                <h1>DESIGN PREFERENCES</h1>
+                <p>Configure Gemini AI parameters for generation</p>
+            </div>
+
+            <div class="form-group">
+                <label>Server Theme & Details</label>
+                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="e.g., A Cyberpunk Esports Gaming server with trading, scrims, and streaming zones..."></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Channel Separator</label>
+                    <input type="text" id="gen-separator" class="form-control" value="│" placeholder="e.g. │ or •">
                 </div>
-
-                <div class="glass-card rounded-2xl p-4 space-y-3">
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider" id="editor-title">Channel Settings</div>
-                    
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="space-y-1 col-span-1">
-                            <label class="text-[9px] text-gray-400 uppercase">Emoji</label>
-                            <input type="text" id="edit-channel-emoji" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
-                        </div>
-                        <div class="space-y-1 col-span-2">
-                            <label class="text-[9px] text-gray-400 uppercase">Name</label>
-                            <input type="text" id="edit-channel-name" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
-                        </div>
-                    </div>
-
-                    <div class="space-y-1">
-                        <label class="text-[9px] text-gray-400 uppercase">Type</label>
-                        <select id="edit-channel-type" onchange="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs bg-black">
-                            <option value="text">text</option>
-                            <option value="voice">voice</option>
-                            <option value="announcement">announcement</option>
-                        </select>
-                    </div>
-
-                    <div class="space-y-1">
-                        <label class="text-[9px] text-gray-400 uppercase">Topic</label>
-                        <input type="text" id="edit-channel-topic" oninput="updateActiveChannel()" class="glass-input w-full rounded-xl p-2 text-xs" />
-                    </div>
-
-                    <div class="pt-3 border-t border-white/10 space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[10px] font-bold text-purple-300 uppercase tracking-wider">Channel Permissions</span>
-                            <select id="perm-role-select" onchange="renderRolePermissions()" class="glass-input rounded-lg p-1 text-[10px] bg-black text-gray-200"></select>
-                        </div>
-                        <div id="permissions-toggle-grid" class="space-y-2 max-h-[160px] overflow-y-auto pr-1"></div>
-                    </div>
+                <div class="form-group">
+                    <label>Target Server ID (Mandatory)</label>
+                    <input type="text" id="gen-server-id" class="form-control" placeholder="18-digit Server ID">
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label>Server Invite Link (Optional)</label>
+                <input type="text" id="gen-server-link" class="form-control" placeholder="https://discord.gg/yourcode">
+            </div>
+
+            <button id="generate-btn" class="btn-glass" onclick="handleAIGeneration()">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate Layout with Gemini</span>
+            </button>
+        </div>
+
+        <!-- ================= PAGE 3: LAYOUT CUSTOMIZER ================= -->
+        <div id="page-layout" class="page">
+            <div class="brand-header">
+                <h1>STRUCTURE & LAYOUT</h1>
+                <p>Drag to reorder categories or channels. Click a channel to edit metadata.</p>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="btn-glass" style="padding: 8px 12px; font-size: 0.85rem;" onclick="addCategory()">
+                    <i class="fa-solid fa-plus"></i> Add Category
+                </button>
+            </div>
+
+            <div id="category-container" class="category-list">
+                <!-- Dynamically populated drag-and-drop categories -->
+            </div>
+
+            <button id="submit-design-btn" class="btn-glass" style="margin-top: 25px;" onclick="handleSubmitDesign()">
+                <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
+            </button>
+        </div>
+
+        <!-- ================= PAGE 4: FINAL COMPLETION ================= -->
+        <div id="page-final" class="page" style="text-align: center;">
+            <i class="fa-solid fa-circle-check fa-4x" style="color: var(--accent-green); margin-bottom: 20px;"></i>
+            <div class="brand-header">
+                <h1>DESIGN SUBMITTED</h1>
+                <p>Your layout has been compiled and dispatched to the bot engine.</p>
+            </div>
+
+            <p style="color: var(--text-muted); margin-bottom: 30px;">
+                Run the command generated in your private discord building channel to build the server structure automatically.
+            </p>
+
+            <div style="display: flex; gap: 15px;">
+                <a id="bot-add-link" href="#" target="_blank" style="flex: 1; text-decoration: none;">
+                    <button class="btn-glass">
+                        <i class="fa-solid fa-robot"></i> Add Bot to Server
+                    </button>
+                </a>
+                <button class="btn-glass" style="flex: 1;" onclick="resetBuilder()">
+                    <i class="fa-solid fa-rotate-right"></i> Start New Design
+                </button>
             </div>
         </div>
 
-        <div class="space-y-3 pt-2">
-            <button id="btn-submit-design" onclick="submitDesign()" class="glass-btn glass-btn-primary w-full text-white font-bold py-4 rounded-2xl text-xs uppercase tracking-wider shadow-2xl transition">
-                🚀 SUBMIT DESIGN
-            </button>
+        {% endif %}
 
-            <button onclick="switchPage('builder')" class="glass-btn w-full text-gray-300 font-semibold py-3 rounded-2xl text-xs transition">
-                ← Back to Builder
-            </button>
-        </div>
-    </main>
+    </div>
 
-    <!-- 3. SUCCESS PAGE -->
-    <main id="page-success" class="hidden relative z-10 w-full max-w-md mx-auto text-center space-y-6 my-auto">
-        <div class="glass-card rounded-3xl p-8 space-y-6 relative overflow-hidden border border-purple-500/30">
-            <div class="relative mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-600/30 to-blue-500/20 border border-purple-400/30 shadow-[0_0_30px_rgba(168,85,247,0.35)]">
-                <svg class="w-10 h-10 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                </svg>
+    <!-- ================= MODAL: CHANNEL INSPECTOR ================= -->
+    <div id="channel-modal" class="modal-overlay">
+        <div class="modal-body">
+            <h3 style="margin-bottom: 15px; color: var(--accent-cyan);">Edit Channel Config</h3>
+            
+            <div class="form-group">
+                <label>Emoji Icon</label>
+                <input type="text" id="modal-emoji" class="form-control" placeholder="💬">
             </div>
 
-            <div class="space-y-2">
-                <h2 class="text-2xl font-bold text-white tracking-tight">Design Submitted</h2>
-                <p class="text-xs text-gray-400 leading-relaxed">
-                    Your layout and permissions have been transmitted through your Discord webhook.
-                </p>
+            <div class="form-group">
+                <label>Channel Name</label>
+                <input type="text" id="modal-name" class="form-control">
             </div>
 
-            <button onclick="resetApp()" class="glass-btn w-full text-white font-semibold py-3.5 rounded-2xl text-xs transition">
-                🔄 Return to Start
-            </button>
-        </div>
-    </main>
+            <div class="form-group">
+                <label>Description / Topic</label>
+                <input type="text" id="modal-desc" class="form-control">
+            </div>
 
+            <div class="form-group">
+                <label>Type</label>
+                <select id="modal-type" class="form-control">
+                    <option value="text">Text Channel</option>
+                    <option value="voice">Voice Channel</option>
+                </select>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button class="btn-glass" style="width: auto; padding: 10px 20px;" onclick="closeModal()">Cancel</button>
+                <button class="btn-glass" style="width: auto; padding: 10px 20px;" onclick="saveModalChannel()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT APP LOGIC ================= -->
     <script>
-        let serverBlueprint = null;
-        let activeCatIndex = 0;
-        let activeChIndex = 0;
-        let sortableInstance = null;
+        // Global State
+        let currentLayout = { categories: [] };
+        let activeEditChannel = null;
 
-        const DISCORD_PERMISSIONS = [
-            { key: "view_channel", label: "View Channel" },
-            { key: "send_messages", label: "Send Messages" },
-            { key: "embed_links", label: "Embed Links" },
-            { key: "attach_files", label: "Attach Files" },
-            { key: "read_message_history", label: "Read Message History" },
-            { key: "connect", label: "Connect (Voice)" },
-            { key: "speak", label: "Speak (Voice)" },
-            { key: "manage_channels", label: "Manage Channel" }
-        ];
-
-        function setSeparator(char) {
-            document.getElementById('separator-input').value = char;
+        // Page Navigation System
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
         }
 
-        function switchPage(page) {
-            document.getElementById('page-builder').classList.add('hidden');
-            document.getElementById('page-preview').classList.add('hidden');
-            document.getElementById('page-success').classList.add('hidden');
-            document.getElementById(`page-${page}`).classList.remove('hidden');
+        // Enable Verify Button after reCAPTCHA
+        function enableVerifyBtn() {
+            document.getElementById('verify-btn').disabled = false;
         }
 
-        function validateForm() {
-            const promptVal = document.getElementById('prompt-input').value.trim();
-            const guildIdVal = document.getElementById('guild-id-input').value.trim();
-            document.getElementById('btn-generate').disabled = (promptVal.length === 0 || guildIdVal.length === 0);
+        // Landing verification handler with rate-limit lock
+        function handleVerification() {
+            const btn = document.getElementById('verify-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Verifying...`;
+
+            setTimeout(() => {
+                btn.innerHTML = `<span>Verified!</span> <i class="fa-solid fa-check"></i>`;
+                setTimeout(() => navigateTo('page-generator'), 600);
+            }, 1200);
         }
 
-        async function handleGenerate() {
-            const promptText = document.getElementById('prompt-input').value.trim();
-            const guildId = document.getElementById('guild-id-input').value.trim();
-            const separatorVal = document.getElementById('separator-input').value.trim() || '-';
-            const btnText = document.getElementById('btn-text');
-            const btnEl = document.getElementById('btn-generate');
+        // AI Layout Generation Call
+        async function handleAIGeneration() {
+            const prompt = document.getElementById('gen-prompt').value.trim();
+            const separator = document.getElementById('gen-separator').value.trim();
+            const serverId = document.getElementById('gen-server-id').value.trim();
+            const serverLink = document.getElementById('gen-server-link').value.trim();
 
-            if (btnText) btnText.textContent = "⚡ Analyzing Layout...";
-            if (btnEl) btnEl.disabled = true;
+            if (!prompt || !serverId) {
+                alert("Please fill in both the Prompt and Target Server ID.");
+                return;
+            }
+
+            const btn = document.getElementById('generate-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Architecting Layout with Gemini...`;
 
             try {
-                const res = await fetch('/api/generate-layout', {
+                // Call backend API endpoint to trigger ai_brain.py
+                const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: promptText, guild_id: guildId, separator: separatorVal })
+                    body: JSON.stringify({ prompt, separator, server_id: serverId, server_link: serverLink })
                 });
 
-                serverBlueprint = await res.json();
-                ensurePermissionsStructure();
-                renderPreview();
-                switchPage('preview');
-            } catch (err) {
-                console.error("Layout generation error:", err);
-            } finally {
-                if (btnText) btnText.textContent = "⚡ Generate Server Layout";
-                validateForm();
-            }
-        }
-
-        function ensurePermissionsStructure() {
-            if (!serverBlueprint || !serverBlueprint.categories) return;
-            serverBlueprint.categories.forEach(cat => {
-                (cat.channels || []).forEach(ch => {
-                    if (!ch.permissions) ch.permissions = {};
-                    (serverBlueprint.roles || []).forEach(role => {
-                        if (!ch.permissions[role]) {
-                            ch.permissions[role] = {
-                                view_channel: true,
-                                send_messages: true,
-                                embed_links: true,
-                                attach_files: true,
-                                read_message_history: true,
-                                connect: true,
-                                speak: true,
-                                manage_channels: false
-                            };
-                        }
-                    });
-                });
-            });
-        }
-
-        function renderPreview() {
-            if (!serverBlueprint) return;
-            document.getElementById('preview-server-name').textContent = serverBlueprint.server_name || "Community Blueprint";
-
-            // Roles Render
-            const rolesContainer = document.getElementById('roles-list');
-            rolesContainer.innerHTML = (serverBlueprint.roles || []).map((r, idx) => 
-                `<span class="px-2.5 py-1 rounded-full bg-white/10 text-[10px] text-white border border-white/10 flex items-center space-x-1">
-                    <span>● ${escapeHtml(r)}</span>
-                    <button onclick="removeRole(${idx})" class="hover:text-red-400 ml-1">×</button>
-                 </span>`
-            ).join('');
-
-            // Select Role List Options
-            const roleSelect = document.getElementById('perm-role-select');
-            const currentSelectedRole = roleSelect.value;
-            roleSelect.innerHTML = (serverBlueprint.roles || []).map(r => 
-                `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`
-            ).join('');
-            if (currentSelectedRole && (serverBlueprint.roles || []).includes(currentSelectedRole)) {
-                roleSelect.value = currentSelectedRole;
-            }
-
-            // Categories & Channels Structure Render
-            const listContainer = document.getElementById('discord-structure-list');
-            listContainer.innerHTML = '';
-
-            (serverBlueprint.categories || []).forEach((cat, catIdx) => {
-                const catDiv = document.createElement('div');
-                catDiv.className = 'glass-card rounded-xl p-2.5 space-y-2 border border-white/5';
-                catDiv.setAttribute('data-id', catIdx);
-
-                let catHtml = `
-                    <div class="flex justify-between items-center drag-handle py-1">
-                        <span class="font-semibold text-purple-300 uppercase text-[10px]">⋮⋮ ${escapeHtml(cat.name)}</span>
-                        <button onclick="addChannel(${catIdx})" class="text-[9px] text-purple-400 hover:text-purple-300 font-semibold px-2 py-0.5 rounded bg-purple-500/10">
-                            + Add Channel
-                        </button>
-                    </div>
-                `;
-
-                (cat.channels || []).forEach((ch, chIdx) => {
-                    const isSelected = (catIdx === activeCatIndex && chIdx === activeChIndex);
-                    const activeStyle = isSelected ? "bg-purple-500/20 text-white font-semibold border border-purple-500/30" : "text-gray-400 hover:text-white hover:bg-white/5";
-                    catHtml += `
-                        <div onclick="selectChannel(${catIdx}, ${chIdx})" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg cursor-pointer transition text-xs ${activeStyle}">
-                            <span>${escapeHtml(ch.emoji || '#')}</span>
-                            <span>${escapeHtml(ch.name)}</span>
-                        </div>
-                    `;
-                });
-
-                catDiv.innerHTML = catHtml;
-                listContainer.appendChild(catDiv);
-            });
-
-            initSortable();
-            loadEditorValues();
-        }
-
-        // Initialize SortableJS on Category List
-        function initSortable() {
-            const listContainer = document.getElementById('discord-structure-list');
-            if (sortableInstance) sortableInstance.destroy();
-
-            sortableInstance = new Sortable(listContainer, {
-                handle: '.drag-handle',
-                animation: 150,
-                ghostClass: 'sortable-ghost',
-                onEnd: function (evt) {
-                    const movedItem = serverBlueprint.categories.splice(evt.oldIndex, 1)[0];
-                    serverBlueprint.categories.splice(evt.newIndex, 0, movedItem);
-                    activeCatIndex = evt.newIndex;
-                    renderPreview();
+                const result = await response.json();
+                if (result.success) {
+                    currentLayout = result.data;
+                    renderLayoutBuilder();
+                    navigateTo('page-layout');
+                } else {
+                    alert("Generation failed: " + result.error);
                 }
+            } catch (err) {
+                alert("Error connecting to generator endpoint.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate Layout with Gemini</span>`;
+            }
+        }
+
+        // Render Drag and Drop Builder
+        function renderLayoutBuilder() {
+            const container = document.getElementById('category-container');
+            container.innerHTML = '';
+
+            currentLayout.categories.forEach((cat, catIdx) => {
+                const catEl = document.createElement('div');
+                catEl.className = 'category-item';
+                catEl.innerHTML = `
+                    <div class="category-header">
+                        <input type="text" class="form-control" style="width: auto; padding: 4px 8px;" value="${cat.name}" onchange="currentLayout.categories[${catIdx}].name = this.value">
+                        <div>
+                            <button onclick="addChannel(${catIdx})" style="background:none; border:none; color:var(--accent-cyan); cursor:pointer;"><i class="fa-solid fa-plus"></i> Channel</button>
+                        </div>
+                    </div>
+                    <div class="channel-list" id="cat-list-${catIdx}"></div>
+                `;
+                container.appendChild(catEl);
+
+                const channelContainer = catEl.querySelector(`#cat-list-${catIdx}`);
+                cat.channels.forEach((chan, chanIdx) => {
+                    const chanEl = document.createElement('div');
+                    chanEl.className = 'channel-item';
+                    chanEl.innerHTML = `
+                        <span>${chan.emoji || '💬'} ${chan.name}</span>
+                        <i class="fa-solid fa-gear" style="color:var(--text-muted);"></i>
+                    `;
+                    chanEl.onclick = () => openModal(catIdx, chanIdx);
+                    channelContainer.appendChild(chanEl);
+                });
+
+                // Initialize Sortable for channels inside category
+                new Sortable(channelContainer, {
+                    group: 'channels',
+                    animation: 150
+                });
+            });
+
+            // Initialize Sortable for categories
+            new Sortable(container, {
+                animation: 150
             });
         }
 
-        function addRole() {
-            if (!serverBlueprint) return;
-            const roleName = prompt("Enter new role name:", "New Role");
-            if (!roleName) return;
-            if (!serverBlueprint.roles) serverBlueprint.roles = [];
-            serverBlueprint.roles.push(roleName.trim());
-            ensurePermissionsStructure();
-            renderPreview();
+        // Modal Logic
+        function openModal(catIdx, chanIdx) {
+            activeEditChannel = { catIdx, chanIdx };
+            const chan = currentLayout.categories[catIdx].channels[chanIdx];
+            
+            document.getElementById('modal-emoji').value = chan.emoji || '💬';
+            document.getElementById('modal-name').value = chan.name || '';
+            document.getElementById('modal-desc').value = chan.topic || chan.description || '';
+            document.getElementById('modal-type').value = chan.type || 'text';
+            
+            document.getElementById('channel-modal').style.display = 'flex';
         }
 
-        function removeRole(idx) {
-            if (!serverBlueprint || !serverBlueprint.roles) return;
-            serverBlueprint.roles.splice(idx, 1);
-            renderPreview();
+        function closeModal() {
+            document.getElementById('channel-modal').style.display = 'none';
         }
 
+        function saveModalChannel() {
+            if (!activeEditChannel) return;
+            const { catIdx, chanIdx } = activeEditChannel;
+            const chan = currentLayout.categories[catIdx].channels[chanIdx];
+
+            chan.emoji = document.getElementById('modal-emoji').value;
+            chan.name = document.getElementById('modal-name').value;
+            chan.topic = document.getElementById('modal-desc').value;
+            chan.type = document.getElementById('modal-type').value;
+
+            closeModal();
+            renderLayoutBuilder();
+        }
+
+        // Add Category / Channel handlers
         function addCategory() {
-            if (!serverBlueprint) return;
-            const catName = prompt("Enter new category name:", "NEW CATEGORY");
-            if (!catName) return;
-            const sep = serverBlueprint.separator || '-';
-            serverBlueprint.categories.push({
-                name: catName.toUpperCase(),
-                channels: [{ emoji: "💬", name: `general${sep}chat`, type: "text", topic: "General discussion", permissions: {} }]
-            });
-            ensurePermissionsStructure();
-            renderPreview();
+            currentLayout.categories.push({ name: "NEW CATEGORY", channels: [] });
+            renderLayoutBuilder();
         }
 
         function addChannel(catIdx) {
-            if (!serverBlueprint || !serverBlueprint.categories[catIdx]) return;
-            const chName = prompt("Enter new channel name:", "new-channel");
-            if (!chName) return;
-            const sep = serverBlueprint.separator || '-';
-            serverBlueprint.categories[catIdx].channels.push({
-                emoji: "💬",
-                name: chName.toLowerCase().replace(/\s+/g, sep),
-                type: "text",
-                topic: "",
-                permissions: {}
-            });
-            ensurePermissionsStructure();
-            renderPreview();
+            currentLayout.categories[catIdx].channels.push({ name: "new-channel", type: "text", emoji: "💬" });
+            renderLayoutBuilder();
         }
 
-        function selectChannel(catIdx, chIdx) {
-            activeCatIndex = catIdx;
-            activeChIndex = chIdx;
-            renderPreview();
-        }
-
-        function loadEditorValues() {
-            if (!serverBlueprint || !serverBlueprint.categories || !serverBlueprint.categories[activeCatIndex]) return;
-            const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
-            if (!ch) return;
-
-            document.getElementById('editor-title').textContent = `Channel — #${ch.name}`;
-            document.getElementById('edit-channel-emoji').value = ch.emoji || '';
-            document.getElementById('edit-channel-name').value = ch.name || '';
-            document.getElementById('edit-channel-type').value = ch.type || 'text';
-            document.getElementById('edit-channel-topic').value = ch.topic || '';
-
-            renderRolePermissions();
-        }
-
-        function updateActiveChannel() {
-            if (!serverBlueprint || !serverBlueprint.categories || !serverBlueprint.categories[activeCatIndex]) return;
-            const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
-            if (!ch) return;
-
-            ch.emoji = document.getElementById('edit-channel-emoji').value;
-            ch.name = document.getElementById('edit-channel-name').value;
-            ch.type = document.getElementById('edit-channel-type').value;
-            ch.topic = document.getElementById('edit-channel-topic').value;
-            renderPreview();
-        }
-
-        function renderRolePermissions() {
-            if (!serverBlueprint || !serverBlueprint.categories || !serverBlueprint.categories[activeCatIndex]) return;
-            const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
-            if (!ch) return;
-
-            const selectedRole = document.getElementById('perm-role-select').value;
-            if (!selectedRole) return;
-
-            if (!ch.permissions) ch.permissions = {};
-            if (!ch.permissions[selectedRole]) {
-                ch.permissions[selectedRole] = { view_channel: true, send_messages: true, connect: true };
-            }
-
-            const permGrid = document.getElementById('permissions-toggle-grid');
-            permGrid.innerHTML = DISCORD_PERMISSIONS.map(p => {
-                const isChecked = ch.permissions[selectedRole][p.key] !== false;
-                return `
-                    <div class="flex items-center justify-between p-1.5 rounded-lg bg-white/5 text-[10px]">
-                        <span class="text-gray-300 font-medium">${p.label}</span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="togglePermission('${selectedRole}', '${p.key}', this.checked)" class="sr-only peer">
-                            <div class="w-7 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-600"></div>
-                        </label>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function togglePermission(role, permKey, isEnabled) {
-            if (!serverBlueprint || !serverBlueprint.categories || !serverBlueprint.categories[activeCatIndex]) return;
-            const ch = serverBlueprint.categories[activeCatIndex].channels[activeChIndex];
-            if (!ch) return;
-
-            if (!ch.permissions[role]) ch.permissions[role] = {};
-            ch.permissions[role][permKey] = isEnabled;
-        }
-
-        async function submitDesign() {
-            const btn = document.getElementById('btn-submit-design');
-            if (btn) btn.disabled = true;
+        // Final Submission to Discord Webhook
+        async function handleSubmitDesign() {
+            const btn = document.getElementById('submit-design-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Dispatching Design...`;
 
             try {
-                const res = await fetch('/api/submit-design', {
+                const response = await fetch('/api/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(serverBlueprint)
+                    body: JSON.stringify(currentLayout)
                 });
-                const responseData = await res.json();
-                console.log('Submission Response:', responseData);
+
+                if (response.ok) {
+                    const serverId = currentLayout.build_meta ? currentLayout.build_meta.target_server_id : '';
+                    document.getElementById('bot-add-link').href = `https://discord.com/oauth2/authorize?client_id=YOUR_BOT_CLIENT_ID&scope=bot&permissions=8&guild_id=${serverId}`;
+                    navigateTo('page-final');
+                } else {
+                    alert("Submission failed.");
+                }
             } catch (err) {
-                console.error("Webhook submission error:", err);
+                alert("Network error on submission.");
             } finally {
-                if (btn) btn.disabled = false;
-                switchPage('success');
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>`;
             }
         }
 
-        function resetApp() {
-            document.getElementById('prompt-input').value = '';
-            document.getElementById('guild-id-input').value = '';
-            serverBlueprint = null;
-            validateForm();
-            switchPage('builder');
-        }
-
-        function escapeHtml(str) {
-            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        }
-
-        function downloadBuildFile() {
-            if (!serverBlueprint) return;
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(serverBlueprint, null, 2));
-            const anchor = document.createElement('a');
-            anchor.setAttribute("href", dataStr);
-            anchor.setAttribute("download", `blueprint_${serverBlueprint.target_guild_id}.json`);
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
+        function resetBuilder() {
+            navigateTo('page-landing');
         }
     </script>
 </body>
