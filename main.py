@@ -3,8 +3,7 @@ import json
 import requests
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify, send_from_directory
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+from ai_brain import generate_server_layout
 
 load_dotenv()
 
@@ -23,10 +22,6 @@ RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 WEBSITE_WEBHOOK_URL = os.getenv("WEBSITE_WEBHOOK_URL")
 DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-# Gemini AI Client
-ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 REDIRECT_URI = f"{DASHBOARD_URL.rstrip('/')}/callback"
 DISCORD_AUTH_URL = (
@@ -41,15 +36,19 @@ def log_system_entry(user_info=None):
     if not WEBSITE_WEBHOOK_URL:
         return
 
+    # Filter out unauthenticated and guest users
+    if not user_info:
+        return
+
     # Filter out Render's internal health check requests from 127.0.0.1
     if request.remote_addr == "127.0.0.1" and not request.headers.get('X-Forwarded-For'):
         return
 
-    user_str = f"User: {user_info.get('username')} (ID: {user_info.get('id')})" if user_info else "Guest / Unauthenticated User"
+    user_str = f"User: {user_info.get('username')} (ID: {user_info.get('id')})"
     payload = {
         "embeds": [{
             "title": "🌐 Dashboard Visit Logged",
-            "description": f"A user loaded the landing page.\n**Status:** {user_str}",
+            "description": f"A logged-in user loaded the landing page.\n**Status:** {user_str}",
             "color": 0x8b5cf6
         }]
     }
@@ -128,51 +127,20 @@ def verify_captcha():
 
 @app.route("/api/generate", methods=["POST"])
 def generate_layout():
-    if not ai_client:
-        return jsonify({"success": False, "message": "Gemini API key is not configured."}), 500
-
     payload = request.json or {}
     user_prompt = payload.get("prompt", "Create a modern Discord community server layout.")
     server_id = payload.get("server_id", "")
+    server_link = payload.get("server_link", "")
 
-    system_instruction = """
-    You are a professional Discord Infrastructure Architect.
-    Generate a JSON layout for a Discord server based on the user's prompt.
-    Return strictly raw JSON conforming to this schema without code fences or extra text:
-    {
-      "server_name": "Server Name",
-      "roles": [
-        {"name": "Owner", "color": "#f1c40f"},
-        {"name": "Admin", "color": "#e74c3c"},
-        {"name": "Member", "color": "#2ecc71"}
-      ],
-      "categories": [
-        {
-          "name": "CATEGORY NAME",
-          "emoji": "📁",
-          "channels": [
-            {"name": "welcome", "emoji": "👋", "type": "text", "topic": "Welcome channel"},
-            {"name": "Lounge", "emoji": "💬", "type": "voice", "topic": ""}
-          ]
-        }
-      ]
-    }
-    """
+    result = generate_server_layout(
+        prompt=user_prompt,
+        server_id=server_id,
+        server_link=server_link
+    )
 
-    try:
-        response = ai_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json"
-            )
-        )
-        parsed_data = json.loads(response.text)
-        return jsonify({"success": True, "data": parsed_data})
-    except Exception as e:
-        print(f"AI Generation Error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+    if result.get("success"):
+        return jsonify({"success": True, "data": result.get("data")})
+    return jsonify({"success": False, "message": result.get("error", "Generation failed.")}), 500
 
 @app.route("/blueprint/<filename>")
 def get_blueprint(filename):
@@ -212,14 +180,13 @@ def submit_design():
     username_mention = f"@{user['username']}" if user else "@Anonymous"
 
     if DESIGN_WEBHOOK_URL:
-        # Match exact design & layout specified in Image 16
         embed = {
-            "title": f"📬 New Server Layout Submitted — #{target_server_id}",
+            "title": f"📩 New Server Layout Submitted — #{target_server_id}",
             "description": (
                 "A new blueprint layout was generated and is ready for staff deployment.\n\n"
                 f"🔑 **Build Command:** `/build file: {blueprint_url}`"
             ),
-            "color": 0x2ecc71,  # Discord Green Accent
+            "color": 0x2ecc71,
             "fields": [
                 {"name": "Submitted By", "value": f"`{username_mention}`", "inline": False},
                 {"name": "Target Server ID", "value": f"`{target_server_id}`", "inline": False},
