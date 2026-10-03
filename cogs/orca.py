@@ -11,7 +11,6 @@ class OrcaCog(commands.Cog):
 
     def slugify_channel_name(self, name: str, emoji: str = "") -> str:
         """Converts raw name input into a Discord-compliant slug (kebab-case)."""
-        # Strip unicode emojis and non-alphanumeric chars except dashes/underscores
         clean_name = re.sub(r'[\u1f600-\u1f64f\u1f300-\u1f5ff\u1f680-\u1f6ff\u2600-\u26ff\u2700-\u27bf]', '', name or '')
         clean_name = re.sub(r'[^a-zA-Z0-9\s\-_]', '', clean_name).strip().lower()
         clean_name = re.sub(r'[\s_]+', '-', clean_name)
@@ -22,14 +21,14 @@ class OrcaCog(commands.Cog):
 
     async def wipe_guild_infrastructure(self, guild: discord.Guild, leave_fallback_channel: bool = False):
         """Helper method to completely purge channels, categories, and roles from a server."""
-        # 1. Delete all channels and categories
+        # 1. Delete channels and categories
         for channel in guild.channels:
             try:
                 await channel.delete(reason="Server Nuke/Rebuild Execution")
             except Exception as e:
                 print(f"Failed to delete channel {channel.name}: {e}")
 
-        # 2. Delete all customizable roles (skipping @everyone and managed bot roles)
+        # 2. Delete customizable roles
         for role in guild.roles:
             if not role.is_default() and not role.is_bot_managed() and not role.is_premium_subscriber():
                 try:
@@ -37,7 +36,7 @@ class OrcaCog(commands.Cog):
                 except Exception as e:
                     print(f"Failed to delete role {role.name}: {e}")
 
-        # 3. Create fallback channel if requested
+        # 3. Optional fallback channel
         if leave_fallback_channel:
             try:
                 await guild.create_text_channel(
@@ -87,12 +86,13 @@ class OrcaCog(commands.Cog):
             await interaction.followup.send("❌ Please provide a valid `url:` link or upload a `file:` attachment.")
             return
 
-        # Determine target Guild ID
+        # Determine dynamic target Guild ID
         target_guild_id = None
         if server_id:
             target_guild_id = int(server_id.strip())
         elif "build_meta" in blueprint_data and blueprint_data["build_meta"].get("target_server_id"):
-            target_guild_id = int(str(blueprint_data["build_meta"]["target_server_id"]).strip())
+            raw_id = str(blueprint_data["build_meta"]["target_server_id"]).strip()
+            target_guild_id = int(raw_id) if raw_id.isdigit() else interaction.guild_id
         else:
             target_guild_id = interaction.guild_id
 
@@ -106,7 +106,7 @@ class OrcaCog(commands.Cog):
         if not guild:
             await interaction.followup.send(
                 f"❌ Bot is not in target server (`{target_guild_id}`). "
-                "Please invite the bot to the server first using the **Add Bot to Server** link!"
+                "Please invite the bot to the server first using your bot invite link!"
             )
             return
 
@@ -142,7 +142,6 @@ class OrcaCog(commands.Cog):
                     c_type = chan_cfg.get("type", "text")
                     c_topic = chan_cfg.get("topic", "")
                     
-                    # Construct Permission Overwrites
                     perms_dict = chan_cfg.get("permissions", {})
                     read_only = chan_cfg.get("read_only", False)
 
@@ -185,7 +184,6 @@ class OrcaCog(commands.Cog):
             color=0x2ecc71
         )
         
-        # Fallback to DM or status message if interaction channel was deleted during nuke
         try:
             await interaction.followup.send(embed=embed)
         except Exception:
@@ -205,7 +203,6 @@ class OrcaCog(commands.Cog):
         interaction: discord.Interaction,
         server_id: str = None
     ):
-        # Verify Bot Owner
         if not await self.bot.is_owner(interaction.user):
             await interaction.response.send_message("❌ Only the Bot Owner can execute `/nuke`.", ephemeral=True)
             return
