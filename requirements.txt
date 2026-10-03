@@ -1,6 +1,6 @@
 Flask==3.0.3
 gunicorn==22.0.0
-google-genai==0.1.1
+google-genai>=0.2.0
 requests==2.31.0
 pymongo==4.7.2
 dnspython==2.6.1
