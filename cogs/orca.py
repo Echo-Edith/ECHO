@@ -8,6 +8,9 @@ from discord.ext import commands
 # Import shared WEBSITE_BANS dictionary from keep_alive
 from keep_alive import WEBSITE_BANS
 
+# Environment Configuration
+WEBSITE_WEBHOOK_URL = os.getenv("WEBSITE_WEBHOOK_URL")
+
 # Hardcoded Bot Owner ID for /build file command
 OWNER_ID = 1219266886143967245
 WEBSITE_URL = "https://echo-dashboard-qn39.onrender.com/"
@@ -20,6 +23,24 @@ DISCORD_BANS = {}
 class OrcaCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    async def send_webhook_log(self, title: str, description: str, color: int = 0x8b5cf6):
+        """Helper method to log moderation events to WEBSITE_WEBHOOK_URL."""
+        if not WEBSITE_WEBHOOK_URL:
+            return
+
+        payload = {
+            "embeds": [{
+                "title": title,
+                "description": description,
+                "color": color
+            }]
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                await session.post(WEBSITE_WEBHOOK_URL, json=payload, timeout=5)
+        except Exception as e:
+            print(f"[OrcaCog] Webhook error: {e}")
 
     # -------------------------------------------------------------------------
     # 1. /ping
@@ -136,6 +157,12 @@ class OrcaCog(commands.Cog):
                 "mention": user.mention
             }
             await interaction.response.send_message(f"🚫 **{user.name}** (`{user.id}`) has been banned from the website.")
+            
+            await self.send_webhook_log(
+                title="⛔ User Website Banned",
+                description=f"**User:** {user.mention} (`{user.id}`)\n**By:** {interaction.user.mention}\n**Reason:** {reason}",
+                color=0xf43f5e
+            )
 
         elif location.value == "discord":
             DISCORD_BANS[user_id_str] = {
@@ -155,6 +182,12 @@ class OrcaCog(commands.Cog):
                 pass  # Ignore if DMs are closed
 
             await interaction.response.send_message(f"🚫 **{user.name}** (`{user.id}`) has been recorded as Discord banned.")
+
+            await self.send_webhook_log(
+                title="⛔ User Discord Banned",
+                description=f"**User:** {user.mention} (`{user.id}`)\n**By:** {interaction.user.mention}\n**Reason:** {reason}",
+                color=0xf43f5e
+            )
 
     # -------------------------------------------------------------------------
     # 5. /unban
@@ -177,6 +210,12 @@ class OrcaCog(commands.Cog):
             if user_id_str in WEBSITE_BANS:
                 del WEBSITE_BANS[user_id_str]
                 await interaction.response.send_message(f"✅ **{user.name}** (`{user.id}`) has been unbanned from the website.")
+                
+                await self.send_webhook_log(
+                    title="✅ User Website Unbanned",
+                    description=f"**User:** {user.mention} (`{user.id}`)\n**By:** {interaction.user.mention}\n**Reason:** {reason}",
+                    color=0x10b981
+                )
             else:
                 await interaction.response.send_message("⚠️ User is not in the website ban list.", ephemeral=True)
 
@@ -184,6 +223,12 @@ class OrcaCog(commands.Cog):
             if user_id_str in DISCORD_BANS:
                 del DISCORD_BANS[user_id_str]
                 await interaction.response.send_message(f"✅ **{user.name}** (`{user.id}`) has been unbanned from Discord list.")
+                
+                await self.send_webhook_log(
+                    title="✅ User Discord Unbanned",
+                    description=f"**User:** {user.mention} (`{user.id}`)\n**By:** {interaction.user.mention}\n**Reason:** {reason}",
+                    color=0x10b981
+                )
             else:
                 await interaction.response.send_message("⚠️ User is not in the Discord ban list.", ephemeral=True)
 
