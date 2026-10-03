@@ -5,13 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Discord Infrastructure Architect</title>
     
-    <!-- Google reCAPTCHA v2 API -->
     <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
-    
-    <!-- SortableJS for Drag and Drop -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -22,14 +17,12 @@
             --input-bg: #1e1f29;
             --input-border: #2b2d3d;
             
-            --discord-dark: #2b2d31;
             --discord-sidebar: #1e1f22;
             --discord-channel: #949ba4;
             --discord-hover: #35373c;
             
             --text-title: #ffffff;
             --text-sub: #949ba4;
-            --text-muted: #5c626d;
             --accent-purple: #5865f2;
             --accent-green: #2ecc71;
             --accent-red: #f43f5e;
@@ -38,20 +31,11 @@
             --card-border: #2b2d31;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', sans-serif; }
 
         body {
             min-height: 100vh;
-            min-height: 100dvh;
             background: var(--bg-base);
-            background-image: 
-                radial-gradient(circle at 50% 15%, rgba(88, 101, 242, 0.15) 0%, transparent 60%);
             color: #ffffff;
             display: flex;
             justify-content: center;
@@ -62,96 +46,22 @@
         .glass-panel {
             background: var(--panel-bg);
             backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--panel-border);
             border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
             width: 100%;
             max-width: 480px;
-            padding: 32px 24px;
-            position: relative;
+            padding: 28px 20px;
             margin: auto;
-            transition: max-width 0.3s ease;
         }
 
-        .glass-panel.layout-mode {
-            max-width: 540px;
-        }
+        .glass-panel.layout-mode { max-width: 560px; }
 
-        .page {
-            display: none;
-            opacity: 0;
-            transform: translateY(6px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
+        .page { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .page.active { display: block; opacity: 1; }
 
-        .page.active {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .brand-header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .brand-header h1 {
-            font-size: 1.55rem;
-            font-weight: 700;
-            color: var(--text-title);
-            margin-bottom: 6px;
-        }
-
-        .brand-header p {
-            color: var(--text-sub);
-            font-size: 0.88rem;
-        }
-
-        .user-auth-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-        }
-
-        .logout-link {
-            color: var(--accent-red);
-            font-size: 0.82rem;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .recaptcha-glass-cover {
-            background: rgba(22, 26, 35, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            padding: 12px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0 auto 20px auto;
-            width: fit-content;
-            max-width: 100%;
-            overflow: hidden;
-            min-height: 78px;
-        }
+        .brand-header { text-align: center; margin-bottom: 24px; }
+        .brand-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+        .brand-header p { color: var(--text-sub); font-size: 0.88rem; }
 
         .label-heading {
             display: block;
@@ -163,13 +73,7 @@
             margin-bottom: 8px;
         }
 
-        .label-heading span.required {
-            color: var(--accent-red);
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
+        .form-group { margin-bottom: 16px; }
 
         .form-control {
             width: 100%;
@@ -180,11 +84,6 @@
             color: #ffffff;
             font-size: 0.9rem;
             outline: none;
-            transition: border-color 0.2s ease;
-        }
-
-        .form-control:focus {
-            border-color: var(--accent-purple);
         }
 
         .btn-glass {
@@ -195,27 +94,14 @@
             border-radius: 10px;
             color: #ffffff;
             font-weight: 600;
-            font-size: 0.92rem;
             cursor: pointer;
-            transition: opacity 0.2s ease;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 10px;
-            min-height: 48px;
             text-decoration: none;
         }
 
-        .btn-glass:hover:not(:disabled) {
-            opacity: 0.9;
-        }
-
-        .btn-glass:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-        }
-
-        /* Discord Style Sidebar Layout */
         .discord-sidebar-wrapper {
             background: var(--discord-sidebar);
             border-radius: 12px;
@@ -232,11 +118,6 @@
             margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-        }
-
-        .discord-category {
-            margin-bottom: 14px;
         }
 
         .discord-category-title {
@@ -244,30 +125,21 @@
             font-weight: 700;
             color: var(--text-sub);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
             padding: 4px 6px;
-            cursor: pointer;
         }
 
         .discord-channel-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 7px 10px;
+            padding: 8px 10px;
             border-radius: 6px;
             color: var(--discord-channel);
             font-size: 0.9rem;
             cursor: pointer;
             margin-top: 2px;
-            touch-action: pan-y;
-        }
-
-        .discord-channel-item:hover, .discord-channel-item.active {
-            background: var(--discord-hover);
-            color: #ffffff;
         }
 
         .discord-channel-item.active {
@@ -275,6 +147,37 @@
             color: #ffffff;
             font-weight: 600;
         }
+
+        .editor-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .permissions-toggle-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .roles-flex { display: flex; flex-wrap: wrap; gap: 8px; }
+        .role-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 16px;
+            background: #2b2d31;
+            font-size: 0.82rem;
+        }
+        .role-dot { width: 10px; height: 10px; border-radius: 50%; }
 
         .add-btn-inline {
             background: transparent;
@@ -287,124 +190,42 @@
             width: 100%;
             margin-top: 8px;
         }
-
-        .add-btn-inline:hover {
-            border-color: var(--text-sub);
-            color: #ffffff;
-        }
-
-        .editor-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .editor-card h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-
-        .roles-flex {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .role-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 10px;
-            border-radius: 16px;
-            background: #2b2d31;
-            font-size: 0.82rem;
-            touch-action: pan-y;
-        }
-
-        .role-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .spinner {
-            border: 2px solid rgba(255,255,255,0.2);
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            border-left-color: #ffffff;
-            animation: spin 0.8s linear infinite;
-            display: inline-block;
-        }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div id="panel-wrapper" class="glass-panel">
 
-        <!-- PAGE 1: LANDING & CAPTCHA/AUTH -->
+        <!-- PAGE 1: LANDING & CAPTCHA -->
         <div id="page-landing" class="page active">
             <div class="brand-header">
-                <h1>Discord Infrastructure</h1>
-                <p>Verify to begin generating your Discord layout.</p>
+                <h1>Discord Architect</h1>
+                <p>Verify to begin generating layout.</p>
             </div>
-
-            {% if user %}
-                <div class="user-auth-card">
-                    <div class="user-info">
-                        <img src="{{ user.avatar }}" class="user-avatar" alt="Avatar">
-                        <span style="font-weight: 600; font-size: 0.95rem;">{{ user.username }}</span>
-                    </div>
-                    <a href="/logout" class="logout-link">Logout</a>
-                </div>
-            {% else %}
-                <div style="margin-bottom: 20px;">
-                    <a href="/login" class="btn-glass" style="background: #5865F2;">
-                        <i class="fa-brands fa-discord fa-lg"></i> Log In with Discord
-                    </a>
-                </div>
-            {% endif %}
-
-            <!-- reCAPTCHA Container -->
-            <div class="recaptcha-glass-cover">
+            <div style="display:flex; justify-content:center; margin-bottom:20px;">
                 <div id="recaptcha-container"></div>
             </div>
-
             <button id="verify-continue-btn" class="btn-glass" onclick="proceedToGenerator()" disabled>
                 Verify & Continue <i class="fa-solid fa-arrow-right"></i>
             </button>
         </div>
 
-        <!-- PAGE 2: GENERATOR PROMPT -->
+        <!-- PAGE 2: GENERATOR -->
         <div id="page-generator" class="page">
             <div class="brand-header">
                 <h1>Server Layout Generator</h1>
-                <p>AI will build your Discord channel & role architecture.</p>
+                <p>Describe your community vision.</p>
             </div>
-
             <div class="form-group">
-                <label class="label-heading">PROMPT DESCRIPTION <span class="required">*</span></label>
-                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="e.g. Create a professional gaming server layout with VIP tiers, media channels, and staff areas..."></textarea>
+                <label class="label-heading">PROMPT DESCRIPTION</label>
+                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="e.g. Esports Gaming community with staff logs, public chats, and VIP lounges..."></textarea>
             </div>
-
             <div class="form-group">
-                <label class="label-heading">TARGET DISCORD SERVER ID <span class="required">*</span></label>
+                <label class="label-heading">TARGET SERVER ID</label>
                 <input type="text" id="gen-server-id" class="form-control" value="1554280544605438054">
             </div>
-
-            <div class="form-group">
-                <label class="label-heading">SERVER INVITE LINK <span class="required">*</span></label>
-                <input type="text" id="gen-server-link" class="form-control" value="https://discord.gg/6mTr8sr7v">
-            </div>
-
-            <button id="generate-btn" class="btn-glass" style="margin-top: 24px;" onclick="handleAIGeneration()">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate Server Layout</span>
+            <button id="generate-btn" class="btn-glass" onclick="handleAIGeneration()">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Server Layout
             </button>
         </div>
 
@@ -413,18 +234,14 @@
             <div class="discord-sidebar-wrapper">
                 <div class="discord-server-header">
                     <span id="server-title-heading">Server Structure</span>
-                    <i class="fa-solid fa-shield-halved" style="color: var(--accent-purple); font-size: 0.9rem;"></i>
                 </div>
-
                 <div id="sidebar-category-container"></div>
-
-                <button class="add-btn-inline" onclick="addCategory()">
-                    <i class="fa-solid fa-plus"></i> Add Category
-                </button>
+                <button class="add-btn-inline" onclick="addCategory()">+ Add Category</button>
             </div>
 
+            <!-- CHANNEL SETTINGS & PERMISSIONS MODAL SECTION -->
             <div class="editor-card">
-                <h3 id="channel-settings-title">Channel Settings</h3>
+                <h3 id="channel-settings-title" style="margin-bottom:14px;">Channel Settings</h3>
 
                 <div class="form-group">
                     <label class="label-heading">EMOJI</label>
@@ -432,35 +249,42 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="label-heading">NAME</label>
+                    <label class="label-heading">CLEAN NAME (WITHOUT EMOJI)</label>
                     <input type="text" id="edit-chan-name" class="form-control" oninput="updateActiveChannel()">
                 </div>
 
                 <div class="form-group">
-                    <label class="label-heading">TYPE</label>
+                    <label class="label-heading">CHANNEL TYPE</label>
                     <select id="edit-chan-type" class="form-control" onchange="updateActiveChannel()">
                         <option value="text">Text Channel</option>
                         <option value="voice">Voice Channel</option>
-                        <option value="announcement">Announcement</option>
                     </select>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group">
                     <label class="label-heading">TOPIC</label>
                     <input type="text" id="edit-chan-topic" class="form-control" placeholder="Channel description..." oninput="updateActiveChannel()">
                 </div>
+
+                <!-- PERMISSIONS MODAL & TOGGLES -->
+                <div class="permissions-toggle-box">
+                    <div>
+                        <span style="font-weight:600; font-size:0.88rem; display:block;">Read-Only / Announcement</span>
+                        <span style="font-size:0.75rem; color:var(--text-sub);">Only admins can send messages</span>
+                    </div>
+                    <input type="checkbox" id="edit-chan-readonly" style="width:18px; height:18px;" onchange="updateActiveChannel()">
+                </div>
             </div>
 
+            <!-- ROLES MANAGEMENT -->
             <div class="editor-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h3 style="margin-bottom:0;">Server Roles</h3>
-                </div>
+                <h3 style="margin-bottom:12px;">Server Roles</h3>
                 <div id="roles-container" class="roles-flex"></div>
                 <button class="add-btn-inline" onclick="addNewRole()">+ New Role</button>
             </div>
 
             <button id="submit-design-btn" class="btn-glass" onclick="handleSubmitDesign()">
-                <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
+                <i class="fa-solid fa-paper-plane"></i> Submit Server Design
             </button>
         </div>
 
@@ -472,94 +296,55 @@
                 <p>Your blueprint has been uploaded and sent to staff.</p>
             </div>
 
-            <button class="btn-glass" onclick="resetBuilder()" style="margin-top: 20px;">
-                Start New Layout
-            </button>
+            <!-- BOT INVITE REDIRECT BUTTON -->
+            <a id="bot-invite-btn" href="#" target="_blank" class="btn-glass" style="margin-bottom: 12px; background: #2b2d31; border: 1px solid var(--accent-purple); text-decoration: none;">
+                <i class="fa-brands fa-discord"></i> Add Bot to Server
+            </a>
+
+            <button class="btn-glass" onclick="location.reload()">Start New Layout</button>
         </div>
 
     </div>
 
     <script>
         const RECAPTCHA_SITE_KEY = "{{ recaptcha_site_key }}";
+        const DISCORD_CLIENT_ID = "{{ discord_client_id }}";
         let isCaptchaVerified = false;
 
-        let currentLayout = { 
-            server_name: "Echo Studio", 
-            roles: [
-                { name: "Owner", color: "#f1c40f" },
-                { name: "Admin", color: "#e74c3c" },
-                { name: "Member", color: "#2ecc71" }
-            ], 
-            categories: [
-                {
-                    name: "INFORMATION",
-                    emoji: "📌",
-                    channels: [
-                        { name: "welcome", emoji: "👋", type: "text", topic: "Welcome channel" },
-                        { name: "announcements", emoji: "📢", type: "text", topic: "Server updates" }
-                    ]
-                }
-            ] 
-        };
+        let currentLayout = { server_name: "Echo Studio", roles: [], categories: [] };
         let activeCatIdx = 0;
         let activeChanIdx = 0;
 
         function onRecaptchaLoad() {
-            const container = document.getElementById('recaptcha-container');
-            if (container && typeof grecaptcha !== 'undefined') {
+            if (typeof grecaptcha !== 'undefined') {
                 grecaptcha.render('recaptcha-container', {
                     'sitekey': RECAPTCHA_SITE_KEY,
                     'theme': 'dark',
-                    'callback': onCaptchaVerified,
-                    'expired-callback': onCaptchaExpired
+                    'callback': () => {
+                        isCaptchaVerified = true;
+                        document.getElementById('verify-continue-btn').disabled = false;
+                    }
                 });
             }
-        }
-
-        async function onCaptchaVerified(token) {
-            try {
-                const res = await fetch('/api/verify-captcha', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    isCaptchaVerified = true;
-                    document.getElementById('verify-continue-btn').disabled = false;
-                }
-            } catch (e) {
-                console.error("reCAPTCHA validation failed", e);
-            }
-        }
-
-        function onCaptchaExpired() {
-            isCaptchaVerified = false;
-            document.getElementById('verify-continue-btn').disabled = true;
         }
 
         function proceedToGenerator() {
-            if (!isCaptchaVerified) return;
             navigateTo('page-generator');
         }
 
         function navigateTo(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
-            
-            const panelWrapper = document.getElementById('panel-wrapper');
-            if (pageId === 'page-layout') {
-                panelWrapper.classList.add('layout-mode');
-            } else {
-                panelWrapper.classList.remove('layout-mode');
-            }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (pageId === 'page-layout') document.getElementById('panel-wrapper').classList.add('layout-mode');
+        }
+
+        function stripEmoji(str) {
+            return (str || '').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
         }
 
         async function handleAIGeneration() {
             const btn = document.getElementById('generate-btn');
             btn.disabled = true;
-            btn.innerHTML = `<span class="spinner"></span> Generating Layout with AI...`;
 
             try {
                 const response = await fetch('/api/generate', {
@@ -579,7 +364,6 @@
                 console.error(err);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate Server Layout</span>`;
                 activeCatIdx = 0;
                 activeChanIdx = 0;
                 renderDashboard();
@@ -596,7 +380,6 @@
         function renderSidebar() {
             const container = document.getElementById('sidebar-category-container');
             container.innerHTML = '';
-            document.getElementById('server-title-heading').innerText = currentLayout.server_name || "Server Structure";
 
             (currentLayout.categories || []).forEach((cat, cIdx) => {
                 const catDiv = document.createElement('div');
@@ -605,7 +388,7 @@
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'discord-category-title';
                 headerDiv.innerHTML = `
-                    <span>▾ ${cat.emoji ? cat.emoji + ' ' : ''}${cat.name || 'CATEGORY'}</span>
+                    <span>▾ ${cat.name || 'CATEGORY'}</span>
                     <i class="fa-solid fa-xmark" onclick="deleteCategory(${cIdx})" style="cursor:pointer;"></i>
                 `;
                 catDiv.appendChild(headerDiv);
@@ -617,42 +400,24 @@
                     item.className = `discord-channel-item ${isActive ? 'active' : ''}`;
                     item.onclick = () => selectChannel(cIdx, chIdx);
 
-                    const icon = chan.type === 'voice' ? '🔊' : '#';
+                    const typeIcon = chan.type === 'voice' ? '🔊' : '#';
+                    const displayEmoji = chan.emoji ? chan.emoji + ' ' : '';
+                    const cleanName = stripEmoji(chan.name);
 
                     item.innerHTML = `
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span>${icon}</span>
-                            <span>${chan.emoji ? chan.emoji + ' ' : ''}${chan.name || 'channel'}</span>
+                            <span>${typeIcon}</span>
+                            <span>${displayEmoji}${cleanName}</span>
                         </div>
                         <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteChannel(${cIdx}, ${chIdx})"></i>
                     `;
                     channelList.appendChild(item);
                 });
 
-                const addChanBtn = document.createElement('button');
-                addChanBtn.className = 'add-btn-inline';
-                addChanBtn.innerHTML = `+ add channel`;
-                addChanBtn.onclick = () => addChannel(cIdx);
-
                 catDiv.appendChild(channelList);
-                catDiv.appendChild(addChanBtn);
                 container.appendChild(catDiv);
 
-                // Configured Sortable JS with delay/threshold to prevent scrolling issues
-                new Sortable(channelList, {
-                    group: 'channels',
-                    animation: 150,
-                    delay: 200,
-                    delayOnTouchOnly: true,
-                    touchStartThreshold: 5
-                });
-            });
-
-            new Sortable(container, {
-                animation: 150,
-                delay: 200,
-                delayOnTouchOnly: true,
-                touchStartThreshold: 5
+                new Sortable(channelList, { group: 'channels', animation: 150, delay: 200, delayOnTouchOnly: true });
             });
         }
 
@@ -666,21 +431,24 @@
             const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
             if (!chan) return;
 
-            document.getElementById('channel-settings-title').innerText = `Channel Settings — #${chan.name || 'channel'}`;
+            const cleanName = stripEmoji(chan.name);
+            document.getElementById('channel-settings-title').innerText = `Channel Settings — #${cleanName}`;
             document.getElementById('edit-chan-emoji').value = chan.emoji || '';
-            document.getElementById('edit-chan-name').value = chan.name || '';
+            document.getElementById('edit-chan-name').value = cleanName;
             document.getElementById('edit-chan-type').value = chan.type || 'text';
             document.getElementById('edit-chan-topic').value = chan.topic || '';
+            document.getElementById('edit-chan-readonly').checked = !!chan.read_only;
         }
 
         function updateActiveChannel() {
             const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
             if (!chan) return;
 
-            chan.emoji = document.getElementById('edit-chan-emoji').value;
-            chan.name = document.getElementById('edit-chan-name').value;
+            chan.emoji = document.getElementById('edit-chan-emoji').value.trim();
+            chan.name = stripEmoji(document.getElementById('edit-chan-name').value);
             chan.type = document.getElementById('edit-chan-type').value;
             chan.topic = document.getElementById('edit-chan-topic').value;
+            chan.read_only = document.getElementById('edit-chan-readonly').checked;
 
             renderSidebar();
         }
@@ -695,28 +463,15 @@
                 pill.innerHTML = `
                     <span class="role-dot" style="background:${r.color || '#5865f2'}"></span>
                     <span>${r.name}</span>
-                    <i class="fa-solid fa-xmark" onclick="deleteRole(${idx})" style="cursor:pointer; margin-left:4px;"></i>
+                    <i class="fa-solid fa-xmark" onclick="deleteRole(${idx})" style="cursor:pointer;"></i>
                 `;
                 container.appendChild(pill);
-            });
-
-            new Sortable(container, {
-                animation: 150,
-                delay: 200,
-                delayOnTouchOnly: true,
-                touchStartThreshold: 5
             });
         }
 
         function addCategory() {
             currentLayout.categories.push({ name: "NEW CATEGORY", channels: [] });
             renderDashboard();
-        }
-
-        function addChannel(cIdx) {
-            if(!currentLayout.categories[cIdx].channels) currentLayout.categories[cIdx].channels = [];
-            currentLayout.categories[cIdx].channels.push({ name: "new-channel", type: "text" });
-            selectChannel(cIdx, currentLayout.categories[cIdx].channels.length - 1);
         }
 
         function deleteCategory(cIdx) {
@@ -743,42 +498,31 @@
             renderRoles();
         }
 
-        async function handleSubmitDesign() {
-            const btn = document.getElementById('submit-design-btn');
-            btn.disabled = true;
-            btn.innerHTML = `<span class="spinner"></span> Dispatching Design...`;
+        function updateBotInviteLink() {
+            const targetServerId = document.getElementById('gen-server-id').value || "";
+            const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands${targetServerId ? `&guild_id=${targetServerId}` : ''}`;
+            document.getElementById('bot-invite-btn').href = inviteUrl;
+        }
 
-            let channelCount = 0;
-            (currentLayout.categories || []).forEach(c => {
-                channelCount += (c.channels || []).length;
-            });
+        async function handleSubmitDesign() {
+            updateBotInviteLink();
 
             const payload = {
                 target_server_id: document.getElementById('gen-server-id').value || "1554280544605438054",
                 server_name: currentLayout.server_name || "Echo Studio Server",
-                invite_link: document.getElementById('gen-server-link').value || "https://discord.gg/6mTr8sr7v",
                 categories_count: (currentLayout.categories || []).length,
-                channels_count: channelCount,
+                channels_count: (currentLayout.categories || []).reduce((acc, c) => acc + (c.channels || []).length, 0),
                 roles_count: (currentLayout.roles || []).length,
                 layout: currentLayout
             };
 
-            try {
-                await fetch('/api/submit-design', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            } catch (err) {
-                console.error(err);
-            } finally {
-                btn.disabled = false;
-                navigateTo('page-final');
-            }
-        }
+            await fetch('/api/submit-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-        function resetBuilder() {
-            window.location.href = '/logout';
+            navigateTo('page-final');
         }
     </script>
 </body>
