@@ -24,7 +24,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 DISCORD_API_BASE_URL = "https://discord.com/api/v10"
 
-# Sequence of models for automatic 503 error handling fallback
+# Model sequence for automatic error fallback
 GEMINI_MODELS = [
     "gemini-2.5-flash",
     "gemini-2.0-flash",
@@ -41,15 +41,11 @@ if MONGO_URI:
     except Exception as e:
         print(f"[MongoDB Warning] Could not connect to Mongo: {e}")
 
-# Memory Fallback
 WEBSITE_BANS = {}
 
-
 def calculate_account_age(discord_id: str) -> str:
-    """Calculates Discord account age in days/years from a snowflake ID."""
     try:
         snowflake = int(discord_id)
-        # Discord epoch: 2015-01-01T00:00:00Z
         timestamp_ms = (snowflake >> 22) + 1420070400000
         created_at = datetime.fromtimestamp(timestamp_ms / 1000.0, tz=timezone.utc)
         now = datetime.now(timezone.utc)
@@ -63,16 +59,13 @@ def calculate_account_age(discord_id: str) -> str:
     except Exception:
         return "Unknown"
 
-
 def is_user_banned(user_id):
     user_id_str = str(user_id)
     if db_bans is not None:
         return db_bans.find_one({"user_id": user_id_str, "location": "website"})
     return WEBSITE_BANS.get(user_id_str)
 
-
-def log_system_event(title: str, user_data: dict, action_desc: str = "Authenticated and accessed the dashboard.", color: int = 0x8b5cf6, extra_fields: dict = None):
-    """Sends formatted log entry to SYSTEM_LOG_WEBHOOK_URL."""
+def log_system_event(title: str, user_data: dict, action_desc: str = "Authenticated and accessed dashboard.", color: int = 0x8b5cf6, extra_fields: dict = None):
     if not SYSTEM_LOG_WEBHOOK_URL:
         return
     
@@ -97,7 +90,7 @@ def log_system_event(title: str, user_data: dict, action_desc: str = "Authentica
         for k, v in extra_fields.items():
             fields.append({
                 "name": f"🔹 {k}",
-                "value": f"```json\n{str(v)[:1000]}\n```" if len(str(v)) > 80 else f"`{v}`",
+                "value": f"```\n{str(v)[:1000]}\n```" if len(str(v)) > 80 else f"`{v}`",
                 "inline": False
             })
 
@@ -116,7 +109,6 @@ def log_system_event(title: str, user_data: dict, action_desc: str = "Authentica
         requests.post(SYSTEM_LOG_WEBHOOK_URL, json=payload, timeout=5)
     except Exception as e:
         print(f"[Log Error] Webhook fail: {e}")
-
 
 @app.route("/")
 def home():
@@ -142,7 +134,6 @@ def home():
         discord_client_id=CLIENT_ID
     )
 
-
 @app.route("/login")
 def login():
     discord_auth_url = (
@@ -153,7 +144,6 @@ def login():
         f"&scope=identify%20email"
     )
     return redirect(discord_auth_url)
-
 
 @app.route("/callback")
 def callback():
@@ -195,17 +185,15 @@ def callback():
         log_system_event(
             "🌐 Website Entry Logged",
             user_data=user_data,
-            action_desc="Authenticated via Discord OAuth2 and accessed the builder dashboard."
+            action_desc="Authenticated via Discord OAuth2 and accessed the dashboard."
         )
 
     return redirect("/")
-
 
 @app.route("/api/verify-captcha", methods=["POST"])
 def verify_captcha():
     data = request.get_json() or {}
     token = data.get("token")
-    
     if not token or not RECAPTCHA_SECRET_KEY:
         return jsonify({"success": True}), 200
 
@@ -215,7 +203,6 @@ def verify_captcha():
     ).json()
 
     return jsonify({"success": verify_res.get("success", False)})
-
 
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
@@ -233,7 +220,7 @@ def api_generate():
 
     system_instruction = (
         " You are an expert Discord architect. Output ONLY valid JSON representing a Discord server layout."
-        " Structure required:\n"
+        " Required structure:\n"
         "{\n"
         '  "server_name": "String",\n'
         '  "roles": [{"name": "Role Name", "color": "#HexColor"}],\n'
@@ -247,7 +234,8 @@ def api_generate():
         '          "emoji": "💬",\n'
         '          "type": "text|voice|announcement",\n'
         '          "topic": "Description",\n'
-        '          "read_only": false\n'
+        '          "read_only": false,\n'
+        '          "permissions": {"view": true, "send": true, "embed": true, "attach": true}\n'
         "        }\n"
         "      ]\n"
         "    }\n"
@@ -259,10 +247,8 @@ def api_generate():
     layout_data = None
     used_model = None
 
-    # Fallback retry loop through 3 versions of Gemini
     for model_name in GEMINI_MODELS:
         try:
-            print(f"[AI Generation] Querying model: {model_name}...")
             response = client.models.generate_content(
                 model=model_name,
                 contents=f"Create layout for: {prompt}",
@@ -277,13 +263,12 @@ def api_generate():
             break
         except Exception as e:
             last_error = e
-            print(f"[{model_name}] Generation failed: {e}. Attempting fallback...")
             continue
 
     if not layout_data:
         return jsonify({
             "success": False,
-            "error": f"All Gemini models experienced error (e.g. 503). Last Error: {str(last_error)}"
+            "error": f"All Gemini models experienced error. Last Error: {str(last_error)}"
         }), 503
 
     layout_data["build_meta"] = {
@@ -302,44 +287,18 @@ def api_generate():
 
     return jsonify({"success": True, "data": layout_data, "model_used": used_model})
 
-
-@app.route("/api/submit-design", methods=["POST"])
-def submit_design():
-    data = request.get_json() or {}
-    user = session.get("user")
-
-    log_system_event(
-        "🚀 Blueprint Finalized & Submitted",
-        user_data=user,
-        action_desc="User finalized and submitted their Discord server blueprint design.",
-        color=0x2ecc71,
-        extra_fields={
-            "Target Server ID": data.get("target_server_id", "N/A"),
-            "Server Invite": data.get("invite_link", "N/A"),
-            "Categories Count": data.get("categories_count", 0),
-            "Channels Count": data.get("channels_count", 0),
-            "Roles Count": data.get("roles_count", 0)
-        }
-    )
-
-    return jsonify({"success": True})
-
-
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
-
 @app.route("/health")
 def health():
     return jsonify({"status": "alive"}), 200
 
-
 def run():
     port = int(os.getenv("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
-
 
 def keep_alive():
     t = Thread(target=run)
