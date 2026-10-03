@@ -21,7 +21,10 @@ RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY", "")
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "")
-WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+
+# Specific Webhook Environment Variables
+DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL", "")
+WEBSITE_WEBHOOK_URL = os.getenv("WEBSITE_WEBHOOK_URL", "")
 
 
 @bot.event
@@ -32,6 +35,20 @@ async def on_ready():
         print(f"⚡ Successfully synced {len(synced)} slash commands.")
     except Exception as e:
         print(f"❌ Failed to sync slash commands: {e}")
+
+
+def run_async(coro):
+    """Helper to safely execute async functions inside synchronous Flask routes."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
+        return future.result(timeout=15)
+    else:
+        return asyncio.run(coro)
 
 
 # --- API ROUTES ---
@@ -62,25 +79,32 @@ def configure_routes(app: Flask):
         return redirect("/")
 
     @app.route("/api/verify-captcha", methods=["POST"])
-    async def verify_captcha():
+    def verify_captcha():
         data = request.get_json() or {}
         token = data.get("token")
         if not token:
             return jsonify({"success": False, "error": "Missing token"}), 400
 
-        async with aiohttp.ClientSession() as http_session:
-            async with http_session.post(
-                "https://www.google.com/recaptcha/api/siteverify",
-                data={"secret": RECAPTCHA_SECRET_KEY, "response": token}
-            ) as resp:
-                result = await resp.json()
-                if result.get("success"):
-                    session["captcha_verified"] = True
-                    return jsonify({"success": True})
-                return jsonify({"success": False, "error": "reCAPTCHA verification failed"}), 400
+        async def _verify():
+            async with aiohttp.ClientSession() as http_session:
+                async with http_session.post(
+                    "https://www.google.com/recaptcha/api/siteverify",
+                    data={"secret": RECAPTCHA_SECRET_KEY, "response": token}
+                ) as resp:
+                    return await resp.json()
+
+        try:
+            result = run_async(_verify())
+            if result.get("success"):
+                session["captcha_verified"] = True
+                return jsonify({"success": True})
+            return jsonify({"success": False, "error": "reCAPTCHA verification failed"}), 400
+        except Exception as e:
+            print(f"❌ Captcha Error: {e}")
+            return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route("/api/generate", methods=["POST"])
-    async def generate():
+    def generate():
         data = request.get_json() or {}
         prompt = data.get("prompt", "").strip()
         server_id = data.get("server_id", "").strip()
@@ -91,17 +115,24 @@ def configure_routes(app: Flask):
 
         user_info = session.get("user", {"id": "0", "username": "Anonymous User"})
 
-        result = await generate_server_layout(
-            prompt=prompt,
-            server_id=server_id,
-            server_link=server_link,
-            user_info=user_info,
-            webhook_url=WEBHOOK_URL
-        )
-        return jsonify(result)
+        try:
+            # Uses WEBSITE_WEBHOOK_URL for AI Generation logs
+            result = run_async(
+                generate_server_layout(
+                    prompt=prompt,
+                    server_id=server_id,
+                    server_link=server_link,
+                    user_info=user_info,
+                    webhook_url=WEBSITE_WEBHOOK_URL
+                )
+            )
+            return jsonify(result)
+        except Exception as e:
+            print(f"❌ Generation Webhook/AI Error: {e}")
+            return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route("/api/submit-design", methods=["POST"])
-    async def submit_design():
+    def submit_design():
         data = request.get_json() or {}
         target_server_id = data.get("target_server_id", "Not Provided")
         server_name = data.get("server_name", "Custom Server")
@@ -113,26 +144,35 @@ def configure_routes(app: Flask):
 
         user_info = session.get("user", {"id": "0", "username": "Anonymous User"})
 
-        if WEBHOOK_URL:
-            await send_webhook_log(
-                webhook_url=WEBHOOK_URL,
-                title="🚀 New Server Blueprint Submitted",
-                user_info=user_info,
-                action_details={
-                    "Server Name": server_name,
-                    "Target Server ID": target_server_id,
-                    "Invite Link": invite_link,
-                    "Prompt Description": prompt,
-                    "Architecture Overview": f"Categories: `{categories_count}` | Channels: `{channels_count}` | Roles: `{roles_count}`"
-                },
-                color=0x2ecc71
-            )
+        # Uses DESIGN_WEBHOOK_URL for Submitted Blueprints
+        if DESIGN_WEBHOOK_URL:
+            try:
+                run_async(
+                    send_webhook_log(
+                        webhook_url=DESIGN_WEBHOOK_URL,
+                        title="🚀 New Server Blueprint Submitted",
+                        user_info=user_info,
+                        action_details={
+                            "Server Name": server_name,
+                            "Target Server ID": target_server_id,
+                            "Invite Link": invite_link,
+                            "Prompt Description": prompt,
+                            "Architecture Overview": f"Categories: `{categories_count}` | Channels: `{channels_count}` | Roles: `{roles_count}`"
+                        },
+                        color=0x2ecc71
+                    )
+                )
+            except Exception as e:
+                print(f"❌ Design Webhook Dispatch Error: {e}")
 
         return jsonify({"success": True, "message": "Blueprint successfully dispatched!"})
 
 
 async def load_cogs():
-    await bot.load_extension("cogs.orca")
+    try:
+        await bot.load_extension("cogs.orca")
+    except Exception as e:
+        print(f"⚠️ Could not load cog 'cogs.orca': {e}")
 
 
 async def main():
