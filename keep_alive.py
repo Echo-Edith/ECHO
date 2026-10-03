@@ -1,6 +1,5 @@
 import os
 import json
-import asyncio
 import requests
 from datetime import datetime, timezone
 from threading import Thread
@@ -42,7 +41,10 @@ db_bans = None
 if MONGO_URI:
     try:
         mongo_client = MongoClient(MONGO_URI)
-        db = mongo_client.get_default_database()
+        try:
+            db = mongo_client.get_default_database()
+        except Exception:
+            db = mongo_client["echo_db"]
         db_bans = db["bans"]
     except Exception as e:
         print(f"[MongoDB Warning] Could not connect to Mongo: {e}")
@@ -100,7 +102,7 @@ def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc
     if extra_fields:
         for k, v in extra_fields.items():
             val_str = str(v)
-            # If the field is an Invite Link, leave it unformatted so Discord renders it cleanly as a URL
+            # Display invite links as clean, clickable plain URLs without backticks
             if k == "Invite Link":
                 field_val = val_str
             elif len(val_str) > 80:
@@ -372,10 +374,12 @@ def health():
 
 def run():
     port = int(os.getenv("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, use_reloader=False)
 
 
 def keep_alive():
-    t = Thread(target=run, daemon=True)
+    """Launches Flask server on a background daemon thread so it doesn't block main execution."""
+    t = Thread(target=run)
+    t.daemon = True
     t.start()
     return app
