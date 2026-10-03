@@ -703,10 +703,14 @@
                 const catDiv = document.createElement('div');
                 catDiv.className = 'discord-category';
 
+                // Deduplicate emoji rendering: Strip existing emojis from cat.name first
+                const cleanCatName = stripEmoji(cat.name || 'CATEGORY');
+                const displayName = cat.emoji ? `${cat.emoji} ${cleanCatName}` : cleanCatName;
+
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'discord-category-title';
                 headerDiv.innerHTML = `
-                    <span>▾ ${cat.emoji ? cat.emoji + ' ' : ''}${cat.name || 'CATEGORY'}</span>
+                    <span>▾ ${displayName}</span>
                     <i class="fa-solid fa-xmark" onclick="deleteCategory(${cIdx})" style="cursor:pointer;"></i>
                 `;
                 catDiv.appendChild(headerDiv);
@@ -836,7 +840,7 @@
 
         function addCategory() {
             if (!currentLayout.categories) currentLayout.categories = [];
-            currentLayout.categories.push({ name: "NEW CATEGORY", channels: [] });
+            currentLayout.categories.push({ name: "NEW CATEGORY", emoji: "📁", channels: [] });
             activeCatIdx = currentLayout.categories.length - 1;
             activeChanIdx = 0;
             renderDashboard();
@@ -889,6 +893,7 @@
         async function handleSubmitDesign() {
             const serverId = document.getElementById('gen-server-id').value.trim();
             const serverLink = document.getElementById('gen-server-link').value.trim();
+            const promptVal = document.getElementById('gen-prompt').value.trim();
 
             if (!serverId || !serverLink) {
                 alert('Server ID and Server Invite Link are required to submit.');
@@ -910,6 +915,7 @@
                 target_server_id: serverId,
                 server_name: currentLayout.server_name || "Custom Server",
                 invite_link: serverLink,
+                prompt: promptVal,
                 categories_count: (currentLayout.categories || []).length,
                 channels_count: channelCount,
                 roles_count: (currentLayout.roles || []).length,
@@ -917,15 +923,20 @@
             };
 
             try {
-                await fetch('/api/submit-design', {
+                const response = await fetch('/api/submit-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                const resData = await response.json();
+                if (!resData.success) {
+                    console.warn('Webhook logging warning:', resData.error);
+                }
             } catch (err) {
-                console.error(err);
+                console.error('Submission error:', err);
             } finally {
                 btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>`;
                 navigateTo('page-final');
             }
         }
