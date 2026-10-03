@@ -2,38 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Echo Dashboard — Discord Infrastructure Builder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Infrastructure Architect</title>
     
+    <!-- Google reCAPTCHA v2 API -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    
+    <!-- SortableJS for Drag and Drop -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-            --bg-base: #0b0d12;
-            --panel-bg: rgba(18, 21, 30, 0.7);
+            --bg-base: #0b0c10;
+            --panel-bg: rgba(18, 22, 31, 0.85);
             --panel-border: rgba(255, 255, 255, 0.08);
-            --input-bg: rgba(22, 26, 35, 0.8);
-            --input-border: rgba(255, 255, 255, 0.12);
+            --input-bg: #161a23;
+            --input-border: #232a36;
             
             --text-title: #ffffff;
             --text-sub: #949ba4;
             --text-muted: #5c626d;
+            --accent-purple: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.15);
+            --accent-red: #f43f5e;
+            --accent-green: #10b981;
             
-            --discord-sidebar: #11131a;
-            --discord-hover: rgba(255, 255, 255, 0.05);
-            --card-bg: rgba(19, 23, 34, 0.65);
-            --card-border: rgba(255, 255, 255, 0.08);
-
-            /* Glassmorphism Dynamic State Colors */
-            --glass-idle-bg: rgba(255, 255, 255, 0.03);
-            --glass-idle-text: #4e535e;
-            --glass-idle-border: rgba(255, 255, 255, 0.05);
-
-            --glass-active-bg: rgba(168, 85, 247, 0.25);
-            --glass-active-text: #e9d5ff;
-            --glass-active-border: rgba(192, 132, 252, 0.5);
-            --glass-active-glow: 0 0 20px rgba(168, 85, 247, 0.35);
+            --discord-sidebar: #13161c;
+            --discord-hover: rgba(255, 255, 255, 0.04);
+            --card-bg: #121620;
+            --card-border: #1e2430;
         }
 
         * {
@@ -41,322 +41,205 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
         }
 
         body {
-            background: var(--bg-base);
-            color: #ffffff;
             min-height: 100vh;
-            padding: 16px 12px;
+            background: #08090c;
+            background-image: 
+                radial-gradient(circle at 50% 20%, rgba(88, 48, 148, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 50% 80%, rgba(20, 25, 40, 0.3) 0%, transparent 50%);
+            color: #ffffff;
             display: flex;
             justify-content: center;
+            align-items: center;
+            padding: 24px;
         }
 
-        .page-container {
-            width: 100%;
-            max-width: 600px; /* Constrained to match the clean single-card flow */
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        /* Glassmorphism Card Container */
-        .header-card {
+        .glass-panel {
             background: var(--panel-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--panel-border);
-            border-radius: 20px;
-            padding: 24px 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            width: 100%;
+            max-width: 520px;
+            padding: 36px 32px;
+            position: relative;
+            transition: max-width 0.3s ease;
         }
 
-        .header-card h1 {
-            font-size: 1.6rem;
-            margin-bottom: 6px;
-            font-weight: 700;
-            text-align: center;
+        .glass-panel.wide {
+            max-width: 1100px;
         }
 
-        .header-card p {
-            color: var(--text-sub);
-            font-size: 0.88rem;
-            text-align: center;
-            margin-bottom: 16px;
-        }
-
-        /* User Profile Bar */
-        .user-badge-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 10px 14px;
-            margin-bottom: 14px;
-        }
-
-        .user-info-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .user-avatar-badge {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: #5865f2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            color: #fff;
-        }
-
-        .username-text {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #ffffff;
-        }
-
-        .logout-link {
-            color: #f43f5e;
-            font-size: 0.82rem;
-            text-decoration: none;
-            cursor: pointer;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-
-        .logout-link:hover {
-            opacity: 1;
-        }
-
-        /* Custom reCAPTCHA Widget Box */
-        .recaptcha-box {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 14px 16px;
-            margin-bottom: 16px;
-            cursor: pointer;
-            user-select: none;
-            transition: border-color 0.2s ease;
-        }
-
-        .recaptcha-box:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .recaptcha-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .custom-checkbox {
-            width: 22px;
-            height: 22px;
-            border: 2px solid #4e535e;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-        }
-
-        .custom-checkbox.checked {
-            background: #10b981;
-            border-color: #10b981;
-        }
-
-        .custom-checkbox i {
-            color: #ffffff;
-            font-size: 0.75rem;
+        .page {
             display: none;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
         }
 
-        .custom-checkbox.checked i {
+        .page.active {
             display: block;
+            opacity: 1;
+            transform: translateY(0);
         }
 
-        .recaptcha-label {
-            font-size: 0.88rem;
-            color: #e2e8f0;
+        .brand-header {
+            text-align: center;
+            margin-bottom: 28px;
         }
 
-        .recaptcha-brand {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            color: #4e535e;
+        .brand-header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-title);
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
         }
 
-        .recaptcha-brand i {
-            font-size: 1.2rem;
-        }
-
-        .recaptcha-brand span {
-            font-size: 0.6rem;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        /* Inputs Stack */
-        .inputs-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+        .brand-header p {
+            color: var(--text-sub);
+            font-size: 0.9rem;
         }
 
         .label-heading {
+            display: block;
             font-size: 0.7rem;
             font-weight: 700;
-            letter-spacing: 0.8px;
+            letter-spacing: 1px;
             text-transform: uppercase;
             color: var(--text-sub);
+            margin-bottom: 8px;
+        }
+
+        .label-heading span.required {
+            color: var(--accent-red);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
         }
 
         .form-control {
             width: 100%;
-            padding: 10px 12px;
+            padding: 12px 14px;
             background: var(--input-bg);
             border: 1px solid var(--input-border);
-            border-radius: 8px;
+            border-radius: 10px;
             color: #ffffff;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             outline: none;
-            transition: border-color 0.2s;
+            transition: all 0.25s ease;
+            user-select: text;
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
         }
 
         .form-control:focus {
-            border-color: rgba(192, 132, 252, 0.6);
+            border-color: rgba(139, 92, 246, 0.5);
+            background: #1a202c;
         }
 
-        /* Quick Separator Selector Options Grid */
-        .separator-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 6px;
-            margin-top: 4px;
-        }
-
-        .sep-pill {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 8px 4px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            color: var(--text-sub);
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .sep-pill .symbol {
-            font-size: 1rem;
-            font-weight: bold;
-            color: #ffffff;
-            margin-bottom: 2px;
-        }
-
-        .sep-pill .name {
-            font-size: 0.65rem;
-        }
-
-        .sep-pill:hover, .sep-pill.active {
-            background: rgba(168, 85, 247, 0.25);
-            border-color: rgba(192, 132, 252, 0.6);
-            color: #ffffff;
-        }
-
-        /* Dynamic Glass UI Action Buttons */
-        .btn-glass-action {
+        .btn-glass {
             width: 100%;
-            padding: 12px;
-            border-radius: 10px;
+            padding: 14px;
+            background: rgba(38, 28, 66, 0.6);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            color: var(--text-sub);
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+        }
+
+        .btn-glass:hover:not(:disabled) {
+            background: rgba(58, 40, 102, 0.8);
+            border-color: rgba(139, 92, 246, 0.6);
+            color: #ffffff;
+        }
+
+        .btn-glass:disabled {
+            opacity: 0.45;
             cursor: not-allowed;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            
-            background: var(--glass-idle-bg);
-            color: var(--glass-idle-text);
-            border: 1px solid var(--glass-idle-border);
-            box-shadow: none;
-            margin-top: 14px;
         }
 
-        .btn-glass-action.ready {
-            cursor: pointer;
-            background: var(--glass-active-bg);
-            color: var(--glass-active-text);
-            border: 1px solid var(--glass-active-border);
-            box-shadow: var(--glass-active-glow);
+        /* LAYOUT DASHBOARD SPLIT */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            align-items: start;
         }
 
-        .btn-glass-action.ready:hover {
-            background: rgba(168, 85, 247, 0.35);
-        }
-
-        /* Preview Panel Section */
-        .preview-card {
+        /* LEFT SIDEBAR CONTAINER */
+        .sidebar-box {
             background: var(--discord-sidebar);
             border: 1px solid var(--card-border);
-            border-radius: 16px;
+            border-radius: 14px;
             padding: 16px;
+            max-height: 780px;
+            overflow-y: auto;
         }
 
-        .preview-header {
+        .sidebar-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 10px;
+            padding-bottom: 12px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
 
-        .preview-header h2 {
-            font-size: 1.1rem;
+        .sidebar-header h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .sidebar-header span {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
             font-weight: 700;
         }
 
         .category-block {
-            margin-bottom: 12px;
+            margin-bottom: 18px;
         }
 
         .category-title {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: var(--text-sub);
             letter-spacing: 0.8px;
             text-transform: uppercase;
-            padding: 4px 2px;
+            padding: 6px 4px;
+            cursor: pointer;
+        }
+
+        .category-title:hover {
+            color: #ffffff;
+        }
+
+        .channel-tree-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 4px;
+            min-height: 10px;
         }
 
         .tree-item {
@@ -367,8 +250,8 @@
             border-radius: 6px;
             cursor: pointer;
             color: var(--text-sub);
-            font-size: 0.85rem;
-            margin-top: 2px;
+            font-size: 0.88rem;
+            transition: background 0.15s ease, color 0.15s ease;
         }
 
         .tree-item:hover, .tree-item.active {
@@ -377,218 +260,603 @@
         }
 
         .tree-item.active {
-            background: rgba(168, 85, 247, 0.2);
+            background: rgba(139, 92, 246, 0.15);
             color: #ffffff;
+        }
+
+        .tree-item-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tree-item-icons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .tree-item-icons .fa-xmark:hover {
+            color: var(--accent-red);
         }
 
         .add-btn-inline {
             background: none;
             border: none;
             color: var(--text-muted);
-            font-size: 0.75rem;
-            padding: 4px 6px;
+            font-size: 0.78rem;
+            padding: 6px 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 6px;
+            width: 100%;
+            transition: color 0.15s ease;
         }
 
         .add-btn-inline:hover {
             color: #ffffff;
         }
 
-        #status-banner {
-            display: none;
-            padding: 12px;
+        /* RIGHT DETAILS PANEL */
+        .editor-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .editor-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .editor-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* PERMISSIONS CARD */
+        .perm-header {
+            background: rgba(22, 28, 40, 0.7);
+            border: 1px solid var(--input-border);
             border-radius: 10px;
-            background: rgba(16, 185, 129, 0.2);
-            border: 1px solid #10b981;
-            color: #ffffff;
-            text-align: center;
-            font-size: 0.85rem;
+            padding: 12px;
+            font-size: 0.82rem;
+            color: var(--text-sub);
+            margin-bottom: 16px;
+        }
+
+        .perm-header a {
+            color: var(--accent-purple);
+            text-decoration: none;
+        }
+
+        .perm-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(18, 22, 32, 0.5);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 0.88rem;
+        }
+
+        .perm-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.78rem;
             font-weight: 600;
         }
 
-        #discord-canvas {
-            display: none;
+        .tag-red { color: var(--accent-red); }
+        .tag-green { color: var(--accent-green); }
+
+        /* ROLES CARD */
+        .roles-flex {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
         }
+
+        .role-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--input-border);
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .role-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .role-pill .fa-xmark {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-left: 2px;
+        }
+
+        .role-pill .fa-xmark:hover {
+            color: var(--accent-red);
+        }
+
+        /* REGENERATE CARD */
+        .regen-box {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .regen-box input {
+            flex: 1;
+        }
+
+        .btn-regen {
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid var(--accent-purple);
+            color: #ffffff;
+            padding: 0 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .btn-regen:hover {
+            background: var(--accent-purple);
+        }
+
+        .spinner {
+            border: 2px solid rgba(255,255,255,0.15);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border-left-color: #ffffff;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div class="page-container">
-        
-        <!-- HEADER CONTROL PANEL -->
-        <div class="header-card">
-            <h1>Discord Infrastructure</h1>
-            <p>Fill in parameters to initialize AI schema parsing.</p>
+    <div id="panel-wrapper" class="glass-panel">
 
-            <!-- User Login Bar -->
-            <div class="user-badge-bar">
-                <div class="user-info-left">
-                    <div class="user-avatar-badge">
-                        <i class="fa-brands fa-discord"></i>
-                    </div>
-                    <span class="username-text" id="display-user">echo_2530</span>
-                </div>
-                <a class="logout-link">Logout</a>
+        <!-- ================= PAGE 1: LANDING & AUTH ================= -->
+        <div id="page-landing" class="page active">
+            <div class="brand-header">
+                <h1>Discord Infrastructure</h1>
+                <p>Fill in parameters to initialize AI schema parsing.</p>
             </div>
 
-            <!-- Custom reCAPTCHA Widget -->
-            <div class="recaptcha-box" id="recaptcha-btn" onclick="toggleCaptcha()">
-                <div class="recaptcha-left">
-                    <div class="custom-checkbox" id="captcha-check">
-                        <i class="fa-solid fa-check"></i>
-                    </div>
-                    <span class="recaptcha-label">I'm not a robot</span>
-                </div>
-                <div class="recaptcha-brand">
-                    <i class="fa-solid fa-arrows-rotate"></i>
-                    <span>reCAPTCHA</span>
-                </div>
+            {% if not user %}
+            <div style="text-align: center; margin-top: 15px;">
+                <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px;">Authenticate with Discord to begin architecting.</p>
+                <a href="/login" style="text-decoration: none;">
+                    <button class="btn-glass">
+                        <i class="fa-brands fa-discord fa-lg" style="color: #5865F2;"></i> Log In with Discord
+                    </button>
+                </a>
+            </div>
+            {% else %}
+            <div class="user-bar" style="display:flex; align-items:center; gap:12px; background:var(--input-bg); padding:12px 16px; border-radius:12px; margin-bottom:20px;">
+                <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png" style="width:36px; height:36px; border-radius:50%;" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+                <span style="font-weight:600; font-size:0.92rem;">{{ user.username }}</span>
+                <a href="/logout" style="margin-left:auto; color:var(--accent-red); font-size:0.82rem; text-decoration:none;">Logout</a>
             </div>
 
-            <!-- Inputs Stack -->
-            <div class="inputs-stack">
-                <div class="form-group">
-                    <label class="label-heading">TARGET SERVER ID *</label>
-                    <input type="text" id="target-server-id" class="form-control" value="1554280544605438054" oninput="validateInputs()">
-                </div>
-                <div class="form-group">
-                    <label class="label-heading">SERVER INVITE LINK *</label>
-                    <input type="text" id="target-server-link" class="form-control" value="https://discord.gg/6mTr8sr7v" oninput="validateInputs()">
-                </div>
-                <div class="form-group">
-                    <label class="label-heading">SUBMITTED BY USER *</label>
-                    <input type="text" id="submitted-by-user" class="form-control" value="@echo_2530" oninput="validateInputs()">
-                </div>
-                <div class="form-group">
-                    <label class="label-heading">SERVER NAME</label>
-                    <input type="text" id="target-server-name" class="form-control" value="Echo Studio - Create A Professional Rob Server" oninput="updateServerName()">
-                </div>
-
-                <!-- Quick Separator Grid -->
-                <div class="form-group" style="margin-top: 4px;">
-                    <label class="label-heading">QUICK SEPARATOR</label>
-                    <div class="separator-grid">
-                        <div class="sep-pill active" onclick="setSeparator('│', this)">
-                            <span class="symbol">│</span>
-                            <span class="name">Solid Bar</span>
-                        </div>
-                        <div class="sep-pill" onclick="setSeparator('•', this)">
-                            <span class="symbol">•</span>
-                            <span class="name">Bullet</span>
-                        </div>
-                        <div class="sep-pill" onclick="setSeparator('—', this)">
-                            <span class="symbol">—</span>
-                            <span class="name">Dash</span>
-                        </div>
-                        <div class="sep-pill" onclick="setSeparator('-', this)">
-                            <span class="symbol">-</span>
-                            <span class="name">Hyphen</span>
-                        </div>
-                        <div class="sep-pill" onclick="setSeparator('|', this)">
-                            <span class="symbol">|</span>
-                            <span class="name">Pipe</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="recaptcha-wrapper" style="display:flex; justify-content:center; margin-bottom:20px;">
+                <div class="g-recaptcha" data-sitekey="{{ site_key }}" data-theme="dark" data-callback="onRecaptchaSuccess"></div>
             </div>
 
-            <!-- Verify & Continue Button -->
-            <button id="verify-continue-btn" class="btn-glass-action">
-                Verify & Continue <i class="fa-solid fa-arrow-right"></i>
+            <button id="verify-btn" class="btn-glass" onclick="handleVerification()" disabled>
+                <span>Verify & Continue</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- ================= PAGE 2: GENERATOR PROMPT ================= -->
+        <div id="page-generator" class="page">
+            <div class="brand-header">
+                <h1>Discord Infrastructure</h1>
+                <p>Fill in parameters to initialize AI schema parsing.</p>
+            </div>
+
+            <div class="form-group">
+                <label class="label-heading">PROMPT DESCRIPTION <span class="required">*</span></label>
+                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="A dedicated server for a basketball community, posting news, host voice chats, and strategy logs..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="label-heading">TARGET DISCORD SERVER ID <span class="required">*</span></label>
+                <input type="text" id="gen-server-id" class="form-control" placeholder="123456789012345678">
+            </div>
+
+            <div class="form-group">
+                <label class="label-heading">SERVER INVITE LINK <span class="required">*</span></label>
+                <input type="text" id="gen-server-link" class="form-control" placeholder="https://discord.gg/yourcode">
+            </div>
+
+            <div class="form-group">
+                <label class="label-heading">SEPARATOR</label>
+                <input type="text" id="gen-separator" class="form-control" value="│" placeholder="│">
+            </div>
+
+            <button id="generate-btn" class="btn-glass" style="margin-top: 24px;" onclick="handleAIGeneration()">
+                <i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>
             </button>
         </div>
 
-        <div id="status-banner"></div>
+        <!-- ================= PAGE 3: ADVANCED LAYOUT DASHBOARD ================= -->
+        <div id="page-layout" class="page">
+            <div class="layout-grid">
+                
+                <!-- LEFT SIDEBAR TREE -->
+                <div class="sidebar-box">
+                    <div class="sidebar-header">
+                        <h2 id="server-title-heading">Hoop Central 🏀</h2>
+                        <span>DRAG TO REORDER</span>
+                    </div>
 
-        <!-- PREVIEW PANEL -->
-        <div class="preview-card">
-            <div class="preview-header">
-                <h2 id="server-title-heading">Echo Studio</h2>
-                <span style="font-size: 0.65rem; color: var(--text-muted); font-weight:700;">LIVE PREVIEW</span>
+                    <div id="sidebar-category-container">
+                        <!-- Populated Dynamically -->
+                    </div>
+
+                    <button class="add-btn-inline" style="margin-top: 10px; font-weight:700;" onclick="addCategory()">
+                        <i class="fa-solid fa-plus"></i> NEW CATEGORY
+                    </button>
+                </div>
+
+                <!-- RIGHT SETTINGS PANELS -->
+                <div class="editor-panel">
+                    
+                    <!-- 1. CHANNEL SETTINGS CARD -->
+                    <div class="editor-card">
+                        <h3 id="channel-settings-title">Channel settings — #mod-logs</h3>
+
+                        <div class="form-group">
+                            <label class="label-heading">EMOJI (SHOWN IN DISCORD WHEN CHANNEL STYLE IS ON)</label>
+                            <input type="text" id="edit-chan-emoji" class="form-control" value="📋" oninput="updateActiveChannel()">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="label-heading">NAME</label>
+                            <input type="text" id="edit-chan-name" class="form-control" value="mod-logs" oninput="updateActiveChannel()">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="label-heading">TYPE</label>
+                            <select id="edit-chan-type" class="form-control" onchange="updateActiveChannel()">
+                                <option value="text">text</option>
+                                <option value="voice">voice</option>
+                                <option value="announcement">announcement</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="label-heading">TOPIC</label>
+                            <input type="text" id="edit-chan-topic" class="form-control" value="Automated logs and moderation actions." oninput="updateActiveChannel()">
+                        </div>
+                    </div>
+
+                    <!-- 2. REGENERATE WITH AI CARD -->
+                    <div class="editor-card">
+                        <h3>Regenerate with AI</h3>
+                        <p style="font-size: 0.82rem; color: var(--text-sub); margin-bottom: 12px;">
+                            Example: "Add a dedicated department structure and make development channels private."
+                        </p>
+                        <div class="regen-box">
+                            <input type="text" id="regen-prompt" class="form-control" placeholder="What should change?">
+                            <button id="regen-btn" class="btn-regen" onclick="handleAIRegenerate()">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Regenerate
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 3. PERMISSIONS OVERVIEW CARD -->
+                    <div class="editor-card">
+                        <h3 id="perm-card-title">Permissions <span style="font-weight: normal; color: var(--text-muted); font-size:0.9rem;" id="perm-chan-badge"># 📋 │ mod-logs</span></h3>
+
+                        <div class="perm-header">
+                            This channel sits in <strong id="perm-cat-name">🔒 🛡️ │ STAFF ONLY — Private</strong> at the category level. The channel syncs with the category, so that's what users get.
+                            <br><a href="#" onclick="alert('Category sync active.'); return false;">Edit category permissions instead</a>
+                        </div>
+
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+                            <i class="fa-solid fa-link"></i> Synced with the category — no channel-specific overrides.
+                        </div>
+
+                        <div id="permissions-list">
+                            <!-- Populated Dynamically -->
+                        </div>
+
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px;">
+                            Toggles edit this channel's own overwrites. Off by default means "inherit the category".
+                        </p>
+                    </div>
+
+                    <!-- 4. ROLES MANAGEMENT CARD -->
+                    <div class="editor-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <h3 style="margin-bottom:0;">Roles</h3>
+                            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">DRAG — TOP IS HIGHEST</span>
+                        </div>
+
+                        <div id="roles-container" class="roles-flex">
+                            <!-- Populated Dynamically -->
+                        </div>
+
+                        <button class="add-btn-inline" style="padding:0;" onclick="addNewRole()">
+                            + New role
+                        </button>
+                    </div>
+
+                    <button id="submit-design-btn" class="btn-glass" style="margin-top: 10px;" onclick="handleSubmitDesign()">
+                        <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
+                    </button>
+                </div>
+
             </div>
-            <div id="sidebar-category-container"></div>
-            <button class="add-btn-inline" style="margin-top: 10px; font-weight:700;" onclick="addCategory()">
-                <i class="fa-solid fa-plus"></i> NEW CATEGORY
-            </button>
+        </div>
+
+        <!-- ================= PAGE 4: COMPLETION ================= -->
+        <div id="page-final" class="page" style="text-align: center;">
+            <i class="fa-solid fa-circle-check fa-3x" style="color: var(--accent-green); margin-bottom: 18px;"></i>
+            <div class="brand-header">
+                <h1>Design Dispatched</h1>
+                <p>Your layout specification has been delivered.</p>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button class="btn-glass" onclick="resetBuilder()">
+                    Start Over
+                </button>
+            </div>
         </div>
 
     </div>
 
-    <!-- Canvas for Image Generation -->
-    <canvas id="discord-canvas" width="360" height="600"></canvas>
-
     <script>
-        let isCaptchaVerified = false;
-        let selectedSeparator = '│';
+        let recaptchaResponseToken = null;
 
+        // Default layout state matching images
         let currentLayout = {
-            server_name: "Echo Studio - Create A Professional Rob Server",
+            server_name: "Hoop Central 🏀",
+            roles: [
+                { name: "Owner", color: "#eab308" },
+                { name: "Coach", color: "#f97316" },
+                { name: "Moderator", color: "#3b82f6" },
+                { name: "Point Guard", color: "#22c55e" },
+                { name: "Shooting Guard", color: "#22c55e" },
+                { name: "Small Forward", color: "#22c55e" },
+                { name: "Power Forward", color: "#22c55e" },
+                { name: "Center", color: "#22c55e" },
+                { name: "Baller", color: "#94a3b8" }
+            ],
             categories: [
                 {
                     name: "INFORMATION",
                     emoji: "📢",
+                    is_private: false,
                     channels: [
-                        { name: "welcome", type: "text", emoji: "👋" },
-                        { name: "rules", type: "text", emoji: "📜" }
+                        { name: "welcome", type: "text", emoji: "👋", topic: "Welcome to Hoop Central!", is_private: false },
+                        { name: "rules", type: "text", emoji: "📜", topic: "Server rules and guidelines.", is_private: false },
+                        { name: "announcements", type: "announcement", emoji: "📣", topic: "Official updates.", is_private: false },
+                        { name: "roles", type: "text", emoji: "🏷️", topic: "Self-assignable roles.", is_private: false }
                     ]
                 },
                 {
-                    name: "CHAT ZONES",
-                    emoji: "💬",
+                    name: "COURT TALK",
+                    emoji: "🏀",
+                    is_private: false,
                     channels: [
-                        { name: "general", type: "text", emoji: "💬" },
-                        { name: "media", type: "text", emoji: "📷" }
+                        { name: "general", type: "text", emoji: "💬", topic: "General basketball discussions.", is_private: false },
+                        { name: "nba-discussion", type: "text", emoji: "🏆", topic: "NBA games and news.", is_private: false },
+                        { name: "highlights", type: "text", emoji: "🔥", topic: "Best plays and clips.", is_private: false },
+                        { name: "sneakers-gear", type: "text", emoji: "👟", topic: "Sneaker drops and gear.", is_private: false }
+                    ]
+                },
+                {
+                    name: "PLAYER DEVELOPMENT",
+                    emoji: "📋",
+                    is_private: false,
+                    channels: [
+                        { name: "training-tips", type: "text", emoji: "🥇", topic: "Drills and workouts.", is_private: false },
+                        { name: "film-room", type: "text", emoji: "📹", topic: "Game tape analysis.", is_private: false },
+                        { name: "nutrition", type: "text", emoji: "🥗", topic: "Diet and fitness tips.", is_private: false }
+                    ]
+                },
+                {
+                    name: "VOICE CHANNELS",
+                    emoji: "🎙️️",
+                    is_private: false,
+                    channels: [
+                        { name: "locker-room", type: "voice", emoji: "🗣️", topic: "Casual voice chat.", is_private: false },
+                        { name: "game-watch-party", type: "voice", emoji: "📺", topic: "Live game watch party.", is_private: false },
+                        { name: "strategy-talk", type: "voice", emoji: "📋", topic: "Tactical discussions.", is_private: false }
+                    ]
+                },
+                {
+                    name: "STAFF ONLY",
+                    emoji: "🛡️",
+                    is_private: true,
+                    channels: [
+                        { name: "staff-chat", type: "text", emoji: "🔒", topic: "Staff internal chat.", is_private: true },
+                        { name: "mod-logs", type: "text", emoji: "📋", topic: "Automated logs and moderation actions.", is_private: true }
                     ]
                 }
             ]
         };
 
-        function toggleCaptcha() {
-            isCaptchaVerified = !isCaptchaVerified;
-            const box = document.getElementById('captcha-check');
-            if (isCaptchaVerified) {
-                box.classList.add('checked');
+        let activeCatIdx = 4;
+        let activeChanIdx = 1;
+
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            const panel = document.getElementById('panel-wrapper');
+            
+            if (pageId === 'page-layout') {
+                panel.classList.add('wide');
             } else {
-                box.classList.remove('checked');
+                panel.classList.remove('wide');
             }
-            validateInputs();
+
+            document.getElementById(pageId).classList.add('active');
         }
 
-        function setSeparator(sep, el) {
-            selectedSeparator = sep;
-            document.querySelectorAll('.sep-pill').forEach(p => p.classList.remove('active'));
-            el.classList.add('active');
+        function onRecaptchaSuccess(token) {
+            recaptchaResponseToken = token;
+            document.getElementById('verify-btn').disabled = false;
+        }
+
+        async function handleVerification() {
+            navigateTo('page-generator');
+        }
+
+        async function handleAIGeneration() {
+            const btn = document.getElementById('generate-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Architecting Layout with AI...`;
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prompt: document.getElementById('gen-prompt').value, 
+                        separator: document.getElementById('gen-separator').value, 
+                        server_id: document.getElementById('gen-server-id').value,
+                        server_link: document.getElementById('gen-server-link').value
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success && result.data) {
+                    if (result.data.server_name) currentLayout.server_name = result.data.server_name;
+                    if (result.data.categories) currentLayout.categories = result.data.categories;
+                    if (result.data.roles) currentLayout.roles = result.data.roles;
+                }
+            } catch (err) {
+                console.log("Using default preset preview structure.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>`;
+                activeCatIdx = 0;
+                activeChanIdx = 0;
+                renderDashboard();
+                navigateTo('page-layout');
+            }
+        }
+
+        async function handleAIRegenerate() {
+            const input = document.getElementById('regen-prompt');
+            const promptText = input.value.trim();
+            if (!promptText) return;
+
+            const btn = document.getElementById('regen-btn');
+            const originalBtnContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Working...`;
+
+            try {
+                const response = await fetch('/api/regenerate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prompt: promptText,
+                        current_layout: currentLayout
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success && result.data) {
+                    if (result.data.server_name) currentLayout.server_name = result.data.server_name;
+                    if (result.data.categories) currentLayout.categories = result.data.categories;
+                    if (result.data.roles) currentLayout.roles = result.data.roles;
+                    
+                    activeCatIdx = 0;
+                    activeChanIdx = 0;
+                    renderDashboard();
+                }
+            } catch (err) {
+                console.log("Regeneration fallback.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnContent;
+                input.value = '';
+            }
+        }
+
+        function syncLayoutFromDOM() {
+            const container = document.getElementById('sidebar-category-container');
+            const newCategories = [];
+
+            Array.from(container.children).forEach((catDiv, cIdx) => {
+                const originalCat = currentLayout.categories[cIdx];
+                if (!originalCat) return;
+
+                const newChannels = [];
+                const channelList = catDiv.querySelector('.channel-tree-list');
+                
+                if (channelList) {
+                    Array.from(channelList.children).forEach((chanDiv) => {
+                        const originalIndex = chanDiv.dataset.chanIndex;
+                        const originalCategoryIndex = chanDiv.dataset.catIndex;
+                        
+                        if (originalCategoryIndex !== undefined && originalIndex !== undefined) {
+                            const chanObj = currentLayout.categories[originalCategoryIndex]?.channels[originalIndex];
+                            if (chanObj) {
+                                newChannels.push(chanObj);
+                            }
+                        }
+                    });
+                }
+
+                newCategories.push({
+                    ...originalCat,
+                    channels: newChannels
+                });
+            });
+
+            currentLayout.categories = newCategories;
+        }
+
+        function renderDashboard() {
             renderSidebar();
-        }
-
-        function validateInputs() {
-            const serverId = document.getElementById('target-server-id').value.trim();
-            const serverLink = document.getElementById('target-server-link').value.trim();
-            const user = document.getElementById('submitted-by-user').value.trim();
-
-            const isValid = serverId !== '' && serverLink !== '' && user !== '' && isCaptchaVerified;
-
-            const verifyBtn = document.getElementById('verify-continue-btn');
-
-            if (isValid) {
-                verifyBtn.classList.add('ready');
-            } else {
-                verifyBtn.classList.remove('ready');
-            }
-        }
-
-        function updateServerName() {
-            const val = document.getElementById('target-server-name').value;
-            currentLayout.server_name = val;
-            document.getElementById('server-title-heading').innerText = val.split('-')[0].trim();
+            renderActiveChannelDetails();
+            renderPermissions();
+            renderRoles();
         }
 
         function renderSidebar() {
             const container = document.getElementById('sidebar-category-container');
             container.innerHTML = '';
+
+            document.getElementById('server-title-heading').innerText = currentLayout.server_name || "Server Layout";
 
             currentLayout.categories.forEach((cat, cIdx) => {
                 const catDiv = document.createElement('div');
@@ -597,18 +865,36 @@
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'category-title';
                 headerDiv.innerHTML = `
-                    <span>▾ ${cat.emoji || ''} ${selectedSeparator} ${cat.name}</span>
-                    <i class="fa-solid fa-xmark" onclick="deleteCategory(${cIdx})" style="cursor:pointer;"></i>
+                    <span>▾ ${cat.emoji || ''} │ ${cat.name}</span>
+                    <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteCategory(${cIdx})" style="cursor:pointer;"></i>
                 `;
                 catDiv.appendChild(headerDiv);
 
                 const channelList = document.createElement('div');
+                channelList.className = 'channel-tree-list';
+                channelList.id = `cat-tree-${cIdx}`;
+
                 cat.channels.forEach((chan, chIdx) => {
                     const item = document.createElement('div');
-                    item.className = 'tree-item';
+                    const isActive = (cIdx === activeCatIdx && chIdx === activeChanIdx);
+                    item.className = `tree-item ${isActive ? 'active' : ''}`;
+                    item.dataset.catIndex = cIdx;
+                    item.dataset.chanIndex = chIdx;
+                    item.onclick = () => selectChannel(cIdx, chIdx);
+
+                    let typeIcon = '#';
+                    if (chan.type === 'voice') typeIcon = '🔊';
+                    if (chan.type === 'announcement') typeIcon = '📣';
+
                     item.innerHTML = `
-                        <div># ${chan.emoji || ''} ${selectedSeparator} ${chan.name}</div>
-                        <i class="fa-solid fa-xmark" onclick="deleteChannel(${cIdx}, ${chIdx})" style="color:var(--text-muted);"></i>
+                        <div class="tree-item-left">
+                            <span>${typeIcon}</span>
+                            <span>${chan.emoji || ''} │ ${chan.name}</span>
+                        </div>
+                        <div class="tree-item-icons">
+                            ${chan.is_private ? '<i class="fa-solid fa-lock" style="color: #eab308;"></i>' : ''}
+                            <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteChannel(${cIdx}, ${chIdx})"></i>
+                        </div>
                     `;
                     channelList.appendChild(item);
                 });
@@ -621,32 +907,211 @@
                 catDiv.appendChild(channelList);
                 catDiv.appendChild(addChanBtn);
                 container.appendChild(catDiv);
+
+                new Sortable(channelList, { 
+                    group: 'channels', 
+                    animation: 150,
+                    onEnd: function() {
+                        syncLayoutFromDOM();
+                    }
+                });
+            });
+
+            new Sortable(container, { 
+                animation: 150,
+                onEnd: function() {
+                    syncLayoutFromDOM();
+                }
+            });
+        }
+
+        function selectChannel(cIdx, chIdx) {
+            activeCatIdx = cIdx;
+            activeChanIdx = chIdx;
+            renderSidebar();
+            renderActiveChannelDetails();
+            renderPermissions();
+        }
+
+        function renderActiveChannelDetails() {
+            const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
+            if (!chan) {
+                document.getElementById('channel-settings-title').innerText = "Select a Channel";
+                document.getElementById('edit-chan-emoji').value = '';
+                document.getElementById('edit-chan-name').value = '';
+                document.getElementById('edit-chan-topic').value = '';
+                return;
+            }
+
+            document.getElementById('channel-settings-title').innerText = `Channel settings — #${chan.name}`;
+            document.getElementById('edit-chan-emoji').value = chan.emoji || '';
+            document.getElementById('edit-chan-name').value = chan.name;
+            document.getElementById('edit-chan-type').value = chan.type || 'text';
+            document.getElementById('edit-chan-topic').value = chan.topic || '';
+        }
+
+        function updateActiveChannel() {
+            const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
+            if (!chan) return;
+
+            chan.emoji = document.getElementById('edit-chan-emoji').value;
+            chan.name = document.getElementById('edit-chan-name').value;
+            chan.type = document.getElementById('edit-chan-type').value;
+            chan.topic = document.getElementById('edit-chan-topic').value;
+
+            renderSidebar();
+            renderPermissions();
+        }
+
+        function renderPermissions() {
+            const cat = currentLayout.categories[activeCatIdx];
+            const chan = cat?.channels[activeChanIdx];
+            if (!chan) {
+                document.getElementById('perm-chan-badge').innerText = '';
+                document.getElementById('perm-cat-name').innerText = 'No channel selected';
+                document.getElementById('permissions-list').innerHTML = '';
+                return;
+            }
+
+            document.getElementById('perm-chan-badge').innerText = `# ${chan.emoji || ''} │ ${chan.name}`;
+            document.getElementById('perm-cat-name').innerText = `${cat.is_private ? '🔒' : ''} ${cat.emoji || ''} │ ${cat.name} — ${cat.is_private ? 'Private' : 'Public'}`;
+
+            const list = document.getElementById('permissions-list');
+            list.innerHTML = '';
+
+            const roles = currentLayout.roles || [];
+            
+            // Add @everyone role first
+            const allRoles = [{ name: "@everyone", color: "#94a3b8" }, ...roles];
+
+            allRoles.forEach((r) => {
+                const isAllowed = cat.is_private ? (r.name === 'Owner' || r.name === 'Coach' || r.name === 'Moderator') : true;
+                
+                const row = document.createElement('div');
+                row.className = 'perm-row';
+                row.innerHTML = `
+                    <span style="font-weight:600;">${r.name}</span>
+                    <div class="perm-status">
+                        <span class="${isAllowed ? 'tag-green' : 'tag-red'}">SEES: ${isAllowed ? 'YES' : 'NO'}</span>
+                        <span class="tag-green">✓ View</span>
+                        <span class="tag-green">✓ Send</span>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function renderRoles() {
+            const container = document.getElementById('roles-container');
+            container.innerHTML = '';
+
+            (currentLayout.roles || []).forEach((r, idx) => {
+                const pill = document.createElement('div');
+                pill.className = 'role-pill';
+                pill.style.borderColor = r.color;
+                pill.dataset.roleIndex = idx;
+                pill.innerHTML = `
+                    <span class="role-dot" style="background:${r.color}"></span>
+                    <span>${r.name}</span>
+                    <i class="fa-solid fa-xmark" onclick="deleteRole(${idx})"></i>
+                `;
+                container.appendChild(pill);
+            });
+
+            new Sortable(container, { 
+                animation: 150,
+                onEnd: function() {
+                    const newRoles = [];
+                    Array.from(container.children).forEach((pill) => {
+                        const originalIndex = pill.dataset.roleIndex;
+                        if (originalIndex !== undefined && currentLayout.roles[originalIndex]) {
+                            newRoles.push(currentLayout.roles[originalIndex]);
+                        }
+                    });
+                    currentLayout.roles = newRoles;
+                    renderRoles();
+                    renderPermissions();
+                }
             });
         }
 
         function addCategory() {
-            currentLayout.categories.push({ name: "NEW CATEGORY", emoji: "📁", channels: [] });
+            currentLayout.categories.push({
+                name: "NEW CATEGORY",
+                emoji: "📁",
+                is_private: false,
+                channels: []
+            });
             renderSidebar();
         }
 
         function addChannel(cIdx) {
-            currentLayout.categories[cIdx].channels.push({ name: "new-channel", type: "text", emoji: "💬" });
-            renderSidebar();
+            currentLayout.categories[cIdx].channels.push({
+                name: "new-channel",
+                type: "text",
+                emoji: "💬",
+                topic: "",
+                is_private: false
+            });
+            selectChannel(cIdx, currentLayout.categories[cIdx].channels.length - 1);
         }
 
         function deleteCategory(cIdx) {
             currentLayout.categories.splice(cIdx, 1);
-            renderSidebar();
+            if (activeCatIdx >= currentLayout.categories.length) {
+                activeCatIdx = Math.max(0, currentLayout.categories.length - 1);
+            }
+            activeChanIdx = 0;
+            renderDashboard();
         }
 
         function deleteChannel(cIdx, chIdx) {
             currentLayout.categories[cIdx].channels.splice(chIdx, 1);
-            renderSidebar();
+            if (activeChanIdx >= currentLayout.categories[cIdx].channels.length) {
+                activeChanIdx = Math.max(0, currentLayout.categories[cIdx].channels.length - 1);
+            }
+            renderDashboard();
         }
 
-        updateServerName();
-        renderSidebar();
-        validateInputs();
+        function addNewRole() {
+            const name = prompt("Enter role name:");
+            if (name) {
+                currentLayout.roles.push({ name, color: "#8b5cf6" });
+                renderRoles();
+                renderPermissions();
+            }
+        }
+
+        function deleteRole(idx) {
+            currentLayout.roles.splice(idx, 1);
+            renderRoles();
+            renderPermissions();
+        }
+
+        async function handleSubmitDesign() {
+            const btn = document.getElementById('submit-design-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Dispatching Design...`;
+
+            try {
+                const response = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentLayout)
+                });
+
+                navigateTo('page-final');
+            } catch (err) {
+                navigateTo('page-final');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>`;
+            }
+        }
+
+        function resetBuilder() {
+            navigateTo('page-landing');
+        }
     </script>
 </body>
 </html>
