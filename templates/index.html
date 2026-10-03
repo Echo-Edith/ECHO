@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORCA — Discord Server Architect</title>
+    <title>Discord Infrastructure Architect</title>
     
     <!-- Google reCAPTCHA v2 API -->
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
@@ -16,74 +16,62 @@
 
     <style>
         :root {
-            /* Purple Glass Theme Palette */
-            --glass-bg: rgba(28, 18, 48, 0.45);
-            --glass-border: rgba(168, 85, 247, 0.25);
-            --glass-glow: rgba(147, 51, 234, 0.35);
+            --bg-base: #0a0712;
+            --panel-bg: rgba(22, 16, 38, 0.65);
+            --panel-border: rgba(120, 80, 200, 0.2);
+            --input-bg: rgba(28, 22, 48, 0.6);
+            --input-border: rgba(120, 80, 200, 0.25);
             
-            --accent-purple: #a855f7;
-            --accent-violet: #7c3aed;
-            --accent-magenta: #c084fc;
-            --accent-cyan: #38bdf8;
+            --text-title: #ffffff;
+            --text-sub: #9a8bb4;
+            --text-muted: #6c5f87;
+            --accent-purple: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.15);
             --accent-red: #f43f5e;
             --accent-green: #10b981;
-            
-            --text-main: #f3e8ff;
-            --text-muted: #c084fc;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             user-select: none;
         }
 
         body {
             min-height: 100vh;
-            background: radial-gradient(circle at top left, #1e0936, #0f051d, #07020d);
-            color: var(--text-main);
+            background: #08050e;
+            background-image: 
+                radial-gradient(circle at 50% 20%, rgba(88, 48, 148, 0.18) 0%, transparent 60%),
+                radial-gradient(circle at 50% 80%, rgba(45, 20, 90, 0.15) 0%, transparent 50%);
+            color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
-            overflow-x: hidden;
+            padding: 24px;
         }
 
-        /* Glassmorphism Panel Container */
+        /* Glass Panel Wrapper */
         .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(168, 85, 247, 0.15);
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--panel-border);
+            border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 1px rgba(255, 255, 255, 0.1);
             width: 100%;
-            max-width: 900px;
-            padding: 35px;
-            transition: all 0.4s ease;
+            max-width: 520px;
+            padding: 36px 32px;
             position: relative;
         }
 
-        /* Ambient Purple Glow Effects */
-        .glass-panel::before {
-            content: '';
-            position: absolute;
-            top: -2px; left: -2px; right: -2px; bottom: -2px;
-            background: linear-gradient(135deg, var(--accent-purple), transparent, var(--accent-violet));
-            border-radius: 26px;
-            z-index: -1;
-            opacity: 0.35;
-            transition: opacity 0.3s ease;
-        }
-
-        /* Page Management */
+        /* Page View Navigation */
         .page {
             display: none;
             opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.4s ease, transform 0.4s ease;
+            transform: translateY(6px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
         }
 
         .page.active {
@@ -92,225 +80,253 @@
             transform: translateY(0);
         }
 
-        /* Header */
+        /* Top Headers */
         .brand-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 28px;
         }
 
         .brand-header h1 {
-            font-size: 2.3rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #ffffff, var(--accent-magenta), var(--accent-cyan));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: 1px;
-            text-shadow: 0 0 30px rgba(168, 85, 247, 0.3);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-title);
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
         }
 
         .brand-header p {
-            color: rgba(243, 232, 255, 0.7);
-            font-size: 0.95rem;
-            margin-top: 6px;
+            color: var(--text-sub);
+            font-size: 0.92rem;
+            font-weight: 400;
         }
 
-        /* Form Controls & Inputs */
+        /* Label Subheadings */
+        .label-heading {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--text-sub);
+            margin-bottom: 10px;
+        }
+
+        .label-heading span.required {
+            color: var(--accent-red);
+            margin-left: 2px;
+        }
+
+        /* Inputs & Textareas */
         .form-group {
             margin-bottom: 20px;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--text-main);
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-
         .form-control {
             width: 100%;
-            padding: 14px 18px;
-            background: rgba(15, 5, 29, 0.6);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            color: var(--text-main);
+            padding: 16px 18px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 16px;
+            color: #ffffff;
             font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            transition: all 0.25s ease;
             user-select: text;
         }
 
-        .form-control:focus {
-            border-color: var(--accent-purple);
-            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+        .form-control::placeholder {
+            color: var(--text-muted);
         }
 
-        /* Purple Glass Buttons */
+        .form-control:focus {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(34, 26, 60, 0.75);
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .form-control.error {
+            border-color: var(--accent-red) !important;
+            box-shadow: 0 0 12px rgba(244, 63, 94, 0.2) !important;
+        }
+
+        /* Validation Alert Banner */
+        .validation-alert {
+            display: none;
+            background: rgba(244, 63, 94, 0.1);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            border-radius: 12px;
+            padding: 12px;
+            color: var(--accent-red);
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Sleek Button Styling */
         .btn-glass {
             width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.4), rgba(168, 85, 247, 0.3));
-            border: 1px solid rgba(168, 85, 247, 0.4);
-            border-radius: 14px;
-            color: white;
-            font-weight: 700;
-            font-size: 1rem;
+            padding: 16px;
+            background: rgba(38, 28, 66, 0.6);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 16px;
+            color: var(--text-sub);
+            font-weight: 600;
+            font-size: 0.95rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 10px;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
         }
 
         .btn-glass:hover:not(:disabled) {
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.65), rgba(168, 85, 247, 0.5));
-            box-shadow: 0 0 25px var(--glass-glow);
-            transform: translateY(-2px);
+            background: rgba(58, 40, 102, 0.8);
+            border-color: rgba(139, 92, 246, 0.6);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
         }
 
         .btn-glass:disabled {
-            opacity: 0.4;
+            opacity: 0.45;
             cursor: not-allowed;
-            filter: grayscale(1);
         }
 
-        /* Frosted Purple Glass Container Cover for reCAPTCHA Widget */
-        .recaptcha-wrapper {
+        /* Quick Separator Pills */
+        .separator-pills {
             display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .pill-btn {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 10px;
+            color: var(--text-sub);
+            width: 38px;
+            height: 32px;
+            display: flex;
+            align-items: center;
             justify-content: center;
-            margin-bottom: 25px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
         }
 
-        .recaptcha-glass-cover {
-            background: rgba(88, 28, 135, 0.25);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(168, 85, 247, 0.35);
-            border-radius: 18px;
-            padding: 16px;
-            display: inline-block;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(168, 85, 247, 0.15);
-            position: relative;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        .pill-btn:hover {
+            border-color: var(--accent-purple);
+            color: #ffffff;
+            background: rgba(48, 35, 82, 0.7);
         }
 
-        .recaptcha-glass-cover:hover {
-            border-color: rgba(192, 132, 252, 0.6);
-            box-shadow: 0 8px 32px rgba(168, 85, 247, 0.25), inset 0 0 20px rgba(168, 85, 247, 0.25);
-        }
-
-        /* User Profile Bar */
+        /* User Profile Info Card (Without User ID) */
         .user-bar {
             display: flex;
             align-items: center;
-            gap: 12px;
-            background: rgba(15, 5, 29, 0.5);
-            padding: 12px 18px;
-            border-radius: 14px;
-            border: 1px solid var(--glass-border);
-            margin-bottom: 25px;
+            gap: 14px;
+            background: var(--input-bg);
+            padding: 14px 18px;
+            border-radius: 16px;
+            border: 1px solid var(--input-border);
+            margin-bottom: 24px;
         }
 
         .user-bar img {
-            width: 42px;
-            height: 42px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            border: 2px solid var(--accent-purple);
+            border: 1px solid var(--accent-purple);
         }
 
-        /* Drag & Drop Layout Builder */
+        .user-bar span.username {
+            font-weight: 600;
+            font-size: 0.98rem;
+            color: #ffffff;
+        }
+
+        .user-bar a.logout-link {
+            margin-left: auto;
+            color: var(--accent-red);
+            font-size: 0.85rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.2s ease;
+        }
+
+        .user-bar a.logout-link:hover {
+            opacity: 0.8;
+        }
+
+        /* Google reCAPTCHA Dark Container Frame */
+        .recaptcha-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .recaptcha-frame {
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--input-border);
+            background: #222222;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            display: inline-block;
+        }
+
+        /* Drag & Drop Builders */
         .category-list {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            max-height: 450px;
+            gap: 14px;
+            max-height: 400px;
             overflow-y: auto;
-            padding-right: 5px;
+            padding-right: 4px;
         }
 
         .category-item {
-            background: rgba(88, 28, 135, 0.15);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            padding: 16px;
+            background: rgba(28, 20, 48, 0.5);
+            border: 1px solid var(--input-border);
+            border-radius: 16px;
+            padding: 14px;
         }
 
         .category-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
-            cursor: grab;
+            margin-bottom: 8px;
         }
 
         .channel-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            padding-left: 15px;
-            min-height: 20px;
+            gap: 6px;
+            padding-left: 10px;
+            min-height: 15px;
         }
 
         .channel-item {
-            background: rgba(15, 5, 29, 0.5);
-            border: 1px solid rgba(168, 85, 247, 0.15);
+            background: var(--input-bg);
+            border: 1px solid rgba(120, 80, 200, 0.15);
             padding: 10px 14px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
-            transition: all 0.2s ease;
+            font-size: 0.88rem;
         }
 
-        .channel-item:hover {
-            background: rgba(124, 58, 237, 0.25);
-            border-color: rgba(168, 85, 247, 0.4);
-        }
-
-        /* Modal Inspector */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(7, 2, 13, 0.85);
-            backdrop-filter: blur(12px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-body {
-            background: rgba(28, 18, 48, 0.95);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            width: 90%;
-            max-width: 500px;
-            padding: 28px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
-        }
-
-        /* Banned State View */
-        .banned-box {
-            border-color: var(--accent-red) !important;
-            text-align: center;
-        }
-
-        .banned-box h2 {
-            color: var(--accent-red);
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-
-        /* Loading Spinner */
+        /* Spinner Animation */
         .spinner {
-            border: 3px solid rgba(255,255,255,0.1);
-            width: 20px; height: 20px;
+            border: 2px solid rgba(255,255,255,0.15);
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
-            border-left-color: #fff;
-            animation: spin 1s linear infinite;
+            border-left-color: #ffffff;
+            animation: spin 0.8s linear infinite;
             display: inline-block;
         }
 
@@ -323,47 +339,41 @@
 
         <!-- ================= BANNED SCREEN ================= -->
         {% if is_banned %}
-        <div class="banned-box">
-            <i class="fa-solid fa-ban fa-4x" style="color: var(--accent-red); margin-bottom: 15px;"></i>
-            <h2>BANNED</h2>
-            <p style="color: rgba(243, 232, 255, 0.7); margin-bottom: 20px;">You are currently suspended from using the ORCA web platform.</p>
-            <div style="background: rgba(244,63,94,0.1); border: 1px solid var(--accent-red); padding: 15px; border-radius: 12px;">
-                <strong>Developer Message:</strong><br>
-                <span>{{ dev_message }}</span>
-            </div>
+        <div style="text-align: center;">
+            <i class="fa-solid fa-ban fa-3x" style="color: var(--accent-red); margin-bottom: 15px;"></i>
+            <h2 style="color: var(--accent-red); margin-bottom: 10px;">Access Suspended</h2>
+            <p style="color: var(--text-sub); font-size: 0.9rem;">{{ dev_message }}</p>
         </div>
         {% else %}
 
         <!-- ================= PAGE 1: LANDING & AUTH ================= -->
         <div id="page-landing" class="page active">
             <div class="brand-header">
-                <h1>ORCA ARCHITECT</h1>
-                <p>AI-Powered Discord Server Generation</p>
+                <h1>Discord Infrastructure</h1>
+                <p>Fill in parameters to initialize AI schema parsing.</p>
             </div>
 
             {% if not user %}
-            <div class="form-group" style="text-align: center;">
-                <p style="color: rgba(243, 232, 255, 0.7); margin-bottom: 25px;">Authorize with Discord to build and customize your server architecture.</p>
+            <div style="text-align: center; margin-top: 15px;">
+                <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px;">Authenticate with Discord to begin architecting.</p>
                 <a href="/login" style="text-decoration: none;">
                     <button class="btn-glass">
-                        <i class="fa-brands fa-discord fa-lg"></i> Log In with Discord
+                        <i class="fa-brands fa-discord fa-lg" style="color: #5865F2;"></i> Log In with Discord
                     </button>
                 </a>
             </div>
             {% else %}
+            <!-- User Profile Bar without User ID -->
             <div class="user-bar">
                 <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
-                <div>
-                    <strong>{{ user.username }}</strong>
-                    <div style="font-size: 0.8rem; color: rgba(243, 232, 255, 0.6);">ID: {{ user.id }}</div>
-                </div>
-                <a href="/logout" style="margin-left: auto; color: var(--accent-red); font-size: 0.85rem; text-decoration: none; font-weight: 600;">Logout</a>
+                <span class="username">{{ user.username }}</span>
+                <a href="/logout" class="logout-link">Logout</a>
             </div>
 
-            <!-- Purple Glassmorphism Cover Container around reCAPTCHA -->
+            <!-- Dark themed and rounded reCAPTCHA Container -->
             <div class="recaptcha-wrapper">
-                <div class="recaptcha-glass-cover">
-                    <div class="g-recaptcha" data-sitekey="{{ site_key }}" data-callback="onRecaptchaSuccess"></div>
+                <div class="recaptcha-frame">
+                    <div class="g-recaptcha" data-sitekey="{{ site_key }}" data-theme="dark" data-callback="onRecaptchaSuccess"></div>
                 </div>
             </div>
 
@@ -376,78 +386,87 @@
         <!-- ================= PAGE 2: GENERATOR PROMPT ================= -->
         <div id="page-generator" class="page">
             <div class="brand-header">
-                <h1>DESIGN PREFERENCES</h1>
-                <p>Configure Gemini AI parameters for generation</p>
+                <h1>Discord Infrastructure</h1>
+                <p>Fill in parameters to initialize AI schema parsing.</p>
             </div>
 
+            <div id="form-alert" class="validation-alert">
+                Please fill in all mandatory fields (<span style="color:var(--accent-red)">*</span>) before generating.
+            </div>
+
+            <!-- Mandatory Field 1: Prompt Description -->
             <div class="form-group">
-                <label>Server Theme & Details</label>
-                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="e.g., A Cyberpunk Esports Gaming server with trading, scrims, and streaming zones..."></textarea>
+                <label class="label-heading">PROMPT DESCRIPTION <span class="required">*</span></label>
+                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="A dedicated server for a Roblox game that is used to post updates, host voice chats, and announcements..."></textarea>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="form-group">
-                    <label>Channel Separator</label>
-                    <input type="text" id="gen-separator" class="form-control" value="│" placeholder="e.g. │ or •">
-                </div>
-                <div class="form-group">
-                    <label>Target Server ID (Mandatory)</label>
-                    <input type="text" id="gen-server-id" class="form-control" placeholder="18-digit Server ID">
-                </div>
-            </div>
-
+            <!-- Mandatory Field 2: Target Server ID -->
             <div class="form-group">
-                <label>Server Invite Link (Optional)</label>
+                <label class="label-heading">TARGET DISCORD SERVER ID <span class="required">*</span></label>
+                <input type="text" id="gen-server-id" class="form-control" placeholder="123456789012345678">
+            </div>
+
+            <!-- Mandatory Field 3: Server Invite Link -->
+            <div class="form-group">
+                <label class="label-heading">SERVER INVITE LINK <span class="required">*</span></label>
                 <input type="text" id="gen-server-link" class="form-control" placeholder="https://discord.gg/yourcode">
             </div>
 
-            <button id="generate-btn" class="btn-glass" onclick="handleAIGeneration()">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate Layout with Gemini</span>
+            <!-- Optional Field: Separator -->
+            <div class="form-group">
+                <label class="label-heading">SEPARATOR</label>
+                <input type="text" id="gen-separator" class="form-control" value="│" placeholder="│">
+                
+                <div class="separator-pills">
+                    <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-right: 4px;">QUICK SEPARATORS:</span>
+                    <button class="pill-btn" onclick="setSeparator('│')">│</button>
+                    <button class="pill-btn" onclick="setSeparator('-')">-</button>
+                    <button class="pill-btn" onclick="setSeparator('•')">•</button>
+                    <button class="pill-btn" onclick="setSeparator('~')">~</button>
+                </div>
+            </div>
+
+            <button id="generate-btn" class="btn-glass" style="margin-top: 28px;" onclick="handleAIGeneration()">
+                <i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>
             </button>
         </div>
 
-        <!-- ================= PAGE 3: LAYOUT CUSTOMIZER ================= -->
+        <!-- ================= PAGE 3: LAYOUT BUILDER ================= -->
         <div id="page-layout" class="page">
             <div class="brand-header">
-                <h1>STRUCTURE & LAYOUT</h1>
-                <p>Drag to reorder categories or channels. Click a channel to edit metadata.</p>
+                <h1>Structure & Layout</h1>
+                <p>Drag channels to reorder. Click gear to configure.</p>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="btn-glass" style="padding: 8px 14px; font-size: 0.85rem;" onclick="addCategory()">
+            <div style="margin-bottom: 16px;">
+                <button class="btn-glass" style="padding: 10px 16px; font-size: 0.85rem;" onclick="addCategory()">
                     <i class="fa-solid fa-plus"></i> Add Category
                 </button>
             </div>
 
-            <div id="category-container" class="category-list">
-                <!-- Dynamically populated drag-and-drop categories -->
-            </div>
+            <div id="category-container" class="category-list"></div>
 
-            <button id="submit-design-btn" class="btn-glass" style="margin-top: 25px;" onclick="handleSubmitDesign()">
+            <button id="submit-design-btn" class="btn-glass" style="margin-top: 24px;" onclick="handleSubmitDesign()">
                 <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
             </button>
         </div>
 
-        <!-- ================= PAGE 4: FINAL COMPLETION ================= -->
+        <!-- ================= PAGE 4: COMPLETION ================= -->
         <div id="page-final" class="page" style="text-align: center;">
-            <i class="fa-solid fa-circle-check fa-4x" style="color: var(--accent-green); margin-bottom: 20px;"></i>
+            <i class="fa-solid fa-circle-check fa-3x" style="color: var(--accent-green); margin-bottom: 18px;"></i>
             <div class="brand-header">
-                <h1>DESIGN SUBMITTED</h1>
-                <p>Your layout has been compiled and dispatched to the bot engine.</p>
+                <h1>Design Dispatched</h1>
+                <p>Your layout specification has been delivered.</p>
             </div>
 
-            <p style="color: rgba(243, 232, 255, 0.7); margin-bottom: 30px;">
-                Run the command generated in your private discord building channel to build the server structure automatically.
-            </p>
-
-            <div style="display: flex; gap: 15px;">
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
                 <a id="bot-add-link" href="#" target="_blank" style="flex: 1; text-decoration: none;">
                     <button class="btn-glass">
-                        <i class="fa-solid fa-robot"></i> Add Bot to Server
+                        <i class="fa-solid fa-robot"></i> Add Bot
                     </button>
                 </a>
                 <button class="btn-glass" style="flex: 1;" onclick="resetBuilder()">
-                    <i class="fa-solid fa-rotate-right"></i> Start New Design
+                    Start Over
                 </button>
             </div>
         </div>
@@ -456,61 +475,24 @@
 
     </div>
 
-    <!-- ================= MODAL: CHANNEL INSPECTOR ================= -->
-    <div id="channel-modal" class="modal-overlay">
-        <div class="modal-body">
-            <h3 style="margin-bottom: 18px; color: var(--accent-magenta);">Edit Channel Config</h3>
-            
-            <div class="form-group">
-                <label>Emoji Icon</label>
-                <input type="text" id="modal-emoji" class="form-control" placeholder="💬">
-            </div>
-
-            <div class="form-group">
-                <label>Channel Name</label>
-                <input type="text" id="modal-name" class="form-control">
-            </div>
-
-            <div class="form-group">
-                <label>Description / Topic</label>
-                <input type="text" id="modal-desc" class="form-control">
-            </div>
-
-            <div class="form-group">
-                <label>Type</label>
-                <select id="modal-type" class="form-control">
-                    <option value="text">Text Channel</option>
-                    <option value="voice">Voice Channel</option>
-                </select>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px;">
-                <button class="btn-glass" style="width: auto; padding: 10px 20px;" onclick="closeModal()">Cancel</button>
-                <button class="btn-glass" style="width: auto; padding: 10px 20px;" onclick="saveModalChannel()">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= JAVASCRIPT APP LOGIC ================= -->
     <script>
-        // Global State
         let currentLayout = { categories: [] };
-        let activeEditChannel = null;
         let recaptchaResponseToken = null;
 
-        // Page Navigation System
         function navigateTo(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
         }
 
-        // Enable Verify Button when reCAPTCHA is solved
+        function setSeparator(val) {
+            document.getElementById('gen-separator').value = val;
+        }
+
         function onRecaptchaSuccess(token) {
             recaptchaResponseToken = token;
             document.getElementById('verify-btn').disabled = false;
         }
 
-        // Backend reCAPTCHA verification handler
         async function handleVerification() {
             const btn = document.getElementById('verify-btn');
             btn.disabled = true;
@@ -525,42 +507,72 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    btn.innerHTML = `<span>Verified!</span> <i class="fa-solid fa-check"></i>`;
-                    setTimeout(() => navigateTo('page-generator'), 500);
+                    navigateTo('page-generator');
                 } else {
-                    alert('reCAPTCHA Verification failed. Please try again.');
+                    alert('reCAPTCHA verification failed.');
                     if (window.grecaptcha) grecaptcha.reset();
                     btn.disabled = true;
                     btn.innerHTML = `<span>Verify & Continue</span> <i class="fa-solid fa-arrow-right"></i>`;
                 }
             } catch (err) {
-                alert('Server error during verification.');
+                alert('Connection error.');
                 btn.disabled = false;
                 btn.innerHTML = `<span>Verify & Continue</span> <i class="fa-solid fa-arrow-right"></i>`;
             }
         }
 
-        // AI Layout Generation Call
         async function handleAIGeneration() {
-            const prompt = document.getElementById('gen-prompt').value.trim();
-            const separator = document.getElementById('gen-separator').value.trim();
-            const serverId = document.getElementById('gen-server-id').value.trim();
-            const serverLink = document.getElementById('gen-server-link').value.trim();
+            const promptEl = document.getElementById('gen-prompt');
+            const serverIdEl = document.getElementById('gen-server-id');
+            const serverLinkEl = document.getElementById('gen-server-link');
+            const alertEl = document.getElementById('form-alert');
 
-            if (!prompt || !serverId) {
-                alert("Please fill in both the Prompt and Target Server ID.");
+            const prompt = promptEl.value.trim();
+            const serverId = serverIdEl.value.trim();
+            const serverLink = serverLinkEl.value.trim();
+            const separator = document.getElementById('gen-separator').value.trim();
+
+            // Reset field error styles
+            promptEl.classList.remove('error');
+            serverIdEl.classList.remove('error');
+            serverLinkEl.classList.remove('error');
+            alertEl.style.display = 'none';
+
+            let hasError = false;
+
+            // Strict Validation Check for Mandatory Fields
+            if (!prompt) {
+                promptEl.classList.add('error');
+                hasError = true;
+            }
+            if (!serverId) {
+                serverIdEl.classList.add('error');
+                hasError = true;
+            }
+            if (!serverLink) {
+                serverLinkEl.classList.add('error');
+                hasError = true;
+            }
+
+            if (hasError) {
+                alertEl.style.display = 'block';
                 return;
             }
 
             const btn = document.getElementById('generate-btn');
             btn.disabled = true;
-            btn.innerHTML = `<span class="spinner"></span> Architecting Layout with Gemini...`;
+            btn.innerHTML = `<span class="spinner"></span> Architecting Layout with AI...`;
 
             try {
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt, separator, server_id: serverId, server_link: serverLink })
+                    body: JSON.stringify({ 
+                        prompt, 
+                        separator, 
+                        server_id: serverId,
+                        server_link: serverLink
+                    })
                 });
 
                 const result = await response.json();
@@ -575,11 +587,10 @@
                 alert("Error connecting to generator endpoint.");
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate Layout with Gemini</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>`;
             }
         }
 
-        // Render Drag and Drop Builder
         function renderLayoutBuilder() {
             const container = document.getElementById('category-container');
             container.innerHTML = '';
@@ -591,72 +602,27 @@
                 catEl.className = 'category-item';
                 catEl.innerHTML = `
                     <div class="category-header">
-                        <input type="text" class="form-control" style="width: auto; padding: 4px 8px;" value="${cat.name}" onchange="currentLayout.categories[${catIdx}].name = this.value">
-                        <div>
-                            <button onclick="addChannel(${catIdx})" style="background:none; border:none; color:var(--accent-magenta); cursor:pointer;"><i class="fa-solid fa-plus"></i> Channel</button>
-                        </div>
+                        <input type="text" class="form-control" style="width: auto; padding: 6px 10px;" value="${cat.name}" onchange="currentLayout.categories[${catIdx}].name = this.value">
+                        <button onclick="addChannel(${catIdx})" style="background:none; border:none; color:var(--accent-purple); cursor:pointer;"><i class="fa-solid fa-plus"></i></button>
                     </div>
                     <div class="channel-list" id="cat-list-${catIdx}"></div>
                 `;
                 container.appendChild(catEl);
 
                 const channelContainer = catEl.querySelector(`#cat-list-${catIdx}`);
-                cat.channels.forEach((chan, chanIdx) => {
+                cat.channels.forEach((chan) => {
                     const chanEl = document.createElement('div');
                     chanEl.className = 'channel-item';
-                    chanEl.innerHTML = `
-                        <span>${chan.emoji || '💬'} ${chan.name}</span>
-                        <i class="fa-solid fa-gear" style="color:var(--text-muted);"></i>
-                    `;
-                    chanEl.onclick = () => openModal(catIdx, chanIdx);
+                    chanEl.innerHTML = `<span>${chan.emoji || '💬'} ${chan.name}</span><i class="fa-solid fa-sliders" style="color:var(--text-muted);"></i>`;
                     channelContainer.appendChild(chanEl);
                 });
 
-                // Initialize Sortable for channels inside category
-                new Sortable(channelContainer, {
-                    group: 'channels',
-                    animation: 150
-                });
+                new Sortable(channelContainer, { group: 'channels', animation: 150 });
             });
 
-            // Initialize Sortable for categories
-            new Sortable(container, {
-                animation: 150
-            });
+            new Sortable(container, { animation: 150 });
         }
 
-        // Modal Logic
-        function openModal(catIdx, chanIdx) {
-            activeEditChannel = { catIdx, chanIdx };
-            const chan = currentLayout.categories[catIdx].channels[chanIdx];
-            
-            document.getElementById('modal-emoji').value = chan.emoji || '💬';
-            document.getElementById('modal-name').value = chan.name || '';
-            document.getElementById('modal-desc').value = chan.topic || chan.description || '';
-            document.getElementById('modal-type').value = chan.type || 'text';
-            
-            document.getElementById('channel-modal').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('channel-modal').style.display = 'none';
-        }
-
-        function saveModalChannel() {
-            if (!activeEditChannel) return;
-            const { catIdx, chanIdx } = activeEditChannel;
-            const chan = currentLayout.categories[catIdx].channels[chanIdx];
-
-            chan.emoji = document.getElementById('modal-emoji').value;
-            chan.name = document.getElementById('modal-name').value;
-            chan.topic = document.getElementById('modal-desc').value;
-            chan.type = document.getElementById('modal-type').value;
-
-            closeModal();
-            renderLayoutBuilder();
-        }
-
-        // Add Category / Channel handlers
         function addCategory() {
             if (!currentLayout.categories) currentLayout.categories = [];
             currentLayout.categories.push({ name: "NEW CATEGORY", channels: [] });
@@ -668,7 +634,6 @@
             renderLayoutBuilder();
         }
 
-        // Final Submission to Discord Webhook
         async function handleSubmitDesign() {
             const btn = document.getElementById('submit-design-btn');
             btn.disabled = true;
@@ -682,8 +647,6 @@
                 });
 
                 if (response.ok) {
-                    const serverId = currentLayout.build_meta ? currentLayout.build_meta.target_server_id : '';
-                    document.getElementById('bot-add-link').href = `https://discord.com/oauth2/authorize?client_id={{ config.DISCORD_CLIENT_ID or '' }}&scope=bot&permissions=8&guild_id=${serverId}`;
                     navigateTo('page-final');
                 } else {
                     alert("Submission failed.");
