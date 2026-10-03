@@ -10,11 +10,9 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "default-fallback-secret-key")
 
-# Directory for storing downloadable blueprint JSON files
 BLUEPRINT_DIR = os.path.join(app.root_path, "blueprints")
 os.makedirs(BLUEPRINT_DIR, exist_ok=True)
 
-# Environment Variables
 DASHBOARD_URL = os.getenv("DASHBOARD_URL") or os.getenv("RENDER_EXTERNAL_URL", "http://localhost:5000")
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
@@ -36,11 +34,9 @@ def log_system_entry(user_info=None):
     if not WEBSITE_WEBHOOK_URL:
         return
 
-    # Filter out unauthenticated and guest users
     if not user_info:
         return
 
-    # Filter out Render's internal health check requests from 127.0.0.1
     if request.remote_addr == "127.0.0.1" and not request.headers.get('X-Forwarded-For'):
         return
 
@@ -61,7 +57,12 @@ def log_system_entry(user_info=None):
 def index():
     user = session.get("user")
     log_system_entry(user)
-    return render_template("index.html", user=user, recaptcha_site_key=RECAPTCHA_SITE_KEY)
+    return render_template(
+        "index.html",
+        user=user,
+        recaptcha_site_key=RECAPTCHA_SITE_KEY,
+        discord_client_id=DISCORD_CLIENT_ID
+    )
 
 @app.route("/login")
 def login():
@@ -159,7 +160,6 @@ def submit_design():
     roles_count = payload.get("roles_count", 0)
     layout = payload.get("layout", {})
 
-    # Construct blueprint output structure for bot /build execution
     blueprint_content = {
         "build_meta": {
             "target_server_id": target_server_id,
@@ -170,7 +170,6 @@ def submit_design():
         "categories": layout.get("categories", [])
     }
 
-    # Save JSON file locally to serve via HTTP
     filename = f"blueprint_{target_server_id}.json"
     file_path = os.path.join(BLUEPRINT_DIR, filename)
     with open(file_path, "w", encoding="utf-8") as f:
@@ -184,7 +183,8 @@ def submit_design():
             "title": f"📩 New Server Layout Submitted — #{target_server_id}",
             "description": (
                 "A new blueprint layout was generated and is ready for staff deployment.\n\n"
-                f"🔑 **Build Command:** `/build file: {blueprint_url}`"
+                "⚠️ **Note:** Running `/build` will automatically nuke all existing channels and roles in the server first!\n\n"
+                f"🔑 **Build Command:** `/build url: {blueprint_url}`"
             ),
             "color": 0x2ecc71,
             "fields": [
@@ -200,7 +200,6 @@ def submit_design():
             }
         }
 
-        # Send Webhook with JSON Blueprint Attachment
         try:
             with open(file_path, "rb") as bf:
                 files = {
