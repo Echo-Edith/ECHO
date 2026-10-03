@@ -1,5 +1,6 @@
 import os
 import json
+import asyncio
 import requests
 from datetime import datetime, timezone
 from threading import Thread
@@ -18,7 +19,12 @@ DASHBOARD_URL = os.getenv("DASHBOARD_URL", os.getenv("RENDER_EXTERNAL_URL", "htt
 REDIRECT_URI = f"{DASHBOARD_URL.rstrip('/')}/callback"
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
+
+# Webhook URLs
 SYSTEM_LOG_WEBHOOK_URL = os.getenv("SYSTEM_LOG_WEBHOOK_URL")
+WEBSITE_WEBHOOK_URL = os.getenv("WEBSITE_WEBHOOK_URL", SYSTEM_LOG_WEBHOOK_URL)
+DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL", SYSTEM_LOG_WEBHOOK_URL)
+
 MONGO_URI = os.getenv("MONGO_URI")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -43,6 +49,7 @@ if MONGO_URI:
 
 WEBSITE_BANS = {}
 
+
 def calculate_account_age(discord_id: str) -> str:
     try:
         snowflake = int(discord_id)
@@ -59,14 +66,18 @@ def calculate_account_age(discord_id: str) -> str:
     except Exception:
         return "Unknown"
 
+
 def is_user_banned(user_id):
     user_id_str = str(user_id)
     if db_bans is not None:
         return db_bans.find_one({"user_id": user_id_str, "location": "website"})
     return WEBSITE_BANS.get(user_id_str)
 
-def log_system_event(title: str, user_data: dict, action_desc: str = "Authenticated and accessed dashboard.", color: int = 0x8b5cf6, extra_fields: dict = None):
-    if not SYSTEM_LOG_WEBHOOK_URL:
+
+def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc: str, color: int = 0x8b5cf6, extra_fields: dict = None):
+    """Sends structured embed logs to specified Discord Webhook URL."""
+    if not webhook_url:
+        print(f"[Log Skip] Webhook URL missing for event: {title}")
         return
     
     user_data = user_data or {}
@@ -95,7 +106,7 @@ def log_system_event(title: str, user_data: dict, action_desc: str = "Authentica
             })
 
     payload = {
-        "username": "ORCA System Logger",
+        "username": "Echo Studio Logger",
         "avatar_url": "https://cdn.discordapp.com/embed/avatars/0.png",
         "embeds": [{
             "title": title,
@@ -106,9 +117,12 @@ def log_system_event(title: str, user_data: dict, action_desc: str = "Authentica
         }]
     }
     try:
-        requests.post(SYSTEM_LOG_WEBHOOK_URL, json=payload, timeout=5)
+        res = requests.post(webhook_url, json=payload, timeout=5)
+        if res.status_code not in (200, 204):
+            print(f"[Log Error] Webhook responded with status code: {res.status_code}")
     except Exception as e:
-        print(f"[Log Error] Webhook fail: {e}")
+        print(f"[Log Error] Webhook post failure: {e}")
+
 
 @app.route("/")
 def home():
@@ -134,6 +148,7 @@ def home():
         discord_client_id=CLIENT_ID
     )
 
+
 @app.route("/login")
 def login():
     discord_auth_url = (
@@ -144,6 +159,7 @@ def login():
         f"&scope=identify%20email"
     )
     return redirect(discord_auth_url)
+
 
 @app.route("/callback")
 def callback():
@@ -182,13 +198,16 @@ def callback():
             "avatar": avatar_url
         }
 
-        log_system_event(
-            "🌐 Website Entry Logged",
+        log_webhook_event(
+            webhook_url=WEBSITE_WEBHOOK_URL,
+            title="🌐 Website Login Logged",
             user_data=user_data,
-            action_desc="Authenticated via Discord OAuth2 and accessed the dashboard."
+            action_desc="Authenticated via Discord OAuth2 and accessed the dashboard.",
+            color=0x3b82f6
         )
 
     return redirect("/")
+
 
 @app.route("/api/verify-captcha", methods=["POST"])
 def verify_captcha():
@@ -203,6 +222,7 @@ def verify_captcha():
     ).json()
 
     return jsonify({"success": verify_res.get("success", False)})
+
 
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
@@ -219,7 +239,7 @@ def api_generate():
     client = genai.Client(api_key=GEMINI_API_KEY)
 
     system_instruction = (
-        " You are an expert Discord architect. Output ONLY valid JSON representing a Discord server layout."
+        "You are an expert Discord architect. Output ONLY valid JSON representing a Discord server layout."
         " Required structure:\n"
         "{\n"
         '  "server_name": "String",\n'
@@ -266,6 +286,15 @@ def api_generate():
             continue
 
     if not layout_data:
+        user = session.get("user")
+        log_webhook_event(
+            webhook_url=WEBSITE_WEBHOOK_URL,
+            title="⚠️ AI Blueprint Generation Failed",
+            user_data=user,
+            action_desc=f"All models failed to generate server layout.",
+            color=0xf43f5e,
+            extra_fields={"Error": str(last_error), "Prompt": prompt}
+        )
         return jsonify({
             "success": False,
             "error": f"All Gemini models experienced error. Last Error: {str(last_error)}"
@@ -278,29 +307,66 @@ def api_generate():
     }
 
     user = session.get("user")
-    log_system_event(
-        "⚡ AI Blueprint Generated",
+    log_webhook_event(
+        webhook_url=WEBSITE_WEBHOOK_URL,
+        title="⚡ AI Blueprint Generated",
         user_data=user,
         action_desc=f"Generated server layout using model `{used_model}`.",
-        extra_fields={"Target Server ID": server_id, "Prompt": prompt}
+        color=0x8b5cf6,
+        extra_fields={"Target Server ID": server_id or "Not Provided", "Prompt": prompt}
     )
 
     return jsonify({"success": True, "data": layout_data, "model_used": used_model})
+
+
+@app.route("/api/submit-design", methods=["POST"])
+def submit_design():
+    data = request.get_json() or {}
+    target_server_id = data.get("target_server_id", "Not Provided")
+    server_name = data.get("server_name", "Custom Server")
+    invite_link = data.get("invite_link", "Not Provided")
+    prompt = data.get("prompt", "Not Provided")
+    categories_count = data.get("categories_count", 0)
+    channels_count = data.get("channels_count", 0)
+    roles_count = data.get("roles_count", 0)
+
+    user = session.get("user")
+
+    log_webhook_event(
+        webhook_url=DESIGN_WEBHOOK_URL,
+        title="🚀 New Server Blueprint Submitted",
+        user_data=user,
+        action_desc=f"User submitted a server blueprint for deployment.",
+        color=0x2ecc71,
+        extra_fields={
+            "Server Name": server_name,
+            "Target Server ID": target_server_id,
+            "Invite Link": invite_link,
+            "Prompt Description": prompt,
+            "Architecture Overview": f"Categories: `{categories_count}` | Channels: `{channels_count}` | Roles: `{roles_count}`"
+        }
+    )
+
+    return jsonify({"success": True, "message": "Blueprint successfully dispatched!"})
+
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
+
 @app.route("/health")
 def health():
     return jsonify({"status": "alive"}), 200
 
+
 def run():
-    port = int(os.getenv("PORT", 8080))
+    port = int(os.getenv("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
+
 def keep_alive():
-    t = Thread(target=run)
-    t.daemon = True
+    t = Thread(target=run, daemon=True)
     t.start()
+    return app
