@@ -1,152 +1,57 @@
 import os
-import io
-import json
 import requests
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify, send_file
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "fallback_secret_key")
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "default-fallback-secret-key")
 
 # Environment Variables
-DASHBOARD_URL = os.getenv("DASHBOARD_URL", "")
-DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL", "")
-SYSTEM_LOG_WEBHOOK_URL = os.getenv("SYSTEM_LOG_WEBHOOK_URL", "")
-DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
-DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "")
+DASHBOARD_URL = os.getenv("DASHBOARD_URL") or os.getenv("RENDER_EXTERNAL_URL", "http://localhost:5000")
+DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
+DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
+RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
+RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
+SYSTEM_LOG_WEBHOOK_URL = os.getenv("SYSTEM_LOG_WEBHOOK_URL")
+DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL")
 
-# In-memory store for generated blueprint JSON files (Key: server_id / blueprint_id)
-blueprints_store = {}
+REDIRECT_URI = f"{DASHBOARD_URL.rstrip('/')}/callback"
+DISCORD_AUTH_URL = (
+    f"https://discord.com/api/oauth2/authorize"
+    f"?client_id={DISCORD_CLIENT_ID}"
+    f"&redirect_uri={requests.utils.quote(REDIRECT_URI)}"
+    f"&response_type=code"
+    f"&scope=identify"
+)
 
-# ----------------------------------------------------
-# LOGGING SYSTEM (On Login Only - IP Removed)
-# ----------------------------------------------------
-def send_system_login_log(user_data):
-    """Logs user login to SYSTEM_LOG_WEBHOOK_URL without IP logging."""
+def log_system_entry(user_info=None):
     if not SYSTEM_LOG_WEBHOOK_URL:
         return
-
-    username = user_data.get("username", "Unknown User")
-    user_id = user_data.get("id", "N/A")
-    avatar = user_data.get("avatar", "")
-    avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png" if avatar else ""
-
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    user_str = f"User: {user_info.get('username')} (ID: {user_info.get('id')})" if user_info else "Guest / Unauthenticated User"
     payload = {
-        "embeds": [
-            {
-                "title": "🔐 User Authenticated / Logged In",
-                "color": 0x3498db,
-                "fields": [
-                    {"name": "User", "value": f"@{username}", "inline": True},
-                    {"name": "User ID", "value": f"`{user_id}`", "inline": True}
-                ],
-                "thumbnail": {"url": avatar_url} if avatar_url else {}
-            }
-        ]
+        "embeds": [{
+            "title": "🌐 Dashboard Visit Logged",
+            "description": f"A user loaded the landing page.\n**Status:** {user_str}\n**IP:** `{ip}`",
+            "color": 0x8b5cf6
+        }]
     }
     try:
-        requests.post(SYSTEM_LOG_WEBHOOK_URL, json=payload, timeout=5)
+        requests.post(SYSTEM_LOG_WEBHOOK_URL, json=payload, timeout=3)
     except Exception as e:
-        print(f"Error sending login log: {e}")
+        print(f"Logging error: {e}")
 
-
-# ----------------------------------------------------
-# DESIGN LOGGING SYSTEM (Image 3 Matching Embed)
-# ----------------------------------------------------
-def send_design_submission_log(user_data, blueprint_data):
-    """Sends submission log formatted matching Image 3 structure."""
-    if not DESIGN_WEBHOOK_URL:
-        return
-
-    server_id = blueprint_data.get("target_server_id", "000000000000000000")
-    server_name = blueprint_data.get("server_name", "Untitled Server")
-    invite_link = blueprint_data.get("invite_link", "N/A")
-    cat_count = blueprint_data.get("categories_count", 0)
-    chan_count = blueprint_data.get("channels_count", 0)
-    roles_count = blueprint_data.get("roles_count", 0)
-    username = user_data.get("username", "Unknown User")
-
-    file_download_url = f"{DASHBOARD_URL.rstrip('/')}/blueprint/{server_id}.json"
-
-    # Match Image 3 structure exactly
-    embed_payload = {
-        "embeds": [
-            {
-                "title": f"📫 New Server Layout Submitted — #{server_id}",
-                "description": "A new blueprint layout was generated and is ready for staff deployment.",
-                "color": 0x2ecc71,  # Green left border accent
-                "fields": [
-                    {
-                        "name": "🔑 Build Command:",
-                        "value": f"`/build file: {file_download_url}`",
-                        "inline": False
-                    },
-                    {
-                        "name": "Submitted By",
-                        "value": f"@{username}",
-                        "inline": False
-                    },
-                    {
-                        "name": "Target Server ID",
-                        "value": f"`{server_id}`",
-                        "inline": False
-                    },
-                    {
-                        "name": "Server Name",
-                        "value": f"`{server_name}`",
-                        "inline": False
-                    },
-                    {
-                        "name": "Server Invite Link",
-                        "value": invite_link,
-                        "inline": False
-                    },
-                    {
-                        "name": "Categories & Channels",
-                        "value": f"`{cat_count} Categories` | `{chan_count} Channels`",
-                        "inline": False
-                    },
-                    {
-                        "name": "Configured Roles",
-                        "value": f"`{roles_count} Roles`",
-                        "inline": False
-                    }
-                ],
-                "footer": {
-                    "text": "Echo Studio Automated Server Infrastructure"
-                }
-            }
-        ]
-    }
-
-    try:
-        requests.post(DESIGN_WEBHOOK_URL, json=embed_payload, timeout=5)
-    except Exception as e:
-        print(f"Error sending submission log: {e}")
-
-
-# ----------------------------------------------------
-# ROUTES & OAUTH
-# ----------------------------------------------------
 @app.route("/")
 def index():
     user = session.get("user")
-    return render_template("index.html", user=user)
-
+    log_system_entry(user)
+    return render_template("index.html", user=user, recaptcha_site_key=RECAPTCHA_SITE_KEY)
 
 @app.route("/login")
 def login():
-    # Example Discord OAuth2 Redirect
-    redirect_uri = f"{DASHBOARD_URL.rstrip('/')}/callback"
-    oauth_url = (
-        f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}"
-        f"&redirect_uri={redirect_uri}&response_type=code&scope=identify"
-    )
-    return redirect(oauth_url)
-
+    return redirect(DISCORD_AUTH_URL)
 
 @app.route("/callback")
 def callback():
@@ -154,64 +59,81 @@ def callback():
     if not code:
         return redirect(url_for("index"))
 
-    # Exchange code for token
-    token_url = "https://discord.com/api/oauth2/token"
     data = {
         "client_id": DISCORD_CLIENT_ID,
         "client_secret": DISCORD_CLIENT_SECRET,
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": f"{DASHBOARD_URL.rstrip('/')}/callback",
+        "redirect_uri": REDIRECT_URI,
+        "scope": "identify"
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    res = requests.post(token_url, data=data, headers=headers)
-    token_json = res.json()
+    
+    token_resp = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
+    if token_resp.status_code != 200:
+        return redirect(url_for("index"))
 
-    access_token = token_json.get("access_token")
-    if access_token:
-        # Fetch user info
-        user_res = requests.get(
-            "https://discord.com/api/users/@me",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-        user_data = user_res.json()
-        session["user"] = user_data
-
-        # --- LOG ON LOGIN ONLY (IP Excluded) ---
-        send_system_login_log(user_data)
+    access_token = token_resp.json().get("access_token")
+    user_resp = requests.get(
+        "https://discord.com/api/users/@me",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    if user_resp.status_code == 200:
+        u_data = user_resp.json()
+        avatar_url = f"https://cdn.discordapp.com/avatars/{u_data['id']}/{u_data['avatar']}.png" if u_data.get('avatar') else "https://cdn.discordapp.com/embed/avatars/0.png"
+        session["user"] = {
+            "id": u_data["id"],
+            "username": f"{u_data['username']}",
+            "avatar": avatar_url
+        }
 
     return redirect(url_for("index"))
 
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("index"))
+
+@app.route("/api/verify-captcha", methods=["POST"])
+def verify_captcha():
+    token = request.json.get("token")
+    if not token or not RECAPTCHA_SECRET_KEY:
+        return jsonify({"success": False, "message": "Missing token or server configuration."}), 400
+
+    resp = requests.post(
+        "https://www.google.com/recaptcha/api/siteverify",
+        data={"secret": RECAPTCHA_SECRET_KEY, "response": token}
+    )
+    res_data = resp.json()
+    if res_data.get("success"):
+        session["captcha_verified"] = True
+        return jsonify({"success": True})
+    return jsonify({"success": False, "message": "CAPTCHA verification failed."}), 400
 
 @app.route("/api/submit-design", methods=["POST"])
 def submit_design():
-    user = session.get("user")
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
+    payload = request.json or {}
+    if DESIGN_WEBHOOK_URL:
+        webhook_data = {
+            "embeds": [{
+                "title": f"🚀 New Server Design: {payload.get('server_name', 'Untitled')}",
+                "fields": [
+                    {"name": "Target Server ID", "value": str(payload.get("target_server_id")), "inline": True},
+                    {"name": "Categories", "value": str(payload.get("categories_count")), "inline": True},
+                    {"name": "Channels", "value": str(payload.get("channels_count")), "inline": True},
+                    {"name": "Roles", "value": str(payload.get("roles_count")), "inline": True},
+                    {"name": "Invite Link", "value": str(payload.get("invite_link")), "inline": False}
+                ],
+                "color": 0x10b981
+            }]
+        }
+        try:
+            requests.post(DESIGN_WEBHOOK_URL, json=webhook_data, timeout=5)
+        except Exception as e:
+            print(f"Webhook dispatch error: {e}")
 
-    payload = request.get_json() or {}
-    server_id = payload.get("target_server_id", "1554280544605438054")
-    
-    # Store JSON in memory for download endpoint
-    blueprints_store[server_id] = payload
-
-    # Send formatted embed log to DESIGN_WEBHOOK_URL
-    send_design_submission_log(user, payload)
-
-    return jsonify({"status": "success", "server_id": server_id})
-
-
-@app.route("/blueprint/<server_id>.json")
-def get_blueprint_json(server_id):
-    data = blueprints_store.get(server_id, {"error": "Blueprint not found"})
-    buffer = io.BytesIO(json.dumps(data, indent=2).encode('utf-8'))
-    return send_file(
-        buffer,
-        mimetype="application/json",
-        as_attachment=True,
-        download_name=f"blueprint_{server_id}.json"
-    )
-
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
