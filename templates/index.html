@@ -16,15 +16,20 @@
 
     <style>
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --glass-glow: rgba(114, 137, 218, 0.25);
-            --accent-purple: #7289da;
-            --accent-cyan: #00f2fe;
-            --accent-red: #ff4757;
-            --accent-green: #2ed573;
-            --text-main: #f1f2f6;
-            --text-muted: #a4b0be;
+            /* Purple Glass Theme Palette */
+            --glass-bg: rgba(28, 18, 48, 0.45);
+            --glass-border: rgba(168, 85, 247, 0.25);
+            --glass-glow: rgba(147, 51, 234, 0.35);
+            
+            --accent-purple: #a855f7;
+            --accent-violet: #7c3aed;
+            --accent-magenta: #c084fc;
+            --accent-cyan: #38bdf8;
+            --accent-red: #f43f5e;
+            --accent-green: #10b981;
+            
+            --text-main: #f3e8ff;
+            --text-muted: #c084fc;
         }
 
         * {
@@ -37,7 +42,7 @@
 
         body {
             min-height: 100vh;
-            background: radial-gradient(circle at top left, #0f0c20, #090a0f, #050508);
+            background: radial-gradient(circle at top left, #1e0936, #0f051d, #07020d);
             color: var(--text-main);
             display: flex;
             justify-content: center;
@@ -49,11 +54,11 @@
         /* Glassmorphism Panel Container */
         .glass-panel {
             background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
             border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(168, 85, 247, 0.15);
             width: 100%;
             max-width: 900px;
             padding: 35px;
@@ -61,15 +66,15 @@
             position: relative;
         }
 
-        /* Ambient Glow Effects */
+        /* Ambient Purple Glow Effects */
         .glass-panel::before {
             content: '';
             position: absolute;
             top: -2px; left: -2px; right: -2px; bottom: -2px;
-            background: linear-gradient(45deg, var(--accent-purple), transparent, var(--accent-cyan));
-            border-radius: 22px;
+            background: linear-gradient(135deg, var(--accent-purple), transparent, var(--accent-violet));
+            border-radius: 26px;
             z-index: -1;
-            opacity: 0.2;
+            opacity: 0.35;
             transition: opacity 0.3s ease;
         }
 
@@ -94,18 +99,19 @@
         }
 
         .brand-header h1 {
-            font-size: 2.2rem;
+            font-size: 2.3rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #fff, var(--accent-cyan));
+            background: linear-gradient(135deg, #ffffff, var(--accent-magenta), var(--accent-cyan));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: 1px;
+            text-shadow: 0 0 30px rgba(168, 85, 247, 0.3);
         }
 
         .brand-header p {
-            color: var(--text-muted);
+            color: rgba(243, 232, 255, 0.7);
             font-size: 0.95rem;
-            margin-top: 5px;
+            margin-top: 6px;
         }
 
         /* Form Controls & Inputs */
@@ -124,9 +130,9 @@
         .form-control {
             width: 100%;
             padding: 14px 18px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(15, 5, 29, 0.6);
             border: 1px solid var(--glass-border);
-            border-radius: 12px;
+            border-radius: 14px;
             color: var(--text-main);
             font-size: 0.95rem;
             outline: none;
@@ -135,17 +141,17 @@
         }
 
         .form-control:focus {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 12px rgba(0, 242, 254, 0.2);
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
         }
 
-        /* Glass Buttons */
+        /* Purple Glass Buttons */
         .btn-glass {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, rgba(114, 137, 218, 0.3), rgba(0, 242, 254, 0.2));
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.4), rgba(168, 85, 247, 0.3));
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            border-radius: 14px;
             color: white;
             font-weight: 700;
             font-size: 1rem;
@@ -155,21 +161,22 @@
             justify-content: center;
             align-items: center;
             gap: 10px;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
         }
 
         .btn-glass:hover:not(:disabled) {
-            background: linear-gradient(135deg, rgba(114, 137, 218, 0.5), rgba(0, 242, 254, 0.4));
-            box-shadow: 0 0 20px var(--glass-glow);
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.65), rgba(168, 85, 247, 0.5));
+            box-shadow: 0 0 25px var(--glass-glow);
             transform: translateY(-2px);
         }
 
         .btn-glass:disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
             filter: grayscale(1);
         }
 
-        /* Frosted Glass Container Cover for reCAPTCHA Widget */
+        /* Frosted Purple Glass Container Cover for reCAPTCHA Widget */
         .recaptcha-wrapper {
             display: flex;
             justify-content: center;
@@ -177,21 +184,21 @@
         }
 
         .recaptcha-glass-cover {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 16px;
-            padding: 15px;
+            background: rgba(88, 28, 135, 0.25);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            border-radius: 18px;
+            padding: 16px;
             display: inline-block;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(168, 85, 247, 0.15);
             position: relative;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .recaptcha-glass-cover:hover {
-            border-color: rgba(0, 242, 254, 0.3);
-            box-shadow: 0 6px 24px rgba(0, 242, 254, 0.15), inset 0 0 15px rgba(255, 255, 255, 0.08);
+            border-color: rgba(192, 132, 252, 0.6);
+            box-shadow: 0 8px 32px rgba(168, 85, 247, 0.25), inset 0 0 20px rgba(168, 85, 247, 0.25);
         }
 
         /* User Profile Bar */
@@ -199,17 +206,18 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 10px 16px;
-            border-radius: 12px;
+            background: rgba(15, 5, 29, 0.5);
+            padding: 12px 18px;
+            border-radius: 14px;
             border: 1px solid var(--glass-border);
             margin-bottom: 25px;
         }
 
         .user-bar img {
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
+            border: 2px solid var(--accent-purple);
         }
 
         /* Drag & Drop Layout Builder */
@@ -223,10 +231,10 @@
         }
 
         .category-item {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(88, 28, 135, 0.15);
             border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 15px;
+            border-radius: 14px;
+            padding: 16px;
         }
 
         .category-header {
@@ -246,27 +254,28 @@
         }
 
         .channel-item {
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(15, 5, 29, 0.5);
+            border: 1px solid rgba(168, 85, 247, 0.15);
             padding: 10px 14px;
-            border-radius: 8px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
-            transition: background 0.2s ease;
+            transition: all 0.2s ease;
         }
 
         .channel-item:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(124, 58, 237, 0.25);
+            border-color: rgba(168, 85, 247, 0.4);
         }
 
         /* Modal Inspector */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
+            background: rgba(7, 2, 13, 0.85);
+            backdrop-filter: blur(12px);
             display: none;
             justify-content: center;
             align-items: center;
@@ -274,12 +283,13 @@
         }
 
         .modal-body {
-            background: rgba(20, 20, 30, 0.95);
+            background: rgba(28, 18, 48, 0.95);
             border: 1px solid var(--glass-border);
-            border-radius: 16px;
+            border-radius: 20px;
             width: 90%;
             max-width: 500px;
-            padding: 25px;
+            padding: 28px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
         }
 
         /* Banned State View */
@@ -316,8 +326,8 @@
         <div class="banned-box">
             <i class="fa-solid fa-ban fa-4x" style="color: var(--accent-red); margin-bottom: 15px;"></i>
             <h2>BANNED</h2>
-            <p style="color: var(--text-muted); margin-bottom: 20px;">You are currently suspended from using the ORCA web platform.</p>
-            <div style="background: rgba(255,71,87,0.1); border: 1px solid var(--accent-red); padding: 15px; border-radius: 10px;">
+            <p style="color: rgba(243, 232, 255, 0.7); margin-bottom: 20px;">You are currently suspended from using the ORCA web platform.</p>
+            <div style="background: rgba(244,63,94,0.1); border: 1px solid var(--accent-red); padding: 15px; border-radius: 12px;">
                 <strong>Developer Message:</strong><br>
                 <span>{{ dev_message }}</span>
             </div>
@@ -333,7 +343,7 @@
 
             {% if not user %}
             <div class="form-group" style="text-align: center;">
-                <p style="color: var(--text-muted); margin-bottom: 20px;">Authorize with Discord to build and customize your server architecture.</p>
+                <p style="color: rgba(243, 232, 255, 0.7); margin-bottom: 25px;">Authorize with Discord to build and customize your server architecture.</p>
                 <a href="/login" style="text-decoration: none;">
                     <button class="btn-glass">
                         <i class="fa-brands fa-discord fa-lg"></i> Log In with Discord
@@ -345,12 +355,12 @@
                 <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
                 <div>
                     <strong>{{ user.username }}</strong>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">ID: {{ user.id }}</div>
+                    <div style="font-size: 0.8rem; color: rgba(243, 232, 255, 0.6);">ID: {{ user.id }}</div>
                 </div>
-                <a href="/logout" style="margin-left: auto; color: var(--accent-red); font-size: 0.85rem; text-decoration: none;">Logout</a>
+                <a href="/logout" style="margin-left: auto; color: var(--accent-red); font-size: 0.85rem; text-decoration: none; font-weight: 600;">Logout</a>
             </div>
 
-            <!-- Glassmorphism Container Cover around Google reCAPTCHA -->
+            <!-- Purple Glassmorphism Cover Container around reCAPTCHA -->
             <div class="recaptcha-wrapper">
                 <div class="recaptcha-glass-cover">
                     <div class="g-recaptcha" data-sitekey="{{ site_key }}" data-callback="onRecaptchaSuccess"></div>
@@ -404,7 +414,7 @@
             </div>
 
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="btn-glass" style="padding: 8px 12px; font-size: 0.85rem;" onclick="addCategory()">
+                <button class="btn-glass" style="padding: 8px 14px; font-size: 0.85rem;" onclick="addCategory()">
                     <i class="fa-solid fa-plus"></i> Add Category
                 </button>
             </div>
@@ -426,7 +436,7 @@
                 <p>Your layout has been compiled and dispatched to the bot engine.</p>
             </div>
 
-            <p style="color: var(--text-muted); margin-bottom: 30px;">
+            <p style="color: rgba(243, 232, 255, 0.7); margin-bottom: 30px;">
                 Run the command generated in your private discord building channel to build the server structure automatically.
             </p>
 
@@ -449,7 +459,7 @@
     <!-- ================= MODAL: CHANNEL INSPECTOR ================= -->
     <div id="channel-modal" class="modal-overlay">
         <div class="modal-body">
-            <h3 style="margin-bottom: 15px; color: var(--accent-cyan);">Edit Channel Config</h3>
+            <h3 style="margin-bottom: 18px; color: var(--accent-magenta);">Edit Channel Config</h3>
             
             <div class="form-group">
                 <label>Emoji Icon</label>
@@ -474,7 +484,7 @@
                 </select>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px;">
                 <button class="btn-glass" style="width: auto; padding: 10px 20px;" onclick="closeModal()">Cancel</button>
                 <button class="btn-glass" style="width: auto; padding: 10px 20px;" onclick="saveModalChannel()">Save Changes</button>
             </div>
@@ -583,7 +593,7 @@
                     <div class="category-header">
                         <input type="text" class="form-control" style="width: auto; padding: 4px 8px;" value="${cat.name}" onchange="currentLayout.categories[${catIdx}].name = this.value">
                         <div>
-                            <button onclick="addChannel(${catIdx})" style="background:none; border:none; color:var(--accent-cyan); cursor:pointer;"><i class="fa-solid fa-plus"></i> Channel</button>
+                            <button onclick="addChannel(${catIdx})" style="background:none; border:none; color:var(--accent-magenta); cursor:pointer;"><i class="fa-solid fa-plus"></i> Channel</button>
                         </div>
                     </div>
                     <div class="channel-list" id="cat-list-${catIdx}"></div>
