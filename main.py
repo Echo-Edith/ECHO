@@ -1,125 +1,164 @@
 import os
-import sys
+import json
+import requests
 import asyncio
-import threading
-import logging
-from datetime import timedelta
-from flask import request, jsonify, session
 import discord
 from discord.ext import commands
+from flask import request, jsonify, session
 
-# Configure structured logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
-logger = logging.getLogger("main")
+# Import core modules
+from keep_alive import app, keep_alive
+from ai_brain import generate_server_layout
 
-# Import Flask app and persistence helpers from keep_alive
-try:
-    from keep_alive import (
-        app,
-        save_blueprint_data,
-        get_blueprint_data,
-        verify_recaptcha
-    )
-except Exception as e:
-    logger.critical(f"Failed to import from keep_alive: {e}", exc_info=True)
-    sys.exit(1)
+# Environment Variables
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL")
 
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "echo-studio-secret-2026")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
-
-DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
-
-
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
-
-
-@app.route('/api/blueprint/<guild_id>', methods=['GET'])
-def fetch_blueprint(guild_id):
-    data = get_blueprint_data(guild_id)
-    if data:
-        return jsonify(data), 200
-    return jsonify({"error": "Blueprint not found"}), 404
-
-
-@app.route('/api/blueprint/save', methods=['POST'])
-def save_blueprint():
-    payload = request.get_json() or {}
-    guild_id = payload.get("target_guild_id")
-    if not guild_id:
-        return jsonify({"error": "Missing target_guild_id"}), 400
-
-    save_blueprint_data(guild_id, payload)
-    return jsonify({"status": "success", "guild_id": guild_id}), 200
-
-
-# Initialize Discord Bot
+# Bot Setup with Command Prefix and Intents
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True
-intents.guilds = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 
-class OrcaBot(commands.Bot):
-    def __init__(self):
-        super().__init__(command_prefix="!", intents=intents)
+# =============================================================================
+# FLASK REST API ENDPOINTS
+# =============================================================================
 
-    async def setup_hook(self):
+@app.route("/api/generate", methods=["POST"])
+def api_generate():
+    """
+    API route called by index.html JavaScript to trigger Gemini layout generation.
+    """
+    data = request.get_json() or {}
+    prompt = data.get("prompt", "")
+    separator = data.get("separator", "│")
+    server_id = data.get("server_id", "")
+    server_link = data.get("server_link", "")
+
+    if not prompt or not server_id:
+        return jsonify({"success": False, "error": "Prompt and Target Server ID are required."}), 400
+
+    # Call Gemini generation engine in ai_brain.py
+    result = generate_server_layout(
+        prompt=prompt,
+        channel_separator=separator,
+        server_id=server_id,
+        server_link=server_link
+    )
+
+    return jsonify(result)
+
+
+@app.route("/api/submit", methods=["POST"])
+def api_submit():
+    """
+    API route called when user submits design. Formats layout JSON, packages user/build info,
+    and dispatches a webhook with the /build file: prompt.
+    """
+    layout_data = request.get_json() or {}
+    user_info = session.get("user", {"id": "Unknown", "username": "Anonymous"})
+    build_meta = layout_data.get("build_meta", {})
+
+    target_server_id = build_meta.get("target_server_id", "N/A")
+    target_server_link = build_meta.get("target_server_link", "N/A")
+
+    # Construct Webhook Payload for Discord Channel
+    webhook_payload = {
+        "username": "ORCA Architect Dispatcher",
+        "avatar_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+        "embeds": [
+            {
+                "title": "🏗️ New Server Design Submitted",
+                "color": 47103,  # Cyan gradient matching Glassmorphism theme
+                "fields": [
+                    {
+                        "name": "👤 Designer User",
+                        "value": f"**{user_info.get('username')}** (`{user_info.get('id')}`)",
+                        "inline": True
+                    },
+                    {
+                        "name": "🎯 Target Guild ID",
+                        "value": f"`{target_server_id}`",
+                        "inline": True
+                    },
+                    {
+                        "name": "🔗 Server Link",
+                        "value": f"[Invite Link]({target_server_link})" if target_server_link.startswith("http") else target_server_link,
+                        "inline": True
+                    },
+                    {
+                        "name": "📊 Total Categories",
+                        "value": str(len(layout_data.get("categories", []))),
+                        "inline": True
+                    }
+                ],
+                "description": (
+                    "**To execute this build, save the layout JSON and run:**\n"
+                    "```/build file: <ATTACH_DESIGN_JSON>```"
+                ),
+                "footer": {"text": "ORCA Architect System"}
+            }
+        ]
+    }
+
+    # Attach formatted raw layout JSON payload into webhook payload if needed
+    if DESIGN_WEBHOOK_URL:
         try:
-            await self.load_extension("cogs.orca")
-            logger.info("✅ Extension 'cogs.orca' loaded successfully.")
+            # Send embed message first
+            requests.post(DESIGN_WEBHOOK_URL, json=webhook_payload)
+
+            # Send layout JSON file payload directly to webhook for easy downloading
+            json_file_content = json.dumps(layout_data, indent=2)
+            files = {
+                "file": ("server_layout.json", json_file_content, "application/json")
+            }
+            requests.post(DESIGN_WEBHOOK_URL, files=files)
+
         except Exception as e:
-            logger.error("❌ Failed to load extension 'cogs.orca': %s", e)
+            print(f"Webhook dispatch failed: {e}")
 
-        try:
-            synced = await self.tree.sync()
-            logger.info("🔄 Successfully synced %d slash command(s).", len(synced))
-        except Exception as e:
-            logger.error("❌ Failed to sync slash commands: %s", e)
-
-    async def on_ready(self):
-        if self.user:
-            logger.info("🟢 Discord Bot connected as: %s (ID: %s)", self.user.name, self.user.id)
+    return jsonify({"success": True, "message": "Design submitted successfully."}), 200
 
 
-bot = OrcaBot()
+# =============================================================================
+# DISCORD BOT EVENT HANDLERS & INITIALIZATION
+# =============================================================================
 
-_bot_thread = None
-_bot_thread_lock = threading.Lock()
-
-
-def start_discord_bot():
-    if not DISCORD_BOT_TOKEN:
-        logger.warning("⚠️ 'DISCORD_BOT_TOKEN' is missing. Discord bot will not start.")
-        return
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
+@bot.event
+async def on_ready():
+    """Fired when bot connects to Discord gateway."""
+    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    
+    # Load cogs extension
     try:
-        logger.info("⚡ Connecting to Discord API...")
-        bot.run(DISCORD_BOT_TOKEN)
+        await bot.load_extension("cogs.orca")
+        print("Successfully loaded cogs/orca.py")
     except Exception as e:
-        logger.error("❌ Discord Bot crashed: %s", e, exc_info=True)
+        print(f"Failed to load cog: {e}")
+
+    # Sync slash commands with Discord global registry
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} slash commands globally.")
+    except Exception as e:
+        print(f"Failed to sync slash commands: {e}")
 
 
-def keep_alive():
-    global _bot_thread
-    with _bot_thread_lock:
-        if _bot_thread is None or not _bot_thread.is_alive():
-            _bot_thread = threading.Thread(target=start_discord_bot, daemon=True)
-            _bot_thread.start()
-            logger.info("Keep-alive background thread started.")
+# =============================================================================
+# MAIN ENTRY POINT
+# =============================================================================
+
+def main():
+    if not DISCORD_BOT_TOKEN:
+        raise ValueError("DISCORD_BOT_TOKEN environment variable is missing!")
+
+    # 1. Start Flask web server background thread
+    keep_alive()
+
+    # 2. Start Discord Bot on main thread
+    bot.run(DISCORD_BOT_TOKEN)
 
 
-# Launch the Discord bot background thread upon module load
-keep_alive()
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    logger.info("🚀 Starting Flask web server on port %d...", port)
-    app.run(host="0.0.0.0", port=port, use_reloader=False)
+if __name__ == "__main__":
+    main()
