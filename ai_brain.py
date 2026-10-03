@@ -8,8 +8,13 @@ from google.genai import types
 
 # --- Define Pydantic Schema for Discord Server Output ---
 
+class RoleConfig(BaseModel):
+    name: str = Field(description="Role name, e.g. Owner, Admin, VIP, or Member")
+    color: str = Field(default="#5865f2", description="Hex color code for the role, e.g. #f1c40f")
+
+
 class ChannelConfig(BaseModel):
-    name: str = Field(description="Channel name formatted for Discord, e.g. general-chat or 💬-announcements")
+    name: str = Field(description="Channel name formatted for Discord, e.g. general-chat or welcome")
     type: str = Field(description="Channel type: 'text' or 'voice'")
     topic: Optional[str] = Field(default="", description="Brief channel topic/purpose")
     emoji: Optional[str] = Field(default="💬", description="Single emoji representing the channel")
@@ -19,12 +24,14 @@ class ChannelConfig(BaseModel):
 
 class CategoryConfig(BaseModel):
     name: str = Field(description="Category header name, e.g. INFORMATION or COMMUNITY")
+    emoji: Optional[str] = Field(default="📁", description="Category header emoji")
     channels: List[ChannelConfig] = Field(description="List of channels inside this category")
 
 
 class ServerLayoutSchema(BaseModel):
     server_name: str = Field(description="Suggested server name based on prompt")
     description: str = Field(description="A brief description of the server theme")
+    roles: List[RoleConfig] = Field(description="List of roles configured for this server layout")
     categories: List[CategoryConfig] = Field(description="List of categories in structured order")
 
 
@@ -52,13 +59,14 @@ def generate_server_layout(
         "and well-structured Discord server based on the user's requirements.\n"
         "Guidelines:\n"
         "1. Organize the server into clear, functional categories (e.g., WELCOME, GENERAL, GAMING, VOICE).\n"
-        "2. Include reasonable default channels for each category with appropriate text vs. voice types.\n"
-        "3. Mark announcement, rules, or info channels as read_only=True.\n"
-        "4. Keep channel names lower-case with hyphens or concise with emojis if requested."
+        "2. Define default roles with realistic hex colors (e.g., Owner, Admin, Mod, VIP, Member).\n"
+        "3. Include reasonable default channels for each category with appropriate text vs. voice types.\n"
+        "4. Mark announcement, rules, or info channels as read_only=True.\n"
+        "5. Keep channel names lower-case with hyphens or concise with emojis."
     )
 
     user_query = f"""
-    Design a Discord server layout for the following theme/request:
+    Design a complete Discord server layout for the following theme/request:
     "{prompt}"
 
     Apply the separator character '{channel_separator}' appropriately where needed for visual layout formatting.
@@ -89,20 +97,16 @@ def generate_server_layout(
         }
 
         # Format channel names with custom separator if requested (e.g. "💬 │ general-chat")
-        if channel_separator and channel_separator.strip():
-            sep = channel_separator.strip()
-            for category in layout_data.get("categories", []):
-                for channel in category.get("channels", []):
-                    emoji = channel.get("emoji", "")
-                    raw_name = channel.get("name", "")
-                    if emoji and not raw_name.startswith(emoji):
-                        channel["formatted_name"] = f"{emoji} {sep} {raw_name}"
-                    else:
-                        channel["formatted_name"] = raw_name
-        else:
-            for category in layout_data.get("categories", []):
-                for channel in category.get("channels", []):
-                    channel["formatted_name"] = channel.get("name", "")
+        sep = channel_separator.strip() if channel_separator else ""
+        for category in layout_data.get("categories", []):
+            for channel in category.get("channels", []):
+                emoji = channel.get("emoji", "")
+                raw_name = channel.get("name", "")
+                
+                if sep and emoji and not raw_name.startswith(emoji):
+                    channel["formatted_name"] = f"{emoji} {sep} {raw_name}"
+                else:
+                    channel["formatted_name"] = raw_name
 
         return {
             "success": True,
