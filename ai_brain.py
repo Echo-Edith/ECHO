@@ -1,233 +1,127 @@
 import os
 import json
-import io
-import logging
-import requests
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from typing import List, Optional
+from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 
-logging.basicConfig(level=logging.INFO)
-app = Flask(__name__)
 
-# Storage directory setup
-BLUEPRINT_STORAGE = {}
-BLUEPRINT_DIR = os.path.join(os.getcwd(), "blueprints")
-os.makedirs(BLUEPRINT_DIR, exist_ok=True)
+# --- Define Pydantic Schema for Discord Server Output ---
 
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "").strip()
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-WEB_BUILDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com").rstrip('/')
-
-client = None
-if GEMINI_API_KEY:
-    client = genai.Client(api_key=GEMINI_API_KEY)
+class ChannelConfig(BaseModel):
+    name: str = Field(description="Channel name formatted for Discord, e.g. general-chat or 💬-announcements")
+    type: str = Field(description="Channel type: 'text' or 'voice'")
+    topic: Optional[str] = Field(default="", description="Brief channel topic/purpose")
+    emoji: Optional[str] = Field(default="💬", description="Single emoji representing the channel")
+    description: Optional[str] = Field(default="", description="Detailed description for channel settings")
+    read_only: bool = Field(default=False, description="True if only admins/bots should speak (e.g. announcements/rules)")
 
 
-def save_blueprint_data(guild_id: str, blueprint: dict):
-    """Saves blueprint data mapped to its target Guild ID."""
-    BLUEPRINT_STORAGE[guild_id] = blueprint
-    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
-    try:
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(blueprint, f, indent=2)
-    except Exception as e:
-        logging.error(f"Failed to save blueprint file for guild {guild_id}: {e}")
+class CategoryConfig(BaseModel):
+    name: str = Field(description="Category header name, e.g. INFORMATION or COMMUNITY")
+    channels: List[ChannelConfig] = Field(description="List of channels inside this category")
 
 
-def get_blueprint_data(guild_id: str):
-    """Retrieves saved blueprint data using target Guild ID."""
-    guild_id = str(guild_id).strip()
-    if guild_id in BLUEPRINT_STORAGE:
-        return BLUEPRINT_STORAGE[guild_id]
-    
-    file_path = os.path.join(BLUEPRINT_DIR, f"{guild_id}.json")
-    if os.path.exists(file_path):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                BLUEPRINT_STORAGE[guild_id] = data
-                return data
-        except Exception as e:
-            logging.error(f"Failed to read blueprint file for guild {guild_id}: {e}")
-            
-    return None
+class ServerLayoutSchema(BaseModel):
+    server_name: str = Field(description="Suggested server name based on prompt")
+    description: str = Field(description="A brief description of the server theme")
+    categories: List[CategoryConfig] = Field(description="List of categories in structured order")
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# --- Gemini Generation Handler ---
 
+def generate_server_layout(
+    prompt: str,
+    channel_separator: str = "│",
+    server_id: str = "",
+    server_link: str = ""
+) -> dict:
+    """
+    Uses Gemini AI to convert natural language prompt into a structured Discord Server Layout.
+    Applies custom channel separators and packages metadata for rendering in the web builder.
+    """
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY environment variable is not set.")
 
-@app.route('/blueprint/<filename>')
-def serve_blueprint(filename):
-    """Direct URL access to download/read raw JSON blueprints."""
-    if not filename.endswith('.json'):
-        filename = f"{filename}.json"
-    return send_from_directory(BLUEPRINT_DIR, filename, mimetype='application/json')
-
-
-@app.route('/api/generate-layout', methods=['POST'])
-def generate_layout():
-    data = request.get_json() or {}
-    prompt = data.get('prompt', '')
-    guild_id = data.get('guild_id', '')
-    server_link = data.get('server_link', '')
-    separator = data.get('separator', '-')
-
-    if not prompt or not guild_id:
-        return jsonify({"error": "Prompt and Guild ID are required."}), 400
+    # Initialize official Google GenAI client
+    client = genai.Client(api_key=api_key)
 
     system_instruction = (
-        "You are an expert Discord server architect. "
-        "Generate a structured JSON layout for a Discord server based on the user's prompt. "
-        "Return strictly raw JSON conforming to this schema:\n"
-        "{\n"
-        '  "server_name": "String",\n'
-        '  "target_guild_id": "String",\n'
-        '  "server_link": "String",\n'
-        '  "separator": "String",\n'
-        '  "roles": ["Role 1", "Role 2"],\n'
-        '  "categories": [\n'
-        '    {\n'
-        '      "name": "CATEGORY NAME",\n'
-        '      "channels": [\n'
-        '        {\n'
-        '          "emoji": "💬",\n'
-        '          "name": "channel-name",\n'
-        '          "type": "text|voice|announcement",\n'
-        '          "topic": "Description"\n'
-        '        }\n'
-        '      ]\n'
-        '    }\n'
-        '  ]\n'
-        "}"
+        "You are an expert Discord Community Architect. Your goal is to design a clean, logical, "
+        "and well-structured Discord server based on the user's requirements.\n"
+        "Guidelines:\n"
+        "1. Organize the server into clear, functional categories (e.g., WELCOME, GENERAL, GAMING, VOICE).\n"
+        "2. Include reasonable default channels for each category with appropriate text vs. voice types.\n"
+        "3. Mark announcement, rules, or info channels as read_only=True.\n"
+        "4. Keep channel names lower-case with hyphens or concise with emojis if requested."
     )
 
-    full_user_prompt = (
-        f"Target Guild ID: {guild_id}\n"
-        f"Server Invite Link: {server_link}\n"
-        f"Channel Separator Character: {separator}\n"
-        f"Server Purpose / Theme: {prompt}"
-    )
+    user_query = f"""
+    Design a Discord server layout for the following theme/request:
+    "{prompt}"
+
+    Apply the separator character '{channel_separator}' appropriately where needed for visual layout formatting.
+    """
 
     try:
-        if not client:
-            raise Exception("Gemini Client not initialized. Missing GEMINI_API_KEY.")
-
+        # Request strictly-typed JSON matching ServerLayoutSchema
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=full_user_prompt,
+            model="gemini-2.5-flash",
+            contents=user_query,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 response_mime_type="application/json",
-                temperature=0.3,
-            )
+                response_schema=ServerLayoutSchema,
+                temperature=0.7,
+            ),
         )
-        
+
+        # Parse Gemini's JSON response
         layout_data = json.loads(response.text)
-        layout_data["target_guild_id"] = guild_id
-        layout_data["server_link"] = server_link
-        layout_data["separator"] = separator
-        return jsonify(layout_data)
+
+        # Inject custom user preferences & metadata into the root output
+        layout_data["build_meta"] = {
+            "channel_separator": channel_separator,
+            "target_server_id": server_id.strip(),
+            "target_server_link": server_link.strip(),
+            "prompt_used": prompt
+        }
+
+        # Format channel names with custom separator if requested (e.g. "💬 │ general-chat")
+        if channel_separator and channel_separator.strip():
+            sep = channel_separator.strip()
+            for category in layout_data.get("categories", []):
+                for channel in category.get("channels", []):
+                    emoji = channel.get("emoji", "")
+                    raw_name = channel.get("name", "")
+                    if emoji and not raw_name.startswith(emoji):
+                        channel["formatted_name"] = f"{emoji} {sep} {raw_name}"
+                    else:
+                        channel["formatted_name"] = raw_name
+        else:
+            for category in layout_data.get("categories", []):
+                for channel in category.get("channels", []):
+                    channel["formatted_name"] = channel.get("name", "")
+
+        return {
+            "success": True,
+            "data": layout_data
+        }
 
     except Exception as e:
-        logging.error(f"Error generating layout: {e}")
-        fallback = {
-            "server_name": "Generated Community",
-            "target_guild_id": guild_id,
-            "server_link": server_link,
-            "separator": separator,
-            "roles": ["Admin", "Moderator", "Member"],
-            "categories": [
-                {
-                    "name": "WELCOME",
-                    "channels": [
-                        {"emoji": "👋", "name": f"rules{separator}info", "type": "text", "topic": "Server rules"},
-                        {"emoji": "📢", "name": "announcements", "type": "announcement", "topic": "Updates"}
-                    ]
-                },
-                {
-                    "name": "COMMUNITY",
-                    "channels": [
-                        {"emoji": "💬", "name": f"general{separator}chat", "type": "text", "topic": "General lounge"},
-                        {"emoji": "🔊", "name": "General Voice", "type": "voice", "topic": ""}
-                    ]
-                }
-            ]
-        }
-        return jsonify(fallback)
-
-
-@app.route('/api/submit-design', methods=['POST'])
-def submit_design():
-    blueprint = request.get_json()
-    if not blueprint:
-        return jsonify({"error": "No blueprint provided"}), 400
-
-    target_guild = str(blueprint.get("target_guild_id", "Unknown")).strip()
-    server_link = blueprint.get("server_link", "N/A")
-    server_name = blueprint.get("server_name", "Discord Server")
-    categories = blueprint.get("categories", [])
-    roles = blueprint.get("roles", [])
-    total_channels = sum(len(cat.get("channels", [])) for cat in categories)
-
-    # 1. Save blueprint internally using target_guild ID
-    save_blueprint_data(target_guild, blueprint)
-
-    filename = f"blueprint_{target_guild}.json"
-    file_url = f"{WEB_BUILDER_URL}/blueprint/{target_guild}.json"
-
-    if WEBHOOK_URL:
-        # Prepare file bytes
-        json_bytes = json.dumps(blueprint, indent=2).encode('utf-8')
-        
-        # Single multipart payload attaching the file directly to the embed log message
-        payload = {
-            "embeds": [
-                {
-                    "title": f"📥 New Server Layout Submitted — #{target_guild}",
-                    "description": (
-                        "A new blueprint layout was generated and is ready for staff deployment.\n\n"
-                        f"🔑 **Build Command:** `/build file: {file_url}`"
-                    ),
-                    "color": 0x22C55E,
-                    "fields": [
-                        {"name": "Target Server ID", "value": f"`{target_guild}`", "inline": True},
-                        {"name": "Server Name", "value": f"`{server_name}`", "inline": True},
-                        {"name": "Server Invite Link", "value": f"{server_link}", "inline": False},
-                        {"name": "Categories & Channels", "value": f"`{len(categories)} Categories` | `{total_channels} Channels`", "inline": True},
-                        {"name": "Configured Roles", "value": f"`{len(roles)} Roles`", "inline": True}
-                    ],
-                    "footer": {"text": "ORCA AI Automated Server Infrastructure"}
-                }
-            ]
+        return {
+            "success": False,
+            "error": str(e)
         }
 
-        files = {
-            "files[0]": (filename, io.BytesIO(json_bytes), "application/json")
-        }
 
-        try:
-            log_res = requests.post(
-                WEBHOOK_URL,
-                data={"payload_json": json.dumps(payload)},
-                files=files,
-                timeout=10
-            )
-            logging.info(f"Webhook Response Status: {log_res.status_code}")
-        except Exception as e:
-            logging.error(f"Failed to post embed + file to webhook: {e}")
-    else:
-        logging.warning("WEBHOOK_URL environment variable is not set!")
-
-    return jsonify({
-        "status": "success", 
-        "message": "Blueprint submitted and logged successfully", 
-        "file_url": file_url
-    }), 200
-
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+# Quick test execution
+if __name__ == "__main__":
+    test_result = generate_server_layout(
+        prompt="A high-tech Cyberpunk Esports Gaming Community",
+        channel_separator="│",
+        server_id="123456789012345678",
+        server_link="https://discord.gg/example"
+    )
+    print(json.dumps(test_result, indent=2))
