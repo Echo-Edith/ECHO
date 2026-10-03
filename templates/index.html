@@ -465,7 +465,7 @@
                 </div>
             {% endif %}
 
-            <!-- reCAPTCHA Container (always available) -->
+            <!-- reCAPTCHA Container -->
             <div class="recaptcha-glass-cover">
                 <div id="recaptcha-container"></div>
             </div>
@@ -701,7 +701,7 @@
                     currentLayout = result.data;
                 }
             } catch (err) {
-                // Keep current template fallback
+                // Keep template fallback
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>`;
