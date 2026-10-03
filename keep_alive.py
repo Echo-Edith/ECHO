@@ -102,11 +102,11 @@ def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc
     if extra_fields:
         for k, v in extra_fields.items():
             val_str = str(v)
-            # Display invite links as clean, clickable plain URLs without backticks
+            # Display invite links as clean plain clickable links
             if k == "Invite Link":
                 field_val = val_str
             elif len(val_str) > 80:
-                field_val = f"```\n{val_str[:1000]}\n```"
+                field_val = f"```json\n{val_str[:1000]}\n```"
             else:
                 field_val = f"`{val_str}`"
 
@@ -340,8 +340,22 @@ def submit_design():
     categories_count = data.get("categories_count", 0)
     channels_count = data.get("channels_count", 0)
     roles_count = data.get("roles_count", 0)
+    
+    # Capture build layout file/JSON string if provided by frontend
+    layout = data.get("layout") or data.get("build_file") or data.get("file")
 
     user = session.get("user")
+
+    extra_fields = {
+        "Server Name": server_name,
+        "Target Server ID": target_server_id,
+        "Invite Link": invite_link,
+        "Prompt Description": prompt,
+        "Architecture Overview": f"Categories: `{categories_count}` | Channels: `{channels_count}` | Roles: `{roles_count}`"
+    }
+
+    if layout:
+        extra_fields["Build File Structure"] = json.dumps(layout, indent=2) if isinstance(layout, (dict, list)) else str(layout)
 
     log_webhook_event(
         webhook_url=DESIGN_WEBHOOK_URL,
@@ -349,13 +363,7 @@ def submit_design():
         user_data=user,
         action_desc="User submitted a server blueprint for deployment.",
         color=0x2ecc71,
-        extra_fields={
-            "Server Name": server_name,
-            "Target Server ID": target_server_id,
-            "Invite Link": invite_link,
-            "Prompt Description": prompt,
-            "Architecture Overview": f"Categories: `{categories_count}` | Channels: `{channels_count}` | Roles: `{roles_count}`"
-        }
+        extra_fields=extra_fields
     )
 
     return jsonify({"success": True, "message": "Blueprint successfully dispatched!"})
