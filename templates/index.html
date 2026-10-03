@@ -169,6 +169,31 @@
             filter: grayscale(1);
         }
 
+        /* Frosted Glass Container Cover for reCAPTCHA Widget */
+        .recaptcha-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .recaptcha-glass-cover {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 15px;
+            display: inline-block;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.05);
+            position: relative;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .recaptcha-glass-cover:hover {
+            border-color: rgba(0, 242, 254, 0.3);
+            box-shadow: 0 6px 24px rgba(0, 242, 254, 0.15), inset 0 0 15px rgba(255, 255, 255, 0.08);
+        }
+
         /* User Profile Bar */
         .user-bar {
             display: flex;
@@ -325,9 +350,11 @@
                 <a href="/logout" style="margin-left: auto; color: var(--accent-red); font-size: 0.85rem; text-decoration: none;">Logout</a>
             </div>
 
-            <!-- Google reCAPTCHA Container -->
-            <div class="form-group" style="display: flex; justify-content: center;">
-                <div class="g-recaptcha" data-sitekey="6Ld_YOUR_RECAPTCHA_SITE_KEY_HERE" data-callback="enableVerifyBtn"></div>
+            <!-- Glassmorphism Container Cover around Google reCAPTCHA -->
+            <div class="recaptcha-wrapper">
+                <div class="recaptcha-glass-cover">
+                    <div class="g-recaptcha" data-sitekey="{{ site_key }}" data-callback="onRecaptchaSuccess"></div>
+                </div>
             </div>
 
             <button id="verify-btn" class="btn-glass" onclick="handleVerification()" disabled>
@@ -459,6 +486,7 @@
         // Global State
         let currentLayout = { categories: [] };
         let activeEditChannel = null;
+        let recaptchaResponseToken = null;
 
         // Page Navigation System
         function navigateTo(pageId) {
@@ -466,21 +494,40 @@
             document.getElementById(pageId).classList.add('active');
         }
 
-        // Enable Verify Button after reCAPTCHA
-        function enableVerifyBtn() {
+        // Enable Verify Button when reCAPTCHA is solved
+        function onRecaptchaSuccess(token) {
+            recaptchaResponseToken = token;
             document.getElementById('verify-btn').disabled = false;
         }
 
-        // Landing verification handler with rate-limit lock
-        function handleVerification() {
+        // Backend reCAPTCHA verification handler
+        async function handleVerification() {
             const btn = document.getElementById('verify-btn');
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner"></span> Verifying...`;
 
-            setTimeout(() => {
-                btn.innerHTML = `<span>Verified!</span> <i class="fa-solid fa-check"></i>`;
-                setTimeout(() => navigateTo('page-generator'), 600);
-            }, 1200);
+            try {
+                const response = await fetch('/api/verify-recaptcha', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: recaptchaResponseToken })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    btn.innerHTML = `<span>Verified!</span> <i class="fa-solid fa-check"></i>`;
+                    setTimeout(() => navigateTo('page-generator'), 500);
+                } else {
+                    alert('reCAPTCHA Verification failed. Please try again.');
+                    if (window.grecaptcha) grecaptcha.reset();
+                    btn.disabled = true;
+                    btn.innerHTML = `<span>Verify & Continue</span> <i class="fa-solid fa-arrow-right"></i>`;
+                }
+            } catch (err) {
+                alert('Server error during verification.');
+                btn.disabled = false;
+                btn.innerHTML = `<span>Verify & Continue</span> <i class="fa-solid fa-arrow-right"></i>`;
+            }
         }
 
         // AI Layout Generation Call
@@ -500,7 +547,6 @@
             btn.innerHTML = `<span class="spinner"></span> Architecting Layout with Gemini...`;
 
             try {
-                // Call backend API endpoint to trigger ai_brain.py
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -513,7 +559,7 @@
                     renderLayoutBuilder();
                     navigateTo('page-layout');
                 } else {
-                    alert("Generation failed: " + result.error);
+                    alert("Generation failed: " + (result.error || 'Unknown error'));
                 }
             } catch (err) {
                 alert("Error connecting to generator endpoint.");
@@ -527,6 +573,8 @@
         function renderLayoutBuilder() {
             const container = document.getElementById('category-container');
             container.innerHTML = '';
+
+            if (!currentLayout.categories) currentLayout.categories = [];
 
             currentLayout.categories.forEach((cat, catIdx) => {
                 const catEl = document.createElement('div');
@@ -600,6 +648,7 @@
 
         // Add Category / Channel handlers
         function addCategory() {
+            if (!currentLayout.categories) currentLayout.categories = [];
             currentLayout.categories.push({ name: "NEW CATEGORY", channels: [] });
             renderLayoutBuilder();
         }
@@ -624,7 +673,7 @@
 
                 if (response.ok) {
                     const serverId = currentLayout.build_meta ? currentLayout.build_meta.target_server_id : '';
-                    document.getElementById('bot-add-link').href = `https://discord.com/oauth2/authorize?client_id=YOUR_BOT_CLIENT_ID&scope=bot&permissions=8&guild_id=${serverId}`;
+                    document.getElementById('bot-add-link').href = `https://discord.com/oauth2/authorize?client_id={{ config.DISCORD_CLIENT_ID or '' }}&scope=bot&permissions=8&guild_id=${serverId}`;
                     navigateTo('page-final');
                 } else {
                     alert("Submission failed.");
