@@ -1,5 +1,6 @@
 import os
 import requests
+from datetime import datetime, timezone
 from threading import Thread
 from flask import Flask, redirect, request, session, render_template, jsonify
 from pymongo import MongoClient
@@ -33,6 +34,25 @@ if MONGO_URI:
 WEBSITE_BANS = {}
 
 
+def calculate_account_age(discord_id: str) -> str:
+    """Calculates Discord account age in days/years from a snowflake ID."""
+    try:
+        snowflake = int(discord_id)
+        # Discord epoch: 2015-01-01T00:00:00Z (1420070400000 ms)
+        timestamp_ms = (snowflake >> 22) + 1420070400000
+        created_at = datetime.fromtimestamp(timestamp_ms / 1000.0, tz=timezone.utc)
+        now = datetime.now(timezone.utc)
+        
+        days_old = (now - created_at).days
+        if days_old >= 365:
+            years = days_old // 365
+            rem_days = days_old % 365
+            return f"{years} yr{'' if years == 1 else 's'}, {rem_days} day{'' if rem_days == 1 else 's'} ({days_old} days total)"
+        return f"{days_old} day{'' if days_old == 1 else 's'}"
+    except Exception:
+        return "Unknown"
+
+
 def is_user_banned(user_id):
     user_id_str = str(user_id)
     if db_bans is not None:
@@ -40,17 +60,45 @@ def is_user_banned(user_id):
     return WEBSITE_BANS.get(user_id_str)
 
 
-def log_system_event(title, description, color=0x00f2fe):
-    """Sends entry log event to SYSTEM_LOG_WEBHOOK_URL."""
+def log_system_event(title: str, user_data: dict, action_desc: str = "Authenticated and accessed the dashboard.", color: int = 0x8b5cf6):
+    """Sends formatted log entry to SYSTEM_LOG_WEBHOOK_URL."""
     if not SYSTEM_LOG_WEBHOOK_URL:
         return
     
+    user_id = str(user_data.get("id", "0"))
+    username = user_data.get("username", "Unknown User")
+    account_age = calculate_account_age(user_id) if user_id != "0" else "Unknown"
+    
+    # Clean 1 Info Per Line UI
+    user_info_block = (
+        f"**User:** <@{user_id}>\n"
+        f"**Username:** `{username}`\n"
+        f"**User ID:** `{user_id}`\n"
+        f"**Account Age:** `{account_age}`"
+    )
+
     payload = {
         "username": "ORCA System Logger",
+        "avatar_url": "https://cdn.discordapp.com/embed/avatars/0.png",
         "embeds": [{
             "title": title,
-            "description": description,
-            "color": color
+            "color": color,
+            "fields": [
+                {
+                    "name": "👤 User Information",
+                    "value": user_info_block,
+                    "inline": False
+                },
+                {
+                    "name": "📌 Activity",
+                    "value": action_desc,
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": "Echo Studio Logging System"
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }]
     }
     try:
@@ -126,7 +174,8 @@ def callback():
         # Log entry to SYSTEM_LOG_WEBHOOK_URL
         log_system_event(
             "🌐 Website Entry Logged",
-            f"User **{user_data['username']}** (`{user_data['id']}`) authenticated and accessed the builder dashboard."
+            user_data=user_data,
+            action_desc="Authenticated via Discord OAuth2 and accessed the builder dashboard."
         )
 
     return redirect("/")
