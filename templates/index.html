@@ -6,7 +6,7 @@
     <title>Discord Infrastructure Architect</title>
     
     <!-- Google reCAPTCHA v2 API -->
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
     
     <!-- SortableJS for Drag and Drop -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -153,6 +153,7 @@
             width: fit-content;
             max-width: 100%;
             overflow: hidden;
+            min-height: 78px;
         }
 
         .label-heading {
@@ -462,7 +463,7 @@
 
                 <!-- Glassmorphism Container around reCAPTCHA -->
                 <div class="recaptcha-glass-cover">
-                    <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-theme="dark" data-callback="onCaptchaVerified"></div>
+                    <div id="recaptcha-container"></div>
                 </div>
 
                 <button id="verify-continue-btn" class="btn-glass" onclick="proceedToGenerator()" disabled>
@@ -612,8 +613,10 @@
     </div>
 
     <script>
+        const RECAPTCHA_SITE_KEY = "{{ recaptcha_site_key }}";
         let isCaptchaVerified = false;
         let captchaToken = "";
+        let recaptchaWidgetId = null;
 
         let currentLayout = { 
             server_name: "Hoop Central 🏀", 
@@ -637,6 +640,27 @@
         let activeCatIdx = 0;
         let activeChanIdx = 0;
 
+        // Auto Logout trigger on fresh initial page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const hasClearedSession = sessionStorage.getItem('session_cleared');
+            if (!hasClearedSession) {
+                sessionStorage.setItem('session_cleared', 'true');
+                window.location.href = '/logout';
+            }
+        });
+
+        function onRecaptchaLoad() {
+            const target = document.getElementById('recaptcha-container');
+            if (target && typeof grecaptcha !== 'undefined') {
+                recaptchaWidgetId = grecaptcha.render('recaptcha-container', {
+                    'sitekey': RECAPTCHA_SITE_KEY,
+                    'theme': 'dark',
+                    'callback': onCaptchaVerified,
+                    'expired-callback': onCaptchaExpired
+                });
+            }
+        }
+
         function onCaptchaVerified(token) {
             isCaptchaVerified = true;
             captchaToken = token;
@@ -644,7 +668,15 @@
             if(btn) btn.disabled = false;
         }
 
+        function onCaptchaExpired() {
+            isCaptchaVerified = false;
+            captchaToken = "";
+            const btn = document.getElementById('verify-continue-btn');
+            if(btn) btn.disabled = true;
+        }
+
         async function proceedToGenerator() {
+            if (!isCaptchaVerified) return;
             navigateTo('page-generator');
         }
 
@@ -898,7 +930,8 @@
         }
 
         function resetBuilder() {
-            navigateTo('page-landing');
+            sessionStorage.removeItem('session_cleared');
+            window.location.href = '/logout';
         }
     </script>
 </body>
