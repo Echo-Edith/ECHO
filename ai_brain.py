@@ -24,7 +24,8 @@ class ChannelConfig(BaseModel):
 
 
 class CategoryConfig(BaseModel):
-    name: str = Field(description="Category header name, e.g. INFORMATION or COMMUNITY")
+    name: str = Field(description="Category header name without emojis, e.g. INFORMATION or COMMUNITY")
+    emoji: Optional[str] = Field(default="📁", description="Single emoji representing the category header")
     channels: List[ChannelConfig] = Field(description="List of channels inside this category")
 
 
@@ -45,7 +46,7 @@ GEMINI_MODELS = [
 
 # --- HELPER FUNCTIONS ---
 def strip_emojis(text: str) -> str:
-    """Removes emojis from channel name string to prevent duplicate visual rendering."""
+    """Removes emojis from channel or category name strings to prevent duplicate visual rendering."""
     return re.sub(r'[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u2600-\u26FF\u2700-\u27BF]', '', text or '').strip()
 
 
@@ -137,7 +138,7 @@ async def generate_server_layout(
     user_info: Optional[Dict[str, Any]] = None,
     webhook_url: Optional[str] = None
 ) -> dict:
-    """Uses Gemini AI to convert natural language prompt into a structured Discord Server Layout, with fallback for 503 errors."""
+    """Uses Gemini AI to convert natural language prompt into a structured Discord Server Layout, with fallback for model errors."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is not set.")
@@ -149,10 +150,11 @@ async def generate_server_layout(
         "and well-structured Discord server based on the user's requirements.\n"
         "Guidelines:\n"
         "1. Organize the server into clear, functional categories (e.g., WELCOME, GENERAL, GAMING, VOICE).\n"
-        "2. Define default roles with realistic hex colors (e.g., Owner, Admin, Mod, VIP, Member).\n"
-        "3. Keep channel names lower-case, concise, and WITHOUT emojis in the name field (e.g. 'general', 'rules').\n"
-        "4. Provide a single representative emoji in the emoji field for each channel.\n"
-        "5. Mark announcement, rules, or info channels as read_only=True."
+        "2. Provide a clean category name without emojis and a separate emoji field for categories.\n"
+        "3. Define default roles with realistic hex colors (e.g., Owner, Admin, Mod, VIP, Member).\n"
+        "4. Keep channel names lower-case, concise, and WITHOUT emojis in the name field (e.g. 'general', 'rules').\n"
+        "5. Provide a single representative emoji in the emoji field for each channel.\n"
+        "6. Mark announcement, rules, or info channels as read_only=True."
     )
 
     user_query = f"""
@@ -211,6 +213,8 @@ async def generate_server_layout(
     # Process layout formatting
     sep = channel_separator.strip() if channel_separator else ""
     for category in layout_data.get("categories", []):
+        category["name"] = strip_emojis(category.get("name", ""))
+        
         for channel in category.get("channels", []):
             clean_name = strip_emojis(channel.get("name", ""))
             emoji = channel.get("emoji", "💬")
