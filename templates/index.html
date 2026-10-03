@@ -47,17 +47,17 @@
             background: var(--bg-base);
             color: #ffffff;
             min-height: 100vh;
-            padding: 24px 12px;
+            padding: 16px 12px;
             display: flex;
             justify-content: center;
         }
 
         .page-container {
             width: 100%;
-            max-width: 1100px;
+            max-width: 600px; /* Constrained to match the clean single-card flow */
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
         }
 
         /* Glassmorphism Card Container */
@@ -67,22 +67,25 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--panel-border);
             border-radius: 20px;
-            padding: 28px;
+            padding: 24px 20px;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
         .header-card h1 {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             margin-bottom: 6px;
             font-weight: 700;
+            text-align: center;
         }
 
         .header-card p {
             color: var(--text-sub);
-            font-size: 0.92rem;
+            font-size: 0.88rem;
+            text-align: center;
+            margin-bottom: 16px;
         }
 
-        /* User Profile Bar (Matches Image) */
+        /* User Profile Bar */
         .user-badge-bar {
             display: flex;
             align-items: center;
@@ -91,41 +94,36 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 12px;
             padding: 10px 14px;
-            margin-top: 18px;
+            margin-bottom: 14px;
         }
 
         .user-info-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
-        .user-avatar {
-            width: 38px;
-            height: 38px;
+        .user-avatar-badge {
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
-            background: #2b2d31;
+            background: #5865f2;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
-        }
-
-        .user-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            font-size: 0.85rem;
+            color: #fff;
         }
 
         .username-text {
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: #ffffff;
         }
 
         .logout-link {
             color: #f43f5e;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             text-decoration: none;
             cursor: pointer;
             opacity: 0.8;
@@ -136,16 +134,16 @@
             opacity: 1;
         }
 
-        /* Custom reCAPTCHA Widget Box (Matches Image 13) */
+        /* Custom reCAPTCHA Widget Box */
         .recaptcha-box {
             display: flex;
             align-items: center;
             justify-content: space-between;
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            padding: 16px 20px;
-            margin-top: 14px;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
             cursor: pointer;
             user-select: none;
             transition: border-color 0.2s ease;
@@ -158,12 +156,12 @@
         .recaptcha-left {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
         }
 
         .custom-checkbox {
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border: 2px solid #4e535e;
             border-radius: 4px;
             background: rgba(255, 255, 255, 0.05);
@@ -180,7 +178,7 @@
 
         .custom-checkbox i {
             color: #ffffff;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             display: none;
         }
 
@@ -189,7 +187,7 @@
         }
 
         .recaptcha-label {
-            font-size: 0.92rem;
+            font-size: 0.88rem;
             color: #e2e8f0;
         }
 
@@ -202,21 +200,20 @@
         }
 
         .recaptcha-brand i {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
         }
 
         .recaptcha-brand span {
-            font-size: 0.62rem;
+            font-size: 0.6rem;
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
 
-        /* Inputs Grid */
-        .inputs-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 14px;
-            margin-top: 18px;
+        /* Inputs Stack */
+        .inputs-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .form-group {
@@ -226,7 +223,7 @@
         }
 
         .label-heading {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             font-weight: 700;
             letter-spacing: 0.8px;
             text-transform: uppercase;
@@ -240,7 +237,7 @@
             border: 1px solid var(--input-border);
             border-radius: 8px;
             color: #ffffff;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             outline: none;
             transition: border-color 0.2s;
         }
@@ -249,26 +246,42 @@
             border-color: rgba(192, 132, 252, 0.6);
         }
 
-        /* Quick Separator Selector Options */
-        .separator-selector {
-            display: flex;
-            gap: 8px;
+        /* Quick Separator Selector Options Grid */
+        .separator-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
             margin-top: 4px;
         }
 
         .sep-pill {
-            padding: 6px 12px;
-            background: rgba(255, 255, 255, 0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 4px;
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--input-border);
-            border-radius: 6px;
+            border-radius: 8px;
             color: var(--text-sub);
-            font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s;
+            text-align: center;
+        }
+
+        .sep-pill .symbol {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 2px;
+        }
+
+        .sep-pill .name {
+            font-size: 0.65rem;
         }
 
         .sep-pill:hover, .sep-pill.active {
-            background: rgba(168, 85, 247, 0.2);
+            background: rgba(168, 85, 247, 0.25);
             border-color: rgba(192, 132, 252, 0.6);
             color: #ffffff;
         }
@@ -276,10 +289,10 @@
         /* Dynamic Glass UI Action Buttons */
         .btn-glass-action {
             width: 100%;
-            padding: 14px;
-            border-radius: 12px;
+            padding: 12px;
+            border-radius: 10px;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -289,14 +302,13 @@
             -webkit-backdrop-filter: blur(8px);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             
-            /* Initial Incomplete State */
             background: var(--glass-idle-bg);
             color: var(--glass-idle-text);
             border: 1px solid var(--glass-idle-border);
             box-shadow: none;
+            margin-top: 14px;
         }
 
-        /* Light Purple Glassmorphism Active State */
         .btn-glass-action.ready {
             cursor: pointer;
             background: var(--glass-active-bg);
@@ -307,55 +319,44 @@
 
         .btn-glass-action.ready:hover {
             background: rgba(168, 85, 247, 0.35);
-            transform: translateY(-1px);
         }
 
-        /* Builder Columns */
-        .builder-grid {
-            display: grid;
-            grid-template-columns: 340px 1fr;
-            gap: 20px;
-            align-items: start;
-        }
-
-        @media (max-width: 900px) {
-            .builder-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .sidebar-box {
+        /* Preview Panel Section */
+        .preview-card {
             background: var(--discord-sidebar);
             border: 1px solid var(--card-border);
             border-radius: 16px;
             padding: 16px;
-            max-height: 800px;
-            overflow-y: auto;
         }
 
-        .sidebar-header {
+        .preview-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 12px;
+            padding-bottom: 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            margin-bottom: 14px;
+            margin-bottom: 12px;
+        }
+
+        .preview-header h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
         }
 
         .category-block {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .category-title {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
             color: var(--text-sub);
             letter-spacing: 0.8px;
             text-transform: uppercase;
-            padding: 6px 4px;
+            padding: 4px 2px;
         }
 
         .tree-item {
@@ -366,7 +367,7 @@
             border-radius: 6px;
             cursor: pointer;
             color: var(--text-sub);
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             margin-top: 2px;
         }
 
@@ -380,66 +381,12 @@
             color: #ffffff;
         }
 
-        .editor-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .editor-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 20px;
-        }
-
-        .editor-card h3 {
-            font-size: 1.05rem;
-            margin-bottom: 14px;
-        }
-
-        .perm-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 6px;
-            margin-bottom: 6px;
-            font-size: 0.85rem;
-        }
-
-        .roles-flex {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .role-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            border: 1px solid var(--input-border);
-            background: rgba(255, 255, 255, 0.03);
-            font-size: 0.82rem;
-        }
-
-        .role-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
         .add-btn-inline {
             background: none;
             border: none;
             color: var(--text-muted);
-            font-size: 0.78rem;
-            padding: 6px 10px;
+            font-size: 0.75rem;
+            padding: 4px 6px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -452,12 +399,13 @@
 
         #status-banner {
             display: none;
-            padding: 14px;
-            border-radius: 12px;
+            padding: 12px;
+            border-radius: 10px;
             background: rgba(16, 185, 129, 0.2);
             border: 1px solid #10b981;
             color: #ffffff;
             text-align: center;
+            font-size: 0.85rem;
             font-weight: 600;
         }
 
@@ -475,18 +423,18 @@
             <h1>Discord Infrastructure</h1>
             <p>Fill in parameters to initialize AI schema parsing.</p>
 
-            <!-- User Login Bar (Image 13) -->
+            <!-- User Login Bar -->
             <div class="user-badge-bar">
                 <div class="user-info-left">
-                    <div class="user-avatar">
-                        <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar">
+                    <div class="user-avatar-badge">
+                        <i class="fa-brands fa-discord"></i>
                     </div>
                     <span class="username-text" id="display-user">echo_2530</span>
                 </div>
                 <a class="logout-link">Logout</a>
             </div>
 
-            <!-- Custom reCAPTCHA Widget (Image 13) -->
+            <!-- Custom reCAPTCHA Widget -->
             <div class="recaptcha-box" id="recaptcha-btn" onclick="toggleCaptcha()">
                 <div class="recaptcha-left">
                     <div class="custom-checkbox" id="captcha-check">
@@ -500,8 +448,8 @@
                 </div>
             </div>
 
-            <!-- Inputs & Quick Separators -->
-            <div class="inputs-grid">
+            <!-- Inputs Stack -->
+            <div class="inputs-stack">
                 <div class="form-group">
                     <label class="label-heading">TARGET SERVER ID *</label>
                     <input type="text" id="target-server-id" class="form-control" value="1554280544605438054" oninput="validateInputs()">
@@ -518,93 +466,55 @@
                     <label class="label-heading">SERVER NAME</label>
                     <input type="text" id="target-server-name" class="form-control" value="Echo Studio - Create A Professional Rob Server" oninput="updateServerName()">
                 </div>
-            </div>
 
-            <!-- Quick Separator Selector -->
-            <div class="form-group" style="margin-top:14px;">
-                <label class="label-heading">QUICK SEPARATOR</label>
-                <div class="separator-selector">
-                    <button class="sep-pill active" onclick="setSeparator('│', this)">│ Solid Bar</button>
-                    <button class="sep-pill" onclick="setSeparator('•', this)">• Bullet</button>
-                    <button class="sep-pill" onclick="setSeparator('—', this)">— Dash</button>
-                    <button class="sep-pill" onclick="setSeparator('-', this)">- Hyphen</button>
-                    <button class="sep-pill" onclick="setSeparator('|', this)">| Pipe</button>
+                <!-- Quick Separator Grid -->
+                <div class="form-group" style="margin-top: 4px;">
+                    <label class="label-heading">QUICK SEPARATOR</label>
+                    <div class="separator-grid">
+                        <div class="sep-pill active" onclick="setSeparator('│', this)">
+                            <span class="symbol">│</span>
+                            <span class="name">Solid Bar</span>
+                        </div>
+                        <div class="sep-pill" onclick="setSeparator('•', this)">
+                            <span class="symbol">•</span>
+                            <span class="name">Bullet</span>
+                        </div>
+                        <div class="sep-pill" onclick="setSeparator('—', this)">
+                            <span class="symbol">—</span>
+                            <span class="name">Dash</span>
+                        </div>
+                        <div class="sep-pill" onclick="setSeparator('-', this)">
+                            <span class="symbol">-</span>
+                            <span class="name">Hyphen</span>
+                        </div>
+                        <div class="sep-pill" onclick="setSeparator('|', this)">
+                            <span class="symbol">|</span>
+                            <span class="name">Pipe</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Verify & Continue Button -->
-            <button id="verify-continue-btn" class="btn-glass-action" style="margin-top:18px;">
+            <button id="verify-continue-btn" class="btn-glass-action">
                 Verify & Continue <i class="fa-solid fa-arrow-right"></i>
             </button>
         </div>
 
         <div id="status-banner"></div>
 
-        <!-- BUILDER DASHBOARD -->
-        <div class="builder-grid">
-            
-            <!-- LEFT DISCORD TREE -->
-            <div class="sidebar-box">
-                <div class="sidebar-header">
-                    <h2 id="server-title-heading">Echo Studio</h2>
-                    <span style="font-size: 0.65rem; color: var(--text-muted); font-weight:700;">LIVE PREVIEW</span>
-                </div>
-                <div id="sidebar-category-container"></div>
-                <button class="add-btn-inline" style="margin-top: 12px; font-weight:700;" onclick="addCategory()">
-                    <i class="fa-solid fa-plus"></i> NEW CATEGORY
-                </button>
+        <!-- PREVIEW PANEL -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <h2 id="server-title-heading">Echo Studio</h2>
+                <span style="font-size: 0.65rem; color: var(--text-muted); font-weight:700;">LIVE PREVIEW</span>
             </div>
-
-            <!-- RIGHT DETAILS EDITORS -->
-            <div class="editor-panel">
-                
-                <!-- CHANNEL SETTINGS -->
-                <div class="editor-card">
-                    <h3 id="channel-settings-title">Channel settings — #general</h3>
-                    <div class="inputs-grid" style="margin-top:0;">
-                        <div class="form-group">
-                            <label class="label-heading">EMOJI</label>
-                            <input type="text" id="edit-chan-emoji" class="form-control" value="💬" oninput="updateActiveChannel()">
-                        </div>
-                        <div class="form-group">
-                            <label class="label-heading">NAME</label>
-                            <input type="text" id="edit-chan-name" class="form-control" value="general" oninput="updateActiveChannel()">
-                        </div>
-                        <div class="form-group">
-                            <label class="label-heading">TYPE</label>
-                            <select id="edit-chan-type" class="form-control" onchange="updateActiveChannel()">
-                                <option value="text">text</option>
-                                <option value="voice">voice</option>
-                                <option value="announcement">announcement</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group" style="margin-top:12px;">
-                        <label class="label-heading">TOPIC</label>
-                        <input type="text" id="edit-chan-topic" class="form-control" value="General server chat" oninput="updateActiveChannel()">
-                    </div>
-                </div>
-
-                <!-- PERMISSIONS -->
-                <div class="editor-card">
-                    <h3>Permissions <span id="perm-chan-badge" style="color:var(--text-muted); font-size:0.85rem;"></span></h3>
-                    <div id="permissions-list"></div>
-                </div>
-
-                <!-- ROLES -->
-                <div class="editor-card">
-                    <h3>Roles</h3>
-                    <div id="roles-container" class="roles-flex"></div>
-                    <button class="add-btn-inline" style="padding:0;" onclick="addNewRole()">+ New role</button>
-                </div>
-
-                <!-- SUBMIT TO STAFF BUTTON -->
-                <button id="submit-btn" class="btn-glass-action" onclick="handleSubmitToStaff()">
-                    <i class="fa-solid fa-paper-plane"></i> Submit to Staff
-                </button>
-
-            </div>
+            <div id="sidebar-category-container"></div>
+            <button class="add-btn-inline" style="margin-top: 10px; font-weight:700;" onclick="addCategory()">
+                <i class="fa-solid fa-plus"></i> NEW CATEGORY
+            </button>
         </div>
+
     </div>
 
     <!-- Canvas for Image Generation -->
@@ -616,36 +526,26 @@
 
         let currentLayout = {
             server_name: "Echo Studio - Create A Professional Rob Server",
-            roles: [
-                { name: "Owner", color: "#eab308" },
-                { name: "Admin", color: "#ef4444" },
-                { name: "Moderator", color: "#3b82f6" },
-                { name: "Member", color: "#22c55e" }
-            ],
             categories: [
                 {
                     name: "INFORMATION",
                     emoji: "📢",
                     channels: [
-                        { name: "welcome", type: "text", emoji: "👋", topic: "Welcome channel" },
-                        { name: "rules", type: "text", emoji: "📜", topic: "Server rules" }
+                        { name: "welcome", type: "text", emoji: "👋" },
+                        { name: "rules", type: "text", emoji: "📜" }
                     ]
                 },
                 {
                     name: "CHAT ZONES",
                     emoji: "💬",
                     channels: [
-                        { name: "general", type: "text", emoji: "💬", topic: "General discussions" },
-                        { name: "media", type: "text", emoji: "📷", topic: "Share images" }
+                        { name: "general", type: "text", emoji: "💬" },
+                        { name: "media", type: "text", emoji: "📷" }
                     ]
                 }
             ]
         };
 
-        let activeCatIdx = 1;
-        let activeChanIdx = 0;
-
-        // Toggle Captcha Check State
         function toggleCaptcha() {
             isCaptchaVerified = !isCaptchaVerified;
             const box = document.getElementById('captcha-check');
@@ -657,15 +557,13 @@
             validateInputs();
         }
 
-        // Quick Separator Selector Handler
-        function setSeparator(sep, btn) {
+        function setSeparator(sep, el) {
             selectedSeparator = sep;
             document.querySelectorAll('.sep-pill').forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
+            el.classList.add('active');
             renderSidebar();
         }
 
-        // Dynamic Glass UI Input Validation
         function validateInputs() {
             const serverId = document.getElementById('target-server-id').value.trim();
             const serverLink = document.getElementById('target-server-link').value.trim();
@@ -674,14 +572,11 @@
             const isValid = serverId !== '' && serverLink !== '' && user !== '' && isCaptchaVerified;
 
             const verifyBtn = document.getElementById('verify-continue-btn');
-            const submitBtn = document.getElementById('submit-btn');
 
             if (isValid) {
                 verifyBtn.classList.add('ready');
-                submitBtn.classList.add('ready');
             } else {
                 verifyBtn.classList.remove('ready');
-                submitBtn.classList.remove('ready');
             }
         }
 
@@ -689,14 +584,6 @@
             const val = document.getElementById('target-server-name').value;
             currentLayout.server_name = val;
             document.getElementById('server-title-heading').innerText = val.split('-')[0].trim();
-        }
-
-        function renderDashboard() {
-            renderSidebar();
-            renderActiveChannelDetails();
-            renderPermissions();
-            renderRoles();
-            validateInputs();
         }
 
         function renderSidebar() {
@@ -718,17 +605,10 @@
                 const channelList = document.createElement('div');
                 cat.channels.forEach((chan, chIdx) => {
                     const item = document.createElement('div');
-                    const isActive = (cIdx === activeCatIdx && chIdx === activeChanIdx);
-                    item.className = `tree-item ${isActive ? 'active' : ''}`;
-                    item.onclick = () => selectChannel(cIdx, chIdx);
-
-                    let icon = '#';
-                    if (chan.type === 'voice') icon = '🔊';
-                    if (chan.type === 'announcement') icon = '📣';
-
+                    item.className = 'tree-item';
                     item.innerHTML = `
-                        <div>${icon} ${chan.emoji || ''} ${selectedSeparator} ${chan.name}</div>
-                        <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteChannel(${cIdx}, ${chIdx})" style="color:var(--text-muted);"></i>
+                        <div># ${chan.emoji || ''} ${selectedSeparator} ${chan.name}</div>
+                        <i class="fa-solid fa-xmark" onclick="deleteChannel(${cIdx}, ${chIdx})" style="color:var(--text-muted);"></i>
                     `;
                     channelList.appendChild(item);
                 });
@@ -744,177 +624,29 @@
             });
         }
 
-        function selectChannel(cIdx, chIdx) {
-            activeCatIdx = cIdx;
-            activeChanIdx = chIdx;
-            renderDashboard();
-        }
-
-        function renderActiveChannelDetails() {
-            const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
-            if (!chan) return;
-
-            document.getElementById('channel-settings-title').innerText = `Channel settings — #${chan.name}`;
-            document.getElementById('edit-chan-emoji').value = chan.emoji || '';
-            document.getElementById('edit-chan-name').value = chan.name;
-            document.getElementById('edit-chan-type').value = chan.type || 'text';
-            document.getElementById('edit-chan-topic').value = chan.topic || '';
-        }
-
-        function updateActiveChannel() {
-            const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
-            if (!chan) return;
-
-            chan.emoji = document.getElementById('edit-chan-emoji').value;
-            chan.name = document.getElementById('edit-chan-name').value;
-            chan.type = document.getElementById('edit-chan-type').value;
-            chan.topic = document.getElementById('edit-chan-topic').value;
-
-            renderSidebar();
-        }
-
-        function renderPermissions() {
-            const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
-            if (!chan) return;
-
-            document.getElementById('perm-chan-badge').innerText = `# ${chan.emoji || ''} ${selectedSeparator} ${chan.name}`;
-            const list = document.getElementById('permissions-list');
-            list.innerHTML = '';
-
-            currentLayout.roles.forEach(r => {
-                const row = document.createElement('div');
-                row.className = 'perm-row';
-                row.innerHTML = `
-                    <span style="font-weight:600;">${r.name}</span>
-                    <span style="color:#10b981; font-size:0.78rem; font-weight:700;">✓ View  ✓ Send</span>
-                `;
-                list.appendChild(row);
-            });
-        }
-
-        function renderRoles() {
-            const container = document.getElementById('roles-container');
-            container.innerHTML = '';
-            currentLayout.roles.forEach(r => {
-                const pill = document.createElement('div');
-                pill.className = 'role-pill';
-                pill.style.borderColor = r.color;
-                pill.innerHTML = `<span class="role-dot" style="background:${r.color}"></span><span>${r.name}</span>`;
-                container.appendChild(pill);
-            });
-        }
-
         function addCategory() {
             currentLayout.categories.push({ name: "NEW CATEGORY", emoji: "📁", channels: [] });
             renderSidebar();
         }
 
         function addChannel(cIdx) {
-            currentLayout.categories[cIdx].channels.push({ name: "new-channel", type: "text", emoji: "💬", topic: "" });
-            selectChannel(cIdx, currentLayout.categories[cIdx].channels.length - 1);
+            currentLayout.categories[cIdx].channels.push({ name: "new-channel", type: "text", emoji: "💬" });
+            renderSidebar();
         }
 
         function deleteCategory(cIdx) {
             currentLayout.categories.splice(cIdx, 1);
-            activeCatIdx = 0;
-            activeChanIdx = 0;
-            renderDashboard();
+            renderSidebar();
         }
 
         function deleteChannel(cIdx, chIdx) {
             currentLayout.categories[cIdx].channels.splice(chIdx, 1);
-            activeChanIdx = 0;
-            renderDashboard();
-        }
-
-        function addNewRole() {
-            const name = prompt("Role Name:");
-            if (name) {
-                currentLayout.roles.push({ name, color: "#8b5cf6" });
-                renderRoles();
-            }
-        }
-
-        function generateCanvasImage() {
-            const canvas = document.getElementById('discord-canvas');
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = "#11131a";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 16px sans-serif";
-            ctx.fillText(currentLayout.server_name.substring(0, 24), 16, 32);
-
-            let y = 60;
-            currentLayout.categories.forEach(cat => {
-                ctx.fillStyle = "#949ba4";
-                ctx.font = "bold 11px sans-serif";
-                ctx.fillText(`▾ ${cat.emoji || ''} ${selectedSeparator} ${cat.name.toUpperCase()}`, 16, y);
-                y += 22;
-
-                cat.channels.forEach(chan => {
-                    ctx.fillStyle = "#2b2d31";
-                    ctx.fillRect(16, y - 14, 328, 24);
-
-                    ctx.fillStyle = "#dbdee1";
-                    ctx.font = "13px sans-serif";
-                    const prefix = chan.type === 'voice' ? '🔊' : '#';
-                    ctx.fillText(`${prefix} ${chan.emoji || ''} ${selectedSeparator} ${chan.name}`, 24, y);
-                    y += 28;
-                });
-                y += 10;
-            });
-
-            return canvas.toDataURL('image/png');
-        }
-
-        async function handleSubmitToStaff() {
-            if (!isCaptchaVerified) {
-                alert("Please check 'I'm not a robot' before submitting.");
-                return;
-            }
-
-            const btn = document.getElementById('submit-btn');
-            const banner = document.getElementById('status-banner');
-            
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Submitting...`;
-
-            const imageBase64 = generateCanvasImage();
-
-            const payload = {
-                server_id: document.getElementById('target-server-id').value,
-                server_link: document.getElementById('target-server-link').value,
-                submitted_by: document.getElementById('submitted-by-user').value,
-                server_name: currentLayout.server_name,
-                categories: currentLayout.categories,
-                roles: currentLayout.roles,
-                image_preview: imageBase64
-            };
-
-            try {
-                const res = await fetch('/api/submit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await res.json();
-                if (result.success) {
-                    banner.style.display = 'block';
-                    banner.innerText = `Blueprint dispatched successfully! Command: /build file: ${result.blueprint_url}`;
-                } else {
-                    alert("Submission error: " + result.error);
-                }
-            } catch (err) {
-                alert("Failed to submit layout to backend.");
-            } finally {
-                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Submit to Staff`;
-            }
+            renderSidebar();
         }
 
         updateServerName();
-        renderDashboard();
+        renderSidebar();
+        validateInputs();
     </script>
 </body>
 </html>
