@@ -14,7 +14,7 @@ DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
-WEBSITE_WEBHOOK_URL = os.getenv("SYSTEM_LOG_WEBHOOK_URL")
+WEBSITE_WEBHOOK_URL = os.getenv("WEBSITE_WEBHOOK_URL")
 DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL")
 
 REDIRECT_URI = f"{DASHBOARD_URL.rstrip('/')}/callback"
@@ -27,9 +27,14 @@ DISCORD_AUTH_URL = (
 )
 
 def log_system_entry(user_info=None):
-    if not SYSTEM_LOG_WEBHOOK_URL:
+    if not WEBSITE_WEBHOOK_URL:
         return
+
+    # Ignore internal Render health checks coming from localhost
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if request.remote_addr == "127.0.0.1" and not request.headers.get('X-Forwarded-For'):
+        return
+
     user_str = f"User: {user_info.get('username')} (ID: {user_info.get('id')})" if user_info else "Guest / Unauthenticated User"
     payload = {
         "embeds": [{
@@ -39,7 +44,7 @@ def log_system_entry(user_info=None):
         }]
     }
     try:
-        requests.post(SYSTEM_LOG_WEBHOOK_URL, json=payload, timeout=3)
+        requests.post(WEBSITE_WEBHOOK_URL, json=payload, timeout=3)
     except Exception as e:
         print(f"Logging error: {e}")
 
@@ -51,6 +56,7 @@ def index():
 
 @app.route("/login")
 def login():
+    # Explicit route triggered only when user clicks the "Log in with Discord" button
     return redirect(DISCORD_AUTH_URL)
 
 @app.route("/callback")
@@ -136,4 +142,5 @@ def submit_design():
     return jsonify({"success": True})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
