@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Discord Infrastructure Architect</title>
     
     <!-- Google reCAPTCHA v2 API -->
@@ -17,7 +17,7 @@
     <style>
         :root {
             --bg-base: #0b0c10;
-            --panel-bg: rgba(18, 22, 31, 0.85);
+            --panel-bg: rgba(18, 22, 31, 0.95);
             --panel-border: rgba(255, 255, 255, 0.08);
             --input-bg: #161a23;
             --input-border: #232a36;
@@ -26,11 +26,9 @@
             --text-sub: #949ba4;
             --text-muted: #5c626d;
             --accent-purple: #8b5cf6;
-            --accent-glow: rgba(139, 92, 246, 0.15);
             --accent-red: #f43f5e;
             --accent-green: #10b981;
             
-            --discord-sidebar: #13161c;
             --discord-hover: rgba(255, 255, 255, 0.04);
             --card-bg: #121620;
             --card-border: #1e2430;
@@ -41,7 +39,7 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -53,8 +51,8 @@
             color: #ffffff;
             display: flex;
             justify-content: center;
-            align-items: center;
-            padding: 24px;
+            align-items: flex-start;
+            padding: 16px;
         }
 
         .glass-panel {
@@ -62,24 +60,20 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--panel-border);
-            border-radius: 24px;
+            border-radius: 20px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
             width: 100%;
-            max-width: 520px;
-            padding: 36px 32px;
+            max-width: 680px;
+            padding: 24px 20px;
+            margin: 10px auto;
             position: relative;
-            transition: max-width 0.3s ease;
-        }
-
-        .glass-panel.wide {
-            max-width: 1100px;
         }
 
         .page {
             display: none;
             opacity: 0;
             transform: translateY(6px);
-            transition: opacity 0.35s ease, transform 0.35s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
         .page.active {
@@ -90,11 +84,11 @@
 
         .brand-header {
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
 
         .brand-header h1 {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 700;
             color: var(--text-title);
             letter-spacing: -0.5px;
@@ -103,7 +97,7 @@
 
         .brand-header p {
             color: var(--text-sub);
-            font-size: 0.9rem;
+            font-size: 0.88rem;
         }
 
         .label-heading {
@@ -121,7 +115,7 @@
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .form-control {
@@ -134,7 +128,6 @@
             font-size: 0.9rem;
             outline: none;
             transition: all 0.25s ease;
-            user-select: text;
         }
 
         .form-control::placeholder {
@@ -161,9 +154,10 @@
             justify-content: center;
             align-items: center;
             gap: 10px;
+            min-height: 48px;
         }
 
-        .btn-glass:hover:not(:disabled) {
+        .btn-glass:hover:not(:disabled), .btn-glass:active:not(:disabled) {
             background: rgba(58, 40, 102, 0.8);
             border-color: rgba(139, 92, 246, 0.6);
             color: #ffffff;
@@ -174,22 +168,27 @@
             cursor: not-allowed;
         }
 
-        /* LAYOUT DASHBOARD SPLIT */
-        .layout-grid {
-            display: grid;
-            grid-template-columns: 320px 1fr;
+        .layout-vertical-stack {
+            display: flex;
+            flex-direction: column;
             gap: 20px;
-            align-items: start;
         }
 
-        /* LEFT SIDEBAR CONTAINER */
-        .sidebar-box {
-            background: var(--discord-sidebar);
+        .editor-card {
+            background: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 14px;
-            padding: 16px;
-            max-height: 780px;
-            overflow-y: auto;
+            padding: 18px 16px;
+        }
+
+        .editor-card h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
         }
 
         .sidebar-header {
@@ -198,47 +197,34 @@
             align-items: center;
             padding-bottom: 12px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            margin-bottom: 16px;
-        }
-
-        .sidebar-header h2 {
-            font-size: 1.05rem;
-            font-weight: 700;
-        }
-
-        .sidebar-header span {
-            font-size: 0.68rem;
-            color: var(--text-muted);
-            letter-spacing: 0.5px;
-            font-weight: 700;
+            margin-bottom: 14px;
         }
 
         .category-block {
-            margin-bottom: 18px;
+            margin-bottom: 16px;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.03);
         }
 
         .category-title {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             font-weight: 700;
             color: var(--text-sub);
             letter-spacing: 0.8px;
             text-transform: uppercase;
             padding: 6px 4px;
-            cursor: pointer;
-        }
-
-        .category-title:hover {
-            color: #ffffff;
         }
 
         .channel-tree-list {
             display: flex;
             flex-direction: column;
-            gap: 2px;
-            margin-top: 4px;
+            gap: 4px;
+            margin-top: 6px;
             min-height: 10px;
         }
 
@@ -246,84 +232,55 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 8px 10px;
-            border-radius: 6px;
+            padding: 10px 12px;
+            border-radius: 8px;
             cursor: pointer;
             color: var(--text-sub);
             font-size: 0.88rem;
-            transition: background 0.15s ease, color 0.15s ease;
-        }
-
-        .tree-item:hover, .tree-item.active {
-            background: var(--discord-hover);
-            color: #ffffff;
+            background: var(--input-bg);
+            transition: background 0.15s ease;
         }
 
         .tree-item.active {
-            background: rgba(139, 92, 246, 0.15);
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid var(--accent-purple);
             color: #ffffff;
         }
 
         .tree-item-left {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            word-break: break-word;
         }
 
         .tree-item-icons {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
             color: var(--text-muted);
-            font-size: 0.8rem;
         }
 
-        .tree-item-icons .fa-xmark:hover {
-            color: var(--accent-red);
+        .tree-item-icons i {
+            padding: 4px;
         }
 
         .add-btn-inline {
             background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 0.78rem;
-            padding: 6px 10px;
+            border: 1px dashed var(--input-border);
+            border-radius: 8px;
+            color: var(--text-sub);
+            font-size: 0.8rem;
+            padding: 8px 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             width: 100%;
-            transition: color 0.15s ease;
+            margin-top: 6px;
         }
 
-        .add-btn-inline:hover {
-            color: #ffffff;
-        }
-
-        /* RIGHT DETAILS PANEL */
-        .editor-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .editor-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 14px;
-            padding: 20px;
-        }
-
-        .editor-card h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* PERMISSIONS CARD */
         .perm-header {
             background: rgba(22, 28, 40, 0.7);
             border: 1px solid var(--input-border);
@@ -331,55 +288,50 @@
             padding: 12px;
             font-size: 0.82rem;
             color: var(--text-sub);
-            margin-bottom: 16px;
-        }
-
-        .perm-header a {
-            color: var(--accent-purple);
-            text-decoration: none;
+            margin-bottom: 14px;
+            line-height: 1.4;
         }
 
         .perm-row {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
+            gap: 8px;
             padding: 10px 12px;
             background: rgba(18, 22, 32, 0.5);
             border-radius: 8px;
             margin-bottom: 6px;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
         }
 
         .perm-status {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 0.78rem;
+            gap: 10px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
 
         .tag-red { color: var(--accent-red); }
         .tag-green { color: var(--accent-green); }
 
-        /* ROLES CARD */
         .roles-flex {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .role-pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 12px;
+            padding: 8px 12px;
             border-radius: 20px;
             border: 1px solid var(--input-border);
             background: rgba(255, 255, 255, 0.03);
             font-size: 0.82rem;
-            font-weight: 500;
-            cursor: pointer;
         }
 
         .role-dot {
@@ -388,45 +340,32 @@
             border-radius: 50%;
         }
 
-        .role-pill .fa-xmark {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-left: 2px;
-        }
-
-        .role-pill .fa-xmark:hover {
-            color: var(--accent-red);
-        }
-
-        /* REGENERATE CARD */
         .regen-box {
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            margin-top: 10px;
         }
 
-        .regen-box input {
-            flex: 1;
+        @media (min-width: 480px) {
+            .regen-box {
+                flex-direction: row;
+            }
         }
 
         .btn-regen {
             background: rgba(139, 92, 246, 0.2);
             border: 1px solid var(--accent-purple);
             color: #ffffff;
-            padding: 0 16px;
+            padding: 12px 16px;
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
             font-size: 0.85rem;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             white-space: nowrap;
-            transition: all 0.2s ease;
-        }
-
-        .btn-regen:hover {
-            background: var(--accent-purple);
         }
 
         .spinner {
@@ -446,7 +385,7 @@
 
     <div id="panel-wrapper" class="glass-panel">
 
-        <!-- ================= PAGE 1: LANDING & AUTH ================= -->
+        <!-- PAGE 1: LANDING & AUTH -->
         <div id="page-landing" class="page active">
             <div class="brand-header">
                 <h1>Discord Infrastructure</h1>
@@ -479,7 +418,7 @@
             {% endif %}
         </div>
 
-        <!-- ================= PAGE 2: GENERATOR PROMPT ================= -->
+        <!-- PAGE 2: GENERATOR PROMPT -->
         <div id="page-generator" class="page">
             <div class="brand-header">
                 <h1>Discord Infrastructure</h1>
@@ -488,22 +427,22 @@
 
             <div class="form-group">
                 <label class="label-heading">PROMPT DESCRIPTION <span class="required">*</span></label>
-                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="A dedicated server for a basketball community, posting news, host voice chats, and strategy logs..."></textarea>
+                <textarea id="gen-prompt" class="form-control" rows="3" placeholder="Describe your server design..."></textarea>
             </div>
 
             <div class="form-group">
                 <label class="label-heading">TARGET DISCORD SERVER ID <span class="required">*</span></label>
-                <input type="text" id="gen-server-id" class="form-control" placeholder="123456789012345678">
+                <input type="text" id="gen-server-id" class="form-control" placeholder="e.g. 123456789012345678" value="">
             </div>
 
             <div class="form-group">
                 <label class="label-heading">SERVER INVITE LINK <span class="required">*</span></label>
-                <input type="text" id="gen-server-link" class="form-control" placeholder="https://discord.gg/yourcode">
+                <input type="text" id="gen-server-link" class="form-control" placeholder="https://discord.gg/yourcode" value="">
             </div>
 
             <div class="form-group">
                 <label class="label-heading">SEPARATOR</label>
-                <input type="text" id="gen-separator" class="form-control" value="│" placeholder="│">
+                <input type="text" id="gen-separator" class="form-control" value="" placeholder="│">
             </div>
 
             <button id="generate-btn" class="btn-glass" style="margin-top: 24px;" onclick="handleAIGeneration()">
@@ -511,119 +450,100 @@
             </button>
         </div>
 
-        <!-- ================= PAGE 3: ADVANCED LAYOUT DASHBOARD ================= -->
+        <!-- PAGE 3: LAYOUT DASHBOARD -->
         <div id="page-layout" class="page">
-            <div class="layout-grid">
+            <div class="layout-vertical-stack">
                 
-                <!-- LEFT SIDEBAR TREE -->
-                <div class="sidebar-box">
+                <!-- 1. CATEGORIES & CHANNELS TREE -->
+                <div class="editor-card">
                     <div class="sidebar-header">
-                        <h2 id="server-title-heading">Hoop Central 🏀</h2>
-                        <span>DRAG TO REORDER</span>
+                        <h2 id="server-title-heading" style="font-size: 1.1rem;">Server Structure</h2>
+                        <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">DRAG TO REORDER</span>
                     </div>
 
-                    <div id="sidebar-category-container">
-                        <!-- Populated Dynamically -->
-                    </div>
+                    <div id="sidebar-category-container"></div>
 
                     <button class="add-btn-inline" style="margin-top: 10px; font-weight:700;" onclick="addCategory()">
                         <i class="fa-solid fa-plus"></i> NEW CATEGORY
                     </button>
                 </div>
 
-                <!-- RIGHT SETTINGS PANELS -->
-                <div class="editor-panel">
-                    
-                    <!-- 1. CHANNEL SETTINGS CARD -->
-                    <div class="editor-card">
-                        <h3 id="channel-settings-title">Channel settings — #mod-logs</h3>
+                <!-- 2. CHANNEL EDITOR -->
+                <div class="editor-card">
+                    <h3 id="channel-settings-title">Channel Settings</h3>
 
-                        <div class="form-group">
-                            <label class="label-heading">EMOJI (SHOWN IN DISCORD WHEN CHANNEL STYLE IS ON)</label>
-                            <input type="text" id="edit-chan-emoji" class="form-control" value="📋" oninput="updateActiveChannel()">
-                        </div>
-
-                        <div class="form-group">
-                            <label class="label-heading">NAME</label>
-                            <input type="text" id="edit-chan-name" class="form-control" value="mod-logs" oninput="updateActiveChannel()">
-                        </div>
-
-                        <div class="form-group">
-                            <label class="label-heading">TYPE</label>
-                            <select id="edit-chan-type" class="form-control" onchange="updateActiveChannel()">
-                                <option value="text">text</option>
-                                <option value="voice">voice</option>
-                                <option value="announcement">announcement</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label class="label-heading">TOPIC</label>
-                            <input type="text" id="edit-chan-topic" class="form-control" value="Automated logs and moderation actions." oninput="updateActiveChannel()">
-                        </div>
+                    <div class="form-group">
+                        <label class="label-heading">EMOJI</label>
+                        <input type="text" id="edit-chan-emoji" class="form-control" placeholder="Emoji..." value="" oninput="updateActiveChannel()">
                     </div>
 
-                    <!-- 2. REGENERATE WITH AI CARD -->
-                    <div class="editor-card">
-                        <h3>Regenerate with AI</h3>
-                        <p style="font-size: 0.82rem; color: var(--text-sub); margin-bottom: 12px;">
-                            Example: "Add a dedicated department structure and make development channels private."
-                        </p>
-                        <div class="regen-box">
-                            <input type="text" id="regen-prompt" class="form-control" placeholder="What should change?">
-                            <button id="regen-btn" class="btn-regen" onclick="handleAIRegenerate()">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Regenerate
-                            </button>
-                        </div>
+                    <div class="form-group">
+                        <label class="label-heading">NAME</label>
+                        <input type="text" id="edit-chan-name" class="form-control" placeholder="channel-name" value="" oninput="updateActiveChannel()">
                     </div>
 
-                    <!-- 3. PERMISSIONS OVERVIEW CARD -->
-                    <div class="editor-card">
-                        <h3 id="perm-card-title">Permissions <span style="font-weight: normal; color: var(--text-muted); font-size:0.9rem;" id="perm-chan-badge"># 📋 │ mod-logs</span></h3>
-
-                        <div class="perm-header">
-                            This channel sits in <strong id="perm-cat-name">🔒 🛡️ │ STAFF ONLY — Private</strong> at the category level. The channel syncs with the category, so that's what users get.
-                            <br><a href="#" onclick="alert('Category sync active.'); return false;">Edit category permissions instead</a>
-                        </div>
-
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
-                            <i class="fa-solid fa-link"></i> Synced with the category — no channel-specific overrides.
-                        </div>
-
-                        <div id="permissions-list">
-                            <!-- Populated Dynamically -->
-                        </div>
-
-                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px;">
-                            Toggles edit this channel's own overwrites. Off by default means "inherit the category".
-                        </p>
+                    <div class="form-group">
+                        <label class="label-heading">TYPE</label>
+                        <select id="edit-chan-type" class="form-control" onchange="updateActiveChannel()">
+                            <option value="text">text</option>
+                            <option value="voice">voice</option>
+                            <option value="announcement">announcement</option>
+                        </select>
                     </div>
 
-                    <!-- 4. ROLES MANAGEMENT CARD -->
-                    <div class="editor-card">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                            <h3 style="margin-bottom:0;">Roles</h3>
-                            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">DRAG — TOP IS HIGHEST</span>
-                        </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="label-heading">TOPIC</label>
+                        <input type="text" id="edit-chan-topic" class="form-control" placeholder="Channel topic..." value="" oninput="updateActiveChannel()">
+                    </div>
+                </div>
 
-                        <div id="roles-container" class="roles-flex">
-                            <!-- Populated Dynamically -->
-                        </div>
-
-                        <button class="add-btn-inline" style="padding:0;" onclick="addNewRole()">
-                            + New role
+                <!-- 3. REGENERATION TOOL -->
+                <div class="editor-card">
+                    <h3>Regenerate Layout</h3>
+                    <p style="font-size: 0.82rem; color: var(--text-sub); margin-bottom: 12px;">
+                        Provide modifications for the AI to rewrite:
+                    </p>
+                    <div class="regen-box">
+                        <input type="text" id="regen-prompt" class="form-control" placeholder="What should change?" value="">
+                        <button id="regen-btn" class="btn-regen" onclick="handleAIRegenerate()">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Regenerate
                         </button>
                     </div>
+                </div>
 
-                    <button id="submit-design-btn" class="btn-glass" style="margin-top: 10px;" onclick="handleSubmitDesign()">
-                        <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
+                <!-- 4. PERMISSIONS -->
+                <div class="editor-card">
+                    <h3>Permissions Overview</h3>
+
+                    <div class="perm-header">
+                        Target Category: <strong id="perm-cat-name">None Selected</strong>
+                    </div>
+
+                    <div id="permissions-list"></div>
+                </div>
+
+                <!-- 5. ROLES -->
+                <div class="editor-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                        <h3 style="margin-bottom:0;">Roles</h3>
+                        <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">DRAG TO REORDER</span>
+                    </div>
+
+                    <div id="roles-container" class="roles-flex"></div>
+
+                    <button class="add-btn-inline" style="padding:10px;" onclick="addNewRole()">
+                        + Add New Role
                     </button>
                 </div>
+
+                <button id="submit-design-btn" class="btn-glass" style="margin-top: 10px;" onclick="handleSubmitDesign()">
+                    <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
+                </button>
 
             </div>
         </div>
 
-        <!-- ================= PAGE 4: COMPLETION ================= -->
+        <!-- PAGE 4: COMPLETION -->
         <div id="page-final" class="page" style="text-align: center;">
             <i class="fa-solid fa-circle-check fa-3x" style="color: var(--accent-green); margin-bottom: 18px;"></i>
             <div class="brand-header">
@@ -631,101 +551,34 @@
                 <p>Your layout specification has been delivered.</p>
             </div>
 
-            <div style="display: flex; gap: 12px; margin-top: 20px;">
-                <button class="btn-glass" onclick="resetBuilder()">
-                    Start Over
-                </button>
-            </div>
+            <button class="btn-glass" onclick="resetBuilder()" style="margin-top: 20px;">
+                Start Over
+            </button>
         </div>
 
     </div>
 
     <script>
+        // Unique browser session ID per tab/user to ensure isolated states
+        let sessionId = sessionStorage.getItem('discord_arch_session') || crypto.randomUUID();
+        sessionStorage.setItem('discord_arch_session', sessionId);
+
         let recaptchaResponseToken = null;
 
-        // Default layout state matching images
+        // Dynamic State initialized completely empty
         let currentLayout = {
-            server_name: "Hoop Central 🏀",
-            roles: [
-                { name: "Owner", color: "#eab308" },
-                { name: "Coach", color: "#f97316" },
-                { name: "Moderator", color: "#3b82f6" },
-                { name: "Point Guard", color: "#22c55e" },
-                { name: "Shooting Guard", color: "#22c55e" },
-                { name: "Small Forward", color: "#22c55e" },
-                { name: "Power Forward", color: "#22c55e" },
-                { name: "Center", color: "#22c55e" },
-                { name: "Baller", color: "#94a3b8" }
-            ],
-            categories: [
-                {
-                    name: "INFORMATION",
-                    emoji: "📢",
-                    is_private: false,
-                    channels: [
-                        { name: "welcome", type: "text", emoji: "👋", topic: "Welcome to Hoop Central!", is_private: false },
-                        { name: "rules", type: "text", emoji: "📜", topic: "Server rules and guidelines.", is_private: false },
-                        { name: "announcements", type: "announcement", emoji: "📣", topic: "Official updates.", is_private: false },
-                        { name: "roles", type: "text", emoji: "🏷️", topic: "Self-assignable roles.", is_private: false }
-                    ]
-                },
-                {
-                    name: "COURT TALK",
-                    emoji: "🏀",
-                    is_private: false,
-                    channels: [
-                        { name: "general", type: "text", emoji: "💬", topic: "General basketball discussions.", is_private: false },
-                        { name: "nba-discussion", type: "text", emoji: "🏆", topic: "NBA games and news.", is_private: false },
-                        { name: "highlights", type: "text", emoji: "🔥", topic: "Best plays and clips.", is_private: false },
-                        { name: "sneakers-gear", type: "text", emoji: "👟", topic: "Sneaker drops and gear.", is_private: false }
-                    ]
-                },
-                {
-                    name: "PLAYER DEVELOPMENT",
-                    emoji: "📋",
-                    is_private: false,
-                    channels: [
-                        { name: "training-tips", type: "text", emoji: "🥇", topic: "Drills and workouts.", is_private: false },
-                        { name: "film-room", type: "text", emoji: "📹", topic: "Game tape analysis.", is_private: false },
-                        { name: "nutrition", type: "text", emoji: "🥗", topic: "Diet and fitness tips.", is_private: false }
-                    ]
-                },
-                {
-                    name: "VOICE CHANNELS",
-                    emoji: "🎙️️",
-                    is_private: false,
-                    channels: [
-                        { name: "locker-room", type: "voice", emoji: "🗣️", topic: "Casual voice chat.", is_private: false },
-                        { name: "game-watch-party", type: "voice", emoji: "📺", topic: "Live game watch party.", is_private: false },
-                        { name: "strategy-talk", type: "voice", emoji: "📋", topic: "Tactical discussions.", is_private: false }
-                    ]
-                },
-                {
-                    name: "STAFF ONLY",
-                    emoji: "🛡️",
-                    is_private: true,
-                    channels: [
-                        { name: "staff-chat", type: "text", emoji: "🔒", topic: "Staff internal chat.", is_private: true },
-                        { name: "mod-logs", type: "text", emoji: "📋", topic: "Automated logs and moderation actions.", is_private: true }
-                    ]
-                }
-            ]
+            server_name: "",
+            roles: [],
+            categories: []
         };
 
-        let activeCatIdx = 4;
-        let activeChanIdx = 1;
+        let activeCatIdx = 0;
+        let activeChanIdx = 0;
 
         function navigateTo(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            const panel = document.getElementById('panel-wrapper');
-            
-            if (pageId === 'page-layout') {
-                panel.classList.add('wide');
-            } else {
-                panel.classList.remove('wide');
-            }
-
             document.getElementById(pageId).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function onRecaptchaSuccess(token) {
@@ -745,7 +598,10 @@
             try {
                 const response = await fetch('/api/generate', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': sessionId
+                    },
                     body: JSON.stringify({ 
                         prompt: document.getElementById('gen-prompt').value, 
                         separator: document.getElementById('gen-separator').value, 
@@ -756,12 +612,15 @@
 
                 const result = await response.json();
                 if (result.success && result.data) {
-                    if (result.data.server_name) currentLayout.server_name = result.data.server_name;
-                    if (result.data.categories) currentLayout.categories = result.data.categories;
-                    if (result.data.roles) currentLayout.roles = result.data.roles;
+                    currentLayout.server_name = result.data.server_name || "New Server";
+                    currentLayout.categories = result.data.categories || [];
+                    currentLayout.roles = result.data.roles || [];
                 }
             } catch (err) {
-                console.log("Using default preset preview structure.");
+                console.log("Creating fresh layout canvas...");
+                currentLayout.server_name = "New Server Layout";
+                currentLayout.categories = [];
+                currentLayout.roles = [];
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>`;
@@ -780,12 +639,15 @@
             const btn = document.getElementById('regen-btn');
             const originalBtnContent = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<span class="spinner"></span> Working...`;
+            btn.innerHTML = `<span class="spinner"></span> Updating...`;
 
             try {
                 const response = await fetch('/api/regenerate', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': sessionId
+                    },
                     body: JSON.stringify({ 
                         prompt: promptText,
                         current_layout: currentLayout
@@ -803,46 +665,12 @@
                     renderDashboard();
                 }
             } catch (err) {
-                console.log("Regeneration fallback.");
+                console.log("Regeneration endpoint unavailable.");
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalBtnContent;
                 input.value = '';
             }
-        }
-
-        function syncLayoutFromDOM() {
-            const container = document.getElementById('sidebar-category-container');
-            const newCategories = [];
-
-            Array.from(container.children).forEach((catDiv, cIdx) => {
-                const originalCat = currentLayout.categories[cIdx];
-                if (!originalCat) return;
-
-                const newChannels = [];
-                const channelList = catDiv.querySelector('.channel-tree-list');
-                
-                if (channelList) {
-                    Array.from(channelList.children).forEach((chanDiv) => {
-                        const originalIndex = chanDiv.dataset.chanIndex;
-                        const originalCategoryIndex = chanDiv.dataset.catIndex;
-                        
-                        if (originalCategoryIndex !== undefined && originalIndex !== undefined) {
-                            const chanObj = currentLayout.categories[originalCategoryIndex]?.channels[originalIndex];
-                            if (chanObj) {
-                                newChannels.push(chanObj);
-                            }
-                        }
-                    });
-                }
-
-                newCategories.push({
-                    ...originalCat,
-                    channels: newChannels
-                });
-            });
-
-            currentLayout.categories = newCategories;
         }
 
         function renderDashboard() {
@@ -856,7 +684,12 @@
             const container = document.getElementById('sidebar-category-container');
             container.innerHTML = '';
 
-            document.getElementById('server-title-heading').innerText = currentLayout.server_name || "Server Layout";
+            document.getElementById('server-title-heading').innerText = currentLayout.server_name || "Server Structure";
+
+            if(!currentLayout.categories || currentLayout.categories.length === 0) {
+                container.innerHTML = `<p style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding: 16px;">No categories created yet. Click below to add your first category.</p>`;
+                return;
+            }
 
             currentLayout.categories.forEach((cat, cIdx) => {
                 const catDiv = document.createElement('div');
@@ -865,21 +698,18 @@
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'category-title';
                 headerDiv.innerHTML = `
-                    <span>▾ ${cat.emoji || ''} │ ${cat.name}</span>
+                    <span>▾ ${cat.emoji || ''} ${cat.name || 'UNNAMED CATEGORY'}</span>
                     <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteCategory(${cIdx})" style="cursor:pointer;"></i>
                 `;
                 catDiv.appendChild(headerDiv);
 
                 const channelList = document.createElement('div');
                 channelList.className = 'channel-tree-list';
-                channelList.id = `cat-tree-${cIdx}`;
 
-                cat.channels.forEach((chan, chIdx) => {
+                (cat.channels || []).forEach((chan, chIdx) => {
                     const item = document.createElement('div');
                     const isActive = (cIdx === activeCatIdx && chIdx === activeChanIdx);
                     item.className = `tree-item ${isActive ? 'active' : ''}`;
-                    item.dataset.catIndex = cIdx;
-                    item.dataset.chanIndex = chIdx;
                     item.onclick = () => selectChannel(cIdx, chIdx);
 
                     let typeIcon = '#';
@@ -889,7 +719,7 @@
                     item.innerHTML = `
                         <div class="tree-item-left">
                             <span>${typeIcon}</span>
-                            <span>${chan.emoji || ''} │ ${chan.name}</span>
+                            <span>${chan.emoji || ''} ${chan.name || 'unnamed-channel'}</span>
                         </div>
                         <div class="tree-item-icons">
                             ${chan.is_private ? '<i class="fa-solid fa-lock" style="color: #eab308;"></i>' : ''}
@@ -901,51 +731,38 @@
 
                 const addChanBtn = document.createElement('button');
                 addChanBtn.className = 'add-btn-inline';
-                addChanBtn.innerHTML = `<i class="fa-solid fa-plus"></i> new-channel`;
+                addChanBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Add Channel`;
                 addChanBtn.onclick = () => addChannel(cIdx);
 
                 catDiv.appendChild(channelList);
                 catDiv.appendChild(addChanBtn);
                 container.appendChild(catDiv);
 
-                new Sortable(channelList, { 
-                    group: 'channels', 
-                    animation: 150,
-                    onEnd: function() {
-                        syncLayoutFromDOM();
-                    }
-                });
+                new Sortable(channelList, { group: 'channels', animation: 150 });
             });
 
-            new Sortable(container, { 
-                animation: 150,
-                onEnd: function() {
-                    syncLayoutFromDOM();
-                }
-            });
+            new Sortable(container, { animation: 150 });
         }
 
         function selectChannel(cIdx, chIdx) {
             activeCatIdx = cIdx;
             activeChanIdx = chIdx;
-            renderSidebar();
-            renderActiveChannelDetails();
-            renderPermissions();
+            renderDashboard();
         }
 
         function renderActiveChannelDetails() {
             const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
             if (!chan) {
-                document.getElementById('channel-settings-title').innerText = "Select a Channel";
+                document.getElementById('channel-settings-title').innerText = "Channel Settings";
                 document.getElementById('edit-chan-emoji').value = '';
                 document.getElementById('edit-chan-name').value = '';
                 document.getElementById('edit-chan-topic').value = '';
                 return;
             }
 
-            document.getElementById('channel-settings-title').innerText = `Channel settings — #${chan.name}`;
+            document.getElementById('channel-settings-title').innerText = `Editing — #${chan.name || 'channel'}`;
             document.getElementById('edit-chan-emoji').value = chan.emoji || '';
-            document.getElementById('edit-chan-name').value = chan.name;
+            document.getElementById('edit-chan-name').value = chan.name || '';
             document.getElementById('edit-chan-type').value = chan.type || 'text';
             document.getElementById('edit-chan-topic').value = chan.topic || '';
         }
@@ -966,35 +783,29 @@
         function renderPermissions() {
             const cat = currentLayout.categories[activeCatIdx];
             const chan = cat?.channels[activeChanIdx];
-            if (!chan) {
-                document.getElementById('perm-chan-badge').innerText = '';
+            if (!chan || !cat) {
                 document.getElementById('perm-cat-name').innerText = 'No channel selected';
                 document.getElementById('permissions-list').innerHTML = '';
                 return;
             }
 
-            document.getElementById('perm-chan-badge').innerText = `# ${chan.emoji || ''} │ ${chan.name}`;
-            document.getElementById('perm-cat-name').innerText = `${cat.is_private ? '🔒' : ''} ${cat.emoji || ''} │ ${cat.name} — ${cat.is_private ? 'Private' : 'Public'}`;
+            document.getElementById('perm-cat-name').innerText = `${cat.name || 'Category'} — #${chan.name || 'Channel'}`;
 
             const list = document.getElementById('permissions-list');
             list.innerHTML = '';
 
             const roles = currentLayout.roles || [];
-            
-            // Add @everyone role first
             const allRoles = [{ name: "@everyone", color: "#94a3b8" }, ...roles];
 
             allRoles.forEach((r) => {
-                const isAllowed = cat.is_private ? (r.name === 'Owner' || r.name === 'Coach' || r.name === 'Moderator') : true;
+                const isAllowed = cat.is_private ? (r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod')) : true;
                 
                 const row = document.createElement('div');
                 row.className = 'perm-row';
                 row.innerHTML = `
                     <span style="font-weight:600;">${r.name}</span>
                     <div class="perm-status">
-                        <span class="${isAllowed ? 'tag-green' : 'tag-red'}">SEES: ${isAllowed ? 'YES' : 'NO'}</span>
-                        <span class="tag-green">✓ View</span>
-                        <span class="tag-green">✓ Send</span>
+                        <span class="${isAllowed ? 'tag-green' : 'tag-red'}">ACCESS: ${isAllowed ? 'YES' : 'NO'}</span>
                     </div>
                 `;
                 list.appendChild(row);
@@ -1008,48 +819,34 @@
             (currentLayout.roles || []).forEach((r, idx) => {
                 const pill = document.createElement('div');
                 pill.className = 'role-pill';
-                pill.style.borderColor = r.color;
-                pill.dataset.roleIndex = idx;
+                pill.style.borderColor = r.color || 'var(--input-border)';
                 pill.innerHTML = `
-                    <span class="role-dot" style="background:${r.color}"></span>
+                    <span class="role-dot" style="background:${r.color || '#8b5cf6'}"></span>
                     <span>${r.name}</span>
-                    <i class="fa-solid fa-xmark" onclick="deleteRole(${idx})"></i>
+                    <i class="fa-solid fa-xmark" onclick="deleteRole(${idx})" style="cursor:pointer; margin-left:4px;"></i>
                 `;
                 container.appendChild(pill);
             });
 
-            new Sortable(container, { 
-                animation: 150,
-                onEnd: function() {
-                    const newRoles = [];
-                    Array.from(container.children).forEach((pill) => {
-                        const originalIndex = pill.dataset.roleIndex;
-                        if (originalIndex !== undefined && currentLayout.roles[originalIndex]) {
-                            newRoles.push(currentLayout.roles[originalIndex]);
-                        }
-                    });
-                    currentLayout.roles = newRoles;
-                    renderRoles();
-                    renderPermissions();
-                }
-            });
+            new Sortable(container, { animation: 150 });
         }
 
         function addCategory() {
             currentLayout.categories.push({
                 name: "NEW CATEGORY",
-                emoji: "📁",
+                emoji: "",
                 is_private: false,
                 channels: []
             });
-            renderSidebar();
+            renderDashboard();
         }
 
         function addChannel(cIdx) {
+            if(!currentLayout.categories[cIdx].channels) currentLayout.categories[cIdx].channels = [];
             currentLayout.categories[cIdx].channels.push({
                 name: "new-channel",
                 type: "text",
-                emoji: "💬",
+                emoji: "",
                 topic: "",
                 is_private: false
             });
@@ -1058,24 +855,21 @@
 
         function deleteCategory(cIdx) {
             currentLayout.categories.splice(cIdx, 1);
-            if (activeCatIdx >= currentLayout.categories.length) {
-                activeCatIdx = Math.max(0, currentLayout.categories.length - 1);
-            }
+            activeCatIdx = 0;
             activeChanIdx = 0;
             renderDashboard();
         }
 
         function deleteChannel(cIdx, chIdx) {
             currentLayout.categories[cIdx].channels.splice(chIdx, 1);
-            if (activeChanIdx >= currentLayout.categories[cIdx].channels.length) {
-                activeChanIdx = Math.max(0, currentLayout.categories[cIdx].channels.length - 1);
-            }
+            activeChanIdx = 0;
             renderDashboard();
         }
 
         function addNewRole() {
-            const name = prompt("Enter role name:");
+            const name = prompt("Role name:");
             if (name) {
+                if(!currentLayout.roles) currentLayout.roles = [];
                 currentLayout.roles.push({ name, color: "#8b5cf6" });
                 renderRoles();
                 renderPermissions();
@@ -1094,12 +888,14 @@
             btn.innerHTML = `<span class="spinner"></span> Dispatching Design...`;
 
             try {
-                const response = await fetch('/api/submit', {
+                await fetch('/api/submit', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': sessionId
+                    },
                     body: JSON.stringify(currentLayout)
                 });
-
                 navigateTo('page-final');
             } catch (err) {
                 navigateTo('page-final');
@@ -1110,6 +906,10 @@
         }
 
         function resetBuilder() {
+            currentLayout = { server_name: "", roles: [], categories: [] };
+            document.getElementById('gen-prompt').value = "";
+            document.getElementById('gen-server-id').value = "";
+            document.getElementById('gen-server-link').value = "";
             navigateTo('page-landing');
         }
     </script>
