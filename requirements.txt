@@ -4,6 +4,6 @@ requests==2.32.3
 aiohttp==3.9.5
 discord.py==2.4.0
 pymongo[srv]==4.8.0
-google-genai==0.1.1
+google-genai>=0.1.0
 python-dotenv==1.0.1
 pydantic==2.8.2
