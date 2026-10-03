@@ -332,7 +332,6 @@
             color: var(--text-title);
         }
 
-        /* AI Regeneration Sub-Box Design */
         .sub-card-panel {
             background: var(--card-inner);
             border: 1px solid var(--input-border);
@@ -402,7 +401,6 @@
 
         .tag-green { color: var(--accent-green); font-weight: 600; }
 
-        /* Roles Styling */
         .roles-flex {
             display: flex;
             flex-wrap: wrap;
@@ -448,11 +446,10 @@
         <div id="page-landing" class="page active">
             <div class="brand-header">
                 <h1>Discord Infrastructure</h1>
-                <p>Fill in parameters to initialize AI schema parsing.</p>
+                <p>Complete verification to begin schema parsing.</p>
             </div>
 
             {% if user %}
-                <!-- LOGGED-IN STATE -->
                 <div class="user-auth-card">
                     <div class="user-info">
                         <img src="{{ user.avatar }}" class="user-avatar" alt="Avatar">
@@ -460,26 +457,22 @@
                     </div>
                     <a href="/logout" class="logout-link">Logout</a>
                 </div>
-
-                <!-- Glassmorphism Container around reCAPTCHA -->
-                <div class="recaptcha-glass-cover">
-                    <div id="recaptcha-container"></div>
-                </div>
-
-                <button id="verify-continue-btn" class="btn-glass" onclick="proceedToGenerator()" disabled>
-                    Verify & Continue <i class="fa-solid fa-arrow-right"></i>
-                </button>
             {% else %}
-                <!-- UNAUTHENTICATED STATE -->
-                <div style="text-align: center;">
-                    <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px;">
-                        Log in with Discord to access the builder interface.
-                    </p>
-                    <a href="/login" class="btn-glass">
+                <div style="margin-bottom: 20px;">
+                    <a href="/login" class="btn-glass" style="background: rgba(88, 101, 242, 0.2); border-color: rgba(88, 101, 242, 0.5);">
                         <i class="fa-brands fa-discord fa-lg" style="color: #5865F2;"></i> Log In with Discord
                     </a>
                 </div>
             {% endif %}
+
+            <!-- reCAPTCHA Container (always available) -->
+            <div class="recaptcha-glass-cover">
+                <div id="recaptcha-container"></div>
+            </div>
+
+            <button id="verify-continue-btn" class="btn-glass" onclick="proceedToGenerator()" disabled>
+                Verify & Continue <i class="fa-solid fa-arrow-right"></i>
+            </button>
         </div>
 
         <!-- PAGE 2: GENERATOR PROMPT -->
@@ -517,7 +510,6 @@
         <!-- PAGE 3: LAYOUT DASHBOARD -->
         <div id="page-layout" class="page">
             <div class="layout-vertical-stack">
-                <!-- Channel Structure Tree Card -->
                 <div class="editor-card">
                     <div class="sidebar-header">
                         <h2 id="server-title-heading" style="font-size: 1.1rem;">Server Structure</h2>
@@ -531,12 +523,11 @@
                     </button>
                 </div>
 
-                <!-- Channel Settings & AI Box Card -->
                 <div class="editor-card">
                     <h3 id="channel-settings-title">Channel Settings</h3>
 
                     <div class="form-group">
-                        <label class="label-heading">EMOJI (SHOWN IN DISCORD WHEN CHANNEL STYLE IS ON)</label>
+                        <label class="label-heading">EMOJI</label>
                         <input type="text" id="edit-chan-emoji" class="form-control" placeholder="📋" oninput="updateActiveChannel()">
                     </div>
 
@@ -559,10 +550,9 @@
                         <input type="text" id="edit-chan-topic" class="form-control" placeholder="Automated logs..." oninput="updateActiveChannel()">
                     </div>
 
-                    <!-- AI Regeneration Box -->
                     <div class="sub-card-panel">
                         <h4>Regenerate with AI</h4>
-                        <p class="hint-text">Example: "Add a dedicated department structure and make development channels private."</p>
+                        <p class="hint-text">Example: "Add a dedicated department structure and make channels private."</p>
                         <div class="ai-input-row">
                             <input type="text" id="re-ai-prompt" class="form-control" placeholder="What should change?">
                             <button class="ai-btn" onclick="handleAIRegenerate()">
@@ -572,7 +562,6 @@
                     </div>
                 </div>
 
-                <!-- Permissions Overview -->
                 <div class="editor-card">
                     <h3>Permissions Overview</h3>
                     <div class="perm-header">
@@ -581,7 +570,6 @@
                     <div id="permissions-list"></div>
                 </div>
 
-                <!-- Roles Card -->
                 <div class="editor-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                         <h3 style="margin-bottom:0;">Roles</h3>
@@ -616,15 +604,13 @@
         const RECAPTCHA_SITE_KEY = "{{ recaptcha_site_key }}";
         let isCaptchaVerified = false;
         let captchaToken = "";
-        let recaptchaWidgetId = null;
 
         let currentLayout = { 
             server_name: "Hoop Central 🏀", 
             roles: [
                 { name: "Owner", color: "#f1c40f" },
                 { name: "Coach", color: "#e67e22" },
-                { name: "Moderator", color: "#3498db" },
-                { name: "Point Guard", color: "#2ecc71" }
+                { name: "Moderator", color: "#3498db" }
             ], 
             categories: [
                 {
@@ -640,19 +626,10 @@
         let activeCatIdx = 0;
         let activeChanIdx = 0;
 
-        // Auto Logout trigger on fresh initial page load
-        window.addEventListener('DOMContentLoaded', () => {
-            const hasClearedSession = sessionStorage.getItem('session_cleared');
-            if (!hasClearedSession) {
-                sessionStorage.setItem('session_cleared', 'true');
-                window.location.href = '/logout';
-            }
-        });
-
         function onRecaptchaLoad() {
-            const target = document.getElementById('recaptcha-container');
-            if (target && typeof grecaptcha !== 'undefined') {
-                recaptchaWidgetId = grecaptcha.render('recaptcha-container', {
+            const container = document.getElementById('recaptcha-container');
+            if (container && typeof grecaptcha !== 'undefined') {
+                grecaptcha.render('recaptcha-container', {
                     'sitekey': RECAPTCHA_SITE_KEY,
                     'theme': 'dark',
                     'callback': onCaptchaVerified,
@@ -661,21 +638,31 @@
             }
         }
 
-        function onCaptchaVerified(token) {
-            isCaptchaVerified = true;
+        async function onCaptchaVerified(token) {
             captchaToken = token;
-            const btn = document.getElementById('verify-continue-btn');
-            if(btn) btn.disabled = false;
+            try {
+                const res = await fetch('/api/verify-captcha', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    isCaptchaVerified = true;
+                    document.getElementById('verify-continue-btn').disabled = false;
+                }
+            } catch (e) {
+                console.error("reCAPTCHA validation failed", e);
+            }
         }
 
         function onCaptchaExpired() {
             isCaptchaVerified = false;
             captchaToken = "";
-            const btn = document.getElementById('verify-continue-btn');
-            if(btn) btn.disabled = true;
+            document.getElementById('verify-continue-btn').disabled = true;
         }
 
-        async function proceedToGenerator() {
+        function proceedToGenerator() {
             if (!isCaptchaVerified) return;
             navigateTo('page-generator');
         }
@@ -714,7 +701,7 @@
                     currentLayout = result.data;
                 }
             } catch (err) {
-                // Fallback default structure
+                // Keep current template fallback
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>`;
@@ -728,7 +715,6 @@
         async function handleAIRegenerate() {
             const input = document.getElementById('re-ai-prompt');
             if (!input.value) return;
-
             alert('Re-generating layout variations based on: ' + input.value);
             input.value = '';
             renderDashboard();
@@ -922,7 +908,7 @@
                     body: JSON.stringify(payload)
                 });
             } catch (err) {
-                console.log(err);
+                console.error(err);
             } finally {
                 btn.disabled = false;
                 navigateTo('page-final');
@@ -930,7 +916,6 @@
         }
 
         function resetBuilder() {
-            sessionStorage.removeItem('session_cleared');
             window.location.href = '/logout';
         }
     </script>
