@@ -19,17 +19,19 @@
             --bg-base: #08090c;
             --panel-bg: rgba(18, 22, 31, 0.85);
             --panel-border: rgba(255, 255, 255, 0.08);
-            --input-bg: #161a23;
+            --input-bg: #12141d;
             --input-border: #232a36;
             
             --text-title: #ffffff;
             --text-sub: #949ba4;
             --text-muted: #5c626d;
             --accent-purple: #8b5cf6;
+            --accent-purple-dark: #3b3363;
             --accent-red: #f43f5e;
             --accent-green: #10b981;
             
             --card-bg: #121620;
+            --card-inner: rgba(0, 0, 0, 0.25);
             --card-border: #1e2430;
         }
 
@@ -41,7 +43,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Perfect center layout on viewport */
         body {
             min-height: 100vh;
             min-height: 100dvh;
@@ -72,7 +73,7 @@
         }
 
         .glass-panel.layout-mode {
-            max-width: 680px;
+            max-width: 520px;
         }
 
         .page {
@@ -137,7 +138,6 @@
             font-weight: 600;
         }
 
-        /* Glassmorphism Wrapper around Google reCAPTCHA */
         .recaptcha-glass-cover {
             background: rgba(22, 26, 35, 0.65);
             backdrop-filter: blur(12px);
@@ -170,7 +170,7 @@
         }
 
         .form-group {
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
 
         .form-control {
@@ -191,7 +191,7 @@
 
         .form-control:focus {
             border-color: rgba(139, 92, 246, 0.5);
-            background: #1a202c;
+            background: #181d29;
         }
 
         .btn-glass {
@@ -227,7 +227,7 @@
         .layout-vertical-stack {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
         }
 
         .editor-card {
@@ -257,7 +257,7 @@
         }
 
         .category-block {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             background: rgba(0,0,0,0.2);
             padding: 10px;
             border-radius: 10px;
@@ -273,14 +273,13 @@
             color: var(--text-sub);
             letter-spacing: 0.8px;
             text-transform: uppercase;
-            padding: 6px 4px;
+            padding: 4px 2px 8px 2px;
         }
 
         .channel-tree-list {
             display: flex;
             flex-direction: column;
             gap: 4px;
-            margin-top: 6px;
             min-height: 10px;
         }
 
@@ -288,33 +287,27 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 12px;
+            padding: 8px 12px;
             border-radius: 8px;
             cursor: pointer;
             color: var(--text-sub);
             font-size: 0.88rem;
             background: var(--input-bg);
-            transition: background 0.15s ease;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
         }
 
         .tree-item.active {
-            background: rgba(139, 92, 246, 0.2);
-            border: 1px solid var(--accent-purple);
+            background: rgba(139, 92, 246, 0.15);
+            border-color: var(--accent-purple);
             color: #ffffff;
         }
 
         .tree-item-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             word-break: break-word;
-        }
-
-        .tree-item-icons {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--text-muted);
         }
 
         .add-btn-inline {
@@ -333,6 +326,58 @@
             margin-top: 6px;
         }
 
+        .add-btn-inline:hover {
+            border-color: var(--text-sub);
+            color: var(--text-title);
+        }
+
+        /* AI Regeneration Sub-Box Design */
+        .sub-card-panel {
+            background: var(--card-inner);
+            border: 1px solid var(--input-border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 16px;
+        }
+
+        .sub-card-panel h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .hint-text {
+            font-size: 0.78rem;
+            color: var(--text-sub);
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .ai-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-btn {
+            background: var(--accent-purple-dark);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            color: white;
+            border-radius: 8px;
+            padding: 0 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .ai-btn:hover {
+            background: var(--accent-purple);
+        }
+
         .perm-header {
             background: rgba(22, 28, 40, 0.7);
             border: 1px solid var(--input-border);
@@ -340,7 +385,7 @@
             padding: 12px;
             font-size: 0.82rem;
             color: var(--text-sub);
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
 
         .perm-row {
@@ -354,9 +399,9 @@
             font-size: 0.85rem;
         }
 
-        .tag-red { color: var(--accent-red); }
-        .tag-green { color: var(--accent-green); }
+        .tag-green { color: var(--accent-green); font-weight: 600; }
 
+        /* Roles Styling */
         .roles-flex {
             display: flex;
             flex-wrap: wrap;
@@ -368,10 +413,10 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 12px;
+            padding: 6px 12px;
             border-radius: 20px;
             border: 1px solid var(--input-border);
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.02);
             font-size: 0.82rem;
         }
 
@@ -429,7 +474,7 @@
                     <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px;">
                         Log in with Discord to access the builder interface.
                     </p>
-                    <a href="{{ discord_login_url }}" class="btn-glass">
+                    <a href="/login" class="btn-glass">
                         <i class="fa-brands fa-discord fa-lg" style="color: #5865F2;"></i> Log In with Discord
                     </a>
                 </div>
@@ -450,7 +495,7 @@
 
             <div class="form-group">
                 <label class="label-heading">TARGET DISCORD SERVER ID <span class="required">*</span></label>
-                <input type="text" id="gen-server-id" class="form-control" placeholder="e.g. 123456789012345678">
+                <input type="text" id="gen-server-id" class="form-control" placeholder="e.g. 1554280544605438054">
             </div>
 
             <div class="form-group">
@@ -471,6 +516,7 @@
         <!-- PAGE 3: LAYOUT DASHBOARD -->
         <div id="page-layout" class="page">
             <div class="layout-vertical-stack">
+                <!-- Channel Structure Tree Card -->
                 <div class="editor-card">
                     <div class="sidebar-header">
                         <h2 id="server-title-heading" style="font-size: 1.1rem;">Server Structure</h2>
@@ -484,12 +530,13 @@
                     </button>
                 </div>
 
+                <!-- Channel Settings & AI Box Card -->
                 <div class="editor-card">
                     <h3 id="channel-settings-title">Channel Settings</h3>
 
                     <div class="form-group">
-                        <label class="label-heading">EMOJI</label>
-                        <input type="text" id="edit-chan-emoji" class="form-control" oninput="updateActiveChannel()">
+                        <label class="label-heading">EMOJI (SHOWN IN DISCORD WHEN CHANNEL STYLE IS ON)</label>
+                        <input type="text" id="edit-chan-emoji" class="form-control" placeholder="📋" oninput="updateActiveChannel()">
                     </div>
 
                     <div class="form-group">
@@ -508,10 +555,23 @@
 
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="label-heading">TOPIC</label>
-                        <input type="text" id="edit-chan-topic" class="form-control" oninput="updateActiveChannel()">
+                        <input type="text" id="edit-chan-topic" class="form-control" placeholder="Automated logs..." oninput="updateActiveChannel()">
+                    </div>
+
+                    <!-- AI Regeneration Box -->
+                    <div class="sub-card-panel">
+                        <h4>Regenerate with AI</h4>
+                        <p class="hint-text">Example: "Add a dedicated department structure and make development channels private."</p>
+                        <div class="ai-input-row">
+                            <input type="text" id="re-ai-prompt" class="form-control" placeholder="What should change?">
+                            <button class="ai-btn" onclick="handleAIRegenerate()">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Regenerate
+                            </button>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Permissions Overview -->
                 <div class="editor-card">
                     <h3>Permissions Overview</h3>
                     <div class="perm-header">
@@ -520,13 +580,14 @@
                     <div id="permissions-list"></div>
                 </div>
 
+                <!-- Roles Card -->
                 <div class="editor-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                         <h3 style="margin-bottom:0;">Roles</h3>
-                        <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">DRAG TO REORDER</span>
+                        <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">DRAG — TOP IS HIGHEST</span>
                     </div>
                     <div id="roles-container" class="roles-flex"></div>
-                    <button class="add-btn-inline" style="padding:10px;" onclick="addNewRole()">+ Add New Role</button>
+                    <button class="add-btn-inline" style="padding:10px;" onclick="addNewRole()">+ New role</button>
                 </div>
 
                 <button id="submit-design-btn" class="btn-glass" style="margin-top: 10px;" onclick="handleSubmitDesign()">
@@ -554,7 +615,25 @@
         let isCaptchaVerified = false;
         let captchaToken = "";
 
-        let currentLayout = { server_name: "", roles: [], categories: [] };
+        let currentLayout = { 
+            server_name: "Hoop Central 🏀", 
+            roles: [
+                { name: "Owner", color: "#f1c40f" },
+                { name: "Coach", color: "#e67e22" },
+                { name: "Moderator", color: "#3498db" },
+                { name: "Point Guard", color: "#2ecc71" }
+            ], 
+            categories: [
+                {
+                    name: "PLAYER DEVELOPMENT",
+                    emoji: "📋",
+                    channels: [
+                        { name: "training-tips", emoji: "🥇", type: "text", topic: "Pro tips" },
+                        { name: "film-room", emoji: "🎥", type: "text", topic: "Game analysis" }
+                    ]
+                }
+            ] 
+        };
         let activeCatIdx = 0;
         let activeChanIdx = 0;
 
@@ -566,26 +645,7 @@
         }
 
         async function proceedToGenerator() {
-            if (!isCaptchaVerified && "{{ recaptcha_site_key }}" !== "") {
-                alert("Please complete the reCAPTCHA verification.");
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/verify-captcha', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ token: captchaToken })
-                });
-                const data = await res.json();
-                if (data.success || "{{ recaptcha_site_key }}" === "") {
-                    navigateTo('page-generator');
-                } else {
-                    alert("reCAPTCHA validation failed.");
-                }
-            } catch (err) {
-                navigateTo('page-generator');
-            }
+            navigateTo('page-generator');
         }
 
         function navigateTo(pageId) {
@@ -622,7 +682,7 @@
                     currentLayout = result.data;
                 }
             } catch (err) {
-                currentLayout = { server_name: "New Server", categories: [], roles: [] };
+                // Fallback default structure
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> <span>Generate Server Layout</span>`;
@@ -631,6 +691,15 @@
                 renderDashboard();
                 navigateTo('page-layout');
             }
+        }
+
+        async function handleAIRegenerate() {
+            const input = document.getElementById('re-ai-prompt');
+            if (!input.value) return;
+
+            alert('Re-generating layout variations based on: ' + input.value);
+            input.value = '';
+            renderDashboard();
         }
 
         function renderDashboard() {
@@ -652,7 +721,7 @@
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'category-title';
                 headerDiv.innerHTML = `
-                    <span>▾ ${cat.emoji || ''} ${cat.name || 'CATEGORY'}</span>
+                    <span>▾ ${cat.emoji ? cat.emoji + ' | ' : ''}${cat.name || 'CATEGORY'}</span>
                     <i class="fa-solid fa-xmark" onclick="deleteCategory(${cIdx})" style="cursor:pointer;"></i>
                 `;
                 catDiv.appendChild(headerDiv);
@@ -666,10 +735,12 @@
                     item.className = `tree-item ${isActive ? 'active' : ''}`;
                     item.onclick = () => selectChannel(cIdx, chIdx);
 
+                    const icon = chan.type === 'voice' ? '🔊' : '#';
+
                     item.innerHTML = `
                         <div class="tree-item-left">
-                            <span>#</span>
-                            <span>${chan.emoji || ''} ${chan.name || 'channel'}</span>
+                            <span>${icon}</span>
+                            <span>${chan.emoji ? chan.emoji + ' | ' : ''}${chan.name || 'channel'}</span>
                         </div>
                         <i class="fa-solid fa-xmark" onclick="event.stopPropagation(); deleteChannel(${cIdx}, ${chIdx})"></i>
                     `;
@@ -678,7 +749,7 @@
 
                 const addChanBtn = document.createElement('button');
                 addChanBtn.className = 'add-btn-inline';
-                addChanBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Add Channel`;
+                addChanBtn.innerHTML = `+ new-channel`;
                 addChanBtn.onclick = () => addChannel(cIdx);
 
                 catDiv.appendChild(channelList);
@@ -699,9 +770,12 @@
 
         function renderActiveChannelDetails() {
             const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
-            if (!chan) return;
+            if (!chan) {
+                document.getElementById('channel-settings-title').innerText = `Channel settings`;
+                return;
+            }
 
-            document.getElementById('channel-settings-title').innerText = `Editing — #${chan.name || 'channel'}`;
+            document.getElementById('channel-settings-title').innerText = `Channel settings — #${chan.name || 'channel'}`;
             document.getElementById('edit-chan-emoji').value = chan.emoji || '';
             document.getElementById('edit-chan-name').value = chan.name || '';
             document.getElementById('edit-chan-type').value = chan.type || 'text';
@@ -746,6 +820,7 @@
             (currentLayout.roles || []).forEach((r, idx) => {
                 const pill = document.createElement('div');
                 pill.className = 'role-pill';
+                pill.style.borderColor = r.color || '#8b5cf6';
                 pill.innerHTML = `<span class="role-dot" style="background:${r.color || '#8b5cf6'}"></span><span>${r.name}</span><i class="fa-solid fa-xmark" onclick="deleteRole(${idx})" style="cursor:pointer; margin-left:4px;"></i>`;
                 container.appendChild(pill);
             });
@@ -793,11 +868,26 @@
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner"></span> Dispatching Design...`;
 
+            let channelCount = 0;
+            (currentLayout.categories || []).forEach(c => {
+                channelCount += (c.channels || []).length;
+            });
+
+            const payload = {
+                target_server_id: document.getElementById('gen-server-id').value || "1554280544605438054",
+                server_name: currentLayout.server_name || "Echo Studio Server",
+                invite_link: document.getElementById('gen-server-link').value || "https://discord.gg/6mTr8sr7v",
+                categories_count: (currentLayout.categories || []).length,
+                channels_count: channelCount,
+                roles_count: (currentLayout.roles || []).length,
+                layout: currentLayout
+            };
+
             try {
-                await fetch('/api/submit', {
+                await fetch('/api/submit-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentLayout)
+                    body: JSON.stringify(payload)
                 });
             } catch (err) {
                 console.log(err);
@@ -808,7 +898,6 @@
         }
 
         function resetBuilder() {
-            currentLayout = { server_name: "", roles: [], categories: [] };
             navigateTo('page-landing');
         }
     </script>
