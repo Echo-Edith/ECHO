@@ -220,7 +220,6 @@
             box-shadow: 0 0 12px var(--accent-purple-glow);
         }
 
-        /* Glass Glow Button */
         .btn-glass {
             width: 100%;
             padding: 14px;
@@ -256,7 +255,6 @@
             box-shadow: none;
         }
 
-        /* Discord Style Sidebar Layout */
         .discord-sidebar-wrapper {
             background: var(--discord-sidebar);
             backdrop-filter: blur(16px);
@@ -456,12 +454,12 @@
 
             <div class="form-group">
                 <label class="label-heading">TARGET DISCORD SERVER ID <span class="required">*</span></label>
-                <input type="text" id="gen-server-id" class="form-control" value="1554280544605438054" oninput="updateBotInviteLink()">
+                <input type="text" id="gen-server-id" class="form-control" placeholder="e.g. 123456789012345678" oninput="updateBotInviteLink()">
             </div>
 
             <div class="form-group">
                 <label class="label-heading">SERVER INVITE LINK <span class="required">*</span></label>
-                <input type="text" id="gen-server-link" class="form-control" value="https://discord.gg/6mTr8sr7v">
+                <input type="text" id="gen-server-link" class="form-control" placeholder="https://discord.gg/yourcode">
             </div>
 
             <button id="generate-btn" class="btn-glass" style="margin-top: 24px;" onclick="handleAIGeneration()">
@@ -542,7 +540,6 @@
                 <p>Your blueprint has been uploaded and sent to staff.</p>
             </div>
 
-            <!-- BOT INVITE REDIRECT BUTTON -->
             <a id="bot-invite-btn" href="#" target="_blank" class="btn-glass" style="margin-bottom: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--accent-purple); text-decoration: none;">
                 <i class="fa-brands fa-discord"></i> Add Bot to Server
             </a>
@@ -560,7 +557,7 @@
         let isCaptchaVerified = false;
 
         let currentLayout = { 
-            server_name: "Echo Studio", 
+            server_name: "New Server", 
             roles: [
                 { name: "Owner", color: "#f1c40f" },
                 { name: "Admin", color: "#e74c3c" },
@@ -649,6 +646,15 @@
         }
 
         async function handleAIGeneration() {
+            const serverId = document.getElementById('gen-server-id').value.trim();
+            const serverLink = document.getElementById('gen-server-link').value.trim();
+            const promptVal = document.getElementById('gen-prompt').value.trim();
+
+            if (!serverId || !serverLink || !promptVal) {
+                alert('Please fill in all required fields (Prompt, Server ID, and Invite Link).');
+                return;
+            }
+
             const btn = document.getElementById('generate-btn');
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner"></span> Generating Layout with AI...`;
@@ -658,17 +664,20 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        prompt: document.getElementById('gen-prompt').value,
-                        server_id: document.getElementById('gen-server-id').value
+                        prompt: promptVal,
+                        server_id: serverId
                     })
                 });
 
                 const result = await response.json();
                 if (result.success && result.data) {
                     currentLayout = result.data;
+                } else if (result.error) {
+                    alert('Generation error: ' + result.error);
                 }
             } catch (err) {
                 console.error(err);
+                alert('An error occurred during AI generation. Please try again.');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate Server Layout</span>`;
@@ -693,7 +702,6 @@
             (currentLayout.categories || []).forEach((cat, cIdx) => {
                 const catDiv = document.createElement('div');
                 catDiv.className = 'discord-category';
-                catDiv.dataset.catIndex = cIdx;
 
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'discord-category-title';
@@ -708,7 +716,6 @@
                     const item = document.createElement('div');
                     const isActive = (cIdx === activeCatIdx && chIdx === activeChanIdx);
                     item.className = `discord-channel-item ${isActive ? 'active' : ''}`;
-                    item.dataset.chanIndex = chIdx;
                     item.onclick = () => selectChannel(cIdx, chIdx);
 
                     const icon = chan.type === 'voice' ? '🔊' : '#';
@@ -873,13 +880,21 @@
         }
 
         function updateBotInviteLink() {
-            const targetServerId = document.getElementById('gen-server-id')?.value || "";
+            const targetServerId = document.getElementById('gen-server-id')?.value.trim() || "";
             const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands${targetServerId ? `&guild_id=${targetServerId}` : ''}`;
             const btn = document.getElementById('bot-invite-btn');
             if (btn) btn.href = inviteUrl;
         }
 
         async function handleSubmitDesign() {
+            const serverId = document.getElementById('gen-server-id').value.trim();
+            const serverLink = document.getElementById('gen-server-link').value.trim();
+
+            if (!serverId || !serverLink) {
+                alert('Server ID and Server Invite Link are required to submit.');
+                return;
+            }
+
             const btn = document.getElementById('submit-design-btn');
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner"></span> Dispatching Design...`;
@@ -892,9 +907,9 @@
             });
 
             const payload = {
-                target_server_id: document.getElementById('gen-server-id').value || "1554280544605438054",
-                server_name: currentLayout.server_name || "Echo Studio Server",
-                invite_link: document.getElementById('gen-server-link').value || "https://discord.gg/6mTr8sr7v",
+                target_server_id: serverId,
+                server_name: currentLayout.server_name || "Custom Server",
+                invite_link: serverLink,
                 categories_count: (currentLayout.categories || []).length,
                 channels_count: channelCount,
                 roles_count: (currentLayout.roles || []).length,
@@ -917,8 +932,10 @@
 
         function resetBuilder() {
             document.getElementById('gen-prompt').value = '';
+            document.getElementById('gen-server-id').value = '';
+            document.getElementById('gen-server-link').value = '';
             currentLayout = {
-                server_name: "Echo Studio",
+                server_name: "New Server",
                 roles: [],
                 categories: []
             };
