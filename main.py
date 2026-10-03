@@ -1,12 +1,19 @@
 import os
+import json
 import requests
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify, send_from_directory
 from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "default-fallback-secret-key")
+
+# Directory for storing downloadable blueprint JSON files
+BLUEPRINT_DIR = os.path.join(app.root_path, "blueprints")
+os.makedirs(BLUEPRINT_DIR, exist_ok=True)
 
 # Environment Variables
 DASHBOARD_URL = os.getenv("DASHBOARD_URL") or os.getenv("RENDER_EXTERNAL_URL", "http://localhost:5000")
@@ -16,6 +23,10 @@ RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 WEBSITE_WEBHOOK_URL = os.getenv("WEBSITE_WEBHOOK_URL")
 DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Gemini AI Client
+ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 REDIRECT_URI = f"{DASHBOARD_URL.rstrip('/')}/callback"
 DISCORD_AUTH_URL = (
@@ -30,8 +41,7 @@ def log_system_entry(user_info=None):
     if not WEBSITE_WEBHOOK_URL:
         return
 
-    # Ignore internal Render health checks coming from localhost
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    # Filter out Render's internal health check requests from 127.0.0.1
     if request.remote_addr == "127.0.0.1" and not request.headers.get('X-Forwarded-For'):
         return
 
@@ -39,7 +49,7 @@ def log_system_entry(user_info=None):
     payload = {
         "embeds": [{
             "title": "🌐 Dashboard Visit Logged",
-            "description": f"A user loaded the landing page.\n**Status:** {user_str}\n**IP:** `{ip}`",
+            "description": f"A user loaded the landing page.\n**Status:** {user_str}",
             "color": 0x8b5cf6
         }]
     }
@@ -56,7 +66,6 @@ def index():
 
 @app.route("/login")
 def login():
-    # Explicit route triggered only when user clicks the "Log in with Discord" button
     return redirect(DISCORD_AUTH_URL)
 
 @app.route("/callback")
@@ -90,7 +99,7 @@ def callback():
         avatar_url = f"https://cdn.discordapp.com/avatars/{u_data['id']}/{u_data['avatar']}.png" if u_data.get('avatar') else "https://cdn.discordapp.com/embed/avatars/0.png"
         session["user"] = {
             "id": u_data["id"],
-            "username": f"{u_data['username']}",
+            "username": u_data["username"],
             "avatar": avatar_url
         }
 
@@ -117,29 +126,125 @@ def verify_captcha():
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "CAPTCHA verification failed."}), 400
 
+@app.route("/api/generate", methods=["POST"])
+def generate_layout():
+    if not ai_client:
+        return jsonify({"success": False, "message": "Gemini API key is not configured."}), 500
+
+    payload = request.json or {}
+    user_prompt = payload.get("prompt", "Create a modern Discord community server layout.")
+    server_id = payload.get("server_id", "")
+
+    system_instruction = """
+    You are a professional Discord Infrastructure Architect.
+    Generate a JSON layout for a Discord server based on the user's prompt.
+    Return strictly raw JSON conforming to this schema without code fences or extra text:
+    {
+      "server_name": "Server Name",
+      "roles": [
+        {"name": "Owner", "color": "#f1c40f"},
+        {"name": "Admin", "color": "#e74c3c"},
+        {"name": "Member", "color": "#2ecc71"}
+      ],
+      "categories": [
+        {
+          "name": "CATEGORY NAME",
+          "emoji": "📁",
+          "channels": [
+            {"name": "welcome", "emoji": "👋", "type": "text", "topic": "Welcome channel"},
+            {"name": "Lounge", "emoji": "💬", "type": "voice", "topic": ""}
+          ]
+        }
+      ]
+    }
+    """
+
+    try:
+        response = ai_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json"
+            )
+        )
+        parsed_data = json.loads(response.text)
+        return jsonify({"success": True, "data": parsed_data})
+    except Exception as e:
+        print(f"AI Generation Error: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/blueprint/<filename>")
+def get_blueprint(filename):
+    return send_from_directory(BLUEPRINT_DIR, filename)
+
 @app.route("/api/submit-design", methods=["POST"])
 def submit_design():
     payload = request.json or {}
+    user = session.get("user")
+    
+    target_server_id = str(payload.get("target_server_id", "1554280544605438054")).strip()
+    server_name = payload.get("server_name", "Echo Studio Server")
+    invite_link = payload.get("invite_link", "https://discord.gg/6mTr8sr7v")
+    categories_count = payload.get("categories_count", 0)
+    channels_count = payload.get("channels_count", 0)
+    roles_count = payload.get("roles_count", 0)
+    layout = payload.get("layout", {})
+
+    # Construct blueprint output structure for bot /build execution
+    blueprint_content = {
+        "build_meta": {
+            "target_server_id": target_server_id,
+            "server_name": server_name,
+            "submitted_by": user.get("username") if user else "Anonymous"
+        },
+        "roles": layout.get("roles", []),
+        "categories": layout.get("categories", [])
+    }
+
+    # Save JSON file locally to serve via HTTP
+    filename = f"blueprint_{target_server_id}.json"
+    file_path = os.path.join(BLUEPRINT_DIR, filename)
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(blueprint_content, f, indent=2)
+
+    blueprint_url = f"{DASHBOARD_URL.rstrip('/')}/blueprint/{filename}"
+    username_mention = f"@{user['username']}" if user else "@Anonymous"
+
     if DESIGN_WEBHOOK_URL:
-        webhook_data = {
-            "embeds": [{
-                "title": f"🚀 New Server Design: {payload.get('server_name', 'Untitled')}",
-                "fields": [
-                    {"name": "Target Server ID", "value": str(payload.get("target_server_id")), "inline": True},
-                    {"name": "Categories", "value": str(payload.get("categories_count")), "inline": True},
-                    {"name": "Channels", "value": str(payload.get("channels_count")), "inline": True},
-                    {"name": "Roles", "value": str(payload.get("roles_count")), "inline": True},
-                    {"name": "Invite Link", "value": str(payload.get("invite_link")), "inline": False}
-                ],
-                "color": 0x10b981
-            }]
+        # Match exact design & layout specified in Image 16
+        embed = {
+            "title": f"📬 New Server Layout Submitted — #{target_server_id}",
+            "description": (
+                "A new blueprint layout was generated and is ready for staff deployment.\n\n"
+                f"🔑 **Build Command:** `/build file: {blueprint_url}`"
+            ),
+            "color": 0x2ecc71,  # Discord Green Accent
+            "fields": [
+                {"name": "Submitted By", "value": f"`{username_mention}`", "inline": False},
+                {"name": "Target Server ID", "value": f"`{target_server_id}`", "inline": False},
+                {"name": "Server Name", "value": f"`{server_name}`", "inline": False},
+                {"name": "Server Invite Link", "value": f"{invite_link}", "inline": False},
+                {"name": "Categories & Channels", "value": f"`{categories_count} Categories` | `{channels_count} Channels`", "inline": False},
+                {"name": "Configured Roles", "value": f"`{roles_count} Roles`", "inline": False}
+            ],
+            "footer": {
+                "text": "Echo Studio Automated Server Infrastructure"
+            }
         }
+
+        # Send Webhook with JSON Blueprint Attachment
         try:
-            requests.post(DESIGN_WEBHOOK_URL, json=webhook_data, timeout=5)
+            with open(file_path, "rb") as bf:
+                files = {
+                    "file": (filename, bf, "application/json"),
+                    "payload_json": (None, json.dumps({"embeds": [embed]}), "application/json")
+                }
+                requests.post(DESIGN_WEBHOOK_URL, files=files, timeout=10)
         except Exception as e:
             print(f"Webhook dispatch error: {e}")
 
-    return jsonify({"success": True})
+    return jsonify({"success": True, "file_url": blueprint_url})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
