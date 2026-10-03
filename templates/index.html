@@ -456,7 +456,7 @@
 
             <div class="form-group">
                 <label class="label-heading">TARGET DISCORD SERVER ID <span class="required">*</span></label>
-                <input type="text" id="gen-server-id" class="form-control" value="1554280544605438054">
+                <input type="text" id="gen-server-id" class="form-control" value="1554280544605438054" oninput="updateBotInviteLink()">
             </div>
 
             <div class="form-group">
@@ -484,7 +484,7 @@
                 </button>
             </div>
 
-            <div class="editor-card">
+            <div class="editor-card" id="channel-editor-card">
                 <h3 id="channel-settings-title">Channel Settings</h3>
 
                 <div class="form-group">
@@ -629,6 +629,11 @@
             } else {
                 panelWrapper.classList.remove('layout-mode');
             }
+
+            if (pageId === 'page-generator' || pageId === 'page-final') {
+                updateBotInviteLink();
+            }
+
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -639,7 +644,7 @@
         function formatDiscordChannelName(name) {
             return stripEmoji(name)
                 .toLowerCase()
-                .replace(/[^a-z0-0\s-_]/g, '')
+                .replace(/[^a-z0-9\s-_]/g, '')
                 .replace(/\s+/g, '-');
         }
 
@@ -688,6 +693,7 @@
             (currentLayout.categories || []).forEach((cat, cIdx) => {
                 const catDiv = document.createElement('div');
                 catDiv.className = 'discord-category';
+                catDiv.dataset.catIndex = cIdx;
 
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'discord-category-title';
@@ -702,6 +708,7 @@
                     const item = document.createElement('div');
                     const isActive = (cIdx === activeCatIdx && chIdx === activeChanIdx);
                     item.className = `discord-channel-item ${isActive ? 'active' : ''}`;
+                    item.dataset.chanIndex = chIdx;
                     item.onclick = () => selectChannel(cIdx, chIdx);
 
                     const icon = chan.type === 'voice' ? '🔊' : '#';
@@ -731,7 +738,13 @@
                     animation: 150,
                     delay: 200,
                     delayOnTouchOnly: true,
-                    touchStartThreshold: 5
+                    touchStartThreshold: 5,
+                    onEnd: function (evt) {
+                        const movedItem = cat.channels.splice(evt.oldIndex, 1)[0];
+                        cat.channels.splice(evt.newIndex, 0, movedItem);
+                        activeChanIdx = evt.newIndex;
+                        renderDashboard();
+                    }
                 });
             });
 
@@ -739,7 +752,13 @@
                 animation: 150,
                 delay: 200,
                 delayOnTouchOnly: true,
-                touchStartThreshold: 5
+                touchStartThreshold: 5,
+                onEnd: function (evt) {
+                    const movedCat = currentLayout.categories.splice(evt.oldIndex, 1)[0];
+                    currentLayout.categories.splice(evt.newIndex, 0, movedCat);
+                    activeCatIdx = evt.newIndex;
+                    renderDashboard();
+                }
             });
         }
 
@@ -750,9 +769,15 @@
         }
 
         function renderActiveChannelDetails() {
+            const editorCard = document.getElementById('channel-editor-card');
             const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
-            if (!chan) return;
+            
+            if (!chan) {
+                editorCard.style.display = 'none';
+                return;
+            }
 
+            editorCard.style.display = 'block';
             const cleanName = formatDiscordChannelName(chan.name);
             document.getElementById('channel-settings-title').innerText = `Channel Settings — #${cleanName || 'channel'}`;
             document.getElementById('edit-chan-emoji').value = chan.emoji || '';
@@ -794,12 +819,19 @@
                 animation: 150,
                 delay: 200,
                 delayOnTouchOnly: true,
-                touchStartThreshold: 5
+                touchStartThreshold: 5,
+                onEnd: function (evt) {
+                    const movedRole = currentLayout.roles.splice(evt.oldIndex, 1)[0];
+                    currentLayout.roles.splice(evt.newIndex, 0, movedRole);
+                }
             });
         }
 
         function addCategory() {
+            if (!currentLayout.categories) currentLayout.categories = [];
             currentLayout.categories.push({ name: "NEW CATEGORY", channels: [] });
+            activeCatIdx = currentLayout.categories.length - 1;
+            activeChanIdx = 0;
             renderDashboard();
         }
 
@@ -811,11 +843,18 @@
 
         function deleteCategory(cIdx) {
             currentLayout.categories.splice(cIdx, 1);
+            if (activeCatIdx >= currentLayout.categories.length) {
+                activeCatIdx = Math.max(0, currentLayout.categories.length - 1);
+            }
+            activeChanIdx = 0;
             renderDashboard();
         }
 
         function deleteChannel(cIdx, chIdx) {
             currentLayout.categories[cIdx].channels.splice(chIdx, 1);
+            if (activeChanIdx >= currentLayout.categories[cIdx].channels.length) {
+                activeChanIdx = Math.max(0, currentLayout.categories[cIdx].channels.length - 1);
+            }
             renderDashboard();
         }
 
@@ -834,7 +873,7 @@
         }
 
         function updateBotInviteLink() {
-            const targetServerId = document.getElementById('gen-server-id').value || "";
+            const targetServerId = document.getElementById('gen-server-id')?.value || "";
             const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands${targetServerId ? `&guild_id=${targetServerId}` : ''}`;
             const btn = document.getElementById('bot-invite-btn');
             if (btn) btn.href = inviteUrl;
