@@ -16,26 +16,32 @@
 
     <style>
         :root {
-            --bg-base: #0f1015;
-            --panel-bg: rgba(22, 24, 34, 0.92);
-            --panel-border: rgba(255, 255, 255, 0.08);
-            --input-bg: #1e1f29;
-            --input-border: #2b2d3d;
+            --bg-base: #090a10;
+            --panel-bg: rgba(18, 16, 32, 0.55);
+            --panel-border: rgba(255, 255, 255, 0.12);
+            --glass-inner-bg: rgba(255, 255, 255, 0.03);
+            --glass-inner-border: rgba(255, 255, 255, 0.07);
+            
+            --input-bg: rgba(13, 12, 22, 0.65);
+            --input-border: rgba(139, 92, 246, 0.25);
             
             --discord-dark: #2b2d31;
-            --discord-sidebar: #1e1f22;
+            --discord-sidebar: rgba(15, 14, 25, 0.6);
             --discord-channel: #949ba4;
-            --discord-hover: #35373c;
+            --discord-hover: rgba(139, 92, 246, 0.2);
             
             --text-title: #ffffff;
-            --text-sub: #949ba4;
-            --text-muted: #5c626d;
-            --accent-purple: #5865f2;
+            --text-sub: #b5bac1;
+            --text-muted: #707580;
+            
+            --accent-purple: #8b5cf6;
+            --accent-purple-glow: rgba(139, 92, 246, 0.4);
+            --accent-violet: #6366f1;
             --accent-green: #2ecc71;
             --accent-red: #f43f5e;
             
-            --card-bg: #18191c;
-            --card-border: #2b2d31;
+            --card-bg: rgba(20, 18, 33, 0.45);
+            --card-border: rgba(255, 255, 255, 0.08);
         }
 
         * {
@@ -51,7 +57,10 @@
             min-height: 100dvh;
             background: var(--bg-base);
             background-image: 
-                radial-gradient(circle at 50% 15%, rgba(88, 101, 242, 0.15) 0%, transparent 60%);
+                radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.28) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.22) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.12) 0%, transparent 65%);
+            background-attachment: fixed;
             color: #ffffff;
             display: flex;
             justify-content: center;
@@ -59,29 +68,35 @@
             padding: 16px;
         }
 
+        /* Ultra Glassmorphic Container */
         .glass-panel {
             background: var(--panel-bg);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
             border: 1px solid var(--panel-border);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.22);
+            border-left: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 24px;
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.7),
+                0 0 40px rgba(139, 92, 246, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
             width: 100%;
             max-width: 480px;
             padding: 32px 24px;
             position: relative;
             margin: auto;
-            transition: max-width 0.3s ease;
+            transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .glass-panel.layout-mode {
-            max-width: 560px;
+            max-width: 580px;
         }
 
         .page {
             display: none;
             opacity: 0;
-            transform: translateY(6px);
+            transform: translateY(8px);
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
@@ -97,10 +112,13 @@
         }
 
         .brand-header h1 {
-            font-size: 1.55rem;
-            font-weight: 700;
-            color: var(--text-title);
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 30%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             margin-bottom: 6px;
+            letter-spacing: -0.3px;
         }
 
         .brand-header p {
@@ -109,14 +127,17 @@
         }
 
         .user-auth-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
+            background: var(--glass-inner-bg);
+            border: 1px solid var(--glass-inner-border);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 14px;
             padding: 12px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 20px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
         .user-info {
@@ -126,9 +147,10 @@
         }
 
         .user-avatar {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
+            border: 1px solid var(--accent-purple-glow);
         }
 
         .logout-link {
@@ -136,12 +158,19 @@
             font-size: 0.82rem;
             text-decoration: none;
             font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .logout-link:hover {
+            opacity: 0.8;
         }
 
         .recaptcha-glass-cover {
-            background: rgba(22, 26, 35, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
+            background: rgba(12, 10, 20, 0.45);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 16px;
             padding: 12px;
             display: flex;
             justify-content: center;
@@ -151,11 +180,12 @@
             max-width: 100%;
             overflow: hidden;
             min-height: 78px;
+            box-shadow: inset 0 0 15px rgba(139, 92, 246, 0.08);
         }
 
         .label-heading {
             display: block;
-            font-size: 0.7rem;
+            font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.8px;
             text-transform: uppercase;
@@ -176,28 +206,35 @@
             padding: 12px 14px;
             background: var(--input-bg);
             border: 1px solid var(--input-border);
-            border-radius: 8px;
+            border-radius: 10px;
             color: #ffffff;
             font-size: 0.9rem;
             outline: none;
-            transition: border-color 0.2s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
         }
 
         .form-control:focus {
             border-color: var(--accent-purple);
+            box-shadow: 0 0 12px var(--accent-purple-glow);
         }
 
+        /* Glass Glow Button */
         .btn-glass {
             width: 100%;
             padding: 14px;
-            background: var(--accent-purple);
-            border: none;
-            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.85) 0%, rgba(99, 102, 241, 0.85) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
             color: #ffffff;
             font-weight: 600;
             font-size: 0.92rem;
             cursor: pointer;
-            transition: opacity 0.2s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.35);
+            transition: all 0.25s ease;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -207,19 +244,25 @@
         }
 
         .btn-glass:hover:not(:disabled) {
-            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 25px rgba(139, 92, 246, 0.5);
+            filter: brightness(1.1);
         }
 
         .btn-glass:disabled {
             opacity: 0.45;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         /* Discord Style Sidebar Layout */
         .discord-sidebar-wrapper {
             background: var(--discord-sidebar);
-            border-radius: 12px;
-            padding: 12px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 14px;
+            padding: 14px;
             border: 1px solid var(--card-border);
             margin-bottom: 16px;
         }
@@ -228,7 +271,7 @@
             font-weight: 700;
             font-size: 1rem;
             padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid var(--glass-inner-border);
             margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
@@ -256,13 +299,14 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 7px 10px;
-            border-radius: 6px;
+            padding: 8px 10px;
+            border-radius: 8px;
             color: var(--discord-channel);
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             cursor: pointer;
-            margin-top: 2px;
+            margin-top: 3px;
             touch-action: pan-y;
+            transition: all 0.2s ease;
         }
 
         .discord-channel-item:hover, .discord-channel-item.active {
@@ -271,32 +315,37 @@
         }
 
         .discord-channel-item.active {
-            background: rgba(88, 101, 242, 0.25);
+            background: rgba(139, 92, 246, 0.3);
+            border: 1px solid rgba(139, 92, 246, 0.4);
             color: #ffffff;
             font-weight: 600;
         }
 
         .add-btn-inline {
-            background: transparent;
+            background: rgba(255, 255, 255, 0.02);
             border: 1px dashed var(--input-border);
-            border-radius: 6px;
+            border-radius: 8px;
             color: var(--text-sub);
             font-size: 0.8rem;
             padding: 8px;
             cursor: pointer;
             width: 100%;
             margin-top: 8px;
+            transition: all 0.2s ease;
         }
 
         .add-btn-inline:hover {
-            border-color: var(--text-sub);
+            border-color: var(--accent-purple);
             color: #ffffff;
+            background: rgba(139, 92, 246, 0.1);
         }
 
         .editor-card {
             background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--card-border);
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 16px;
             margin-bottom: 16px;
         }
@@ -311,9 +360,9 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
+            background: var(--glass-inner-bg);
+            border: 1px solid var(--glass-inner-border);
+            border-radius: 10px;
             padding: 12px;
             margin-top: 12px;
         }
@@ -329,9 +378,10 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 5px 10px;
+            padding: 6px 12px;
             border-radius: 16px;
-            background: #2b2d31;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-inner-border);
             font-size: 0.82rem;
             touch-action: pan-y;
         }
@@ -376,7 +426,7 @@
                 </div>
             {% else %}
                 <div style="margin-bottom: 20px;">
-                    <a href="/login" class="btn-glass" style="background: #5865F2;">
+                    <a href="/login" class="btn-glass" style="background: linear-gradient(135deg, rgba(88, 101, 242, 0.9) 0%, rgba(124, 58, 237, 0.9) 100%);">
                         <i class="fa-brands fa-discord fa-lg"></i> Log In with Discord
                     </a>
                 </div>
@@ -467,7 +517,7 @@
                         <span style="font-weight:600; font-size:0.88rem; display:block;">Read-Only / Announcement</span>
                         <span style="font-size:0.75rem; color:var(--text-sub);">Only admins can send messages</span>
                     </div>
-                    <input type="checkbox" id="edit-chan-readonly" style="width:18px; height:18px;" onchange="updateActiveChannel()">
+                    <input type="checkbox" id="edit-chan-readonly" style="width:18px; height:18px; accent-color: var(--accent-purple);" onchange="updateActiveChannel()">
                 </div>
             </div>
 
@@ -486,14 +536,14 @@
 
         <!-- PAGE 4: COMPLETION -->
         <div id="page-final" class="page" style="text-align: center;">
-            <i class="fa-solid fa-circle-check fa-3x" style="color: var(--accent-green); margin-bottom: 18px;"></i>
+            <i class="fa-solid fa-circle-check fa-3x" style="color: var(--accent-green); margin-bottom: 18px; filter: drop-shadow(0 0 10px rgba(46, 204, 113, 0.4));"></i>
             <div class="brand-header">
                 <h1>Blueprint Submitted!</h1>
                 <p>Your blueprint has been uploaded and sent to staff.</p>
             </div>
 
             <!-- BOT INVITE REDIRECT BUTTON -->
-            <a id="bot-invite-btn" href="#" target="_blank" class="btn-glass" style="margin-bottom: 12px; background: #2b2d31; border: 1px solid var(--accent-purple); text-decoration: none;">
+            <a id="bot-invite-btn" href="#" target="_blank" class="btn-glass" style="margin-bottom: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--accent-purple); text-decoration: none;">
                 <i class="fa-brands fa-discord"></i> Add Bot to Server
             </a>
 
@@ -586,6 +636,13 @@
             return (str || '').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
         }
 
+        function formatDiscordChannelName(name) {
+            return stripEmoji(name)
+                .toLowerCase()
+                .replace(/[^a-z0-0\s-_]/g, '')
+                .replace(/\s+/g, '-');
+        }
+
         async function handleAIGeneration() {
             const btn = document.getElementById('generate-btn');
             btn.disabled = true;
@@ -648,7 +705,7 @@
                     item.onclick = () => selectChannel(cIdx, chIdx);
 
                     const icon = chan.type === 'voice' ? '🔊' : '#';
-                    const cleanName = stripEmoji(chan.name);
+                    const cleanName = formatDiscordChannelName(chan.name);
 
                     item.innerHTML = `
                         <div style="display:flex; align-items:center; gap:8px;">
@@ -669,7 +726,6 @@
                 catDiv.appendChild(addChanBtn);
                 container.appendChild(catDiv);
 
-                // Configured Sortable JS with delay/threshold to prevent scrolling issues
                 new Sortable(channelList, {
                     group: 'channels',
                     animation: 150,
@@ -697,7 +753,7 @@
             const chan = currentLayout.categories[activeCatIdx]?.channels[activeChanIdx];
             if (!chan) return;
 
-            const cleanName = stripEmoji(chan.name);
+            const cleanName = formatDiscordChannelName(chan.name);
             document.getElementById('channel-settings-title').innerText = `Channel Settings — #${cleanName || 'channel'}`;
             document.getElementById('edit-chan-emoji').value = chan.emoji || '';
             document.getElementById('edit-chan-name').value = cleanName || '';
@@ -711,7 +767,7 @@
             if (!chan) return;
 
             chan.emoji = document.getElementById('edit-chan-emoji').value.trim();
-            chan.name = stripEmoji(document.getElementById('edit-chan-name').value);
+            chan.name = formatDiscordChannelName(document.getElementById('edit-chan-name').value);
             chan.type = document.getElementById('edit-chan-type').value;
             chan.topic = document.getElementById('edit-chan-topic').value;
             chan.read_only = document.getElementById('edit-chan-readonly').checked;
@@ -727,7 +783,7 @@
                 const pill = document.createElement('div');
                 pill.className = 'role-pill';
                 pill.innerHTML = `
-                    <span class="role-dot" style="background:${r.color || '#5865f2'}"></span>
+                    <span class="role-dot" style="background:${r.color || '#8b5cf6'}"></span>
                     <span>${r.name}</span>
                     <i class="fa-solid fa-xmark" onclick="deleteRole(${idx})" style="cursor:pointer; margin-left:4px;"></i>
                 `;
@@ -767,7 +823,7 @@
             const name = prompt("Role name:");
             if (name) {
                 if(!currentLayout.roles) currentLayout.roles = [];
-                currentLayout.roles.push({ name, color: "#5865f2" });
+                currentLayout.roles.push({ name, color: "#8b5cf6" });
                 renderRoles();
             }
         }
@@ -821,7 +877,15 @@
         }
 
         function resetBuilder() {
-            window.location.href = '/logout';
+            document.getElementById('gen-prompt').value = '';
+            currentLayout = {
+                server_name: "Echo Studio",
+                roles: [],
+                categories: []
+            };
+            activeCatIdx = 0;
+            activeChanIdx = 0;
+            navigateTo('page-generator');
         }
     </script>
 </body>
