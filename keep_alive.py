@@ -99,9 +99,18 @@ def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc
 
     if extra_fields:
         for k, v in extra_fields.items():
+            val_str = str(v)
+            # If the field is an Invite Link, leave it unformatted so Discord renders it cleanly as a URL
+            if k == "Invite Link":
+                field_val = val_str
+            elif len(val_str) > 80:
+                field_val = f"```\n{val_str[:1000]}\n```"
+            else:
+                field_val = f"`{val_str}`"
+
             fields.append({
                 "name": f"🔹 {k}",
-                "value": f"```\n{str(v)[:1000]}\n```" if len(str(v)) > 80 else f"`{v}`",
+                "value": field_val,
                 "inline": False
             })
 
@@ -291,7 +300,7 @@ def api_generate():
             webhook_url=WEBSITE_WEBHOOK_URL,
             title="⚠️ AI Blueprint Generation Failed",
             user_data=user,
-            action_desc=f"All models failed to generate server layout.",
+            action_desc="All models failed to generate server layout.",
             color=0xf43f5e,
             extra_fields={"Error": str(last_error), "Prompt": prompt}
         )
@@ -336,7 +345,7 @@ def submit_design():
         webhook_url=DESIGN_WEBHOOK_URL,
         title="🚀 New Server Blueprint Submitted",
         user_data=user,
-        action_desc=f"User submitted a server blueprint for deployment.",
+        action_desc="User submitted a server blueprint for deployment.",
         color=0x2ecc71,
         extra_fields={
             "Server Name": server_name,
