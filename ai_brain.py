@@ -113,7 +113,7 @@ async def send_webhook_log(
             }
         ],
         "footer": {
-            "text": "Echo Studio Logging System"
+            "text": "Kumo Logging System"
         },
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
@@ -126,7 +126,7 @@ async def send_webhook_log(
         })
 
     payload = {
-        "username": "Echo Studio Logger",
+        "username": "Kumo Logger",
         "avatar_url": "https://cdn.discordapp.com/embed/avatars/0.png",
         "embeds": [embed]
     }
@@ -156,7 +156,7 @@ async def generate_server_layout(
     client = genai.Client(api_key=api_key)
 
     system_instruction = (
-        "You are an expert Discord Community Architect. Your goal is to design a clean, logical, "
+        "You are Kumo, an expert Discord Community Architect. Your goal is to design a clean, logical, "
         "and well-structured Discord server based on the user's requirements.\n"
         "Guidelines:\n"
         "1. Organize the server into clear, functional categories (e.g., WELCOME, GENERAL, GAMING, VOICE).\n"
