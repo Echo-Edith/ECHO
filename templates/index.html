@@ -90,7 +90,7 @@
         }
 
         .glass-panel.layout-mode {
-            max-width: 580px;
+            max-width: 620px;
         }
 
         .page {
@@ -213,6 +213,11 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             transition: all 0.2s ease;
+        }
+
+        .form-control option {
+            background: #121020;
+            color: #ffffff;
         }
 
         .form-control:focus {
@@ -390,6 +395,69 @@
             border-radius: 50%;
         }
 
+        /* Permissions Modal Styling */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            z-index: 999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .modal-card {
+            background: #121020;
+            border: 1px solid var(--panel-border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 520px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+
+        .perm-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .perm-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-inner-border);
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+
+        .sync-channel-checkboxes {
+            max-height: 180px;
+            overflow-y: auto;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .sync-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 4px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
         .spinner {
             border: 2px solid rgba(255,255,255,0.2);
             width: 16px;
@@ -527,12 +595,52 @@
                 <button class="add-btn-inline" onclick="addNewRole()">+ New Role</button>
             </div>
 
+            <button id="next-page-btn" class="btn-glass" onclick="goToPermissionsPage()">
+                <span>Next Page: Permissions</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <!-- PAGE 4: PERMISSIONS MANAGEMENT -->
+        <div id="page-permissions" class="page">
+            <div class="brand-header">
+                <h1>Channel & Category Permissions</h1>
+                <p>Configure specific permissions and bulk sync across multiple channels.</p>
+            </div>
+
+            <div class="editor-card">
+                <div class="form-group">
+                    <label class="label-heading">SELECT CATEGORY OR CHANNEL TO CONFIGURE <span class="required">*</span></label>
+                    <select id="perm-target-selector" class="form-control" onchange="handleTargetSelection()">
+                        <option value="">-- Choose Category or Channel --</option>
+                    </select>
+                </div>
+
+                <div id="target-config-area" style="display: none;">
+                    <div class="form-group">
+                        <label class="label-heading">TARGET ROLE</label>
+                        <select id="perm-role-selector" class="form-control" onchange="loadPermissionsForTarget()">
+                            <option value="@everyone">@everyone</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-glass" style="background: rgba(139, 92, 246, 0.2); border: 1px solid var(--accent-purple); margin-bottom: 16px;" onclick="openPermissionsModal()">
+                        <i class="fa-solid fa-sliders"></i> Edit Advanced Permissions Modal
+                    </button>
+
+                    <div class="form-group">
+                        <label class="label-heading">BULK SYNC PERMISSIONS TO OTHER CHANNELS/CATEGORIES</label>
+                        <p style="font-size: 0.78rem; color: var(--text-sub); margin-bottom: 8px;">Select infinite channels/categories to immediately mirror these settings:</p>
+                        <div id="sync-channel-list" class="sync-channel-checkboxes"></div>
+                    </div>
+                </div>
+            </div>
+
             <button id="submit-design-btn" class="btn-glass" onclick="handleSubmitDesign()">
                 <i class="fa-solid fa-paper-plane"></i> <span>Submit Server Design</span>
             </button>
         </div>
 
-        <!-- PAGE 4: COMPLETION -->
+        <!-- PAGE 5: COMPLETION -->
         <div id="page-final" class="page" style="text-align: center;">
             <i class="fa-solid fa-circle-check fa-3x" style="color: var(--accent-green); margin-bottom: 18px; filter: drop-shadow(0 0 10px rgba(46, 204, 113, 0.4));"></i>
             <div class="brand-header">
@@ -551,6 +659,24 @@
 
     </div>
 
+    <!-- ADVANCED PERMISSIONS MODAL -->
+    <div id="permissions-modal" class="modal-backdrop">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 id="modal-title" style="font-size:1.1rem; font-weight:700;">Advanced Permissions</h3>
+                <i class="fa-solid fa-xmark" onclick="closePermissionsModal()" style="cursor:pointer; font-size:1.2rem;"></i>
+            </div>
+
+            <div class="perm-grid" id="modal-perm-grid">
+                <!-- Checkboxes populated via JS -->
+            </div>
+
+            <button class="btn-glass" style="margin-top: 20px;" onclick="saveModalPermissions()">
+                Save & Apply Permissions
+            </button>
+        </div>
+    </div>
+
     <script>
         const RECAPTCHA_SITE_KEY = "{{ recaptcha_site_key }}";
         const DISCORD_CLIENT_ID = "{{ discord_client_id }}";
@@ -567,15 +693,30 @@
                 {
                     name: "INFORMATION",
                     emoji: "📌",
+                    permissions: {},
                     channels: [
-                        { name: "welcome", emoji: "👋", type: "text", topic: "Welcome channel", read_only: false },
-                        { name: "announcements", emoji: "📢", type: "text", topic: "Server updates", read_only: true }
+                        { name: "welcome", emoji: "👋", type: "text", topic: "Welcome channel", read_only: false, permissions: {} },
+                        { name: "announcements", emoji: "📢", type: "text", topic: "Server updates", read_only: true, permissions: {} }
                     ]
                 }
             ] 
         };
         let activeCatIdx = 0;
         let activeChanIdx = 0;
+
+        const DISCORD_PERMISSIONS_LIST = [
+            { id: "view", label: "View Channel" },
+            { id: "send", label: "Send Messages" },
+            { id: "embed", label: "Embed Links" },
+            { id: "attach", label: "Attach Files" },
+            { id: "history", label: "Read Message History" },
+            { id: "connect", label: "Connect (Voice)" },
+            { id: "speak", label: "Speak (Voice)" },
+            { id: "manage", label: "Manage Channel" }
+        ];
+
+        let selectedTargetKey = ""; // Format: "cat-0" or "chan-0-1"
+        let activePermissionsBuffer = {};
 
         function onRecaptchaLoad() {
             const container = document.getElementById('recaptcha-container');
@@ -621,7 +762,7 @@
             document.getElementById(pageId).classList.add('active');
             
             const panelWrapper = document.getElementById('panel-wrapper');
-            if (pageId === 'page-layout') {
+            if (pageId === 'page-layout' || pageId === 'page-permissions') {
                 panelWrapper.classList.add('layout-mode');
             } else {
                 panelWrapper.classList.remove('layout-mode');
@@ -703,7 +844,6 @@
                 const catDiv = document.createElement('div');
                 catDiv.className = 'discord-category';
 
-                // Deduplicate emoji rendering: Strip existing emojis from cat.name first
                 const cleanCatName = stripEmoji(cat.name || 'CATEGORY');
                 const displayName = cat.emoji ? `${cat.emoji} ${cleanCatName}` : cleanCatName;
 
@@ -743,33 +883,6 @@
                 catDiv.appendChild(channelList);
                 catDiv.appendChild(addChanBtn);
                 container.appendChild(catDiv);
-
-                new Sortable(channelList, {
-                    group: 'channels',
-                    animation: 150,
-                    delay: 200,
-                    delayOnTouchOnly: true,
-                    touchStartThreshold: 5,
-                    onEnd: function (evt) {
-                        const movedItem = cat.channels.splice(evt.oldIndex, 1)[0];
-                        cat.channels.splice(evt.newIndex, 0, movedItem);
-                        activeChanIdx = evt.newIndex;
-                        renderDashboard();
-                    }
-                });
-            });
-
-            new Sortable(container, {
-                animation: 150,
-                delay: 200,
-                delayOnTouchOnly: true,
-                touchStartThreshold: 5,
-                onEnd: function (evt) {
-                    const movedCat = currentLayout.categories.splice(evt.oldIndex, 1)[0];
-                    currentLayout.categories.splice(evt.newIndex, 0, movedCat);
-                    activeCatIdx = evt.newIndex;
-                    renderDashboard();
-                }
             });
         }
 
@@ -825,22 +938,11 @@
                 `;
                 container.appendChild(pill);
             });
-
-            new Sortable(container, {
-                animation: 150,
-                delay: 200,
-                delayOnTouchOnly: true,
-                touchStartThreshold: 5,
-                onEnd: function (evt) {
-                    const movedRole = currentLayout.roles.splice(evt.oldIndex, 1)[0];
-                    currentLayout.roles.splice(evt.newIndex, 0, movedRole);
-                }
-            });
         }
 
         function addCategory() {
             if (!currentLayout.categories) currentLayout.categories = [];
-            currentLayout.categories.push({ name: "NEW CATEGORY", emoji: "📁", channels: [] });
+            currentLayout.categories.push({ name: "NEW CATEGORY", emoji: "📁", permissions: {}, channels: [] });
             activeCatIdx = currentLayout.categories.length - 1;
             activeChanIdx = 0;
             renderDashboard();
@@ -848,7 +950,7 @@
 
         function addChannel(cIdx) {
             if(!currentLayout.categories[cIdx].channels) currentLayout.categories[cIdx].channels = [];
-            currentLayout.categories[cIdx].channels.push({ name: "new-channel", type: "text", read_only: false });
+            currentLayout.categories[cIdx].channels.push({ name: "new-channel", type: "text", read_only: false, permissions: {} });
             selectChannel(cIdx, currentLayout.categories[cIdx].channels.length - 1);
         }
 
@@ -863,7 +965,7 @@
 
         function deleteChannel(cIdx, chIdx) {
             currentLayout.categories[cIdx].channels.splice(chIdx, 1);
-            if (activeChanIdx >= currentLayout.categories[cIdx].channels.length) {
+            if (activeChanIdx >= currentLayout.categories.length) {
                 activeChanIdx = Math.max(0, currentLayout.categories[cIdx].channels.length - 1);
             }
             renderDashboard();
@@ -881,6 +983,161 @@
         function deleteRole(idx) {
             currentLayout.roles.splice(idx, 1);
             renderRoles();
+        }
+
+        /* --- PAGE 4: PERMISSIONS CONTROLS --- */
+        function goToPermissionsPage() {
+            populatePermissionsDropdowns();
+            navigateTo('page-permissions');
+        }
+
+        function populatePermissionsDropdowns() {
+            const selector = document.getElementById('perm-target-selector');
+            selector.innerHTML = `<option value="">-- Choose Category or Channel --</option>`;
+
+            const roleSelector = document.getElementById('perm-role-selector');
+            roleSelector.innerHTML = `<option value="@everyone">@everyone</option>`;
+            (currentLayout.roles || []).forEach(r => {
+                roleSelector.innerHTML += `<option value="${r.name}">${r.name}</option>`;
+            });
+
+            (currentLayout.categories || []).forEach((cat, cIdx) => {
+                const catName = stripEmoji(cat.name || `Category ${cIdx + 1}`);
+                selector.innerHTML += `<option value="cat-${cIdx}">📁 CATEGORY: ${catName}</option>`;
+
+                (cat.channels || []).forEach((chan, chIdx) => {
+                    const cName = formatDiscordChannelName(chan.name);
+                    selector.innerHTML += `<option value="chan-${cIdx}-${chIdx}">&nbsp;&nbsp;&nbsp;&nbsp;# ${cName}</option>`;
+                });
+            });
+
+            document.getElementById('target-config-area').style.display = 'none';
+        }
+
+        function handleTargetSelection() {
+            selectedTargetKey = document.getElementById('perm-target-selector').value;
+            if (!selectedTargetKey) {
+                document.getElementById('target-config-area').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('target-config-area').style.display = 'block';
+            populateBulkSyncList();
+            loadPermissionsForTarget();
+        }
+
+        function getSelectedTargetObject() {
+            if (selectedTargetKey.startsWith('cat-')) {
+                const cIdx = parseInt(selectedTargetKey.split('-')[1]);
+                return currentLayout.categories[cIdx];
+            } else if (selectedTargetKey.startsWith('chan-')) {
+                const parts = selectedTargetKey.split('-');
+                return currentLayout.categories[parseInt(parts[1])]?.channels[parseInt(parts[2])];
+            }
+            return null;
+        }
+
+        function loadPermissionsForTarget() {
+            const targetObj = getSelectedTargetObject();
+            if (!targetObj) return;
+
+            if (!targetObj.permissions) targetObj.permissions = {};
+            const activeRole = document.getElementById('perm-role-selector').value;
+
+            if (!targetObj.permissions[activeRole]) {
+                targetObj.permissions[activeRole] = {
+                    view: true, send: true, embed: true, attach: true, history: true, connect: true, speak: true, manage: false
+                };
+            }
+
+            activePermissionsBuffer = { ...targetObj.permissions[activeRole] };
+        }
+
+        function populateBulkSyncList() {
+            const syncContainer = document.getElementById('sync-channel-list');
+            syncContainer.innerHTML = '';
+
+            (currentLayout.categories || []).forEach((cat, cIdx) => {
+                const catKey = `cat-${cIdx}`;
+                if (catKey !== selectedTargetKey) {
+                    const catName = stripEmoji(cat.name || `Category ${cIdx + 1}`);
+                    syncContainer.innerHTML += `
+                        <label class="sync-item">
+                            <input type="checkbox" value="${catKey}" class="sync-target-cb"> 📁 CATEGORY: ${catName}
+                        </label>
+                    `;
+                }
+
+                (cat.channels || []).forEach((chan, chIdx) => {
+                    const chanKey = `chan-${cIdx}-${chIdx}`;
+                    if (chanKey !== selectedTargetKey) {
+                        const cName = formatDiscordChannelName(chan.name);
+                        syncContainer.innerHTML += `
+                            <label class="sync-item">
+                                <input type="checkbox" value="${chanKey}" class="sync-target-cb"> # ${cName}
+                            </label>
+                        `;
+                    }
+                });
+            });
+        }
+
+        function openPermissionsModal() {
+            const grid = document.getElementById('modal-perm-grid');
+            grid.innerHTML = '';
+
+            DISCORD_PERMISSIONS_LIST.forEach(p => {
+                const isChecked = activePermissionsBuffer[p.id] !== false;
+                grid.innerHTML += `
+                    <div class="perm-item">
+                        <span style="font-size:0.88rem; font-weight:600;">${p.label}</span>
+                        <input type="checkbox" id="perm-cb-${p.id}" ${isChecked ? 'checked' : ''} style="width:18px; height:18px; accent-color: var(--accent-purple);">
+                    </div>
+                `;
+            });
+
+            document.getElementById('permissions-modal').style.display = 'flex';
+        }
+
+        function closePermissionsModal() {
+            document.getElementById('permissions-modal').style.display = 'none';
+        }
+
+        function saveModalPermissions() {
+            DISCORD_PERMISSIONS_LIST.forEach(p => {
+                const cb = document.getElementById(`perm-cb-${p.id}`);
+                if (cb) activePermissionsBuffer[p.id] = cb.checked;
+            });
+
+            const targetObj = getSelectedTargetObject();
+            const activeRole = document.getElementById('perm-role-selector').value;
+
+            if (targetObj) {
+                if (!targetObj.permissions) targetObj.permissions = {};
+                targetObj.permissions[activeRole] = { ...activePermissionsBuffer };
+
+                // Apply Bulk Sync to Selected Infinite Targets
+                document.querySelectorAll('.sync-target-cb:checked').forEach(cb => {
+                    const syncKey = cb.value;
+                    let targetSyncObj = null;
+
+                    if (syncKey.startsWith('cat-')) {
+                        const cIdx = parseInt(syncKey.split('-')[1]);
+                        targetSyncObj = currentLayout.categories[cIdx];
+                    } else if (syncKey.startsWith('chan-')) {
+                        const parts = syncKey.split('-');
+                        targetSyncObj = currentLayout.categories[parseInt(parts[1])]?.channels[parseInt(parts[2])];
+                    }
+
+                    if (targetSyncObj) {
+                        if (!targetSyncObj.permissions) targetSyncObj.permissions = {};
+                        targetSyncObj.permissions[activeRole] = { ...activePermissionsBuffer };
+                    }
+                });
+            }
+
+            closePermissionsModal();
+            alert('Permissions updated and synced successfully!');
         }
 
         function updateBotInviteLink() {
