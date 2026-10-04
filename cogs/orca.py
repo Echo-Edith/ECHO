@@ -1,9 +1,10 @@
+import os
+import re
+import json
+import aiohttp
 import discord
 from discord.ext import commands
 from discord import app_commands
-import aiohttp
-import json
-import re
 
 class OrcaCog(commands.Cog):
     def __init__(self, bot):
@@ -46,6 +47,46 @@ class OrcaCog(commands.Cog):
             except Exception as e:
                 print(f"Failed to create fallback channel: {e}")
 
+    # --- PING COMMAND ---
+    @app_commands.command(
+        name="ping",
+        description="Check the bot's response latency."
+    )
+    async def ping(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True)
+        
+        latency = round(self.bot.latency * 1000)
+        embed = discord.Embed(
+            title="🏓 Pong!",
+            description=f"Bot Latency: `{latency}ms`",
+            color=0x3b82f6
+        )
+        embed.set_footer(text="Echo Studio Infrastructure")
+        await interaction.followup.send(embed=embed)
+
+    # --- WEBSITE COMMAND ---
+    @app_commands.command(
+        name="website",
+        description="Get the link to the dashboard and website."
+    )
+    async def website(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True)
+
+        website_url = os.getenv("WEBSITE_URL", os.getenv("DASHBOARD_URL", "https://echo-dashboard-qn39.onrender.com"))
+        
+        embed = discord.Embed(
+            title="🌐 Echo Studio Portal",
+            description=f"Click the link below to access the dashboard:\n\n🔗 [{website_url}]({website_url})",
+            color=0x8b5cf6
+        )
+        embed.set_footer(text="Echo Studio Dashboard")
+
+        # Create button link view
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="Visit Website", url=website_url, style=discord.ButtonStyle.link))
+
+        await interaction.followup.send(embed=embed, view=view)
+
     # --- BUILD COMMAND ---
     @app_commands.command(
         name="build",
@@ -63,7 +104,7 @@ class OrcaCog(commands.Cog):
         file: discord.Attachment = None,
         server_id: str = None
     ):
-        await interaction.response.defer(ephemeral=False)
+        await interaction.response.defer(thinking=True)
 
         blueprint_data = None
 
@@ -79,11 +120,21 @@ class OrcaCog(commands.Cog):
                         if resp.status == 200:
                             blueprint_data = await resp.json()
         except Exception as e:
-            await interaction.followup.send(f"❌ Failed to fetch blueprint data: `{e}`")
+            err_embed = discord.Embed(
+                title="❌ Fetch Error",
+                description=f"Failed to fetch blueprint data: `{e}`",
+                color=0xf43f5e
+            )
+            await interaction.followup.send(embed=err_embed)
             return
 
         if not blueprint_data:
-            await interaction.followup.send("❌ Please provide a valid `url:` link or upload a `file:` attachment.")
+            err_embed = discord.Embed(
+                title="❌ Invalid Input",
+                description="Please provide a valid `url:` link or upload a `file:` attachment.",
+                color=0xf43f5e
+            )
+            await interaction.followup.send(embed=err_embed)
             return
 
         # Determine dynamic target Guild ID
@@ -104,14 +155,21 @@ class OrcaCog(commands.Cog):
                 guild = None
 
         if not guild:
-            await interaction.followup.send(
-                f"❌ Bot is not in target server (`{target_guild_id}`). "
-                "Please invite the bot to the server first using your bot invite link!"
+            err_embed = discord.Embed(
+                title="❌ Target Guild Not Found",
+                description=f"Bot is not in target server (`{target_guild_id}`). Please invite the bot to the server first!",
+                color=0xf43f5e
             )
+            await interaction.followup.send(embed=err_embed)
             return
 
         # STEP 1: NUKE EXISTING INFRASTRUCTURE
-        await interaction.followup.send(f"💥 Nuking **{guild.name}** before building standard infrastructure...")
+        progress_embed = discord.Embed(
+            title="💥 Infrastructure Wipe Initiated",
+            description=f"Nuking **{guild.name}** before deploying blueprint...",
+            color=0xeab308
+        )
+        await interaction.followup.send(embed=progress_embed)
         await self.wipe_guild_infrastructure(guild, leave_fallback_channel=False)
 
         # STEP 2: CREATE ROLES
@@ -183,6 +241,7 @@ class OrcaCog(commands.Cog):
             description=f"Successfully nuked previous layout and deployed new blueprint to **{guild.name}** (`{guild.id}`).",
             color=0x2ecc71
         )
+        embed.set_footer(text="Echo Studio Infrastructure")
         
         try:
             await interaction.followup.send(embed=embed)
@@ -204,10 +263,15 @@ class OrcaCog(commands.Cog):
         server_id: str = None
     ):
         if not await self.bot.is_owner(interaction.user):
-            await interaction.response.send_message("❌ Only the Bot Owner can execute `/nuke`.", ephemeral=True)
+            err_embed = discord.Embed(
+                title="❌ Access Denied",
+                description="Only the Bot Owner can execute `/nuke`.",
+                color=0xf43f5e
+            )
+            await interaction.response.send_message(embed=err_embed, ephemeral=True)
             return
 
-        await interaction.response.defer(ephemeral=False)
+        await interaction.response.defer(thinking=True)
 
         target_guild_id = int(server_id.strip()) if server_id else interaction.guild_id
         guild = self.bot.get_guild(target_guild_id)
@@ -219,17 +283,32 @@ class OrcaCog(commands.Cog):
                 guild = None
 
         if not guild:
-            await interaction.followup.send(f"❌ Guild ID `{target_guild_id}` not found or bot is not present.")
+            err_embed = discord.Embed(
+                title="❌ Guild Not Found",
+                description=f"Guild ID `{target_guild_id}` not found or bot is not present.",
+                color=0xf43f5e
+            )
+            await interaction.followup.send(embed=err_embed)
             return
 
         leave_channel = False if server_id else True
 
-        await interaction.followup.send(f"⚠️ Initiating complete server nuke on **{guild.name}** (`{guild.id}`)...")
+        init_embed = discord.Embed(
+            title="⚠️ Server Nuke Initiated",
+            description=f"Initiating complete server nuke on **{guild.name}** (`{guild.id}`)...",
+            color=0xeab308
+        )
+        await interaction.followup.send(embed=init_embed)
         await self.wipe_guild_infrastructure(guild, leave_fallback_channel=leave_channel)
 
         if server_id:
             try:
-                await interaction.user.send(f"💥 Complete server nuke executed on **{guild.name}** (`{guild.id}`). All channels & roles deleted.")
+                dm_embed = discord.Embed(
+                    title="💥 Server Nuked",
+                    description=f"Complete server nuke executed on **{guild.name}** (`{guild.id}`). All channels & roles deleted.",
+                    color=0x2ecc71
+                )
+                await interaction.user.send(embed=dm_embed)
             except Exception:
                 pass
 
