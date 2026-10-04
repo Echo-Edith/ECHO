@@ -15,20 +15,12 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def setup_hook():
-    """Runs setup operations before the bot starts accepting events."""
-    # 1. Load the primary command cog
+    """Runs setup operations before the bot connects to Discord."""
     try:
         await bot.load_extension("cogs.orca")
         print("✅ Successfully loaded cog: cogs.orca")
     except Exception as e:
         print(f"❌ Failed to load cog cogs.orca: {e}")
-
-    # 2. Sync slash commands globally across Discord on boot
-    try:
-        synced = await bot.tree.sync()
-        print(f"⚡ Global sync queued: {len(synced)} slash command(s) registered.")
-    except Exception as e:
-        print(f"❌ Failed to sync slash commands: {e}")
 
 
 @bot.event
@@ -39,6 +31,13 @@ async def on_ready():
     print(f"🔗 DESIGN_WEBHOOK_URL:  {'LOADED (' + DESIGN_WEBHOOK_URL[:30] + '...)' if DESIGN_WEBHOOK_URL else '❌ MISSING'}")
     print("-----------------------------------")
 
+    # Global Sync on ready guarantees registered commands are sent to Discord's API
+    try:
+        synced = await bot.tree.sync()
+        print(f"⚡ Global command sync successful: Registered {len(synced)} command(s).")
+    except Exception as e:
+        print(f"❌ Failed to sync global commands: {e}")
+
 
 # --- OWNER-ONLY SYNC COMMAND ---
 @bot.command(name="sync")
@@ -47,25 +46,23 @@ async def sync(ctx: commands.Context, guild_only: bool = False):
     """
     Owner prefix command to sync slash commands manually.
     Usage:
-      !sync       -> Triggers global sync
-      !sync true  -> Copies global commands directly to the current server for INSTANT access
+      !sync       -> Triggers global sync (restores badge)
+      !sync true  -> Instantly copies commands to current server
     """
     if guild_only:
-        # Copies global commands into the current guild and syncs immediately
         bot.tree.copy_global_to(guild=ctx.guild)
         synced = await bot.tree.sync(guild=ctx.guild)
-        await ctx.send(f"⚡ **Instantly synced** `{len(synced)}` command(s) to **{ctx.guild.name}**! (Press Ctrl+R / restart app if not visible immediately)")
+        await ctx.send(f"⚡ **Instantly synced** `{len(synced)}` command(s) to **{ctx.guild.name}**!")
     else:
-        # Standard global sync
         synced = await bot.tree.sync()
-        await ctx.send(f"🌐 Triggered global sync for `{len(synced)}` command(s). (Discord global cache takes up to 1 hour to propagate)")
+        await ctx.send(f"🌐 Triggered global sync for `{len(synced)}` command(s). Badge should reappear shortly!")
 
 
 async def main():
-    # 1. Start Flask web server in a non-blocking background daemon thread
+    # 1. Start Flask web server
     keep_alive()
 
-    # 2. Get Discord Bot Token and boot bot
+    # 2. Get Discord Bot Token and start bot
     token = os.getenv("DISCORD_BOT_TOKEN")
     if not token:
         raise ValueError("CRITICAL: DISCORD_BOT_TOKEN environment variable is missing!")
