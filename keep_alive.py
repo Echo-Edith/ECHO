@@ -2,7 +2,6 @@ import os
 import json
 import requests
 from datetime import datetime, timezone
-from threading import Thread
 from flask import Flask, redirect, request, session, render_template, jsonify, send_from_directory
 from pymongo import MongoClient
 from google import genai
@@ -11,19 +10,17 @@ from google.genai import types
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-fallback")
 
-# Ensure blueprints directory exists for hosting design files
-BLUEPRINTS_DIR = os.path.join(os.getcwd(), "blueprints")
+# Serverless environments (like Vercel) only allow writing to /tmp
+BLUEPRINTS_DIR = "/tmp/blueprints" if os.getenv("VERCEL") else os.path.join(os.getcwd(), "blueprints")
 os.makedirs(BLUEPRINTS_DIR, exist_ok=True)
 
-# Environment Variable Mapping
 CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
-DASHBOARD_URL = os.getenv("DASHBOARD_URL", os.getenv("RENDER_EXTERNAL_URL", "https://static-studio-dashboard.onrender.com"))
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "https://your-vercel-domain.vercel.app")
 REDIRECT_URI = f"{DASHBOARD_URL.rstrip('/')}/callback"
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
 
-# Webhook URLs
 SYSTEM_LOG_WEBHOOK_URL = os.getenv("SYSTEM_LOG_WEBHOOK_URL")
 WEBSITE_WEBHOOK_URL = os.getenv("WEBSITE_WEBHOOK_URL", SYSTEM_LOG_WEBHOOK_URL)
 DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL", SYSTEM_LOG_WEBHOOK_URL)
@@ -33,14 +30,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 DISCORD_API_BASE_URL = "https://discord.com/api/v10"
 
-# Model sequence for automatic error fallback
 GEMINI_MODELS = [
     "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-1.5-flash"
 ]
 
-# MongoDB Ban Database Setup
 db_bans = None
 if MONGO_URI:
     try:
@@ -81,9 +76,7 @@ def is_user_banned(user_id):
 
 
 def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc: str, color: int = 0x8b5cf6, extra_fields: dict = None):
-    """Sends structured embed logs to specified Discord Webhook URL."""
     if not webhook_url:
-        print(f"[Log Skip] Webhook URL missing for event: {title}")
         return
     
     user_data = user_data or {}
@@ -109,7 +102,6 @@ def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc
             if k == "Invite Link":
                 field_val = val_str
             elif k.startswith("🔑"):
-                # Keep build command styling clean inside code formatting blocks
                 field_val = f"`{val_str}`"
             elif len(val_str) > 80:
                 field_val = f"```json\n{val_str[:1000]}\n```"
@@ -134,9 +126,7 @@ def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc
         }]
     }
     try:
-        res = requests.post(webhook_url, json=payload, timeout=5)
-        if res.status_code not in (200, 204):
-            print(f"[Log Error] Webhook responded with status code: {res.status_code}")
+        requests.post(webhook_url, json=payload, timeout=5)
     except Exception as e:
         print(f"[Log Error] Webhook post failure: {e}")
 
@@ -144,7 +134,6 @@ def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc
 @app.route("/")
 def home():
     user = session.get("user")
-    
     if user:
         ban_info = is_user_banned(user["id"])
         if ban_info:
@@ -349,7 +338,6 @@ def submit_design():
     
     layout = data.get("layout") or data.get("build_file") or data.get("file")
 
-    # Generate unique blueprint filename and save JSON to disk
     file_id = f"blueprint_{int(datetime.now().timestamp() * 1000)}"
     filename = f"{file_id}.json"
     file_path = os.path.join(BLUEPRINTS_DIR, filename)
@@ -386,7 +374,6 @@ def submit_design():
 
 @app.route("/blueprint/<path:filename>")
 def serve_blueprint(filename):
-    """Serves the generated blueprint json file so the bot can fetch it via URL."""
     return send_from_directory(BLUEPRINTS_DIR, filename, mimetype="application/json")
 
 
@@ -400,15 +387,7 @@ def logout():
 def health():
     return jsonify({"status": "alive"}), 200
 
-
-def run():
+# Serverless Entry Point for Vercel
+if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, use_reloader=False)
-
-
-def keep_alive():
-    """Launches Flask server on a background daemon thread so it doesn't block main execution."""
-    t = Thread(target=run)
-    t.daemon = True
-    t.start()
-    return app
+    app.run(host="0.0.0.0", port=port)
