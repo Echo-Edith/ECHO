@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Discord Infrastructure Architect</title>
+    <title>Kumo — Discord Infrastructure Architect</title>
     
     <!-- Google reCAPTCHA v2 API -->
     <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
@@ -478,7 +478,7 @@
         <!-- PAGE 1: LANDING & CAPTCHA/AUTH -->
         <div id="page-landing" class="page active">
             <div class="brand-header">
-                <h1>Discord Infrastructure</h1>
+                <h1>Kumo Architect</h1>
                 <p>Verify to begin generating your Discord layout.</p>
             </div>
 
@@ -511,7 +511,7 @@
         <!-- PAGE 2: GENERATOR PROMPT -->
         <div id="page-generator" class="page">
             <div class="brand-header">
-                <h1>Server Layout Generator</h1>
+                <h1>Kumo Layout Generator</h1>
                 <p>AI will build your Discord channel & role architecture.</p>
             </div>
 
@@ -966,7 +966,7 @@
         function deleteChannel(cIdx, chIdx) {
             currentLayout.categories[cIdx].channels.splice(chIdx, 1);
             if (activeChanIdx >= currentLayout.categories.length) {
-                activeChanIdx = Math.max(0, currentLayout.categories[cIdx].channels.length - 1);
+                activeChanIdx = Math.max(0, currentLayout.categories.length - 1);
             }
             renderDashboard();
         }
