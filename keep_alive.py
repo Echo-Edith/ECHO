@@ -18,7 +18,7 @@ os.makedirs(BLUEPRINTS_DIR, exist_ok=True)
 # Environment Variable Mapping
 CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
-DASHBOARD_URL = os.getenv("DASHBOARD_URL", os.getenv("RENDER_EXTERNAL_URL", "https://echo-dashboard-qn39.onrender.com"))
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", os.getenv("RENDER_EXTERNAL_URL", "https://static-studio-dashboard.onrender.com"))
 REDIRECT_URI = f"{DASHBOARD_URL.rstrip('/')}/callback"
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
@@ -48,7 +48,7 @@ if MONGO_URI:
         try:
             db = mongo_client.get_default_database()
         except Exception:
-            db = mongo_client["echo_db"]
+            db = mongo_client["static_studio_db"]
         db_bans = db["bans"]
     except Exception as e:
         print(f"[MongoDB Warning] Could not connect to Mongo: {e}")
@@ -123,13 +123,13 @@ def log_webhook_event(webhook_url: str, title: str, user_data: dict, action_desc
             })
 
     payload = {
-        "username": "Echo Studio Logger",
+        "username": "Static Studio Logger",
         "avatar_url": "https://cdn.discordapp.com/embed/avatars/0.png",
         "embeds": [{
             "title": title,
             "color": color,
             "fields": fields,
-            "footer": {"text": "Echo Studio Logging System"},
+            "footer": {"text": "Static Studio Logging System"},
             "timestamp": datetime.now(timezone.utc).isoformat()
         }]
     }
@@ -256,7 +256,7 @@ def api_generate():
     client = genai.Client(api_key=GEMINI_API_KEY)
 
     system_instruction = (
-        "You are an expert Discord architect. Output ONLY valid JSON representing a Discord server layout."
+        "You are Kumo, an expert Discord architect for Static Studio. Output ONLY valid JSON representing a Discord server layout."
         " Required structure:\n"
         "{\n"
         '  "server_name": "String",\n'
