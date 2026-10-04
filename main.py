@@ -1,65 +1,51 @@
 import os
-import asyncio
+import threading
+from flask import Flask
 import discord
 from discord.ext import commands
 
-# Retrieve environment variable webhook URLs directly
-WEBSITE_WEBHOOK_URL = os.getenv("WEBSITE_WEBHOOK_URL", "")
-DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL", "")
+# 1. Initialize lightweight Flask app to satisfy Render's free Web Service port requirement
+app = Flask(__name__)
 
+@app.route("/")
+def health_check():
+    return "Kumo Bot is online and running!", 200
+
+def run_flask():
+    # Render assigns a dynamic port via the PORT environment variable (defaults to 10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+# 2. Initialize your Discord Bot
 intents = discord.Intents.default()
-intents.guilds = True
-intents.members = True
 intents.message_content = True
-
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-
-@bot.event
-async def setup_hook():
-    """Runs setup operations before the bot connects to Discord."""
-    try:
-        await bot.load_extension("cogs.kumo")
-        print("✅ Successfully loaded cog: cogs.kumo")
-    except Exception as e:
-        print(f"❌ Failed to load cog cogs.kumo: {e}")
-
 
 @bot.event
 async def on_ready():
-    print(f"✅ Bot is ONLINE and logged in as: {bot.user} (ID: {bot.user.id})")
-    print("--- WEBHOOK CONFIGURATION CHECK ---")
-    print(f"🔗 WEBSITE_WEBHOOK_URL: {'LOADED (' + WEBSITE_WEBHOOK_URL[:30] + '...)' if WEBSITE_WEBHOOK_URL else '❌ MISSING'}")
-    print(f"🔗 DESIGN_WEBHOOK_URL:  {'LOADED (' + DESIGN_WEBHOOK_URL[:30] + '...)' if DESIGN_WEBHOOK_URL else '❌ MISSING'}")
-    print("-----------------------------------")
+    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    print("-----------------------------------------")
 
-    try:
-        synced = await bot.tree.sync()
-        print(f"⚡ Global command sync successful: Registered {len(synced)} command(s).")
-    except Exception as e:
-        print(f"❌ Failed to sync global commands: {e}")
+@bot.command(name="ping")
+async def ping(ctx):
+    await ctx.send("Pong! Kumo bot is alive and running on Render free tier.")
 
+def main():
+    # Start the Flask web server in a separate background thread so it doesn't block the Discord bot
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    print("Started background HTTP health-check server for Render.")
 
-@bot.command(name="sync")
-@commands.is_owner()
-async def sync(ctx: commands.Context, guild_only: bool = False):
-    if guild_only:
-        bot.tree.copy_global_to(guild=ctx.guild)
-        synced = await bot.tree.sync(guild=ctx.guild)
-        await ctx.send(f"⚡ **Instantly synced** `{len(synced)}` command(s) to **{ctx.guild.name}**!")
-    else:
-        synced = await bot.tree.sync()
-        await ctx.send(f"🌐 Triggered global sync for `{len(synced)}` command(s). Badge should reappear shortly!")
-
-
-async def main():
-    token = os.getenv("DISCORD_BOT_TOKEN")
+    # Get your Discord bot token from environment variables
+    token = os.environ.get("DISCORD_BOT_TOKEN")
     if not token:
-        raise ValueError("CRITICAL: DISCORD_BOT_TOKEN environment variable is missing!")
+        print("ERROR: DISCORD_BOT_TOKEN environment variable is missing!")
+        return
 
-    async with bot:
-        await bot.start(token)
-
+    # Run the Discord bot
+    bot.run(token)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
+
