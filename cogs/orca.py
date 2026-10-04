@@ -1,4 +1,3 @@
-
 import os
 import re
 import json
@@ -13,12 +12,29 @@ class OrcaCog(commands.Cog):
 
     def slugify_channel_name(self, name: str, emoji: str = "") -> str:
         """Converts raw name input into a Discord-compliant slug (kebab-case)."""
-        clean_name = re.sub(r'[\u1f600-\u1f64f\u1f300-\u1f5ff\u1f680-\u1f6ff\u2600-\u26ff\u2700-\u27bf]', '', name or '')
+        if not name:
+            name = ""
+
+        # Safely match and remove emojis from text string
+        emoji_pattern = re.compile(
+            r'[\U00010000-\U0010ffff'
+            r'\u2600-\u27BF'
+            r'\u2300-\u23FF'
+            r'\u2B05-\u2B07'
+            r'\u2934-\u2935'
+            r'\u3297-\u3299]+',
+            flags=re.UNICODE
+        )
+        clean_name = emoji_pattern.sub('', name)
+        
         clean_name = re.sub(r'[^a-zA-Z0-9\s\-_]', '', clean_name).strip().lower()
         clean_name = re.sub(r'[\s_]+', '-', clean_name)
         
-        prefix = f"{emoji}-" if emoji else ""
+        prefix = f"{emoji.strip()}-" if emoji and not name.startswith(emoji) else ""
         formatted = f"{prefix}{clean_name}".strip("-")
+        
+        if not clean_name and emoji:
+            return emoji
         return formatted or "unnamed-channel"
 
     async def wipe_guild_infrastructure(self, guild: discord.Guild, leave_fallback_channel: bool = False):
