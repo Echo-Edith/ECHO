@@ -17,10 +17,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def setup_hook():
     """Runs setup operations before the bot connects to Discord."""
     try:
-        await bot.load_extension("cogs.orca")
-        print("✅ Successfully loaded cog: cogs.orca")
+        await bot.load_extension("cogs.kumo")
+        print("✅ Successfully loaded cog: cogs.kumo")
     except Exception as e:
-        print(f"❌ Failed to load cog cogs.orca: {e}")
+        print(f"❌ Failed to load cog cogs.kumo: {e}")
 
 
 @bot.event
