@@ -2,9 +2,11 @@ import os
 import asyncio
 import discord
 from discord.ext import commands
-from keep_alive import keep_alive, WEBSITE_WEBHOOK_URL, DESIGN_WEBHOOK_URL
 
-# Initialize Discord Bot with required intents
+# Retrieve environment variable webhook URLs directly
+WEBSITE_WEBHOOK_URL = os.getenv("WEBSITE_WEBHOOK_URL", "")
+DESIGN_WEBHOOK_URL = os.getenv("DESIGN_WEBHOOK_URL", "")
+
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
@@ -31,7 +33,6 @@ async def on_ready():
     print(f"🔗 DESIGN_WEBHOOK_URL:  {'LOADED (' + DESIGN_WEBHOOK_URL[:30] + '...)' if DESIGN_WEBHOOK_URL else '❌ MISSING'}")
     print("-----------------------------------")
 
-    # Global Sync on ready guarantees registered commands are sent to Discord's API
     try:
         synced = await bot.tree.sync()
         print(f"⚡ Global command sync successful: Registered {len(synced)} command(s).")
@@ -39,16 +40,9 @@ async def on_ready():
         print(f"❌ Failed to sync global commands: {e}")
 
 
-# --- OWNER-ONLY SYNC COMMAND ---
 @bot.command(name="sync")
 @commands.is_owner()
 async def sync(ctx: commands.Context, guild_only: bool = False):
-    """
-    Owner prefix command to sync slash commands manually.
-    Usage:
-      !sync       -> Triggers global sync (restores badge)
-      !sync true  -> Instantly copies commands to current server
-    """
     if guild_only:
         bot.tree.copy_global_to(guild=ctx.guild)
         synced = await bot.tree.sync(guild=ctx.guild)
@@ -59,10 +53,6 @@ async def sync(ctx: commands.Context, guild_only: bool = False):
 
 
 async def main():
-    # 1. Start Flask web server
-    keep_alive()
-
-    # 2. Get Discord Bot Token and start bot
     token = os.getenv("DISCORD_BOT_TOKEN")
     if not token:
         raise ValueError("CRITICAL: DISCORD_BOT_TOKEN environment variable is missing!")
