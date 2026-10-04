@@ -90,8 +90,7 @@ class KumoCog(commands.Cog):
         
         embed = discord.Embed(
             title="🌐 Echo Studio Portal",
-            description=f"Click the button below to access the dashboard:\n\n🔗 ↓
-",
+            description=f"Click the button below to access the dashboard",
             color=0x8b5cf6
         )
         embed.set_footer(text="Echo Studio Dashboard")
