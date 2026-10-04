@@ -10,6 +10,13 @@ import aiohttp
 
 
 # --- SCHEMAS ---
+class ChannelPermissionsConfig(BaseModel):
+    view: bool = Field(default=True, description="Whether users can view the channel")
+    send: bool = Field(default=True, description="Whether users can send messages in the channel")
+    embed: bool = Field(default=True, description="Whether links will embed automatically")
+    attach: bool = Field(default=True, description="Whether users can upload files/attachments")
+
+
 class RoleConfig(BaseModel):
     name: str = Field(description="Role name, e.g. Owner, Admin, VIP, or Member")
     color: str = Field(default="#8b5cf6", description="Hex color code for the role, e.g. #f1c40f")
@@ -21,6 +28,10 @@ class ChannelConfig(BaseModel):
     topic: Optional[str] = Field(default="", description="Brief channel topic/purpose")
     emoji: Optional[str] = Field(default="💬", description="Single emoji representing the channel")
     read_only: bool = Field(default=False, description="True if only admins/bots should speak (e.g. announcements/rules)")
+    permissions: Optional[ChannelPermissionsConfig] = Field(
+        default_factory=ChannelPermissionsConfig,
+        description="Fine-grained channel permissions for view, send, embed, and attach"
+    )
 
 
 class CategoryConfig(BaseModel):
@@ -54,7 +65,6 @@ def calculate_account_age(discord_id: str) -> str:
     """Calculates Discord account age in days/years from a snowflake ID."""
     try:
         snowflake = int(discord_id)
-        # Discord epoch: 2015-01-01T00:00:00Z (1420070400000 ms)
         timestamp_ms = (snowflake >> 22) + 1420070400000
         created_at = datetime.fromtimestamp(timestamp_ms / 1000.0, tz=timezone.utc)
         now = datetime.now(timezone.utc)
@@ -154,7 +164,7 @@ async def generate_server_layout(
         "3. Define default roles with realistic hex colors (e.g., Owner, Admin, Mod, VIP, Member).\n"
         "4. Keep channel names lower-case, concise, and WITHOUT emojis in the name field (e.g. 'general', 'rules').\n"
         "5. Provide a single representative emoji in the emoji field for each channel.\n"
-        "6. Mark announcement, rules, or info channels as read_only=True."
+        "6. Mark announcement, rules, or info channels as read_only=True and set send=False in permissions for read-only channels."
     )
 
     user_query = f"""
@@ -168,7 +178,6 @@ async def generate_server_layout(
     last_error = None
     successful_model = None
 
-    # Fallback Loop through Gemini Models (Primary -> Fallback 1 -> Fallback 2)
     for model_name in GEMINI_MODELS:
         try:
             print(f"Attempting generation using model: {model_name}...")
@@ -185,7 +194,7 @@ async def generate_server_layout(
 
             layout_data = json.loads(response.text)
             successful_model = model_name
-            break  # Success! Break out of the loop
+            break
 
         except Exception as e:
             last_error = e
@@ -220,6 +229,13 @@ async def generate_server_layout(
             emoji = channel.get("emoji", "💬")
             channel["name"] = clean_name
 
+            # Ensure channel permissions align with read_only state
+            if channel.get("read_only"):
+                if "permissions" not in channel or not channel["permissions"]:
+                    channel["permissions"] = {"view": True, "send": False, "embed": True, "attach": True}
+                else:
+                    channel["permissions"]["send"] = False
+
             if sep and emoji:
                 channel["formatted_name"] = f"{emoji} {sep} {clean_name}"
             elif emoji:
@@ -235,7 +251,6 @@ async def generate_server_layout(
         "model_used": successful_model
     }
 
-    # Dispatch Webhook Log on Success
     if webhook_url and user_info:
         await send_webhook_log(
             webhook_url=webhook_url,
