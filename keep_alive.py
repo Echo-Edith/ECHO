@@ -7,7 +7,11 @@ from pymongo import MongoClient
 from google import genai
 from google.genai import types
 
-app = Flask(__name__, template_folder="templates")
+# Set absolute directory paths for Vercel Serverless runtime
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
+
+app = Flask(__name__, template_folder=TEMPLATE_DIR)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-fallback")
 
 # Session cookie configuration for modern HTTPS proxies (Vercel & Render)
@@ -55,7 +59,7 @@ WEBSITE_BANS = {}
 
 def get_base_url() -> str:
     """
-    Dynamically determines the host URL (e.g., https://kumo-kumo-website.vercel.app).
+    Dynamically determines the host URL (e.g., https://kumo-server-builder.vercel.app).
     Checks DASHBOARD_URL first, then Vercel system env vars, then the request host.
     """
     dashboard = os.getenv("DASHBOARD_URL")
