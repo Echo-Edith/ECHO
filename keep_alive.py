@@ -10,6 +10,10 @@ from google.genai import types
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-fallback")
 
+# Session cookie configuration for modern HTTPS proxies (Vercel & Render)
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
 # Serverless environments (like Vercel) only allow writing to /tmp
 BLUEPRINTS_DIR = "/tmp/blueprints" if os.getenv("VERCEL") else os.path.join(os.getcwd(), "blueprints")
 os.makedirs(BLUEPRINTS_DIR, exist_ok=True)
@@ -256,6 +260,14 @@ def verify_captcha():
 
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
+    user = session.get("user")
+    if not user:
+        return jsonify({
+            "success": False,
+            "error": "Authentication required. Please log in with Discord first.",
+            "redirect": "/login"
+        }), 401
+
     data = request.get_json() or {}
     prompt = data.get("prompt", "")
     server_id = data.get("server_id", "")
@@ -316,7 +328,6 @@ def api_generate():
             continue
 
     if not layout_data:
-        user = session.get("user")
         log_webhook_event(
             webhook_url=WEBSITE_WEBHOOK_URL,
             title="⚠️ AI Blueprint Generation Failed",
@@ -336,7 +347,6 @@ def api_generate():
         "model_used": used_model
     }
 
-    user = session.get("user")
     log_webhook_event(
         webhook_url=WEBSITE_WEBHOOK_URL,
         title="⚡ AI Blueprint Generated",
@@ -351,6 +361,14 @@ def api_generate():
 
 @app.route("/api/submit-design", methods=["POST"])
 def submit_design():
+    user = session.get("user")
+    if not user:
+        return jsonify({
+            "success": False,
+            "error": "Authentication required. Please log in with Discord first.",
+            "redirect": "/login"
+        }), 401
+
     data = request.get_json() or {}
     target_server_id = data.get("target_server_id", "Not Provided")
     server_name = data.get("server_name", "Custom Server")
@@ -372,8 +390,6 @@ def submit_design():
 
     blueprint_url = f"{get_base_url()}/blueprint/{filename}"
     build_command_text = f"/build url: {blueprint_url}"
-
-    user = session.get("user")
 
     extra_fields = {
         "Server Name": server_name,
@@ -412,7 +428,6 @@ def health():
     return jsonify({"status": "alive"}), 200
 
 
-# Entry Point
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
