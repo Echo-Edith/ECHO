@@ -8,20 +8,20 @@ from discord.ext import commands
 
 # 1. Initialize Flask Web Dashboard & API
 app = Flask(__name__, template_folder="templates")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "kumo-super-secret-key-change-me")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "kumo-super-secret-key-change-me").strip()
 
 # Session cookie configuration for modern HTTPS proxies (Vercel & Render)
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
-# OAuth2 Environment Variables
-DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
-DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET")
+# OAuth2 Environment Variables (Cleaned of whitespace/newlines)
+DISCORD_CLIENT_ID = (os.environ.get("DISCORD_CLIENT_ID") or "").strip()
+DISCORD_CLIENT_SECRET = (os.environ.get("DISCORD_CLIENT_SECRET") or "").strip()
 
 # Helper to dynamically get Redirect URI if not explicitly set in env
 def get_redirect_uri():
     configured_uri = os.environ.get("DISCORD_REDIRECT_URI")
-    if configured_uri:
+    if configured_uri and configured_uri.strip():
         return configured_uri.strip()
     
     # Auto-detect host URL enforcing HTTPS for proxies like Vercel and Render
@@ -32,7 +32,6 @@ def get_redirect_uri():
 @app.route("/")
 def index():
     user = session.get("user")
-    # Tries to render templates/index.html if present, else simple status response
     try:
         return render_template("index.html", user=user)
     except Exception:
@@ -40,7 +39,28 @@ def index():
             return f"Logged in as {user.get('username')}! Dashboard is operational.", 200
         return "Kumo Web Dashboard is running! Please <a href='/login'>Log in with Discord</a> to access features.", 200
 
-# 2. Discord OAuth2 Login Endpoint
+# 2. OAuth Debug Endpoint to inspect exact URLs being used
+@app.route("/debug-oauth")
+def debug_oauth():
+    redirect_uri = get_redirect_uri()
+    encoded_redirect = quote(redirect_uri, safe="")
+    auth_url = (
+        f"https://discord.com/api/oauth2/authorize"
+        f"?client_id={DISCORD_CLIENT_ID}"
+        f"&redirect_uri={encoded_redirect}"
+        f"&response_type=code"
+        f"&scope=identify"
+    )
+    return jsonify({
+        "client_id": DISCORD_CLIENT_ID,
+        "redirect_uri_being_sent": redirect_uri,
+        "encoded_redirect_uri": encoded_redirect,
+        "full_discord_auth_url": auth_url,
+        "env_discord_redirect_uri": os.environ.get("DISCORD_REDIRECT_URI"),
+        "has_client_secret": bool(DISCORD_CLIENT_SECRET)
+    })
+
+# 3. Discord OAuth2 Login Endpoint
 @app.route("/login")
 def login():
     if not DISCORD_CLIENT_ID:
@@ -49,7 +69,6 @@ def login():
     redirect_uri = get_redirect_uri()
     encoded_redirect_uri = quote(redirect_uri, safe="")
     
-    # Properly formatted Discord OAuth2 authorization URL
     discord_auth_url = (
         f"https://discord.com/api/oauth2/authorize"
         f"?client_id={DISCORD_CLIENT_ID}"
@@ -59,7 +78,7 @@ def login():
     )
     return redirect(discord_auth_url)
 
-# 3. Discord OAuth2 Callback Endpoint
+# 4. Discord OAuth2 Callback Endpoint
 @app.route("/callback")
 def callback():
     code = request.args.get("code")
@@ -104,13 +123,13 @@ def callback():
 
     return redirect(url_for("index"))
 
-# 4. Logout Endpoint
+# 5. Logout Endpoint
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     return redirect(url_for("index"))
 
-# 5. User API status check endpoint
+# 6. User API status check endpoint
 @app.route("/api/user")
 def api_user():
     user = session.get("user")
@@ -118,11 +137,10 @@ def api_user():
         return jsonify({"authenticated": True, "user": user})
     return jsonify({"authenticated": False, "user": None})
 
-# 6. Protected Layout Generation Endpoint
+# 7. Protected Layout Generation Endpoint
 @app.route("/generate", methods=["POST"])
 @app.route("/api/generate", methods=["POST"])
 def generate_layout():
-    # Enforce strict Discord login check
     user = session.get("user")
     if not user:
         return jsonify({
@@ -131,11 +149,9 @@ def generate_layout():
             "redirect": "/login"
         }), 401
 
-    # Processing request for authenticated users
     data = request.get_json(silent=True) or {}
     prompt = data.get("prompt", "")
 
-    # Check if ai_brain module is available
     try:
         import ai_brain
         result = ai_brain.generate_layout(prompt) if hasattr(ai_brain, "generate_layout") else "Layout generated successfully."
@@ -152,7 +168,7 @@ def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
-# 7. Initialize Discord Bot
+# 8. Initialize Discord Bot (For Render / persistent bot runner)
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -162,7 +178,6 @@ async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("-----------------------------------------")
     
-    # Load cogs
     try:
         if not "cogs.kumo" in bot.extensions:
             await bot.load_extension("cogs.kumo")
@@ -170,7 +185,6 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to load cogs.kumo: {e}")
 
-    # Sync slash commands globally
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} slash command(s).")
@@ -178,7 +192,6 @@ async def on_ready():
         print(f"Failed to sync slash commands: {e}")
 
 def main():
-    # Start web server thread
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.daemon = True
     flask_thread.start()
