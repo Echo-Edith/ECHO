@@ -14,20 +14,39 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "kumo-super-secret-key-chang
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
-# OAuth2 Environment Variables (Cleaned of whitespace/newlines)
+# OAuth2 Environment Variables
 DISCORD_CLIENT_ID = (os.environ.get("DISCORD_CLIENT_ID") or "").strip()
 DISCORD_CLIENT_SECRET = (os.environ.get("DISCORD_CLIENT_SECRET") or "").strip()
 
-# Helper to dynamically get Redirect URI if not explicitly set in env
-def get_redirect_uri():
-    configured_uri = os.environ.get("DISCORD_REDIRECT_URI")
-    if configured_uri and configured_uri.strip():
-        return configured_uri.strip()
-    
-    # Auto-detect host URL enforcing HTTPS for proxies like Vercel and Render
-    forwarded_proto = request.headers.get("X-Forwarded-Proto", "https")
-    host_url = f"{forwarded_proto}://{request.host}"
-    return f"{host_url.rstrip('/')}/callback"
+
+def get_base_url() -> str:
+    """
+    Determines the current host base URL dynamically.
+    Checks DISCORD_REDIRECT_URI / DASHBOARD_URL first, then VERCEL_URL, and falls back to request.host.
+    """
+    dashboard = os.environ.get("DASHBOARD_URL") or os.environ.get("DISCORD_REDIRECT_URI")
+    if dashboard and "your-vercel-domain" not in dashboard:
+        if dashboard.endswith("/callback"):
+            return dashboard[:-9].rstrip("/")
+        return dashboard.rstrip("/")
+
+    vercel_url = os.environ.get("VERCEL_URL")
+    if vercel_url:
+        return f"https://{vercel_url.rstrip('/')}"
+
+    if request and request.host:
+        proto = request.headers.get("X-Forwarded-Proto", "https")
+        return f"{proto}://{request.host}".rstrip("/")
+
+    return "http://localhost:5000"
+
+
+def get_redirect_uri() -> str:
+    configured = os.environ.get("DISCORD_REDIRECT_URI")
+    if configured and configured.strip():
+        return configured.strip()
+    return f"{get_base_url()}/callback"
+
 
 @app.route("/")
 def index():
@@ -39,6 +58,7 @@ def index():
             return f"Logged in as {user.get('username')}! Dashboard is operational.", 200
         return "Kumo Web Dashboard is running! Please <a href='/login'>Log in with Discord</a> to access features.", 200
 
+
 # 2. OAuth Debug Endpoint to inspect exact URLs being used
 @app.route("/debug-oauth")
 def debug_oauth():
@@ -49,7 +69,7 @@ def debug_oauth():
         f"?client_id={DISCORD_CLIENT_ID}"
         f"&redirect_uri={encoded_redirect}"
         f"&response_type=code"
-        f"&scope=identify"
+        f"&scope=identify%20email"
     )
     return jsonify({
         "client_id": DISCORD_CLIENT_ID,
@@ -60,23 +80,25 @@ def debug_oauth():
         "has_client_secret": bool(DISCORD_CLIENT_SECRET)
     })
 
+
 # 3. Discord OAuth2 Login Endpoint
 @app.route("/login")
 def login():
     if not DISCORD_CLIENT_ID:
         return "Error: DISCORD_CLIENT_ID is not configured in Environment Variables.", 500
-    
+
     redirect_uri = get_redirect_uri()
     encoded_redirect_uri = quote(redirect_uri, safe="")
-    
+
     discord_auth_url = (
         f"https://discord.com/api/oauth2/authorize"
         f"?client_id={DISCORD_CLIENT_ID}"
         f"&redirect_uri={encoded_redirect_uri}"
         f"&response_type=code"
-        f"&scope=identify"
+        f"&scope=identify%20email"
     )
     return redirect(discord_auth_url)
+
 
 # 4. Discord OAuth2 Callback Endpoint
 @app.route("/callback")
@@ -104,7 +126,7 @@ def callback():
     access_token = token_json.get("access_token")
 
     if not access_token:
-        return f"Failed to authenticate with Discord: {token_json.get('error_description', 'Unknown error')}", 400
+        return f"Failed to authenticate with Discord: {token_json.get('error_description', token_response.text)}", 400
 
     # Fetch user details
     user_response = requests.get(
@@ -113,21 +135,31 @@ def callback():
     )
     user_json = user_response.json()
 
+    avatar_hash = user_json.get("avatar")
+    avatar_url = (
+        f"https://cdn.discordapp.com/avatars/{user_json.get('id')}/{avatar_hash}.png"
+        if avatar_hash
+        else "https://cdn.discordapp.com/embed/avatars/0.png"
+    )
+
     # Save user into session
     session["user"] = {
         "id": user_json.get("id"),
         "username": user_json.get("username"),
+        "discriminator": user_json.get("discriminator", "0"),
         "global_name": user_json.get("global_name") or user_json.get("username"),
-        "avatar": user_json.get("avatar"),
+        "avatar": avatar_url,
     }
 
     return redirect(url_for("index"))
+
 
 # 5. Logout Endpoint
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     return redirect(url_for("index"))
+
 
 # 6. User API status check endpoint
 @app.route("/api/user")
@@ -136,6 +168,7 @@ def api_user():
     if user:
         return jsonify({"authenticated": True, "user": user})
     return jsonify({"authenticated": False, "user": None})
+
 
 # 7. Protected Layout Generation Endpoint
 @app.route("/generate", methods=["POST"])
@@ -164,22 +197,30 @@ def generate_layout():
         "layout": result
     })
 
+
+@app.route("/health")
+def health():
+    return jsonify({"status": "alive"}), 200
+
+
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 # 8. Initialize Discord Bot (For Render / persistent bot runner)
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("-----------------------------------------")
-    
+
     try:
-        if not "cogs.kumo" in bot.extensions:
+        if "cogs.kumo" not in bot.extensions:
             await bot.load_extension("cogs.kumo")
             print("Successfully loaded cog: cogs.kumo")
     except Exception as e:
@@ -190,6 +231,7 @@ async def on_ready():
         print(f"Synced {len(synced)} slash command(s).")
     except Exception as e:
         print(f"Failed to sync slash commands: {e}")
+
 
 def main():
     flask_thread = threading.Thread(target=run_flask)
@@ -203,6 +245,7 @@ def main():
         return
 
     bot.run(token)
+
 
 if __name__ == "__main__":
     main()
