@@ -16,8 +16,6 @@ os.makedirs(BLUEPRINTS_DIR, exist_ok=True)
 
 CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
-DASHBOARD_URL = os.getenv("DASHBOARD_URL", "https://your-vercel-domain.vercel.app")
-REDIRECT_URI = f"{DASHBOARD_URL.rstrip('/')}/callback"
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
 
@@ -49,6 +47,29 @@ if MONGO_URI:
         print(f"[MongoDB Warning] Could not connect to Mongo: {e}")
 
 WEBSITE_BANS = {}
+
+
+def get_base_url() -> str:
+    """
+    Dynamically determines the host URL (e.g., https://kumo-kumo-website.vercel.app).
+    Checks DASHBOARD_URL first, then Vercel system env vars, then the request host.
+    """
+    dashboard = os.getenv("DASHBOARD_URL")
+    if dashboard and "your-vercel-domain" not in dashboard:
+        return dashboard.rstrip("/")
+    
+    vercel_url = os.getenv("VERCEL_URL")
+    if vercel_url:
+        return f"https://{vercel_url.rstrip('/')}"
+    
+    if request and request.host_url:
+        return request.host_url.rstrip("/")
+        
+    return "http://localhost:5000"
+
+
+def get_redirect_uri() -> str:
+    return f"{get_base_url()}/callback"
 
 
 def calculate_account_age(discord_id: str) -> str:
@@ -157,10 +178,11 @@ def home():
 
 @app.route("/login")
 def login():
+    redirect_uri = get_redirect_uri()
     discord_auth_url = (
         f"{DISCORD_API_BASE_URL}/oauth2/authorize"
         f"?client_id={CLIENT_ID}"
-        f"&redirect_uri={requests.utils.quote(REDIRECT_URI)}"
+        f"&redirect_uri={requests.utils.quote(redirect_uri)}"
         f"&response_type=code"
         f"&scope=identify%20email"
     )
@@ -173,18 +195,20 @@ def callback():
     if not code:
         return redirect("/")
 
+    redirect_uri = get_redirect_uri()
+
     data = {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": redirect_uri,
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     
     token_response = requests.post(f"{DISCORD_API_BASE_URL}/oauth2/token", data=data, headers=headers)
     if token_response.status_code != 200:
-        return f"OAuth Error: {token_response.text}", 400
+        return f"OAuth Error ({token_response.status_code}): {token_response.text}", 400
 
     tokens = token_response.json()
     access_token = tokens.get("access_token")
@@ -346,7 +370,7 @@ def submit_design():
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(blueprint_content, f, indent=2)
 
-    blueprint_url = f"{DASHBOARD_URL.rstrip('/')}/blueprint/{filename}"
+    blueprint_url = f"{get_base_url()}/blueprint/{filename}"
     build_command_text = f"/build url: {blueprint_url}"
 
     user = session.get("user")
@@ -387,7 +411,9 @@ def logout():
 def health():
     return jsonify({"status": "alive"}), 200
 
-# Serverless Entry Point for Vercel
+
+# Entry Point
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
